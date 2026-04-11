@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>百日萬骸祭</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & Root ──────────────────────────────────────────── */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+  --bg:        #080604;
+  --panel:     #0f0c09;
+  --raised:    #181410;
+  --border:    #3a2a18;
+  --border-hi: #5a4028;
+  --text:      #c8b898;
+  --text-dim:  #6a5a48;
+  --text-hi:   #e8d8b0;
+  --gold:      #b8960c;
+  --gold-lt:   #d4af37;
+  --blood:     #8b0000;
+  --blood-lt:  #c0392b;
+  --bar-hp:    #cc2200;
+  --bar-sta:   #cc7700;
+  --bar-food:  #1e7a3a;
+  --bar-mood:  #2255aa;
+  --font: 'Noto Serif TC', 'Georgia', serif;
+}
+
+html, body {
+  width:100%; height:100%; overflow:hidden;
+  background:var(--bg);
+  font-family: var(--font);
+  color: var(--text);
+  font-size: 26px;
+  user-select: none;
+}
+
+/* ── Main layout: 3 columns ────────────────────────────────── */
+#game-root {
+  display: grid;
+  grid-template-columns: 210px 1fr 340px;
+  grid-template-rows: 100vh;
+  width: 100%; height: 100%;
+  gap: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   LEFT PANEL
+════════════════════════════════════════════════════════════ */
+#panel-left {
+  background: var(--panel);
+  border-right: 2px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#player-name-box {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--raised);
+  min-height: 40px;
+}
+#player-name-box .label { font-size:20px; color:var(--text-dim); letter-spacing:.15em; }
+#player-name-display {
+  font-size: 30px; font-weight:700;
+  color: var(--gold-lt);
+  letter-spacing: .12em;
+  margin-top: 2px;
+}
+
+#scene-buttons {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+/* Scene button */
+.sbtn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  width: 100%;
+  height: 72px;
+  padding: 8px 10px;
+  background: var(--panel);
+  border: none;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid transparent;
+  color: var(--text);
+  cursor: pointer;
+  overflow: hidden;
+  text-align: left;
+  transition: background .2s, border-color .2s;
+}
+.sbtn:hover:not(.locked) {
+  background: var(--raised);
+  border-color: var(--border-hi);
+}
+.sbtn.active {
+  background: #1e0a00;
+  border-left: 3px solid var(--blood-lt);
+  border-top-color: var(--blood);
+}
+.sbtn.active .sbtn-name { color: #e8a070; }
+.sbtn.locked {
+  opacity: .35;
+  cursor: not-allowed;
+}
+.sbtn-bg-char {
+  position: absolute;
+  right: 4px; bottom: -4px;
+  font-size: 73px;
+  font-weight: 900;
+  color: rgba(255,255,255,.05);
+  line-height: 1;
+  pointer-events: none;
+}
+.sbtn-name {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  position: relative;
+  z-index: 1;
+}
+.sbtn-lock-icon {
+  position: absolute;
+  top: 6px; right: 8px;
+  font-size: 20px;
+  color: var(--text-dim);
+}
+.sbtn.locked .sbtn-lock-icon { display:block; }
+.sbtn:not(.locked) .sbtn-lock-icon { display:none; }
+
+/* ═══════════════════════════════════════════════════════════
+   CENTER PANEL
+════════════════════════════════════════════════════════════ */
+#panel-center {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 2px solid var(--border);
+}
+
+/* ── Time bar ── */
+#time-bar-wrap {
+  background: var(--raised);
+  border-bottom: 1px solid var(--border);
+  padding: 6px 10px 5px;
+  flex-shrink: 0;
+}
+#time-bar-track {
+  position: relative;
+  height: 36px;
+  background: #0a0704;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  overflow: visible;
+}
+/* ── Celestial body (sun / moon) ── */
+#time-celestial {
+  position: absolute;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  top: 50%; left: 33%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  transition: left .6s ease, background .9s ease, box-shadow .9s ease;
+  pointer-events: none;
+}
+#time-celestial.sun {
+  background: radial-gradient(circle, #ffe87a 30%, #ffb700 100%);
+  box-shadow: 0 0 10px #ffb700, 0 0 26px rgba(255,183,0,.45);
+}
+#time-celestial.moon {
+  background: radial-gradient(circle, #ddeeff 30%, #8fb8dd 100%);
+  box-shadow: 0 0 8px #8fb8dd, 0 0 20px rgba(143,184,221,.35);
+}
+#time-bar-fill {
+  position: absolute;
+  inset: 0;
+  width: 33%;
+  background: linear-gradient(90deg, #3d0000 0%, #7a2000 60%, #b84000 100%);
+  transition: width .6s ease;
+}
+#time-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: .2em;
+  color: var(--text-hi);
+  text-shadow: 0 1px 4px #000;
+  z-index: 1;
+}
+
+/* ── 百日條 Timeline bar ── */
+#hdb-wrap {
+  flex-shrink: 0;
+  height: 58px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  position: relative;
+  overflow: hidden;
+}
+#hdb-view {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+#hdb-inner {
+  position: absolute;
+  top: 0; bottom: 0;
+  /* width = 100 days × 14px set by JS */
+  transition: transform .5s ease;
+}
+/* track line */
+#hdb-track-line {
+  position: absolute;
+  bottom: 10px; left: 0; right: 0;
+  height: 4px;
+  background: #1a1408;
+  border-top: 1px solid #2a1e10;
+  border-bottom: 1px solid #2a1e10;
+}
+/* past fill */
+#hdb-past-fill {
+  position: absolute;
+  bottom: 10px; left: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #5a1a00, #3a1000);
+  transition: width .5s ease;
+}
+/* day ticks */
+.hdb-tick {
+  position: absolute;
+  bottom: 10px;
+  width: 1px;
+  height: 8px;
+  background: #2a1e10;
+  transform: translateX(-50%);
+}
+.hdb-tick.hdb-tick-5 {
+  height: 12px;
+  background: #3a2a18;
+  bottom: 8px;
+}
+/* event markers */
+.hdb-event {
+  position: absolute;
+  bottom: 16px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  cursor: default;
+}
+.hdb-event-icon {
+  font-size: 14px;
+  line-height: 1;
+  filter: drop-shadow(0 0 4px currentColor);
+}
+.hdb-event-name {
+  font-size: 9px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  letter-spacing: .05em;
+}
+.hdb-event:hover .hdb-event-name { color: var(--text); }
+
+/* today marker — fixed in center of view */
+#hdb-today-marker {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 26px;
+  background: var(--blood-lt);
+  box-shadow: 0 0 6px var(--blood-lt);
+  z-index: 5;
+  pointer-events: none;
+}
+#hdb-today-icon {
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 14px;
+  z-index: 5;
+  pointer-events: none;
+  color: var(--blood-lt);
+  filter: drop-shadow(0 0 4px var(--blood-lt));
+  white-space: nowrap;
+  text-align: center;
+}
+
+/* ── Scene info bar ── */
+#scene-info-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  flex-shrink: 0;
+  min-height: 30px;
+}
+#scene-name {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--gold-lt);
+  letter-spacing: .1em;
+  white-space: nowrap;
+}
+.info-sep { color: var(--border-hi); padding: 0 2px; }
+#fame-bar-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.fame-label { font-size:20px; color:var(--text-dim); white-space:nowrap; letter-spacing:.08em; }
+#fame-bar-track {
+  flex: 1;
+  height: 7px;
+  background: #150000;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+#fame-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--blood), var(--blood-lt));
+  transition: width .5s ease;
+}
+#fame-val { font-size:22px; color:#cc5555; min-width:24px; text-align:right; }
+
+/* ── Scene view ── */
+#scene-view {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: #0a0804;
+}
+
+/* Watermark */
+#scene-watermark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(67px, 11vw, 126px);
+  font-weight: 900;
+  color: rgba(255,255,255,.025);
+  pointer-events: none;
+  letter-spacing: .15em;
+  z-index: 0;
+}
+
+/* NPC area */
+#npc-area {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 14px 16px 10px;
+  gap: 10px;
+}
+
+.npc-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  width: 100%;
+}
+
+.npc-slot {
+  flex: 1;
+  max-width: 140px;
+  height: 58px;
+  background: rgba(0,0,0,.5);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+  transition: background .2s, border-color .2s;
+  overflow: hidden;
+  padding: 4px;
+}
+.npc-slot.occupied {
+  border-color: var(--border-hi);
+  cursor: pointer;
+  background: rgba(10,6,2,.7);
+}
+.npc-slot.occupied:hover { background: rgba(30,14,4,.85); border-color: #8a6040; }
+.npc-slot.empty { opacity: .3; }
+.npc-name { font-size:24px; font-weight:700; color:var(--text-hi); letter-spacing:.05em; }
+.npc-role-tag {
+  font-size:18px; letter-spacing:.1em;
+  color: var(--text-dim);
+  background: rgba(0,0,0,.4);
+  padding: 1px 5px;
+  border-radius: 2px;
+  margin-bottom: 2px;
+}
+.aud-tag { color:#6688cc; }
+.npc-empty-label { color:var(--border); font-size:28px; }
+
+.audience-row-label {
+  font-size: 20px;
+  color: var(--text-dim);
+  letter-spacing: .15em;
+  align-self: flex-start;
+  padding-left: 4px;
+  margin-top: 2px;
+}
+
+/* ── Log area ── */
+#log-area {
+  height: 270px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+  background: rgba(5,3,2,.9);
+  display: flex;
+  flex-direction: column;
+}
+#log-header {
+  padding: 4px 10px 2px;
+  font-size: 20px;
+  letter-spacing: .2em;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+#log-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 12px;
+  font-size: 19px;
+  line-height: 1.7;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+#log-content p { margin-bottom: 6px; }
+
+/* ═══════════════════════════════════════════════════════════
+   RIGHT PANEL
+════════════════════════════════════════════════════════════ */
+#panel-right {
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.rpanel-section {
+  border-bottom: 1px solid var(--border);
+  padding: 10px 12px;
+}
+
+/* ── Vital bars ── */
+.vital-bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 7px;
+}
+.vital-bar:last-child { margin-bottom: 0; }
+.vital-label {
+  width: 62px;
+  font-size: 17px;
+  color: var(--text-dim);
+  letter-spacing: .05em;
+  text-align: right;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.bar-track {
+  flex: 1;
+  height: 18px;
+  background: #0a0806;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  width: 50%;
+  transition: width .4s ease;
+}
+.bar-num {
+  width: 70px;
+  font-size: 15px;
+  color: var(--text-dim);
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ── Attributes ── */
+#attributes-section h3 {
+  font-size:20px; letter-spacing:.2em; color:var(--text-dim);
+  margin-bottom:8px;
+}
+#attributes-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 8px;
+}
+.attr-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.attr-name { font-size:22px; color:var(--text-dim); }
+.attr-val  { font-size:26px; font-weight:700; color:var(--gold-lt); min-width:24px; text-align:right; }
+
+/* ── Derived stats ── */
+#derived-section h3 {
+  font-size:20px; letter-spacing:.2em; color:var(--text-dim);
+  margin-bottom:8px;
+}
+#derived-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+.derived-item {
+  background: var(--raised);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 3px 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.derived-name { font-size: 18px; color:var(--text-dim); letter-spacing:.05em; }
+.derived-val  { font-size: 24px; font-weight:700; color:var(--text-hi); }
+
+/* ── Action buttons ── */
+#action-buttons {
+  padding: 10px 12px;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  margin-top: auto;
+}
+.game-btn {
+  flex: 1;
+  padding: 8px 4px;
+  background: var(--raised);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 24px;
+  letter-spacing: .12em;
+  cursor: pointer;
+  transition: background .2s, border-color .2s, color .2s;
+}
+.game-btn:hover {
+  background: #2a1810;
+  border-color: var(--blood);
+  color: var(--text-hi);
+}
+.game-btn.primary { border-color: var(--blood); color: #e88060; }
+
+/* ── Day counter (bottom left) ── */
+#day-counter {
+  padding: 8px 12px;
+  font-size: 20px;
+  letter-spacing: .18em;
+  color: #5a3020;
+  text-align: center;
+  border-top: 1px solid var(--border);
+  margin-top: auto;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SCENE BACKGROUNDS
+════════════════════════════════════════════════════════════ */
+.bg-dirty-cell   { background: radial-gradient(ellipse 70% 80% at 50% 90%, #1a1525 0%, #0e0c16 40%, #080610 100%); }
+.bg-basic-room   { background: radial-gradient(ellipse 80% 70% at 50% 50%, #1a1410 0%, #100e08 50%, #080604 100%); }
+.bg-luxury-room  { background: radial-gradient(ellipse 60% 50% at 50% 20%, #2a1800 0%, #1c1000 50%, #0a0600 100%); }
+.bg-old-training { background: radial-gradient(ellipse 100% 60% at 50% 100%, #2a1e08 0%, #180e04 50%, #080604 100%); }
+.bg-std-training { background: radial-gradient(ellipse 100% 60% at 50% 100%, #30200a 0%, #1e1206 50%, #080604 100%); }
+.bg-officer-room { background: radial-gradient(ellipse 60% 70% at 30% 50%, #181820 0%, #100e14 50%, #080608 100%); }
+.bg-forge        { background: radial-gradient(ellipse 50% 80% at 25% 80%, #3d1400 0%, #200a00 40%, #080400 100%); }
+.bg-kitchen      { background: radial-gradient(ellipse 60% 70% at 40% 70%, #2a1400 0%, #180c00 50%, #080500 100%); }
+.bg-master-room  { background: radial-gradient(ellipse 70% 60% at 50% 30%, #3d1a00 0%, #220e00 45%, #0a0500 100%); }
+.bg-market       { background: radial-gradient(ellipse 90% 60% at 50% 60%, #2a1e08 0%, #1c1204 50%, #080600 100%); }
+.bg-city-exit    { background: radial-gradient(ellipse 100% 50% at 50% 100%, #1a2008 0%, #0e1404 50%, #060804 100%); }
+
+/* Ambient overlays */
+.ambient-damp::after {
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background: repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(100,120,180,.02) 40px, rgba(100,120,180,.02) 41px);
+}
+.ambient-fire::after {
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background: radial-gradient(ellipse 30% 40% at 20% 85%, rgba(200,80,0,.18) 0%, transparent 70%);
+  animation: flicker-bg 3s ease-in-out infinite;
+}
+.ambient-warm::after {
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background: radial-gradient(ellipse 50% 40% at 50% 90%, rgba(180,80,0,.1) 0%, transparent 70%);
+}
+.ambient-luxury::after {
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background: radial-gradient(ellipse 60% 50% at 50% 20%, rgba(180,120,0,.12) 0%, transparent 70%);
+}
+@keyframes flicker-bg {
+  0%,100%{opacity:1} 48%{opacity:1} 50%{opacity:.6} 52%{opacity:1} 88%{opacity:1} 90%{opacity:.7} 92%{opacity:1}
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MODALS
+════════════════════════════════════════════════════════════ */
+.modal-overlay {
+  position: fixed; inset:0; z-index:100;
+  background: rgba(0,0,0,.82);
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+
+.modal-box {
+  background: #100c08;
+  border: 1px solid var(--border-hi);
+  min-width: 320px;
+  max-width: 620px;
+  width: 90vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 40px rgba(0,0,0,.8);
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--raised);
+}
+.modal-title {
+  font-size: 28px; font-weight:700;
+  color: var(--gold-lt); letter-spacing:.15em;
+}
+.modal-close {
+  background: none; border: none;
+  color: var(--text-dim); font-size: 36px;
+  cursor: pointer; line-height:1; padding:0 4px;
+}
+.modal-close:hover { color: var(--blood-lt); }
+.modal-body {
+  flex:1; overflow-y:auto; padding:16px;
+  font-size: 26px; line-height: 1.7;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.modal-footer {
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ── Name entry modal ── */
+#modal-name .modal-box { max-width: 360px; }
+#name-input {
+  width: 100%; padding: 8px 10px;
+  background: #0a0806;
+  border: 1px solid var(--border-hi);
+  color: var(--text-hi);
+  font-family: var(--font);
+  font-size: 32px;
+  letter-spacing: .15em;
+  text-align: center;
+  outline: none;
+  margin: 8px 0 4px;
+}
+#name-input:focus { border-color: var(--blood-lt); }
+.name-hint { font-size:22px; color:var(--text-dim); text-align:center; }
+
+/* ── Settings modal ── */
+.setting-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.setting-label {
+  width: 56px; flex-shrink:0;
+  font-size: 24px; color:var(--text-dim);
+}
+.vol-group { display:flex; gap:4px; }
+.vol-btn {
+  padding: 4px 12px;
+  background: var(--raised);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-family: var(--font); font-size:24px;
+  cursor: pointer;
+  transition: background .2s, border-color .2s, color .2s;
+}
+.vol-btn:hover { border-color: var(--blood); color: var(--text); }
+.vol-btn.active { background:#2a0a00; border-color:var(--blood-lt); color:#e88060; }
+
+/* ── Detail modal ── */
+.detail-grid { display:flex; flex-direction:column; gap:16px; }
+.detail-section h3 {
+  font-size:22px; letter-spacing:.2em; color:var(--text-dim);
+  border-bottom:1px solid var(--border); padding-bottom:4px; margin-bottom:8px;
+}
+.detail-table { width:100%; border-collapse:collapse; font-size:24px; }
+.detail-table td { padding: 4px 8px; border:1px solid var(--border); }
+.detail-table td:nth-child(even) { color:var(--gold-lt); text-align:right; }
+
+/* ── Toast ── */
+#toast {
+  position: fixed;
+  bottom: 20px; left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: rgba(10,6,2,.95);
+  border: 1px solid var(--border-hi);
+  color: var(--text);
+  font-size: 24px; line-height:1.6;
+  padding: 8px 16px;
+  max-width: 500px;
+  text-align: center;
+  opacity: 0;
+  transition: opacity .3s, transform .3s;
+  z-index: 200;
+  pointer-events: none;
+}
+#toast.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CHARACTER SHEET (詳細)
+════════════════════════════════════════════════════════════ */
+#modal-detail { align-items: stretch; justify-content: stretch; padding: 0; }
+
+#char-sheet {
+  width: 100%; height: 100%;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Header ── */
+#cs-header {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 14px 24px;
+  background: var(--panel);
+  border-bottom: 2px solid var(--border);
+  flex-shrink: 0;
+}
+#cs-name {
+  font-size: 26px; font-weight: 900;
+  color: var(--gold-lt); letter-spacing: .15em;
+}
+#cs-subtitle { font-size: 13px; color: var(--text-dim); letter-spacing: .15em; margin-top: 2px; }
+
+#cs-fame-block {
+  display: flex; flex-direction: column; gap: 4px; min-width: 160px;
+}
+#cs-fame-block .cs-sec-label { font-size: 11px; color: var(--text-dim); letter-spacing: .15em; }
+#cs-fame-val { font-size: 20px; font-weight: 700; color: #cc5555; }
+#cs-fame-bar-track {
+  height: 6px; background: #150000; border: 1px solid var(--border); border-radius: 2px; overflow: hidden;
+}
+#cs-fame-bar-fill {
+  height: 100%; width: 0%; background: linear-gradient(90deg, var(--blood), var(--blood-lt));
+  transition: width .4s ease;
+}
+
+/* ── Body ── */
+#cs-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 260px 1fr 280px;
+  overflow: hidden;
+}
+
+.cs-col {
+  overflow-y: auto;
+  padding: 18px 18px 24px;
+  border-right: 1px solid var(--border);
+  scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+}
+.cs-col:last-child { border-right: none; }
+
+/* ── Section title ── */
+.cs-section-title {
+  font-size: 11px; letter-spacing: .25em;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 5px; margin-bottom: 10px;
+  margin-top: 4px;
+}
+.cs-divider { height: 1px; background: var(--border); margin: 16px 0 12px; }
+
+/* ── Vital bars ── */
+.cs-vital-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 9px;
+}
+.cs-vital-label { width: 52px; font-size: 13px; color: var(--text-dim); text-align: right; flex-shrink: 0; white-space: nowrap; }
+.cs-bar-track { flex: 1; height: 11px; background: #0a0806; border: 1px solid var(--border); border-radius: 2px; overflow: hidden; }
+.cs-bar-fill  { height: 100%; width: 50%; transition: width .4s ease; }
+.cs-vital-num { width: 56px; font-size: 12px; color: var(--text-dim); text-align: right; flex-shrink: 0; }
+
+/* ── Equipment ── */
+.cs-equip-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #1a1410; }
+.cs-equip-slot { font-size: 12px; color: var(--text-dim); }
+.cs-equip-val  { font-size: 13px; color: var(--text-hi); font-weight: 700; }
+
+/* ── Affection bars ── */
+.cs-aff-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.cs-aff-name { width: 72px; font-size: 12px; color: var(--text-dim); flex-shrink: 0; }
+.cs-aff-bar-track { flex: 1; height: 7px; background: #0a0806; border: 1px solid var(--border); border-radius: 2px; overflow: hidden; }
+.cs-aff-bar-fill  { height: 100%; width: 0%; background: linear-gradient(90deg, #3a1a5a, #8855cc); transition: width .4s ease; }
+.cs-aff-num { width: 24px; font-size: 11px; color: var(--text-dim); text-align: right; flex-shrink: 0; }
+
+/* ── Center: six attribute cards ── */
+.cs-col-center { padding: 18px 24px 24px; }
+#cs-hexgrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 4px;
+}
+.cs-attr-card {
+  background: var(--raised);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 2px;
+  transition: border-color .2s, background .2s;
+}
+.cs-attr-card:hover { border-color: var(--border-hi); background: #1e1810; }
+.cs-attr-name { font-size: 13px; color: var(--text-dim); }
+.cs-attr-key  { font-size: 11px; letter-spacing: .15em; color: var(--text-dim); opacity: .6; }
+.cs-attr-val  { font-size: 34px; font-weight: 900; color: var(--gold-lt); line-height: 1.1; margin: 4px 0; }
+.cs-attr-desc { font-size: 11px; color: var(--text-dim); opacity: .7; line-height: 1.5; }
+
+/* ── Right: derived stats ── */
+.cs-drv-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+}
+.cs-drv-label { width: 88px; font-size: 12px; color: var(--text-dim); flex-shrink: 0; }
+.cs-drv-bar-track { flex: 1; height: 8px; background: #0a0806; border: 1px solid var(--border); border-radius: 2px; overflow: hidden; }
+.cs-drv-bar-fill  { height: 100%; width: 30%; background: linear-gradient(90deg, #3d1500, var(--blood-lt)); transition: width .4s ease; }
+.cs-drv-num { width: 44px; font-size: 13px; font-weight: 700; color: var(--text-hi); text-align: right; flex-shrink: 0; }
+
+/* ── Skills ── */
+.cs-skill-empty { font-size: 12px; color: var(--text-dim); font-style: italic; padding: 6px 0; }
+.cs-skill-item {
+  border: 1px solid var(--border); border-radius: 2px;
+  padding: 8px 10px; margin-bottom: 7px;
+  background: var(--raised);
+}
+.cs-skill-name { font-size: 14px; font-weight: 700; color: var(--text-hi); margin-bottom: 2px; }
+.cs-skill-type { font-size: 10px; letter-spacing: .1em; color: var(--text-dim); margin-bottom: 4px; }
+.cs-skill-desc { font-size: 12px; color: var(--text-dim); line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<div id="game-root">
+
+  <!-- ══ LEFT PANEL ══════════════════════════════════════ -->
+  <div id="panel-left">
+
+    <!-- Player name -->
+    <div id="player-name-box">
+      <div class="label">角鬥士</div>
+      <div id="player-name-display">無名</div>
+    </div>
+
+    <!-- Scene buttons -->
+    <div id="scene-buttons">
+      <button class="sbtn active" id="sbtn-room">
+        <span class="sbtn-bg-char">場</span>
+        <span class="sbtn-lock-icon">🔒</span>
+        <span class="sbtn-name">骯髒牢房</span>
+      </button>
+      <button class="sbtn" id="sbtn-training">
+        <span class="sbtn-bg-char">練</span>
+        <span class="sbtn-lock-icon">🔒</span>
+        <span class="sbtn-name">訓練場</span>
+      </button>
+      <button class="sbtn locked" id="sbtn-officer">
+        <span class="sbtn-bg-char">令</span>
+        <span class="sbtn-lock-icon">🔒</span>
+        <span class="sbtn-name">長官房</span>
+      </button>
+      <button class="sbtn" id="sbtn-forge">
+        <span class="sbtn-bg-char">鑄</span>
+        <span class="sbtn-lock-icon">🔒</span>
+        <span class="sbtn-name">鍛造坊</span>
+      </button>
+      <button class="sbtn" id="sbtn-kitchen">
+        <span class="sbtn-bg-char">食</span>
+        <span class="sbtn-lock-icon">🔒</span>
+        <span class="sbtn-name">廚房</span>
+      </button>
+      <button class="sbtn locked" id="sbtn-master">
+        <span class="sbtn-bg-char">主</span>
+        <span class="sbtn-lock-icon">🔒</span>
+        <span class="sbtn-name">主人房</span>
+      </button>
+      <button class="sbtn locked" id="sbtn-market">
+        <span class="sbtn-bg-char">市</span>
+        <span class="sbtn-lock-icon">🔒</span>
+        <span class="sbtn-name">城內市集</span>
+      </button>
+      <button class="sbtn locked" id="sbtn-cityExit">
+        <span class="sbtn-bg-char">野</span>
+        <span class="sbtn-lock-icon">🔒</span>
+        <span class="sbtn-name">出城</span>
+      </button>
+    </div>
+
+  </div><!-- /panel-left -->
+
+  <!-- ══ CENTER PANEL ════════════════════════════════════ -->
+  <div id="panel-center">
+
+    <!-- Time bar -->
+    <div id="time-bar-wrap">
+      <div id="time-bar-track">
+        <div id="time-bar-fill"></div>
+        <div id="time-celestial" class="sun"></div>
+        <div id="time-label">第 1 天　08:00</div>
+      </div>
+    </div>
+
+    <!-- 百日條 Timeline -->
+    <div id="hdb-wrap">
+      <div id="hdb-view">
+        <div id="hdb-inner">
+          <div id="hdb-track-line"></div>
+          <div id="hdb-past-fill"></div>
+          <!-- Ticks + event markers generated by JS -->
+        </div>
+        <!-- Today marker fixed in center -->
+        <div id="hdb-today-marker"></div>
+        <div id="hdb-today-icon">◆</div>
+      </div>
+    </div>
+
+    <!-- Scene info bar -->
+    <div id="scene-info-bar">
+      <span id="scene-name">骯髒牢房</span>
+      <span class="info-sep">|</span>
+      <div id="fame-bar-wrap">
+        <span class="fame-label">名聲</span>
+        <div id="fame-bar-track">
+          <div id="fame-bar-fill"></div>
+        </div>
+        <span id="fame-val">0</span>
+      </div>
+    </div>
+
+    <!-- Scene view -->
+    <div id="scene-view" class="bg-dirty-cell ambient-damp">
+      <div id="scene-watermark">骯髒牢房</div>
+      <div id="npc-area">
+
+        <!-- Teammate rows (6 slots) -->
+        <div class="npc-row">
+          <div class="npc-slot empty" id="tm-slot-0"><span class="npc-empty-label">—</span></div>
+          <div class="npc-slot empty" id="tm-slot-1"><span class="npc-empty-label">—</span></div>
+          <div class="npc-slot empty" id="tm-slot-2"><span class="npc-empty-label">—</span></div>
+        </div>
+        <div class="npc-row">
+          <div class="npc-slot empty" id="tm-slot-3"><span class="npc-empty-label">—</span></div>
+          <div class="npc-slot empty" id="tm-slot-4"><span class="npc-empty-label">—</span></div>
+          <div class="npc-slot empty" id="tm-slot-5"><span class="npc-empty-label">—</span></div>
+        </div>
+
+        <!-- Audience row (3 slots) -->
+        <div class="audience-row-label">— 觀眾 —</div>
+        <div class="npc-row">
+          <div class="npc-slot empty" id="aud-slot-0"><span class="npc-empty-label">—</span></div>
+          <div class="npc-slot empty" id="aud-slot-1"><span class="npc-empty-label">—</span></div>
+          <div class="npc-slot empty" id="aud-slot-2"><span class="npc-empty-label">—</span></div>
+        </div>
+
+      </div><!-- /npc-area -->
+    </div><!-- /scene-view -->
+
+    <!-- Log area -->
+    <div id="log-area">
+      <div id="log-header">日　誌</div>
+      <div id="log-content"></div>
+    </div>
+
+  </div><!-- /panel-center -->
+
+  <!-- ══ RIGHT PANEL ══════════════════════════════════════ -->
+  <div id="panel-right">
+
+    <!-- Vital bars -->
+    <div class="rpanel-section">
+      <div class="vital-bar" id="bar-hp">
+        <span class="vital-label">HP</span>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--bar-hp)"></div></div>
+        <span class="bar-num">100/100</span>
+      </div>
+      <div class="vital-bar" id="bar-stamina">
+        <span class="vital-label">體力</span>
+        <div class="bar-track"><div class="bar-fill" style="width:50%;background:var(--bar-sta)"></div></div>
+        <span class="bar-num">50/100</span>
+      </div>
+      <div class="vital-bar" id="bar-food">
+        <span class="vital-label">飽食度</span>
+        <div class="bar-track"><div class="bar-fill" style="width:50%;background:var(--bar-food)"></div></div>
+        <span class="bar-num">50/100</span>
+      </div>
+      <div class="vital-bar" id="bar-mood">
+        <span class="vital-label">心情</span>
+        <div class="bar-track"><div class="bar-fill" style="width:50%;background:var(--bar-mood)"></div></div>
+        <span class="bar-num">50/100</span>
+      </div>
+    </div>
+
+    <!-- Six attributes -->
+    <div class="rpanel-section" id="attributes-section">
+      <h3>六維屬性</h3>
+      <div id="attributes-grid">
+        <div class="attr-row"><span class="attr-name">力量</span><span class="attr-val" id="attr-STR">10</span></div>
+        <div class="attr-row"><span class="attr-name">反應</span><span class="attr-val" id="attr-AGI">10</span></div>
+        <div class="attr-row"><span class="attr-name">靈巧</span><span class="attr-val" id="attr-DEX">10</span></div>
+        <div class="attr-row"><span class="attr-name">意志</span><span class="attr-val" id="attr-WIL">10</span></div>
+        <div class="attr-row"><span class="attr-name">體質</span><span class="attr-val" id="attr-CON">10</span></div>
+        <div class="attr-row"><span class="attr-name">幸運</span><span class="attr-val" id="attr-LUK">10</span></div>
+      </div>
+    </div>
+
+    <!-- Derived stats -->
+    <div class="rpanel-section" id="derived-section">
+      <h3>派生屬性</h3>
+      <div id="derived-stats-grid">
+        <div class="derived-item"><span class="derived-name">ATK</span><span class="derived-val" id="drv-ATK">—</span></div>
+        <div class="derived-item"><span class="derived-name">DEF</span><span class="derived-val" id="drv-DEF">—</span></div>
+        <div class="derived-item"><span class="derived-name">ACC</span><span class="derived-val" id="drv-ACC">—</span></div>
+        <div class="derived-item"><span class="derived-name">PEN</span><span class="derived-val" id="drv-PEN">—</span></div>
+        <div class="derived-item"><span class="derived-name">BLK</span><span class="derived-val" id="drv-BLK">—</span></div>
+        <div class="derived-item"><span class="derived-name">SPD</span><span class="derived-val" id="drv-SPD">—</span></div>
+        <div class="derived-item"><span class="derived-name">CRT</span><span class="derived-val" id="drv-CRT">—</span></div>
+        <div class="derived-item"><span class="derived-name">CDMG</span><span class="derived-val" id="drv-CDMG">—</span></div>
+        <div class="derived-item"><span class="derived-name">EVA</span><span class="derived-val" id="drv-EVA">—</span></div>
+      </div>
+    </div>
+
+    <!-- Action buttons -->
+    <div id="action-buttons">
+      <button class="game-btn primary" id="btn-detail">詳細</button>
+      <button class="game-btn" id="btn-settings">設定</button>
+    </div>
+
+    <!-- Day counter -->
+    <div id="day-counter">100 天後 · 萬骸祭</div>
+
+  </div><!-- /panel-right -->
+
+</div><!-- /game-root -->
+
+<!-- ══ TOAST ═════════════════════════════════════════════ -->
+<div id="toast"></div>
+
+<!-- ══ NAME ENTRY MODAL ══════════════════════════════════ -->
+<div class="modal-overlay open" id="modal-name">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">你是誰</span>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--text-dim);font-size:24px;margin-bottom:12px;line-height:1.8">
+        鐵鏈將你押入競技場。<br>他們問你的名字，不是因為在乎你——而是要刻在你的墓碑上。
+      </p>
+      <input type="text" id="name-input" maxlength="6" placeholder="輸入名字（最多六字）" autocomplete="off"/>
+      <p class="name-hint">按 Enter 或點擊確認</p>
+    </div>
+    <div class="modal-footer">
+      <button class="game-btn primary" id="btn-confirm-name">踏入命運</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DETAIL MODAL (fullscreen character sheet) ════════ -->
+<div class="modal-overlay" id="modal-detail">
+  <div id="char-sheet">
+
+    <!-- Header row -->
+    <div id="cs-header">
+      <div id="cs-name-block">
+        <div id="cs-name">—</div>
+        <div id="cs-subtitle">角鬥士・第 <span id="cs-day">1</span> 天</div>
+      </div>
+      <div id="cs-fame-block">
+        <div class="cs-sec-label">名聲</div>
+        <div id="cs-fame-val">0</div>
+        <div id="cs-fame-bar-track"><div id="cs-fame-bar-fill"></div></div>
+      </div>
+      <button class="modal-close" id="btn-close-detail" style="margin-left:auto;font-size:30px;">✕</button>
+    </div>
+
+    <!-- Body: 3 columns -->
+    <div id="cs-body">
+
+      <!-- ── LEFT: vitals + equipment ── -->
+      <div class="cs-col">
+        <div class="cs-section-title">狀態</div>
+
+        <div class="cs-vital-row" id="cs-bar-hp">
+          <span class="cs-vital-label">HP</span>
+          <div class="cs-bar-track"><div class="cs-bar-fill" style="background:#cc2200"></div></div>
+          <span class="cs-vital-num"></span>
+        </div>
+        <div class="cs-vital-row" id="cs-bar-stamina">
+          <span class="cs-vital-label">體力</span>
+          <div class="cs-bar-track"><div class="cs-bar-fill" style="background:#cc7700"></div></div>
+          <span class="cs-vital-num"></span>
+        </div>
+        <div class="cs-vital-row" id="cs-bar-food">
+          <span class="cs-vital-label">飽食度</span>
+          <div class="cs-bar-track"><div class="cs-bar-fill" style="background:#1e7a3a"></div></div>
+          <span class="cs-vital-num"></span>
+        </div>
+        <div class="cs-vital-row" id="cs-bar-mood">
+          <span class="cs-vital-label">心情</span>
+          <div class="cs-bar-track"><div class="cs-bar-fill" style="background:#2255aa"></div></div>
+          <span class="cs-vital-num"></span>
+        </div>
+
+        <div class="cs-divider"></div>
+        <div class="cs-section-title">裝備</div>
+        <div class="cs-equip-row"><span class="cs-equip-slot">武器</span><span class="cs-equip-val" id="cs-eq-weapon">— 空手 —</span></div>
+        <div class="cs-equip-row"><span class="cs-equip-slot">護甲</span><span class="cs-equip-val" id="cs-eq-armor">— 破布 —</span></div>
+        <div class="cs-equip-row"><span class="cs-equip-slot">盾牌</span><span class="cs-equip-val" id="cs-eq-shield">— 無 —</span></div>
+
+        <div class="cs-divider"></div>
+        <div class="cs-section-title">好感度</div>
+        <div class="cs-aff-row"><span class="cs-aff-name">阿圖斯大人</span><div class="cs-aff-bar-track"><div class="cs-aff-bar-fill" id="cs-aff-master"></div></div><span class="cs-aff-num" id="cs-aff-master-n">0</span></div>
+        <div class="cs-aff-row"><span class="cs-aff-name">塔倫長官</span><div class="cs-aff-bar-track"><div class="cs-aff-bar-fill" id="cs-aff-officer"></div></div><span class="cs-aff-num" id="cs-aff-officer-n">0</span></div>
+        <div class="cs-aff-row"><span class="cs-aff-name">卡西烏斯</span><div class="cs-aff-bar-track"><div class="cs-aff-bar-fill" id="cs-aff-cassius"></div></div><span class="cs-aff-num" id="cs-aff-cassius-n">0</span></div>
+        <div class="cs-aff-row"><span class="cs-aff-name">葛拉</span><div class="cs-aff-bar-track"><div class="cs-aff-bar-fill" id="cs-aff-blacksmithGra"></div></div><span class="cs-aff-num" id="cs-aff-blacksmithGra-n">0</span></div>
+        <div class="cs-aff-row"><span class="cs-aff-name">梅拉</span><div class="cs-aff-bar-track"><div class="cs-aff-bar-fill" id="cs-aff-melaKook"></div></div><span class="cs-aff-num" id="cs-aff-melaKook-n">0</span></div>
+      </div>
+
+      <!-- ── CENTER: six base attributes ── -->
+      <div class="cs-col cs-col-center">
+        <div class="cs-section-title">六維屬性</div>
+        <div id="cs-hexgrid">
+          <div class="cs-attr-card" id="cs-attr-STR">
+            <div class="cs-attr-name">力量</div>
+            <div class="cs-attr-key">STR</div>
+            <div class="cs-attr-val"></div>
+            <div class="cs-attr-desc">影響 ATK、DEF、BLK、PEN</div>
+          </div>
+          <div class="cs-attr-card" id="cs-attr-DEX">
+            <div class="cs-attr-name">靈巧</div>
+            <div class="cs-attr-key">DEX</div>
+            <div class="cs-attr-val"></div>
+            <div class="cs-attr-desc">影響 ATK、ACC、CRT、CDMG、SPD</div>
+          </div>
+          <div class="cs-attr-card" id="cs-attr-CON">
+            <div class="cs-attr-name">體質</div>
+            <div class="cs-attr-key">CON</div>
+            <div class="cs-attr-val"></div>
+            <div class="cs-attr-desc">影響 DEF、BLK、HP 上限</div>
+          </div>
+          <div class="cs-attr-card" id="cs-attr-AGI">
+            <div class="cs-attr-name">反應</div>
+            <div class="cs-attr-key">AGI</div>
+            <div class="cs-attr-val"></div>
+            <div class="cs-attr-desc">影響 EVA、SPD</div>
+          </div>
+          <div class="cs-attr-card" id="cs-attr-WIL">
+            <div class="cs-attr-name">意志</div>
+            <div class="cs-attr-key">WIL</div>
+            <div class="cs-attr-val"></div>
+            <div class="cs-attr-desc">影響心情恢復、技能威力</div>
+          </div>
+          <div class="cs-attr-card" id="cs-attr-LUK">
+            <div class="cs-attr-name">幸運</div>
+            <div class="cs-attr-key">LUK</div>
+            <div class="cs-attr-val"></div>
+            <div class="cs-attr-desc">影響 ACC、CRT、CDMG、EVA</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── RIGHT: derived stats ── -->
+      <div class="cs-col">
+        <div class="cs-section-title">派生屬性</div>
+        <div id="cs-derived-list">
+          <div class="cs-drv-row">
+            <span class="cs-drv-label">⚔ ATK 攻擊</span>
+            <div class="cs-drv-bar-track"><div class="cs-drv-bar-fill" id="cs-drv-bar-ATK"></div></div>
+            <span class="cs-drv-num" id="cs-drv-ATK">—</span>
+          </div>
+          <div class="cs-drv-row">
+            <span class="cs-drv-label">🛡 DEF 防禦</span>
+            <div class="cs-drv-bar-track"><div class="cs-drv-bar-fill" id="cs-drv-bar-DEF"></div></div>
+            <span class="cs-drv-num" id="cs-drv-DEF">—</span>
+          </div>
+          <div class="cs-drv-row">
+            <span class="cs-drv-label">🎯 ACC 命中%</span>
+            <div class="cs-drv-bar-track"><div class="cs-drv-bar-fill" id="cs-drv-bar-ACC"></div></div>
+            <span class="cs-drv-num" id="cs-drv-ACC">—</span>
+          </div>
+          <div class="cs-drv-row">
+            <span class="cs-drv-label">🗡 PEN 穿透</span>
+            <div class="cs-drv-bar-track"><div class="cs-drv-bar-fill" id="cs-drv-bar-PEN"></div></div>
+            <span class="cs-drv-num" id="cs-drv-PEN">—</span>
+          </div>
+          <div class="cs-drv-row">
+            <span class="cs-drv-label">🔰 BLK 格擋</span>
+            <div class="cs-drv-bar-track"><div class="cs-drv-bar-fill" id="cs-drv-bar-BLK"></div></div>
+            <span class="cs-drv-num" id="cs-drv-BLK">—</span>
+          </div>
+          <div class="cs-drv-row">
+            <span class="cs-drv-label">💨 SPD 速度</span>
+            <div class="cs-drv-bar-track"><div class="cs-drv-bar-fill" id="cs-drv-bar-SPD"></div></div>
+            <span class="cs-drv-num" id="cs-drv-SPD">—</span>
+          </div>
+          <div class="cs-drv-row">
+            <span class="cs-drv-label">✦ CRT 暴擊%</span>
+            <div class="cs-drv-bar-track"><div class="cs-drv-bar-fill" id="cs-drv-bar-CRT"></div></div>
+            <span class="cs-drv-num" id="cs-drv-CRT">—</span>
+          </div>
+          <div class="cs-drv-row">
+            <span class="cs-drv-label">💥 CDMG 爆傷%</span>
+            <div class="cs-drv-bar-track"><div class="cs-drv-bar-fill" id="cs-drv-bar-CDMG"></div></div>
+            <span class="cs-drv-num" id="cs-drv-CDMG">—</span>
+          </div>
+          <div class="cs-drv-row">
+            <span class="cs-drv-label">🌀 EVA 閃避</span>
+            <div class="cs-drv-bar-track"><div class="cs-drv-bar-fill" id="cs-drv-bar-EVA"></div></div>
+            <span class="cs-drv-num" id="cs-drv-EVA">—</span>
+          </div>
+        </div>
+
+        <div class="cs-divider"></div>
+        <div class="cs-section-title">技能</div>
+        <div id="cs-skill-list">
+          <div class="cs-skill-empty">尚未習得任何技能</div>
+        </div>
+      </div>
+
+    </div><!-- /cs-body -->
+  </div><!-- /char-sheet -->
+</div>
+
+<!-- ══ SETTINGS MODAL ════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-settings">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">設定</span>
+      <button class="modal-close" id="btn-close-settings">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="setting-row">
+        <span class="setting-label">音效</span>
+        <div class="vol-group">
+          <button class="vol-btn" data-key="sfx" data-val="0">小</button>
+          <button class="vol-btn active" data-key="sfx" data-val="1">中</button>
+          <button class="vol-btn" data-key="sfx" data-val="2">大</button>
+        </div>
+      </div>
+      <div class="setting-row">
+        <span class="setting-label">音樂</span>
+        <div class="vol-group">
+          <button class="vol-btn" data-key="music" data-val="0">小</button>
+          <button class="vol-btn active" data-key="music" data-val="1">中</button>
+          <button class="vol-btn" data-key="music" data-val="2">大</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="game-btn" id="btn-leave">離開遊戲</button>
+      <button class="game-btn primary" id="btn-close-settings-2"
+        onclick="document.getElementById('modal-settings').classList.remove('open')">關閉</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Scripts (order matters) ═══════════════════════════ -->
+<script src="stats.js"></script>
+<script src="fields.js"></script>
+<script src="npc.js"></script>
+<script src="events.js"></script>
+<script src="item.js"></script>
+<script src="weapons.js"></script>
+<script src="armors.js"></script>
+<script src="enemy.js"></script>
+<script src="train.js"></script>
+<script src="skill.js"></script>
+<script src="ending.js"></script>
+<script src="battle.js"></script>
+<script src="main.js"></script>
+</body>
+</html>

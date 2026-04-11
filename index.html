@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>百日萬骸祭</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700;900&display=swap');
+
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --blood:    #8b0000;
+      --blood-lt: #c0392b;
+      --ash:      #1a1a1a;
+      --bone:     #d4c5a9;
+      --bone-dim: #7a6e5f;
+      --iron:     #2c2c2c;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+      font-family: 'Noto Serif TC', 'Georgia', serif;
+    }
+
+    /* ── Layered background ── */
+    #bg {
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 40% at 50% 80%, #3d0000 0%, transparent 70%),
+        radial-gradient(ellipse 80% 60% at 50% 50%, #150000 0%, #000 100%);
+    }
+
+    /* Faint stone texture via repeating SVG noise */
+    #bg::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        repeating-linear-gradient(0deg,   transparent, transparent 2px, rgba(255,255,255,.012) 2px, rgba(255,255,255,.012) 4px),
+        repeating-linear-gradient(90deg,  transparent, transparent 3px, rgba(255,255,255,.008) 3px, rgba(255,255,255,.008) 6px);
+      opacity: .6;
+    }
+
+    /* Vignette */
+    #bg::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 90% 90% at 50% 50%, transparent 40%, rgba(0,0,0,.85) 100%);
+    }
+
+    /* ── Ember / ash particles ── */
+    #particles {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .particle {
+      position: absolute;
+      bottom: -6px;
+      border-radius: 50%;
+      opacity: 0;
+      animation: rise linear infinite;
+    }
+
+    @keyframes rise {
+      0%   { transform: translateY(0)   translateX(0)   scale(1);   opacity: 0;   }
+      10%  { opacity: 1; }
+      80%  { opacity: .6; }
+      100% { transform: translateY(-110vh) translateX(var(--drift)) scale(.3); opacity: 0; }
+    }
+
+    /* ── Chains (decorative horizontal lines) ── */
+    .chain {
+      position: absolute;
+      left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #3a2a1a 20%, #5a3d1e 50%, #3a2a1a 80%, transparent);
+      opacity: .35;
+    }
+    .chain-top    { top: 12%; }
+    .chain-bottom { bottom: 12%; }
+
+    /* ── Main stage ── */
+    #stage {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    /* Sub-header */
+    .eyebrow {
+      font-size: clamp(.65rem, 1.2vw, .85rem);
+      letter-spacing: .5em;
+      color: var(--bone-dim);
+      text-transform: uppercase;
+      margin-bottom: 1.4rem;
+      animation: fadeSlideDown 1.2s ease both;
+      animation-delay: .3s;
+    }
+
+    /* ── Title ── */
+    .title-wrap {
+      position: relative;
+      display: inline-block;
+      animation: fadeSlideDown 1.4s ease both;
+      animation-delay: .6s;
+    }
+
+    /* Glow behind title */
+    .title-wrap::before {
+      content: '';
+      position: absolute;
+      inset: -30px -60px;
+      background: radial-gradient(ellipse, rgba(139,0,0,.45) 0%, transparent 70%);
+      filter: blur(18px);
+      animation: pulse 4s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: .7; transform: scale(1); }
+      50%       { opacity: 1;  transform: scale(1.06); }
+    }
+
+    h1.main-title {
+      position: relative;
+      font-size: clamp(3.5rem, 11vw, 9rem);
+      font-weight: 900;
+      line-height: 1;
+      color: transparent;
+      background: linear-gradient(180deg, #e8d5b0 0%, #c8a87a 35%, #8b0000 70%, #4a0000 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      letter-spacing: .12em;
+      text-shadow: none;
+      filter: drop-shadow(0 0 18px rgba(139,0,0,.8)) drop-shadow(0 4px 32px rgba(0,0,0,.9));
+    }
+
+    /* Scratch / crack overlay on title letters */
+    h1.main-title::after {
+      content: '百日萬骸祭';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 8px,
+        rgba(255,255,255,.025) 8px,
+        rgba(255,255,255,.025) 9px
+      );
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    /* ── Sub-title / tagline ── */
+    .tagline {
+      margin-top: 1.8rem;
+      font-size: clamp(.8rem, 1.8vw, 1.1rem);
+      color: var(--bone-dim);
+      letter-spacing: .25em;
+      line-height: 2.2;
+      animation: fadeSlideDown 1.4s ease both;
+      animation-delay: 1s;
+    }
+
+    .tagline em {
+      font-style: normal;
+      color: #a04040;
+    }
+
+    /* ── Divider ── */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin: 2rem 0;
+      width: min(420px, 80vw);
+      animation: fadeSlideDown 1.4s ease both;
+      animation-delay: 1.2s;
+    }
+
+    .divider-line {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--blood), transparent);
+    }
+
+    .divider-icon {
+      font-size: 1.2rem;
+      color: var(--blood);
+      filter: drop-shadow(0 0 6px var(--blood));
+      animation: flicker 3s ease-in-out infinite;
+    }
+
+    @keyframes flicker {
+      0%,100%  { opacity: 1; }
+      48%      { opacity: 1; }
+      50%      { opacity: .4; }
+      52%      { opacity: 1; }
+      88%      { opacity: 1; }
+      90%      { opacity: .6; }
+      92%      { opacity: 1; }
+    }
+
+    /* ── CTA button ── */
+    .btn-wrap {
+      animation: fadeSlideDown 1.4s ease both;
+      animation-delay: 1.5s;
+    }
+
+    .btn-start {
+      position: relative;
+      display: inline-block;
+      padding: .9rem 3.2rem;
+      font-family: inherit;
+      font-size: clamp(.9rem, 2vw, 1.15rem);
+      font-weight: 700;
+      letter-spacing: .35em;
+      color: var(--bone);
+      background: transparent;
+      border: 1px solid var(--blood);
+      cursor: pointer;
+      overflow: hidden;
+      transition: color .3s, border-color .3s;
+      text-decoration: none;
+    }
+
+    /* Background fill sweep */
+    .btn-start::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--blood);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform .35s cubic-bezier(.4,0,.2,1);
+    }
+
+    .btn-start:hover::before { transform: scaleX(1); }
+
+    .btn-start:hover {
+      color: #fff;
+      border-color: var(--blood-lt);
+      box-shadow: 0 0 28px rgba(139,0,0,.7), inset 0 0 14px rgba(0,0,0,.4);
+    }
+
+    .btn-start span { position: relative; z-index: 1; }
+
+    /* Subtle pulse ring */
+    .btn-start::after {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border: 1px solid rgba(139,0,0,.4);
+      animation: ring 2.4s ease-out infinite;
+    }
+
+    @keyframes ring {
+      0%   { opacity: .7; transform: scale(1); }
+      100% { opacity: 0;  transform: scale(1.06); }
+    }
+
+    /* ── Bottom lore text ── */
+    .lore {
+      position: fixed;
+      bottom: 2.2rem;
+      left: 0; right: 0;
+      text-align: center;
+      font-size: clamp(.55rem, 1vw, .72rem);
+      letter-spacing: .3em;
+      color: #3a2a1a;
+      animation: fadeSlideDown 2s ease both;
+      animation-delay: 2s;
+      user-select: none;
+    }
+
+    /* ── Day counter badge ── */
+    .days-badge {
+      position: fixed;
+      top: 2rem;
+      right: 2.5rem;
+      text-align: right;
+      animation: fadeSlideDown 1.4s ease both;
+      animation-delay: 1.8s;
+    }
+
+    .days-badge .num {
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      font-weight: 900;
+      color: #3d0000;
+      line-height: 1;
+      filter: drop-shadow(0 0 10px rgba(139,0,0,.5));
+    }
+
+    .days-badge .label {
+      font-size: .6rem;
+      letter-spacing: .4em;
+      color: #4a3020;
+      text-transform: uppercase;
+    }
+
+    /* ── Left skulls decoration ── */
+    .skulls {
+      position: fixed;
+      left: 1.8rem;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 1.4rem;
+      opacity: .18;
+      font-size: 1.6rem;
+      animation: fadeSlideDown 2s ease both;
+      animation-delay: 2s;
+    }
+
+    /* ── Shared fade-slide ── */
+    @keyframes fadeSlideDown {
+      from { opacity: 0; transform: translateY(-18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Blood drip effect ── */
+    .drip-container {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 0;
+      pointer-events: none;
+      overflow: visible;
+    }
+
+    .drip {
+      position: absolute;
+      top: 0;
+      width: 2px;
+      background: linear-gradient(180deg, #8b0000, #4a0000 60%, transparent);
+      border-radius: 0 0 2px 2px;
+      transform-origin: top center;
+      animation: drip-fall linear infinite;
+    }
+
+    @keyframes drip-fall {
+      0%   { height: 0;   opacity: 0; }
+      10%  { opacity: 1; }
+      60%  { opacity: 1; }
+      100% { height: var(--drip-h); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Layered background -->
+<div id="bg"></div>
+
+<!-- Ember particles (populated by JS) -->
+<div id="particles"></div>
+
+<!-- Blood drips -->
+<div class="drip-container" id="drips"></div>
+
+<!-- Chain decorations -->
+<div class="chain chain-top"></div>
+<div class="chain chain-bottom"></div>
+
+<!-- Days counter -->
+<div class="days-badge">
+  <div class="num">100</div>
+  <div class="label">Days Remain</div>
+</div>
+
+<!-- Side skull decoration -->
+<div class="skulls">☠ ☠ ☠ ☠ ☠</div>
+
+<!-- Main stage -->
+<main id="stage">
+
+  <p class="eyebrow">— 競技場の最深淵より —</p>
+
+  <div class="title-wrap">
+    <h1 class="main-title">百日萬骸祭</h1>
+  </div>
+
+  <p class="tagline">
+    你是奴隸・鐵鏈下的一粒塵埃<br>
+    百日之後・萬骸祭典拉開帷幕<br>
+    <em>生還者將得自由・敗者化作白骨獻祭</em>
+  </p>
+
+  <div class="divider">
+    <div class="divider-line"></div>
+    <span class="divider-icon">⚔</span>
+    <div class="divider-line"></div>
+  </div>
+
+  <div class="btn-wrap">
+    <button class="btn-start" onclick="enterGame()">
+      <span>踏入競技場</span>
+    </button>
+  </div>
+
+</main>
+
+<!-- Bottom lore -->
+<p class="lore">CENTUM DIES · DECIES MILLE OSSA · UNUS SUPEREST</p>
+
+<script>
+  /* ── Ember particles ── */
+  const particleContainer = document.getElementById('particles');
+  const PARTICLE_COUNT = 55;
+
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+
+    const size   = Math.random() * 3 + 1;
+    const left   = Math.random() * 100;
+    const dur    = Math.random() * 12 + 6;
+    const delay  = Math.random() * 10;
+    const drift  = (Math.random() - 0.5) * 120;
+    // color: ember orange to blood red
+    const hue    = Math.random() < 0.5 ? `rgba(180,${Math.floor(Math.random()*40)},0,0.9)` : `rgba(120,0,0,0.8)`;
+
+    p.style.cssText = `
+      width: ${size}px;
+      height: ${size}px;
+      left: ${left}%;
+      background: ${hue};
+      box-shadow: 0 0 ${size * 2}px ${hue};
+      animation-duration: ${dur}s;
+      animation-delay: -${delay}s;
+      --drift: ${drift}px;
+    `;
+    particleContainer.appendChild(p);
+  }
+
+  /* ── Blood drips ── */
+  const dripsContainer = document.getElementById('drips');
+  const DRIP_COUNT = 18;
+
+  for (let i = 0; i < DRIP_COUNT; i++) {
+    const d = document.createElement('div');
+    d.className = 'drip';
+    const left  = Math.random() * 100;
+    const dur   = Math.random() * 8 + 5;
+    const delay = Math.random() * 12;
+    const h     = Math.random() * 120 + 40;
+    const w     = Math.random() < 0.3 ? 3 : 2;
+
+    d.style.cssText = `
+      left: ${left}%;
+      width: ${w}px;
+      animation-duration: ${dur}s;
+      animation-delay: -${delay}s;
+      --drip-h: ${h}px;
+    `;
+    dripsContainer.appendChild(d);
+  }
+
+  /* ── Day countdown animation ── */
+  const numEl = document.querySelector('.days-badge .num');
+  let displayed = 100;
+  // brief flicker to suggest the clock is ticking
+  setTimeout(() => {
+    const iv = setInterval(() => {
+      displayed = Math.max(0, displayed - 1);
+      numEl.textContent = String(displayed).padStart(3, '0');
+      if (displayed === 0) {
+        clearInterval(iv);
+        setTimeout(() => {
+          displayed = 100;
+          numEl.textContent = '100';
+        }, 800);
+      }
+    }, 28);
+  }, 2600);
+
+  /* ── Enter game ── */
+  function enterGame() {
+    const stage = document.getElementById('stage');
+    stage.style.transition = 'opacity 1.2s ease';
+    stage.style.opacity = '0';
+    document.getElementById('bg').style.transition = 'background 1.4s ease';
+    document.getElementById('bg').style.background = '#000';
+    setTimeout(() => {
+      window.location.href = 'game.html';
+    }, 1300);
+  }
+</script>
+</body>
+</html>

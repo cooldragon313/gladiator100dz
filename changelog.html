@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>百日萬骸祭 · 開發日誌</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+:root {
+  --bg:       #080604;
+  --panel:    #0f0c09;
+  --raised:   #181410;
+  --border:   #3a2a18;
+  --border-hi:#5a4028;
+  --text:     #c8b898;
+  --text-dim: #6a5a48;
+  --text-hi:  #e8d8b0;
+  --gold:     #d4af37;
+  --blood:    #8b0000;
+  --blood-lt: #c0392b;
+  --green:    #2e7d3a;
+  --green-lt: #4caf50;
+  --blue:     #1a4a7a;
+  --blue-lt:  #5599cc;
+  --font: 'Noto Serif TC', Georgia, serif;
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.8;
+  min-height: 100vh;
+}
+
+/* ── Header ── */
+#site-header {
+  border-bottom: 2px solid var(--border);
+  background: var(--panel);
+  padding: 28px 40px 22px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: baseline;
+  gap: 20px;
+}
+#site-header h1 {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--gold);
+  letter-spacing: .18em;
+}
+#site-header .sub {
+  font-size: 12px;
+  color: var(--text-dim);
+  letter-spacing: .25em;
+}
+
+/* ── Layout ── */
+#wrapper {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+
+/* ── Version block ── */
+.version-block {
+  margin-bottom: 48px;
+}
+
+.version-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.version-tag {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .2em;
+  padding: 3px 10px;
+  border: 1px solid var(--border-hi);
+  color: var(--text-dim);
+  background: var(--raised);
+  white-space: nowrap;
+}
+.version-tag.init    { border-color: var(--blood);   color: #e87060; }
+.version-tag.feature { border-color: var(--blue-lt); color: var(--blue-lt); }
+.version-tag.ui      { border-color: var(--gold);    color: var(--gold); }
+.version-tag.content { border-color: var(--green-lt);color: var(--green-lt); }
+
+.version-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-hi);
+  letter-spacing: .08em;
+}
+
+.version-date {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: .1em;
+  white-space: nowrap;
+}
+
+/* ── Divider line ── */
+.version-line {
+  height: 1px;
+  background: linear-gradient(90deg, var(--border-hi), transparent);
+  margin-bottom: 18px;
+}
+
+/* ── Change list ── */
+.change-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.change-item {
+  display: flex;
+  gap: 12px;
+  padding: 8px 14px;
+  background: var(--panel);
+  border-left: 2px solid var(--border);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.change-item:hover { background: var(--raised); }
+
+.change-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  padding: 2px 7px;
+  border-radius: 2px;
+  white-space: nowrap;
+  align-self: flex-start;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+.badge-new    { background: #1a3a1a; color: var(--green-lt); }
+.badge-fix    { background: #1a2a3a; color: var(--blue-lt);  }
+.badge-ui     { background: #2a2200; color: var(--gold);     }
+.badge-data   { background: #2a0a00; color: #e87060;         }
+.badge-system { background: #1a1a2a; color: #8888cc;         }
+
+.change-text { color: var(--text); }
+.change-text code {
+  font-family: monospace;
+  font-size: 12px;
+  background: rgba(255,255,255,.05);
+  padding: 1px 5px;
+  border-radius: 2px;
+  color: var(--gold);
+}
+
+/* ── File tag ── */
+.file-tag {
+  display: inline-block;
+  font-size: 10px;
+  font-family: monospace;
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 0 5px;
+  border-radius: 2px;
+  margin-left: 4px;
+}
+
+/* ── Section separator ── */
+.section-sep {
+  text-align: center;
+  color: var(--border-hi);
+  font-size: 18px;
+  letter-spacing: .5em;
+  margin: 36px 0 40px;
+  opacity: .5;
+}
+
+/* ── Footer ── */
+#site-footer {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: .2em;
+  padding: 24px;
+  border-top: 1px solid var(--border);
+  margin-top: 40px;
+}
+</style>
+</head>
+<body>
+
+<header id="site-header">
+  <h1>百日萬骸祭</h1>
+  <span class="sub">DEVELOPMENT &amp; UPDATE LOG</span>
+</header>
+
+<div id="wrapper">
+
+  <!-- ══════════════════════════════════════════════════════
+       v0.5  Ending / Battle / 百日條 / 天氣時鐘
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">FEATURE</span>
+      <span class="version-title">v0.5 — Ending · 百日條 · 時鐘 · 戰鬥框架</span>
+      <span class="version-date">2026-04-11</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">建立 <span class="file-tag">ending.js</span>
+          — 萬骸祭生存者 Ending（金色粒子＋主人宣告自由台詞）、戰死 Ending（紅閃＋血滴粒子＋沉沉落幕）；
+          支援 <code>Endings.test('survivor')</code> / <code>Endings.test('death')</code> console 測試</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">建立 Ending 測試頁 <span class="file-tag">ending_test.html</span>
+          — 可獨立開啟，直接點擊預覽兩種 Ending 效果</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">建立戰鬥介面框架 <span class="file-tag">battle.js</span>
+          — 玩家/敵人資訊欄、HP 條、派生屬性顯示、戰鬥日誌、攻擊/防禦/技能/逃跑按鈕（戰鬥邏輯待實裝）；
+          <code>Battle.start(enemyId, onWin, onLose)</code> 呼叫</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">建立百日條（Timeline Bar）<span class="file-tag">game.html</span> <span class="file-tag">main.js</span>
+          — 100天壓縮橫軸，今日標記固定居中，過去天數暗色填滿；
+          特殊日（第5/50/75/100天）顯示對應圖示與名稱</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">時間條加入太陽/月亮滑動圖示 <span class="file-tag">game.html</span> <span class="file-tag">main.js</span>
+          — 08:00–18:00 顯示黃色發光太陽，其餘時間顯示藍白月亮；位置隨時間移動</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">新增 <code>TIMELINE_EVENTS</code> <span class="file-tag">events.js</span>
+          — 第5天基礎考驗、第50天大型競技、第75天宿敵會戰、第100天萬骸祭；
+          每個事件含強制場景、強制 NPC 列表、對手、觸發按鈕文字、日誌描述</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">Timeline 事件觸發系統 <span class="file-tag">main.js</span>
+          — 每次 <code>renderAll()</code> 檢查當天是否有事件；觸發時強制切換場景、填充 NPC、顯示戰鬥按鈕、播報日誌 Toast</span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       v0.4  場景擴充 · 市集 / 出城
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag content">CONTENT</span>
+      <span class="version-title">v0.4 — 場景擴充：市集 · 出城</span>
+      <span class="version-date">2026-04-11</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">新增場景「城內市集」<span class="file-tag">fields.js</span>
+          — 時間 08:00–18:00，長官或主人好感度 ≥50 解鎖；含道具商、鐵匠偶發出現</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">新增場景「出城」<span class="file-tag">fields.js</span>
+          — 時間 07:00–17:00，同條件解鎖；荒野氛圍，監督官常駐</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">需求系統新增 <code>affectionOr</code> 欄位
+          <span class="file-tag">fields.js</span>
+          — 支援「任一 NPC 好感滿足即可進入」的 OR 邏輯，市集與出城均使用此機制</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">左側面板新增「城內市集」「出城」場景按鈕，初始 locked
+          <span class="file-tag">game.html</span></span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">新增 <code>.bg-market</code>、<code>.bg-city-exit</code> 場景背景漸層 CSS
+          <span class="file-tag">game.html</span></span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       v0.3  介面微調
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag ui">UI</span>
+      <span class="version-title">v0.3 — 介面微調</span>
+      <span class="version-date">2026-04-11</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">左欄寬度 <code>148px → 210px</code>，右欄寬度 <code>260px → 340px</code>
+          <span class="file-tag">game.html</span></span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">日誌字體縮小 20%：<code>24px → 19px</code>
+          <span class="file-tag">game.html</span></span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">日誌格高度 <code>130px → 270px</code>（可顯示約 6 行）
+          <span class="file-tag">game.html</span></span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">右欄四條血條標籤字體縮小 25%：<code>22px → 17px</code>，數值 <code>20px → 15px</code>
+          <span class="file-tag">game.html</span></span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">血條標籤寬度 <code>34px → 62px</code>（容納「飽食度」），數值欄位 <code>44px → 70px</code>，條高度 <code>10px → 18px</code>
+          <span class="file-tag">game.html</span></span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">場景按鈕背景大字縮小 30%：<code>104px → 73px</code>
+          <span class="file-tag">game.html</span></span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">中央場景水印縮小 30%：<code>clamp(96px,16vw,180px) → clamp(67px,11vw,126px)</code>
+          <span class="file-tag">game.html</span></span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       v0.2  全域字體放大
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag ui">UI</span>
+      <span class="version-title">v0.2 — 全域字體放大 ×2</span>
+      <span class="version-date">2026-04-11</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">全介面所有 <code>font-size</code> 數值翻倍（共 37 處）；
+          範圍涵蓋左欄、中央、右欄、所有 Modal、Toast
+          <span class="file-tag">game.html</span></span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">基礎字體 <code>13px → 26px</code>；場景水印
+          <code>clamp(48px,8vw,90px) → clamp(96px,16vw,180px)</code>
+          <span class="file-tag">game.html</span></span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">✦ ✦ ✦</div>
+
+  <!-- ══════════════════════════════════════════════════════
+       v0.1  初始建構
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag init">INIT</span>
+      <span class="version-title">v0.1 — 初始建構</span>
+      <span class="version-date">2026-04-11</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+
+      <!-- index.html -->
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">建立開場畫面 <span class="file-tag">index.html</span>
+          — 暗黑角鬥士風格；主標題「百日萬骸祭」帶血色脈衝光暈；飛灰粒子（55顆）、血滴動畫（18條）、倒數100天動畫；
+          按鈕「踏入競技場」fade out 後跳轉 <code>game.html</code></span>
+      </li>
+
+      <!-- game.html -->
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">建立主遊戲介面 <span class="file-tag">game.html</span>
+          — 三欄式佈局（左 場景選擇 / 中 場景視圖+日誌 / 右 屬性面板）；
+          含時間進度條、名聲條、NPC 隊友（6格）+ 觀眾（3格）網格、日誌區</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">命名 Modal — 玩家輸入名字（最多6字），按確認後進入遊戲
+          <span class="file-tag">game.html</span></span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">詳細 Modal — 展示人物完整屬性表（黑幕疊加）
+          <span class="file-tag">game.html</span></span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">設定 Modal — 音效大中小、音樂大中小、離開遊戲按鈕
+          <span class="file-tag">game.html</span></span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">8 種場景各自擁有獨立 CSS 漸層背景與環境覆蓋層（火焰閃爍、潮濕紋路、暖光等）
+          <span class="file-tag">game.html</span></span>
+      </li>
+
+      <!-- stats.js -->
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">建立數值系統 <span class="file-tag">stats.js</span>
+          — 玩家狀態：名聲(0)、HP(100)、體力(50)、飽食度(50)、心情(50)；
+          六維屬性 STR/DEX/CON/AGI/WIL/LUK 各 10；
+          派生屬性計算：ATK、DEF、ACC、PEN、BLK、SPD、CRT、CDMG、EVA；
+          DOM 渲染函式（血條、屬性格、派生屬性格）</span>
+      </li>
+
+      <!-- fields.js -->
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">建立場景定義 <span class="file-tag">fields.js</span>
+          — 8 個場景含完整設定：出現時間、好感度需求、道具需求、背景樣式、環境特效、NPC 出現機率、日誌描述文</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">場景列表（初始 8 個）：骯髒牢房 / 簡單鬥士房 / 高級房間 / 破舊訓練場 / 標準訓練場 / 長官房 / 鍛造坊 / 廚房 / 主人房
+          <span class="file-tag">fields.js</span></span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text"><code>getSlotField()</code> — 依時間/好感/道具判斷場景可用性；
+          <code>rollFieldNPCs()</code> — 機率滾動本場景出現的 NPC
+          <span class="file-tag">fields.js</span></span>
+      </li>
+
+      <!-- npc.js -->
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">建立 NPC 系統 <span class="file-tag">npc.js</span>
+          — 11 個角色：卡西烏斯、達吉、烏爾薩、老篤（隊友）；
+          獄卒、監督官、塔倫長官、葛拉鐵匠、廚娘梅拉、阿圖斯大人、侍從（觀眾）；
+          好感度追蹤與修改函式</span>
+      </li>
+
+      <!-- events.js -->
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">建立隨機事件系統 <span class="file-tag">events.js</span>
+          — 初始 5 個加權事件：絆倒、發現食物、獄卒侮辱、觀眾歡呼、噩夢；
+          <code>rollRandom()</code> 加權抽選、<code>applyEvent()</code> 套用效果</span>
+      </li>
+
+      <!-- item / weapons / armors -->
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">建立道具定義 <span class="file-tag">item.js</span>
+          — 硬麵包、草藥、鐵鏟、體力藥水、廉價烈酒</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">建立武器定義 <span class="file-tag">weapons.js</span>
+          — 空手 → 生鏽短刀 → 標準鐵劍 → 長矛 → 重斧 → 葛拉之劍（6 級）</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">建立防具定義 <span class="file-tag">armors.js</span>
+          — 破布 → 皮甲 → 鏈甲 → 鐵板甲；木盾 → 鐵盾</span>
+      </li>
+
+      <!-- enemy / train / skill -->
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">建立敵人定義 <span class="file-tag">enemy.js</span>
+          — 新進奴隸 → 三流鬥士 → 競技場老手 → 競技場冠軍（4 級）</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">建立訓練動作定義 <span class="file-tag">train.js</span>
+          — 基礎揮砍、步法練習、耐力訓練、對練、重量訓練、冥想調息（各含時間/體力消耗/屬性收益）</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">建立技能定義 <span class="file-tag">skill.js</span>
+          — 被動：鐵皮、輕步、嗜血；主動：蓄力重擊、反擊、戰吼</span>
+      </li>
+
+      <!-- main.js -->
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">建立核心遊戲引擎 <span class="file-tag">main.js</span>
+          — 場景切換、NPC 滾動與渲染、時間進度條更新（分鐘制）、
+          日誌系統（最多80條）、Toast 通知、
+          詳細/設定/命名 Modal 開關管理、設定儲存至 localStorage</span>
+      </li>
+    </ul>
+  </div>
+
+</div>
+
+<footer id="site-footer">
+  百日萬骸祭 · CENTUM DIES · DECIES MILLE OSSA · UNUS SUPEREST
+</footer>
+
+</body>
+</html>
