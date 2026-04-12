@@ -599,6 +599,10 @@ const Game = (() => {
       addLog('一百天到了。萬骸祭的鐘聲即將敲響。', '#8b0000', true);
       return;
     }
+
+    // 🆕 D.1.11: Fire "day end" hooks (p.day 仍是舊的)
+    DayCycle.fireDayEnd(p.day);
+
     // Overnight effects
     Stats.modVital('stamina', 40);
     Stats.modVital('mood',    5);
@@ -609,6 +613,9 @@ const Game = (() => {
     p.time = SLOT_START;
 
     addLog(`\n────────────────────\n第 ${p.day} 天　天光未明，新的一天開始了。`, '#b8960c', false);
+
+    // 🆕 D.1.11: Fire "day start" hooks (p.day 是新的)
+    DayCycle.fireDayStart(p.day);
 
     // Roll new day's NPCs
     _syncLastRollDay(-1);
