@@ -61,6 +61,7 @@ const Game = (() => {
         fontSize:      'medium',    // 'small' | 'medium' | 'large'
         textSpeed:     'normal',    // 'slow' | 'normal' | 'fast' | 'instant'
         reducedMotion: false,
+        language:      'zh-TW',     // 🆕 D.1.14: 'zh-TW' | 'zh-CN' | 'en' | 'ja'
       },
       gameplay: {
         battleSpeed:       1,        // 1 | 2 | 4 （倍率）
@@ -134,6 +135,10 @@ const Game = (() => {
     // 色盲模式 → body class
     document.body?.classList.toggle('colorblind-mode', settings.accessibility.colorblind);
     document.body?.classList.toggle('high-contrast', settings.accessibility.highContrast);
+    // 🆕 D.1.14: 語言 → I18N
+    if (typeof I18N !== 'undefined' && settings.display.language) {
+      I18N.setLang(settings.display.language);
+    }
   }
 
   loadSettings();
