@@ -858,6 +858,12 @@ const Game = (() => {
       }
     }
 
+    // ── 🆕 Resources（金錢 + SP） ──
+    const moneyEl = document.getElementById('cs-money');
+    if (moneyEl) moneyEl.textContent = p.money || 0;
+    const spEl = document.getElementById('cs-sp');
+    if (spEl) spEl.textContent = p.sp || 0;
+
     // ── Affection bars ──
     const affNpcs = ['master','officer','cassius','blacksmithGra','melaKook'];
     affNpcs.forEach(npcId => {
@@ -948,20 +954,26 @@ const Game = (() => {
 
   function saveGame() {
     try {
+      const p = Stats.player;
       const data = {
         version:      5,
-        player:       { ...Stats.player,
-                        inventory:    [...Stats.player.inventory],
-                        affection:    { ...Stats.player.affection },
-                        eqBonus:      { ...Stats.player.eqBonus  },
-                        buffBonus:    { ...Stats.player.buffBonus },
-                        combatStats:  { ...Stats.player.combatStats },
-                        achievements: [...(Stats.player.achievements || [])],
-                        traits:       [...(Stats.player.traits       || [])],
+        player:       { ...p,
+                        inventory:     [...p.inventory],
+                        affection:     { ...p.affection },
+                        eqBonus:       { ...p.eqBonus  },
+                        buffBonus:     { ...p.buffBonus },
+                        combatStats:   { ...p.combatStats },
+                        achievements:  [...(p.achievements || [])],
+                        traits:        [...(p.traits       || [])],
+                        // 🆕 v5 新欄位深拷貝
+                        exp:           { ...(p.exp || {}) },
+                        personalItems: [...(p.personalItems || [])],
+                        pets:          { ...(p.pets || {}) },
+                        scars:         [...(p.scars || [])],
                       },
         fieldId:      currentFieldId,
         npcAffection: teammates.getAllAffection(),
-        flags:        Flags.getAll(),            // 🆕 v5: 故事旗標
+        flags:        Flags.getAll(),            // v5: 故事旗標
         savedAt:      Date.now(),
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(data));
@@ -993,6 +1005,34 @@ const Game = (() => {
         delete p.equippedShield;
       }
       if (!p.staminaPenalty) p.staminaPenalty = { STR:0, DEX:0, CON:0, AGI:0, WIL:0, LUK:0 };
+
+      // 🆕 v4→v5 欄位補齊（所有 D.1.4 + D.1.6 新增欄位）
+      // 多部位裝備
+      if (p.equippedHelmet === undefined) p.equippedHelmet = null;
+      if (p.equippedChest  === undefined) p.equippedChest  = null;
+      if (p.equippedArms   === undefined) p.equippedArms   = null;
+      if (p.equippedLegs   === undefined) p.equippedLegs   = null;
+      // 金錢
+      if (p.money       === undefined) p.money       = 0;
+      if (p.moneyEarned === undefined) p.moneyEarned = 0;
+      if (p.moneySpent  === undefined) p.moneySpent  = 0;
+      // EXP / SP
+      if (!p.exp || typeof p.exp !== 'object') {
+        p.exp = { STR:0, DEX:0, CON:0, AGI:0, WIL:0, LUK:0 };
+      }
+      if (p.sp       === undefined) p.sp       = 0;
+      if (p.spEarned === undefined) p.spEarned = 0;
+      // 個人物品 / 寵物 / 疤痕
+      if (!Array.isArray(p.personalItems)) p.personalItems = [];
+      if (!p.pets || typeof p.pets !== 'object') {
+        p.pets = { companion: null, cell: null, outside: null };
+      }
+      if (!Array.isArray(p.scars)) p.scars = [];
+      // 身分
+      if (p.origin   === undefined) p.origin   = null;
+      if (p.facility === undefined) p.facility = null;
+      if (p.religion === undefined) p.religion = null;
+      if (p.faction  === undefined) p.faction  = null;
 
       // Restore field
       currentFieldId = data.fieldId || 'dirtyCell';
@@ -1080,9 +1120,30 @@ const Game = (() => {
         mood:50, moodMax:100,
         STR:10, DEX:10, CON:10, AGI:10, WIL:10, LUK:10,
         inventory:[], equippedWeapon:null, equippedArmor:null, equippedOffhand:null,
+        // 🆕 多部位裝備
+        equippedHelmet:null, equippedChest:null, equippedArms:null, equippedLegs:null,
+        // 🆕 金錢
+        money:0, moneyEarned:0, moneySpent:0,
+        // 🆕 EXP / SP
+        exp:{ STR:0, DEX:0, CON:0, AGI:0, WIL:0, LUK:0 },
+        sp:0, spEarned:0,
+        // 🆕 個人物品 / 寵物 / 疤痕
+        personalItems:[],
+        pets:{ companion:null, cell:null, outside:null },
+        scars:[],
+        // 🆕 身分
+        origin:null, facility:null, religion:null, faction:null,
+        // 其他
         affection:{ master:0, officer:0, blacksmith:0, cook:0 },
+        achievements:[], traits:[], title:null, fameBase:0,
+        staminaPenalty:{ STR:0, DEX:0, CON:0, AGI:0, WIL:0, LUK:0 },
+        combatStats:{
+          executionCount:0, spareCount:0, suppressCount:0,
+          arenaWins:0, arenaLosses:0,
+          sRankCount:0, aRankCount:0, totalTicks:0, winStreak:0,
+        },
       });
-      Flags.clear();          // 🆕 清空所有故事旗標
+      Flags.clear();          // 清空所有故事旗標
       currentFieldId = 'dirtyCell';
       // Restore original name-entry form
       box.innerHTML = `

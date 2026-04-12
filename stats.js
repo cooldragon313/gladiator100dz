@@ -41,10 +41,45 @@ const Stats = (() => {
     },
 
     // ── Inventory ──
-    inventory: [],
+    inventory: [],                    // 舊物品清單（向下相容，未來由 personalItems 取代）
     equippedWeapon:  null,
-    equippedArmor:   null,
-    equippedOffhand: null,   // 盾牌 ID 或單手武器 ID（雙持）
+    equippedArmor:   null,             // 胸甲主槽（D.2 多部位系統啟用後由 equippedChest 取代）
+    equippedOffhand: null,              // 盾牌 ID 或單手武器 ID（雙持）
+
+    // ── 🆕 多部位裝備預留（D.2） ──
+    equippedHelmet: null,   // 頭盔
+    equippedChest:  null,   // 胸甲（啟用後替代 equippedArmor）
+    equippedArms:   null,   // 護臂
+    equippedLegs:   null,   // 護腿
+
+    // ── 🆕 金錢系統（D.1.6） ──
+    money:        0,        // 當前金錢
+    moneyEarned:  0,        // 累積獲得（統計用）
+    moneySpent:   0,        // 累積花費（統計用）
+
+    // ── 🆕 經驗值系統（D.6） ──
+    exp: { STR:0, DEX:0, CON:0, AGI:0, WIL:0, LUK:0 },
+    sp:       0,            // 技能點
+    spEarned: 0,            // 累積獲得（統計用）
+
+    // ── 🆕 個人物品（D.3） ──
+    personalItems: [],      // 最多 6 格（D.3 實作時加入上限檢查）
+
+    // ── 🆕 寵物槽位（D.5） ──
+    pets: {
+      companion: null,       // 跟著玩家（狗/貓）
+      cell:      null,       // 住在牢房（老鼠）
+      outside:   null,       // 住在戶外（烏鴉/獵鷹）
+    },
+
+    // ── 🆕 疤痕（D.2 / C.1） ──
+    scars: [],
+
+    // ── 🆕 身分系統預留（D.11 模板對應） ──
+    origin:   null,          // 玩家背景 ID（ORIGINS）
+    facility: null,          // 訓練所 ID（FACILITIES）
+    religion: null,          // 信仰 ID（DEITIES）
+    faction:  null,          // 派系 ID
 
     // ── Combat statistics (累積戰績) ──
     combatStats: {
@@ -189,6 +224,7 @@ const Stats = (() => {
     renderAttributes();
     renderDerivedStats();
     renderFame();
+    renderMoney();
   }
 
   // ── Modifiers ─────────────────────────────────────────
@@ -225,6 +261,47 @@ const Stats = (() => {
     }
   }
 
+  // ── 🆕 金錢系統（D.1.6） ─────────────────────
+  /**
+   * 修改金錢。
+   * @param {number} delta 正數=獲得，負數=花費
+   * @returns {boolean} 是否成功（花費時金錢不足會回傳 false）
+   */
+  function modMoney(delta) {
+    if (delta < 0 && player.money + delta < 0) return false;  // 金錢不足
+    player.money += delta;
+    if (delta > 0) player.moneyEarned += delta;
+    else           player.moneySpent  += -delta;
+    renderMoney();
+    return true;
+  }
+
+  function renderMoney() {
+    const el = document.getElementById('stat-money');
+    if (el) el.textContent = player.money;
+    const csEl = document.getElementById('cs-money');
+    if (csEl) csEl.textContent = player.money;
+  }
+
+  // ── 🆕 經驗值系統（D.6） ──────────────────────
+  /**
+   * 累加屬性 EXP，自動升級（若達門檻）。
+   * 目前只累加不升級，D.6 實作時補上升級邏輯。
+   * @param {string} attr STR/DEX/CON/AGI/WIL/LUK
+   * @param {number} delta
+   */
+  function modExp(attr, delta) {
+    if (!player.exp || player.exp[attr] === undefined) return;
+    player.exp[attr] = Math.max(0, player.exp[attr] + delta);
+    // D.6 實作時：檢查是否達到 expToNext 門檻 → 自動升級屬性 + 發 SP
+  }
+
+  // ── 🆕 技能點（D.6） ──────────────────────────
+  function modSp(delta) {
+    player.sp = Math.max(0, player.sp + delta);
+    if (delta > 0) player.spEarned += delta;
+  }
+
   function getTimeStr() {
     const h = Math.floor(player.time / 60) % 24;
     const m = player.time % 60;
@@ -250,16 +327,24 @@ const Stats = (() => {
     player,
     eff,
     calcDerived,
+    // 渲染
     renderAll,
     renderVitalBars,
     renderAttributes,
     renderDerivedStats,
     renderFame,
+    renderMoney,
+    // 修改器
     modVital,
     modFame,
     modAttr,
+    modMoney,   // 🆕 D.1.6
+    modExp,     // 🆕 D.6 預留
+    modSp,      // 🆕 D.6 預留
+    // 時間
     getTimeStr,
     advanceTime,
+    // 工具
     getRoomTier,
     updateStaminaPenalty,
   };
