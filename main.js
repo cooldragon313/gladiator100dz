@@ -45,16 +45,98 @@ const Game = (() => {
     GameState.setLastNPCRollDay(day);
   }
 
-  // ── Settings (persisted in localStorage) ─────────────
-  const settings = {
-    sfx:   parseInt(localStorage.getItem('sfx')   ?? 1),
-    music: parseInt(localStorage.getItem('music') ?? 1),
-  };
+  // ── Settings (D.1.7: 擴展為完整結構化設定) ──────────
+  const SETTINGS_KEY = 'bairi_settings';
+
+  /** 預設設定（所有類別 + 預設值） */
+  function _defaultSettings() {
+    return {
+      audio: {
+        master: 1.0,     // 0~1
+        sfx:    1.0,     // 0~1
+        bgm:    0.7,     // 0~1
+        muted:  false,
+      },
+      display: {
+        fontSize:      'medium',    // 'small' | 'medium' | 'large'
+        textSpeed:     'normal',    // 'slow' | 'normal' | 'fast' | 'instant'
+        reducedMotion: false,
+      },
+      gameplay: {
+        battleSpeed:       1,        // 1 | 2 | 4 （倍率）
+        showDamageNumbers: true,
+        autoSave:          'action', // 'never' | 'action' | 'day'
+        tutorialEnabled:   true,
+      },
+      accessibility: {
+        colorblind:   false,
+        highContrast: false,
+      },
+    };
+  }
+
+  let settings = _defaultSettings();
+
+  function loadSettings() {
+    try {
+      const raw = localStorage.getItem(SETTINGS_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        // Deep merge：未知欄位用預設值補齊
+        const def = _defaultSettings();
+        settings = {
+          audio:         { ...def.audio,         ...(saved.audio || {}) },
+          display:       { ...def.display,       ...(saved.display || {}) },
+          gameplay:      { ...def.gameplay,      ...(saved.gameplay || {}) },
+          accessibility: { ...def.accessibility, ...(saved.accessibility || {}) },
+        };
+      }
+    } catch (e) {
+      console.warn('[Settings] load failed, using defaults:', e);
+      settings = _defaultSettings();
+    }
+
+    // 向下相容：讀取舊的 sfx / music localStorage key
+    const legacySfx   = localStorage.getItem('sfx');
+    const legacyMusic = localStorage.getItem('music');
+    if (legacySfx !== null)   settings.audio.sfx = parseInt(legacySfx) / 2;   // 0/1/2 → 0/0.5/1
+    if (legacyMusic !== null) settings.audio.bgm = parseInt(legacyMusic) / 2;
+
+    _applySettings();
+  }
 
   function saveSettings() {
-    localStorage.setItem('sfx',   settings.sfx);
-    localStorage.setItem('music', settings.music);
+    try {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    } catch (e) {
+      console.warn('[Settings] save failed:', e);
+    }
+    _applySettings();
   }
+
+  /** 套用設定到對應的模組（SoundManager / CSS 變數等） */
+  function _applySettings() {
+    // 音量 → SoundManager
+    if (typeof SoundManager !== 'undefined') {
+      SoundManager.setMasterVol(settings.audio.master);
+      SoundManager.setSfxVol(settings.audio.sfx);
+      SoundManager.setBgmVol(settings.audio.bgm);
+      SoundManager.mute(settings.audio.muted);
+    }
+    // 字體大小 → CSS variable
+    const scaleMap = { small: 0.85, medium: 1.0, large: 1.2 };
+    document.documentElement.style.setProperty(
+      '--font-scale',
+      scaleMap[settings.display.fontSize] || 1.0
+    );
+    // 動畫減少 → body class
+    document.body?.classList.toggle('reduced-motion', settings.display.reducedMotion);
+    // 色盲模式 → body class
+    document.body?.classList.toggle('colorblind-mode', settings.accessibility.colorblind);
+    document.body?.classList.toggle('high-contrast', settings.accessibility.highContrast);
+  }
+
+  loadSettings();
 
   // ── Log ───────────────────────────────────────────────
   function addLog(text, color = '#e0e0e0', italic = true) {
@@ -942,7 +1024,7 @@ const Game = (() => {
     return false; // default false until player actually learns skills
   }
 
-  // ── Settings modal ────────────────────────────────────
+  // ── Settings modal (D.1.7 重構為結構化) ──────────────
   function openSettingsModal() {
     const modal = document.getElementById('modal-settings');
     if (!modal) return;
@@ -954,17 +1036,56 @@ const Game = (() => {
     document.getElementById('modal-settings')?.classList.remove('open');
   }
 
+  /**
+   * 取得/設定 nested 設定值，用路徑字串如 'audio.master'。
+   */
+  function _getSettingByPath(path) {
+    const parts = path.split('.');
+    let cur = settings;
+    for (const p of parts) {
+      if (cur == null) return undefined;
+      cur = cur[p];
+    }
+    return cur;
+  }
+  function _setSettingByPath(path, value) {
+    const parts = path.split('.');
+    let cur = settings;
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (cur[parts[i]] == null) cur[parts[i]] = {};
+      cur = cur[parts[i]];
+    }
+    cur[parts[parts.length - 1]] = value;
+  }
+
+  /** 把字串轉成正確的 JS 型別 */
+  function _parseSettingValue(raw) {
+    if (raw === 'true')  return true;
+    if (raw === 'false') return false;
+    const num = Number(raw);
+    if (!isNaN(num) && raw.trim() !== '') return num;
+    return raw;
+  }
+
   function updateSettingsUI() {
-    ['sfx', 'music'].forEach(key => {
-      document.querySelectorAll(`.vol-btn[data-key="${key}"]`).forEach(btn => {
-        btn.classList.toggle('active', parseInt(btn.dataset.val) === settings[key]);
+    // 遍歷所有 vol-group，根據當前值 highlight 對應按鈕
+    document.querySelectorAll('.vol-group[data-setting]').forEach(group => {
+      const path = group.dataset.setting;
+      const currentVal = _getSettingByPath(path);
+      group.querySelectorAll('.vol-btn').forEach(btn => {
+        const btnVal = _parseSettingValue(btn.dataset.val);
+        btn.classList.toggle('active', btnVal === currentVal);
       });
     });
   }
 
-  function setVolume(key, val) {
-    settings[key] = val;
-    saveSettings();
+  /**
+   * 當玩家點擊設定按鈕時呼叫。
+   */
+  function setSetting(path, rawVal) {
+    const val = _parseSettingValue(rawVal);
+    _setSettingByPath(path, val);
+    saveSettings();          // 會自動呼叫 _applySettings()
     updateSettingsUI();
   }
 
@@ -1222,9 +1343,12 @@ const Game = (() => {
     document.getElementById('name-input')?.addEventListener('keydown', e => {
       if (e.key === 'Enter') confirmName();
     });
-    // Settings volume buttons
-    document.querySelectorAll('.vol-btn').forEach(btn => {
-      btn.addEventListener('click', () => setVolume(btn.dataset.key, parseInt(btn.dataset.val)));
+    // 🆕 D.1.7: Settings buttons — 所有 .vol-btn 透過父容器的 data-setting 路徑設定
+    document.querySelectorAll('.vol-group[data-setting]').forEach(group => {
+      const path = group.dataset.setting;
+      group.querySelectorAll('.vol-btn').forEach(btn => {
+        btn.addEventListener('click', () => setSetting(path, btn.dataset.val));
+      });
     });
     // Leave game
     document.getElementById('btn-leave')?.addEventListener('click', () => {

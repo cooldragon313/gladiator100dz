@@ -28,6 +28,7 @@
   --bar-food:  #1e7a3a;
   --bar-mood:  #2255aa;
   --font: 'Noto Serif TC', 'Georgia', serif;
+  --font-scale: 1;    /* D.1.7: 設定頁字體大小縮放 */
 }
 
 html, body {
@@ -782,29 +783,73 @@ html, body {
 #name-input:focus { border-color: var(--blood-lt); }
 .name-hint { font-size:22px; color:var(--text-dim); text-align:center; }
 
-/* ── Settings modal ── */
+/* ── Settings modal (D.1.7 重構) ── */
+.settings-modal-box {
+  max-width: 700px;
+  width: 95vw;
+  max-height: 85vh;
+}
+.settings-body {
+  max-height: 65vh;
+  overflow-y: auto;
+  padding: 16px 20px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.setting-group {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.setting-group:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+.setting-group-title {
+  font-size: 22px;
+  color: var(--gold-lt);
+  letter-spacing: .15em;
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed var(--border);
+}
 .setting-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 14px;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding-left: 4px;
 }
 .setting-label {
-  width: 56px; flex-shrink:0;
-  font-size: 24px; color:var(--text-dim);
+  width: 120px; flex-shrink:0;
+  font-size: 18px; color:var(--text);
+  letter-spacing: .05em;
 }
-.vol-group { display:flex; gap:4px; }
+.vol-group { display:flex; gap:4px; flex-wrap: wrap; }
 .vol-btn {
-  padding: 4px 12px;
+  padding: 5px 14px;
   background: var(--raised);
   border: 1px solid var(--border);
   color: var(--text-dim);
-  font-family: var(--font); font-size:24px;
+  font-family: var(--font); font-size:18px;
   cursor: pointer;
   transition: background .2s, border-color .2s, color .2s;
 }
 .vol-btn:hover { border-color: var(--blood); color: var(--text); }
 .vol-btn.active { background:#2a0a00; border-color:var(--blood-lt); color:#e88060; }
+
+/* ── 輔助功能 ── */
+body.reduced-motion *,
+body.reduced-motion *::before,
+body.reduced-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+body.high-contrast {
+  filter: contrast(1.2);
+}
+body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important; }
 
 /* ── Detail modal ── */
 .detail-grid { display:flex; flex-direction:column; gap:16px; }
@@ -1835,34 +1880,157 @@ html, body {
   </div><!-- /char-sheet -->
 </div>
 
-<!-- ══ SETTINGS MODAL ════════════════════════════════════ -->
+<!-- ══ SETTINGS MODAL (D.1.7 重構為結構化分類) ═══════════ -->
 <div class="modal-overlay" id="modal-settings">
-  <div class="modal-box">
+  <div class="modal-box settings-modal-box">
     <div class="modal-header">
       <span class="modal-title">設定</span>
       <button class="modal-close" id="btn-close-settings">✕</button>
     </div>
-    <div class="modal-body">
-      <div class="setting-row">
-        <span class="setting-label">音效</span>
-        <div class="vol-group">
-          <button class="vol-btn" data-key="sfx" data-val="0">小</button>
-          <button class="vol-btn active" data-key="sfx" data-val="1">中</button>
-          <button class="vol-btn" data-key="sfx" data-val="2">大</button>
+    <div class="modal-body settings-body">
+
+      <!-- ── 音效 ── -->
+      <div class="setting-group">
+        <div class="setting-group-title">🔊 音效</div>
+
+        <div class="setting-row">
+          <span class="setting-label">主音量</span>
+          <div class="vol-group" data-setting="audio.master">
+            <button class="vol-btn" data-val="0">靜</button>
+            <button class="vol-btn" data-val="0.25">小</button>
+            <button class="vol-btn" data-val="0.5">中</button>
+            <button class="vol-btn" data-val="0.75">大</button>
+            <button class="vol-btn" data-val="1">滿</button>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <span class="setting-label">音效</span>
+          <div class="vol-group" data-setting="audio.sfx">
+            <button class="vol-btn" data-val="0">靜</button>
+            <button class="vol-btn" data-val="0.25">小</button>
+            <button class="vol-btn" data-val="0.5">中</button>
+            <button class="vol-btn" data-val="0.75">大</button>
+            <button class="vol-btn" data-val="1">滿</button>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <span class="setting-label">音樂</span>
+          <div class="vol-group" data-setting="audio.bgm">
+            <button class="vol-btn" data-val="0">靜</button>
+            <button class="vol-btn" data-val="0.25">小</button>
+            <button class="vol-btn" data-val="0.5">中</button>
+            <button class="vol-btn" data-val="0.75">大</button>
+            <button class="vol-btn" data-val="1">滿</button>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <span class="setting-label">靜音</span>
+          <div class="vol-group" data-setting="audio.muted">
+            <button class="vol-btn" data-val="false">開啟</button>
+            <button class="vol-btn" data-val="true">靜音</button>
+          </div>
         </div>
       </div>
-      <div class="setting-row">
-        <span class="setting-label">音樂</span>
-        <div class="vol-group">
-          <button class="vol-btn" data-key="music" data-val="0">小</button>
-          <button class="vol-btn active" data-key="music" data-val="1">中</button>
-          <button class="vol-btn" data-key="music" data-val="2">大</button>
+
+      <!-- ── 顯示 ── -->
+      <div class="setting-group">
+        <div class="setting-group-title">🖥️ 顯示</div>
+
+        <div class="setting-row">
+          <span class="setting-label">字體大小</span>
+          <div class="vol-group" data-setting="display.fontSize">
+            <button class="vol-btn" data-val="small">小</button>
+            <button class="vol-btn" data-val="medium">中</button>
+            <button class="vol-btn" data-val="large">大</button>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <span class="setting-label">文字速度</span>
+          <div class="vol-group" data-setting="display.textSpeed">
+            <button class="vol-btn" data-val="slow">慢</button>
+            <button class="vol-btn" data-val="normal">正常</button>
+            <button class="vol-btn" data-val="fast">快</button>
+            <button class="vol-btn" data-val="instant">瞬間</button>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <span class="setting-label">減少動畫</span>
+          <div class="vol-group" data-setting="display.reducedMotion">
+            <button class="vol-btn" data-val="false">關</button>
+            <button class="vol-btn" data-val="true">開</button>
+          </div>
         </div>
       </div>
+
+      <!-- ── 遊戲 ── -->
+      <div class="setting-group">
+        <div class="setting-group-title">⚔️ 遊戲</div>
+
+        <div class="setting-row">
+          <span class="setting-label">戰鬥速度</span>
+          <div class="vol-group" data-setting="gameplay.battleSpeed">
+            <button class="vol-btn" data-val="1">1x</button>
+            <button class="vol-btn" data-val="2">2x</button>
+            <button class="vol-btn" data-val="4">4x</button>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <span class="setting-label">顯示傷害數字</span>
+          <div class="vol-group" data-setting="gameplay.showDamageNumbers">
+            <button class="vol-btn" data-val="false">關</button>
+            <button class="vol-btn" data-val="true">開</button>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <span class="setting-label">自動存檔</span>
+          <div class="vol-group" data-setting="gameplay.autoSave">
+            <button class="vol-btn" data-val="never">關</button>
+            <button class="vol-btn" data-val="action">每次行動</button>
+            <button class="vol-btn" data-val="day">每天</button>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <span class="setting-label">教學提示</span>
+          <div class="vol-group" data-setting="gameplay.tutorialEnabled">
+            <button class="vol-btn" data-val="false">關</button>
+            <button class="vol-btn" data-val="true">開</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── 輔助 ── -->
+      <div class="setting-group">
+        <div class="setting-group-title">♿ 輔助</div>
+
+        <div class="setting-row">
+          <span class="setting-label">色盲模式</span>
+          <div class="vol-group" data-setting="accessibility.colorblind">
+            <button class="vol-btn" data-val="false">關</button>
+            <button class="vol-btn" data-val="true">開</button>
+          </div>
+        </div>
+
+        <div class="setting-row">
+          <span class="setting-label">高對比</span>
+          <div class="vol-group" data-setting="accessibility.highContrast">
+            <button class="vol-btn" data-val="false">關</button>
+            <button class="vol-btn" data-val="true">開</button>
+          </div>
+        </div>
+      </div>
+
     </div>
     <div class="modal-footer">
       <button class="game-btn" id="btn-leave">離開遊戲</button>
-        <button class="game-btn" onclick="if(confirm('確定清除存檔並重新開始？')){ Game.clearSave(); location.reload(); }" style="color:#cc3300;border-color:#3a1408;">清除存檔</button>
+      <button class="game-btn" onclick="if(confirm('確定清除存檔並重新開始？')){ Game.clearSave(); location.reload(); }" style="color:#cc3300;border-color:#3a1408;">清除存檔</button>
       <button class="game-btn primary" id="btn-close-settings-2"
         onclick="document.getElementById('modal-settings').classList.remove('open')">關閉</button>
     </div>
