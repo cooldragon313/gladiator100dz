@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+</title>指令寫法
+
+
+
+NPC的寫法如下
+
+ eatMeal: {
+    id: 'eatMeal', name: '用正餐',
+    desc: '吃一頓正經的飯，填飽肚子，改善心情。',
+    slots: 1, staminaCost: 0, foodCost: 0,
+    fields: ['kitchen'],
+    timeHours: [6, 10, 18],   // 06:00-08:00、10:00-12:00、18:00-20:00 才出現
+    flavorText: '時間到就該吃飯，吃飽了才好辦事！',
+    effects: [
+      { type: 'vital', key: 'food', delta: 40 },
+      { type: 'vital', key: 'mood', delta: 8  },
+      { type: 'affection', key: 'melaKook', delta: 5  },
+    ],
+    conditionalEffects: [
+      {
+        condition: { type: 'affection', npcId: 'melaKook', min: 60 },
+        effects: [{ type: 'vital', key: 'food', delta: 10 }],
+        flavorText: '米拉偷偷多塞了一塊麵包給你。',
+      },
+    ],
+    eventPool: ['melaChat', 'blackCooking'],
+  },
+
+####如果你還想讓他在其他時段隨機出現在廚房，才需要去 fields.js 加：
+{ npcId: 'melakook', role: 'audience', chance: 0.5 }
+  
+  
+flavorText — 執行動作時固定顯示的文字：
+flavorText: '時間到就該吃飯，吃飽了才好辦事！',
+
+好感度要求
+min: 60	好感度 ≥ 60
+min: 40, max: 60	好感度 40～60 之間
+max: 30	好感度 ≤ 30（低好感懲罰之類）
+affection: { npcId: 'melaKook', min: 60 }	好感度 ≥ 60
+affection: { npcId: 'melaKook', min: 40, max  : 60 }	好感度 40～60 之間
+affection: { npcId: 'melaKook', max: 30 }  好感度 ≤ 30（低好感懲罰之類）

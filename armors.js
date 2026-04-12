@@ -29,8 +29,8 @@ const Armors = {
   },
 
   // ── Shields (contribute BLK bonus) ──
-  woodenShield: {
-    id: 'woodenShield', name: '木盾', type: 'shield',
+  woodShield: {
+    id: 'woodShield', name: '木盾', type: 'shield',
     desc: '乾燥的木頭做成的盾牌，兩三下就可能碎裂。',
     eqBonus: { BLK: 10, DEF: 5 },
     price: 20,

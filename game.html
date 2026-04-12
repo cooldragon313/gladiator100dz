@@ -42,7 +42,7 @@ html, body {
 /* ── Main layout: 3 columns ────────────────────────────────── */
 #game-root {
   display: grid;
-  grid-template-columns: 210px 1fr 340px;
+  grid-template-columns: 290px 1fr 340px;
   grid-template-rows: 100vh;
   width: 100%; height: 100%;
   gap: 0;
@@ -148,6 +148,7 @@ html, body {
   flex-direction: column;
   overflow: hidden;
   border-right: 2px solid var(--border);
+  position: relative;
 }
 
 /* ── Time bar ── */
@@ -558,6 +559,17 @@ html, body {
 }
 .derived-name { font-size: 18px; color:var(--text-dim); letter-spacing:.05em; }
 .derived-val  { font-size: 24px; font-weight:700; color:var(--text-hi); }
+.route-badge {
+  display: inline-block;
+  font-size: 18px; font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 3px;
+  vertical-align: middle;
+  letter-spacing: .05em;
+}
+.route-badge.route-rage  { background: #5a1010; color: #ff6060; border: 1px solid #ff4040; }
+.route-badge.route-focus { background: #0a2a4a; color: #60c0ff; border: 1px solid #3090e0; }
+.route-badge.route-fury  { background: #3a2000; color: #ffaa30; border: 1px solid #cc7700; }
 
 /* ── Action buttons ── */
 #action-buttons {
@@ -586,10 +598,74 @@ html, body {
 }
 .game-btn.primary { border-color: var(--blood); color: #e88060; }
 
+/* ── Arena section ── */
+#arena-section {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+}
+.arena-btn {
+  width: 100%;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #0a0200;
+  border: none;
+  border-top: 2px solid #3a1400;
+  color: var(--text);
+  cursor: pointer;
+  font-family: var(--font);
+  transition: background .2s, border-color .2s;
+  text-align: left;
+}
+.arena-btn:hover:not(.arena-btn-disabled) {
+  background: #1a0800;
+  border-color: var(--blood-lt);
+}
+.arena-btn-disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+.arena-btn-icon {
+  font-size: 30px;
+  color: var(--blood-lt);
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 5px rgba(192,57,43,.5));
+}
+.arena-btn-content { flex: 1; }
+.arena-btn-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  color: var(--text-hi);
+  line-height: 1.3;
+}
+.arena-btn-tier {
+  font-size: 17px;
+  letter-spacing: .06em;
+  margin-top: 1px;
+}
+.arena-btn-cost {
+  font-size: 17px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.arena-locked {
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-top: 1px solid var(--border);
+  opacity: .35;
+}
+.arena-lock-icon { font-size: 18px; }
+.arena-lock-text { font-size: 18px; color: var(--text-dim); letter-spacing: .06em; }
+
 /* ── Day counter (bottom left) ── */
 #day-counter {
   padding: 8px 12px;
-  font-size: 20px;
+  font-size: 22px;
   letter-spacing: .18em;
   color: #5a3020;
   text-align: center;
@@ -892,6 +968,395 @@ html, body {
 .cs-skill-name { font-size: 14px; font-weight: 700; color: var(--text-hi); margin-bottom: 2px; }
 .cs-skill-type { font-size: 10px; letter-spacing: .1em; color: var(--text-dim); margin-bottom: 4px; }
 .cs-skill-desc { font-size: 12px; color: var(--text-dim); line-height: 1.6; }
+
+/* ═══════════════════════════════════════════════════════════
+   LEFT PANEL — Time Slots / Location Tabs / Action List
+════════════════════════════════════════════════════════════ */
+
+/* ── Time slots ── */
+#time-slots {
+  display: flex;
+  padding: 5px 6px 4px;
+  gap: 2px;
+  border-bottom: 1px solid var(--border);
+  background: var(--raised);
+  flex-shrink: 0;
+}
+.slot-box {
+  flex: 1;
+  height: 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 1px;
+  gap: 2px;
+}
+.slot-h { font-size: 13px; line-height: 1; letter-spacing: .02em; }
+.slot-dot { width: 5px; height: 5px; border-radius: 50%; }
+.slot-box.used { background: #150800; border-color: #2a1408; }
+.slot-box.used .slot-h  { color: #3a2010; }
+.slot-box.used .slot-dot { background: #3a1a08; }
+.slot-box.current { background: #200a00; border-color: var(--blood); }
+.slot-box.current .slot-h  { color: #cc7755; }
+.slot-box.current .slot-dot { background: var(--blood-lt); box-shadow: 0 0 4px var(--blood-lt); }
+.slot-box.future { background: transparent; border-color: #1a1410; }
+.slot-box.future .slot-h  { color: var(--text-dim); }
+.slot-box.future .slot-dot { background: #1a1410; }
+
+/* ── Location tabs ── */
+#location-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border-bottom: 2px solid var(--border);
+  flex-shrink: 0;
+}
+.loc-tab {
+  background: var(--panel);
+  border: none;
+  padding: 6px 2px 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: background .12s;
+  overflow: hidden;
+  min-height: 44px;
+}
+.loc-tab:hover:not(.locked) { background: #140800; }
+.loc-tab.active {
+  background: #1e0800;
+  border-bottom: 2px solid var(--blood-lt);
+}
+.loc-tab.locked { opacity: .3; cursor: not-allowed; }
+.loc-tab-icon {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--text-dim);
+  line-height: 1;
+}
+.loc-tab.active .loc-tab-icon { color: var(--gold-lt); }
+.loc-tab-name {
+  font-size: 12px;
+  color: var(--text-dim);
+  letter-spacing: .03em;
+  white-space: nowrap;
+}
+.loc-tab.active .loc-tab-name { color: var(--text); }
+
+/* ── Action list ── */
+#action-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 6px 10px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.action-list-header {
+  font-size: 13px;
+  letter-spacing: .2em;
+  color: var(--text-dim);
+  padding: 2px 2px 6px;
+}
+.action-btn {
+  width: 100%;
+  background: var(--raised);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 7px 9px 6px;
+  margin-bottom: 4px;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: background .12s, border-color .12s;
+  display: block;
+}
+.action-btn:hover:not([disabled]) {
+  background: #1a0900;
+  border-color: var(--border-hi);
+}
+.action-btn[disabled] { opacity: .32; cursor: not-allowed; }
+.action-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-hi);
+  letter-spacing: .04em;
+  margin-bottom: 2px;
+}
+.action-cost {
+  font-size: 14px;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+.action-btn:hover:not([disabled]) .action-name { color: #e8c090; }
+.action-btn-sleep {
+  width: 100%;
+  background: #0d0808;
+  border: 1px solid #3a1408;
+  border-radius: 2px;
+  padding: 9px 8px;
+  text-align: center;
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: 16px;
+  color: #6a2a18;
+  letter-spacing: .12em;
+  transition: background .15s, color .15s, border-color .15s;
+  display: block;
+}
+.action-btn-sleep:hover {
+  background: #160a08;
+  border-color: var(--blood);
+  color: #cc5040;
+}
+.action-empty {
+  font-size: 15px;
+  color: var(--text-dim);
+  line-height: 1.8;
+  padding: 8px 2px 4px;
+  font-style: italic;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BATTLE OVERLAY
+════════════════════════════════════════════════════════════ */
+#battle-overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  background: #090704;
+  flex-direction: column;
+  overflow: hidden;
+  font-size: 13px;
+  font-family: var(--font);
+}
+
+/* ── Enemy info bar ── */
+#bt-enemy-info {
+  display: flex;
+  gap: 10px;
+  padding: 8px 10px;
+  background: #110806;
+  border-bottom: 2px solid #3a1010;
+  flex-shrink: 0;
+}
+#bt-ei-left {
+  flex: 0 0 auto;
+  min-width: 170px;
+  max-width: 210px;
+}
+#bt-ei-name   { font-size: 17px; font-weight: 700; color: #cc4422; letter-spacing: .1em; margin-bottom: 3px; }
+#bt-ei-title  { font-size: 11px; color: #885544; margin-bottom: 5px; }
+#bt-ei-passive { font-size: 11px; color: #cc8822; line-height: 1.5; margin-bottom: 2px; }
+#bt-ei-special { font-size: 11px; color: #bb66cc; line-height: 1.5; margin-bottom: 2px; }
+#bt-ei-weak    { font-size: 11px; color: #6699aa; line-height: 1.5; }
+#bt-ei-right { flex: 1; min-width: 0; }
+#bt-ei-attrs {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-bottom: 5px;
+}
+.bt-attr-item {
+  display: flex; flex-direction: column; align-items: center;
+  background: #1a100a; border: 1px solid #2a1a10;
+  padding: 2px 7px; border-radius: 2px;
+}
+.bt-attr-k { font-size: 9px; color: #665544; }
+.bt-attr-v { font-size: 15px; font-weight: 700; color: #cc9944; }
+#bt-ei-derived { font-size: 11px; color: #887766; line-height: 1.7; margin-bottom: 3px; }
+#bt-ei-derived b { color: #ccaa66; }
+#bt-ei-equip   { font-size: 10px; color: #554433; }
+
+/* ── Combatant cards ── */
+#bt-combatants {
+  display: flex;
+  gap: 8px;
+  padding: 8px 10px;
+  flex-shrink: 0;
+  background: #0d0906;
+  border-bottom: 1px solid #2a1a10;
+}
+.bt-card {
+  flex: 1; min-width: 0;
+  background: #141008;
+  border: 1px solid #2a1a10;
+  padding: 8px 10px;
+  border-radius: 2px;
+}
+.bt-card-player { border-color: #223388; }
+.bt-card-enemy  { border-color: #882222; }
+.bt-comb-name  { font-size: 15px; font-weight: 700; letter-spacing: .1em; margin-bottom: 2px; color: var(--text-hi); }
+.bt-comb-title { font-size: 10px; color: #666680; margin-bottom: 5px; }
+.bt-bar-label  { font-size: 10px; color: #666; display: flex; justify-content: space-between; margin-bottom: 2px; }
+.bt-bar-track  { height: 11px; background: #18120a; border-radius: 1px; overflow: hidden; margin-bottom: 5px; }
+.bt-bar-fill   { height: 100%; transition: width 0.25s ease; }
+.bt-hp-fill    { background: linear-gradient(to right, #660000, #cc2200); }
+.bt-gauge-fill.rage  { background: linear-gradient(to right, #440000, #cc4400); }
+.bt-gauge-fill.focus { background: linear-gradient(to right, #002244, #3366cc); }
+.bt-gauge-fill.fury  { background: linear-gradient(to right, #002200, #336622); }
+/* ── ATB bar ── */
+.bt-atb-track  { height: 5px; background: #0a0a14; border-radius: 1px; overflow: hidden; margin-bottom: 4px; }
+.bt-atb-fill   { height: 100%; width: 0%; transition: none; }
+.bt-card-player .bt-atb-fill        { background: linear-gradient(to right, #112244, #2266cc); }
+.bt-card-player .bt-atb-fill.ready  { background: linear-gradient(to right, #116633, #33ff88); box-shadow: 0 0 5px #33ff88; }
+.bt-card-enemy  .bt-atb-fill        { background: linear-gradient(to right, #441111, #cc2222); }
+.bt-status     { font-size: 10px; color: #cc8800; min-height: 13px; margin-bottom: 4px; letter-spacing: .05em; }
+.bt-vs         { display: flex; align-items: center; justify-content: center; font-size: 20px; color: #553333; font-weight: 700; flex-shrink: 0; padding: 0 6px; }
+.bt-mini-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 1px 4px; margin-top: 5px;
+  border-top: 1px solid #22180e; padding-top: 4px;
+}
+.bt-ms-item { display: flex; justify-content: space-between; font-size: 10px; padding: 1px 2px; }
+.bt-ms-lbl  { color: #444430; }
+.bt-ms-val  { color: #aa8833; font-weight: bold; }
+.bt-ms-val.pressured { color: #cc4422 !important; }
+
+/* ── Skill display ── */
+#bt-skill-display {
+  display: flex; gap: 6px;
+  padding: 5px 10px;
+  flex-shrink: 0;
+  background: #0b0906;
+  border-bottom: 1px solid #2a1a10;
+}
+.bt-skill-card {
+  flex: 1; min-width: 0;
+  background: #0e0c0a;
+  border: 1px solid #22201a;
+  padding: 5px 8px;
+  font-size: 11px;
+  border-radius: 2px;
+}
+.bt-skill-card.rage-card  { border-color: #3a1a1a; }
+.bt-skill-card.focus-card { border-color: #1a1a3a; }
+.bt-skill-card.fury-card  { border-color: #1a3a1a; }
+.bt-skill-card.active-card { border-color: #cc9900; background: #16120a; }
+.bt-sk-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px; }
+.bt-sk-name   { font-size: 13px; font-weight: bold; margin-bottom: 2px; color: var(--text-hi); }
+.bt-sk-desc   { font-size: 10px; color: #555568; line-height: 1.5; }
+
+/* ── Battle log ── */
+#bt-log {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 12px;
+  font-size: 12px;
+  line-height: 1.65;
+  background: #090704;
+  scrollbar-width: thin;
+  scrollbar-color: #2a1a10 transparent;
+}
+.bt-log-line { margin-bottom: 1px; }
+.bt-log-line.log-crit    { color: #ffaa22; }
+.bt-log-line.log-miss    { color: #555568; }
+.bt-log-line.log-special { color: #cc88ff; font-weight: bold; }
+.bt-log-line.log-injury  { color: #ff6644; font-style: italic; }
+.bt-log-line.log-system  { color: #4466aa; }
+.bt-log-line.log-die     { color: #ff2200; font-weight: bold; letter-spacing: .12em; }
+.bt-log-line.log-win     { color: #ccaa00; font-weight: bold; letter-spacing: .12em; }
+.bt-log-line.log-turn    { color: #33334a; font-size: 10px; border-top: 1px solid #18181e; margin: 3px 0; padding-top: 3px; }
+
+/* ── Action buttons ── */
+#bt-action-bar {
+  display: flex; gap: 6px;
+  padding: 6px 10px 4px;
+  flex-shrink: 0;
+  background: #0d0904;
+  border-top: 1px solid #2a1a10;
+}
+.bt-btn {
+  flex: 1;
+  background: #18141e;
+  border: 1px solid #3a3555;
+  color: #c0c0d4;
+  padding: 9px 4px;
+  font-size: 15px;
+  font-family: var(--font);
+  cursor: pointer;
+  letter-spacing: .12em;
+  text-align: center;
+  transition: background .15s, border-color .15s;
+}
+.bt-btn:hover:not(:disabled) { background: #24203a; border-color: #6655aa; }
+.bt-btn:disabled { opacity: .35; cursor: default; }
+#bt-btn-special { border-color: #553322; color: #ff8866; }
+#bt-btn-special:hover:not(:disabled) { background: #281810; border-color: #cc3322; }
+.bt-btn.special-ready { border-color: #cc9900 !important; color: #ffcc44 !important; }
+.bt-btn.auto-on     { border-color: #336633; color: #66cc66; }
+.bt-btn.hardcore-on { border-color: #993300; color: #ff6633; animation: hc-pulse .8s ease-in-out infinite; }
+@keyframes hc-pulse { 0%,100%{box-shadow:0 0 4px #993300} 50%{box-shadow:0 0 12px #ff4400} }
+.bt-btn.special-ready.half-ready { border-color: #885500; color: #ffaa33; animation: half-pulse 1.2s ease-in-out infinite; }
+@keyframes half-pulse { 0%,100%{box-shadow:0 0 4px #885500} 50%{box-shadow:0 0 10px #cc8800} }
+/* ── 硬核倒數 ── */
+#bt-hc-count {
+  display: none;
+  font-size: 22px; font-weight: 900;
+  color: #ff4400; text-align: center;
+  letter-spacing: .2em;
+  padding: 1px 0 2px;
+  animation: hc-count-flash .5s ease-in-out infinite;
+}
+@keyframes hc-count-flash { 0%,100%{opacity:1} 50%{opacity:.4} }
+/* ── 砍首選擇面板 ── */
+#bt-finish-panel {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  background: rgba(4,2,1,0.93);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 20px;
+}
+#bt-finish-panel.open { display: flex; }
+#bt-finish-mood {
+  font-size: 13px; color: #a08858; text-align: center;
+  font-style: italic; max-width: 360px; line-height: 1.6;
+  border-left: 2px solid #4a3010; padding-left: 10px;
+}
+#bt-finish-title {
+  font-size: 18px; color: #d4af37; letter-spacing: .2em;
+  text-align: center; margin-bottom: 4px;
+}
+#bt-finish-rating {
+  font-size: 12px; color: #666680; text-align: center;
+}
+#bt-finish-btns {
+  display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 340px;
+}
+.bt-finish-btn {
+  background: #100c08; border: 1px solid #3a2810;
+  color: #c8b888; padding: 12px 16px;
+  font-family: var(--font); font-size: 14px;
+  cursor: pointer; text-align: left;
+  transition: background .15s, border-color .15s;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.bt-finish-btn:hover { background: #1e140a; border-color: #8a5020; }
+.bt-finish-btn-name { font-size: 16px; letter-spacing: .15em; }
+.bt-finish-btn-desc { font-size: 11px; color: #706050; }
+.bt-finish-execute  { border-color: #5a1010; }
+.bt-finish-execute:hover  { border-color: #cc2020; background: #1a0808; }
+.bt-finish-suppress { border-color: #3a2a10; }
+.bt-finish-suppress:hover { border-color: #aa7020; background: #16100a; }
+.bt-finish-spare    { border-color: #103020; }
+.bt-finish-spare:hover    { border-color: #206040; background: #081410; }
+
+#bt-round {
+  text-align: center; font-size: 11px; color: #333348;
+  padding: 2px 0 6px; letter-spacing: .2em;
+  flex-shrink: 0; background: #0d0904;
+}
 </style>
 </head>
 <body>
@@ -907,49 +1372,17 @@ html, body {
       <div id="player-name-display">無名</div>
     </div>
 
-    <!-- Scene buttons -->
-    <div id="scene-buttons">
-      <button class="sbtn active" id="sbtn-room">
-        <span class="sbtn-bg-char">場</span>
-        <span class="sbtn-lock-icon">🔒</span>
-        <span class="sbtn-name">骯髒牢房</span>
-      </button>
-      <button class="sbtn" id="sbtn-training">
-        <span class="sbtn-bg-char">練</span>
-        <span class="sbtn-lock-icon">🔒</span>
-        <span class="sbtn-name">訓練場</span>
-      </button>
-      <button class="sbtn locked" id="sbtn-officer">
-        <span class="sbtn-bg-char">令</span>
-        <span class="sbtn-lock-icon">🔒</span>
-        <span class="sbtn-name">長官房</span>
-      </button>
-      <button class="sbtn" id="sbtn-forge">
-        <span class="sbtn-bg-char">鑄</span>
-        <span class="sbtn-lock-icon">🔒</span>
-        <span class="sbtn-name">鍛造坊</span>
-      </button>
-      <button class="sbtn" id="sbtn-kitchen">
-        <span class="sbtn-bg-char">食</span>
-        <span class="sbtn-lock-icon">🔒</span>
-        <span class="sbtn-name">廚房</span>
-      </button>
-      <button class="sbtn locked" id="sbtn-master">
-        <span class="sbtn-bg-char">主</span>
-        <span class="sbtn-lock-icon">🔒</span>
-        <span class="sbtn-name">主人房</span>
-      </button>
-      <button class="sbtn locked" id="sbtn-market">
-        <span class="sbtn-bg-char">市</span>
-        <span class="sbtn-lock-icon">🔒</span>
-        <span class="sbtn-name">城內市集</span>
-      </button>
-      <button class="sbtn locked" id="sbtn-cityExit">
-        <span class="sbtn-bg-char">野</span>
-        <span class="sbtn-lock-icon">🔒</span>
-        <span class="sbtn-name">出城</span>
-      </button>
-    </div>
+    <!-- Time slots (8 × 2h blocks, 06:00–22:00) -->
+    <div id="time-slots"></div>
+
+    <!-- Location tabs (4 per row × 2 rows) -->
+    <div id="location-tabs"></div>
+
+    <!-- Arena section -->
+    <div id="arena-section"></div>
+
+    <!-- Action list (scrollable) -->
+    <div id="action-list"></div>
 
   </div><!-- /panel-left -->
 
@@ -1026,6 +1459,112 @@ html, body {
       <div id="log-content"></div>
     </div>
 
+    <!-- ══ BATTLE OVERLAY (covers center panel during combat) ══ -->
+    <div id="battle-overlay">
+
+      <!-- Enemy info top bar -->
+      <div id="bt-enemy-info">
+        <div id="bt-ei-left">
+          <div id="bt-ei-name"></div>
+          <div id="bt-ei-title"></div>
+          <div id="bt-ei-passive"></div>
+          <div id="bt-ei-special"></div>
+          <div id="bt-ei-weak"></div>
+        </div>
+        <div id="bt-ei-right">
+          <div id="bt-ei-attrs"></div>
+          <div id="bt-ei-derived"></div>
+          <div id="bt-ei-equip"></div>
+        </div>
+      </div>
+
+      <!-- Combatant cards -->
+      <div id="bt-combatants">
+        <div class="bt-card bt-card-player">
+          <div class="bt-comb-name" id="bt-pname">玩家</div>
+          <div class="bt-comb-title" id="bt-ptitle">角鬥士</div>
+          <div class="bt-bar-label"><span>HP</span><span id="bt-php-txt">—</span></div>
+          <div class="bt-bar-track"><div class="bt-bar-fill bt-hp-fill" id="bt-php-bar" style="width:100%"></div></div>
+          <div class="bt-bar-label"><span id="bt-pgauge-lbl">儀表</span><span id="bt-pgauge-txt">0/100</span></div>
+          <div class="bt-bar-track"><div class="bt-bar-fill bt-gauge-fill fury" id="bt-pgauge-bar" style="width:0%"></div></div>
+          <div class="bt-bar-label"><span>ATB</span><span id="bt-patb-txt">0%</span></div>
+          <div class="bt-atb-track"><div class="bt-atb-fill" id="bt-patb-bar" style="width:0%"></div></div>
+          <div id="bt-hc-count"></div>
+          <div class="bt-status" id="bt-pstatus"></div>
+          <div class="bt-mini-stats" id="bt-p-mini"></div>
+        </div>
+
+        <div class="bt-vs">VS</div>
+
+        <div class="bt-card bt-card-enemy">
+          <div class="bt-comb-name" id="bt-ename">—</div>
+          <div class="bt-comb-title" id="bt-etitle">—</div>
+          <div class="bt-bar-label"><span>HP</span><span id="bt-ehp-txt">—</span></div>
+          <div class="bt-bar-track"><div class="bt-bar-fill bt-hp-fill" id="bt-ehp-bar" style="width:100%"></div></div>
+          <div class="bt-bar-label"><span id="bt-egauge-lbl">儀表</span><span id="bt-egauge-txt">0/100</span></div>
+          <div class="bt-bar-track"><div class="bt-bar-fill bt-gauge-fill fury" id="bt-egauge-bar" style="width:0%"></div></div>
+          <div class="bt-bar-label"><span>ATB</span><span id="bt-eatb-txt">0%</span></div>
+          <div class="bt-atb-track"><div class="bt-atb-fill" id="bt-eatb-bar" style="width:0%"></div></div>
+          <div class="bt-status" id="bt-estatus"></div>
+          <div class="bt-mini-stats" id="bt-e-mini"></div>
+        </div>
+      </div>
+
+      <!-- Skill display -->
+      <div id="bt-skill-display">
+        <div class="bt-skill-card" id="bt-p-skill-card">
+          <div class="bt-sk-header">
+            <span id="bt-p-sk-route"></span>
+            <span id="bt-p-sk-gauge" style="font-size:10px;color:#444456;">儀表 0%</span>
+          </div>
+          <div class="bt-sk-name" id="bt-p-sk-name">— 未開戰 —</div>
+          <div class="bt-sk-desc" id="bt-p-sk-desc">開始戰鬥後顯示技能狀態</div>
+        </div>
+        <div class="bt-skill-card" id="bt-e-skill-card">
+          <div class="bt-sk-header">
+            <span id="bt-e-sk-route"></span>
+            <span id="bt-e-sk-gauge" style="font-size:10px;color:#444456;">儀表 0%</span>
+          </div>
+          <div class="bt-sk-name" id="bt-e-sk-name">— 未開戰 —</div>
+          <div class="bt-sk-desc" id="bt-e-sk-desc">選擇敵人後顯示特技資訊</div>
+        </div>
+      </div>
+
+      <!-- Battle log -->
+      <div id="bt-log"></div>
+
+      <!-- Action buttons -->
+      <div id="bt-action-bar">
+        <button class="bt-btn" id="bt-btn-attack"  onclick="Battle.doAction('attack')"  disabled>攻 擊</button>
+        <button class="bt-btn" id="bt-btn-defend"  onclick="Battle.doAction('defend')"  disabled>防 禦</button>
+        <button class="bt-btn" id="bt-btn-special" onclick="Battle.doAction('special')" disabled>技 能</button>
+        <button class="bt-btn" id="bt-btn-auto"    onclick="Battle.toggleAuto()"        disabled>自 動</button>
+      </div>
+      <div id="bt-round">— 準備中 —</div>
+
+      <!-- 砍首選擇面板 (arena only, shown after victory) -->
+      <div id="bt-finish-panel">
+        <div id="bt-finish-mood"></div>
+        <div id="bt-finish-title">【勝利】你將對手逼入絕境</div>
+        <div id="bt-finish-rating"></div>
+        <div id="bt-finish-btns">
+          <button class="bt-finish-btn bt-finish-execute" onclick="Battle.finishChoice('execute')">
+            <div class="bt-finish-btn-name">⚔ 砍首</div>
+            <div class="bt-finish-btn-desc">斬草除根，讓觀眾血液沸騰</div>
+          </button>
+          <button class="bt-finish-btn bt-finish-suppress" onclick="Battle.finishChoice('suppress')">
+            <div class="bt-finish-btn-name">👊 踩臉</div>
+            <div class="bt-finish-btn-desc">羞辱性壓制，不殺但徹底征服</div>
+          </button>
+          <button class="bt-finish-btn bt-finish-spare" onclick="Battle.finishChoice('spare')">
+            <div class="bt-finish-btn-name">✋ 饒恕</div>
+            <div class="bt-finish-btn-desc">讓他滾，你不屑殺廢物</div>
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /battle-overlay -->
+
   </div><!-- /panel-center -->
 
   <!-- ══ RIGHT PANEL ══════════════════════════════════════ -->
@@ -1070,13 +1609,14 @@ html, body {
 
     <!-- Derived stats -->
     <div class="rpanel-section" id="derived-section">
-      <h3>派生屬性</h3>
+      <h3>派生屬性 <span id="drv-route" class="route-badge route-fury">怒氣</span></h3>
       <div id="derived-stats-grid">
         <div class="derived-item"><span class="derived-name">ATK</span><span class="derived-val" id="drv-ATK">—</span></div>
         <div class="derived-item"><span class="derived-name">DEF</span><span class="derived-val" id="drv-DEF">—</span></div>
         <div class="derived-item"><span class="derived-name">ACC</span><span class="derived-val" id="drv-ACC">—</span></div>
         <div class="derived-item"><span class="derived-name">PEN</span><span class="derived-val" id="drv-PEN">—</span></div>
         <div class="derived-item"><span class="derived-name">BLK</span><span class="derived-val" id="drv-BLK">—</span></div>
+        <div class="derived-item"><span class="derived-name">BpWr</span><span class="derived-val" id="drv-BpWr">—</span></div>
         <div class="derived-item"><span class="derived-name">SPD</span><span class="derived-val" id="drv-SPD">—</span></div>
         <div class="derived-item"><span class="derived-name">CRT</span><span class="derived-val" id="drv-CRT">—</span></div>
         <div class="derived-item"><span class="derived-name">CDMG</span><span class="derived-val" id="drv-CDMG">—</span></div>
@@ -1169,7 +1709,7 @@ html, body {
         <div class="cs-section-title">裝備</div>
         <div class="cs-equip-row"><span class="cs-equip-slot">武器</span><span class="cs-equip-val" id="cs-eq-weapon">— 空手 —</span></div>
         <div class="cs-equip-row"><span class="cs-equip-slot">護甲</span><span class="cs-equip-val" id="cs-eq-armor">— 破布 —</span></div>
-        <div class="cs-equip-row"><span class="cs-equip-slot">盾牌</span><span class="cs-equip-val" id="cs-eq-shield">— 無 —</span></div>
+        <div class="cs-equip-row"><span class="cs-equip-slot">副手</span><span class="cs-equip-val" id="cs-eq-shield">— 無 —</span></div>
 
         <div class="cs-divider"></div>
         <div class="cs-section-title">好感度</div>
@@ -1268,6 +1808,11 @@ html, body {
             <span class="cs-drv-num" id="cs-drv-CDMG">—</span>
           </div>
           <div class="cs-drv-row">
+            <span class="cs-drv-label">🛡 BpWr 格擋減傷%</span>
+            <div class="cs-drv-bar-track"><div class="cs-drv-bar-fill" id="cs-drv-bar-BpWr"></div></div>
+            <span class="cs-drv-num" id="cs-drv-BpWr">—</span>
+          </div>
+          <div class="cs-drv-row">
             <span class="cs-drv-label">🌀 EVA 閃避</span>
             <div class="cs-drv-bar-track"><div class="cs-drv-bar-fill" id="cs-drv-bar-EVA"></div></div>
             <span class="cs-drv-num" id="cs-drv-EVA">—</span>
@@ -1312,6 +1857,7 @@ html, body {
     </div>
     <div class="modal-footer">
       <button class="game-btn" id="btn-leave">離開遊戲</button>
+        <button class="game-btn" onclick="if(confirm('確定清除存檔並重新開始？')){ Game.clearSave(); location.reload(); }" style="color:#cc3300;border-color:#3a1408;">清除存檔</button>
       <button class="game-btn primary" id="btn-close-settings-2"
         onclick="document.getElementById('modal-settings').classList.remove('open')">關閉</button>
     </div>
@@ -1330,7 +1876,9 @@ html, body {
 <script src="train.js"></script>
 <script src="skill.js"></script>
 <script src="ending.js"></script>
+<script src="測試頁面/testbattle.js"></script>
 <script src="battle.js"></script>
+<script src="actions.js"></script>
 <script src="main.js"></script>
 </body>
 </html>

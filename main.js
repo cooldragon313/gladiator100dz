@@ -1,12 +1,23 @@
 /**
  * main.js — Core game engine
- * Depends on: stats.js, fields.js, npc.js, events.js
+ * Depends on: stats.js, fields.js, npc.js, events.js, actions.js
  */
 const Game = (() => {
   let currentFieldId = 'dirtyCell';
   let currentNPCs    = { teammates: [], audience: [] };
   const logHistory   = [];
   const MAX_LOG      = 80;
+
+  // ── Time-slot constants ───────────────────────────────
+  const SLOT_START = 360;   // 06:00 in minutes
+  const SLOT_END   = 1320;  // 22:00 in minutes
+  const SLOT_DUR   = 120;   // 2 hours per slot
+  const SLOT_COUNT = 8;     // 06→22 = 8 × 2h
+
+  // ── Daily NPC state ───────────────────────────────────
+  // Pre-rolled at day start: { fieldId: { teammates:[], audience:[] } }
+  let dailyNPCMap     = {};
+  let _lastNPCRollDay = -1;
 
   // ── Settings (persisted in localStorage) ─────────────
   const settings = {
@@ -33,6 +44,8 @@ const Game = (() => {
       const style = `color:${entry.color};${entry.italic ? 'font-style:italic;' : ''}`;
       return `<p style="${style}">${entry.text.replace(/\n/g, '<br>')}</p>`;
     }).join('');
+    // Always scroll to top so newest entry (unshifted to front) is visible
+    el.scrollTop = 0;
   }
 
   // ── Time display ──────────────────────────────────────
@@ -211,7 +224,7 @@ const Game = (() => {
         const npc = teammates.getNPC(npcId);
         slot.classList.add('occupied');
         slot.classList.remove('empty');
-        slot.innerHTML = `<span class="npc-role-tag">隊友</span><span class="npc-name">${npc ? npc.name : npcId}</span>`;
+        slot.innerHTML = `<span class="npc-role-tag">${npc?.title || '隊友'}</span><span class="npc-name">${npc ? npc.name : npcId}</span>`;
         slot.onclick = () => onNPCClick(npcId);
       } else {
         slot.classList.remove('occupied');
@@ -229,7 +242,7 @@ const Game = (() => {
         const npc = teammates.getNPC(npcId);
         slot.classList.add('occupied');
         slot.classList.remove('empty');
-        slot.innerHTML = `<span class="npc-role-tag aud-tag">觀眾</span><span class="npc-name">${npc ? npc.name : npcId}</span>`;
+        slot.innerHTML = `<span class="npc-role-tag aud-tag">${npc?.title || '觀眾'}</span><span class="npc-name">${npc ? npc.name : npcId}</span>`;
         slot.onclick = () => onNPCClick(npcId);
       } else {
         slot.classList.remove('occupied');
@@ -261,19 +274,493 @@ const Game = (() => {
     });
   }
 
+  // ── Daily NPC roll (once per day) ─────────────────────
+  function rollDailyNPCs() {
+    const p = Stats.player;
+    if (_lastNPCRollDay === p.day) return;
+    _lastNPCRollDay = p.day;
+    dailyNPCMap = {};
+    Object.keys(FIELDS).forEach(fid => {
+      dailyNPCMap[fid] = rollFieldNPCs(fid);
+    });
+    // Sync currentNPCs for current field
+    currentNPCs = dailyNPCMap[currentFieldId] || { teammates: [], audience: [] };
+  }
+
+  // ── Time-slot helpers ──────────────────────────────────
+  function currentSlotIndex() {
+    return Math.max(0, Math.floor((Stats.player.time - SLOT_START) / SLOT_DUR));
+  }
+
+  function slotsRemaining() {
+    return Math.max(0, SLOT_COUNT - currentSlotIndex());
+  }
+
+  // ── Render: time slots ─────────────────────────────────
+  function renderTimeSlots() {
+    const con = document.getElementById('time-slots');
+    if (!con) return;
+    const idx = currentSlotIndex();
+    let html = '';
+    for (let i = 0; i < SLOT_COUNT; i++) {
+      const h0   = 6 + i * 2;
+      const h1   = h0 + 2;
+      const label = String(h0).padStart(2,'0') + '-' + String(h1).padStart(2,'0');
+      const cls  = i < idx ? 'used' : (i === idx ? 'current' : 'future');
+      html += `<div class="slot-box ${cls}"><span class="slot-h">${label}</span><div class="slot-dot"></div></div>`;
+    }
+    con.innerHTML = html;
+  }
+
+  // ── Render: location tabs ──────────────────────────────
+  function renderLocationTabs() {
+    const p   = Stats.player;
+    const con = document.getElementById('location-tabs');
+    if (!con) return;
+    let html = '';
+    FIELD_SLOTS.forEach(slot => {
+      const f        = getSlotField(slot.slot, p);
+      const isActive = f && f.id === currentFieldId;
+      const isLocked = !f;
+      const icon     = f ? (FIELDS[f.id]?.icon || slot.label[0]) : slot.label[0];
+      const name     = f ? f.name : slot.label;
+      html += `<button class="loc-tab${isActive ? ' active' : ''}${isLocked ? ' locked' : ''}"
+        ${isLocked ? '' : `onclick="Game.switchField('${f.id}')"`}
+        title="${name}">
+        <span class="loc-tab-icon">${icon}</span>
+        <span class="loc-tab-name">${name.slice(0, 3)}</span>
+      </button>`;
+    });
+    con.innerHTML = html;
+  }
+
+  // ── Render: action list ────────────────────────────────
+  function renderActionList() {
+    const con = document.getElementById('action-list');
+    if (!con) return;
+    const p       = Stats.player;
+    const npcs    = currentNPCs;
+    const sLeft   = slotsRemaining();
+    const allNPCs = [...(npcs.teammates || []), ...(npcs.audience || [])];
+
+    // Day exhausted → only show sleep button
+    if (sLeft <= 0) {
+      con.innerHTML = `
+        <div class="action-empty">今天的行動格已用盡。</div>
+        <button class="action-btn-sleep" onclick="Game.doAction('_sleep')">就寢・迎接新的一天</button>`;
+      return;
+    }
+
+    let html = '<div class="action-list-header">可用動作</div>';
+
+    // Field-specific actions
+    const fieldActs = getFieldActions(currentFieldId, p, npcs);
+
+    // Dynamic NPC-chat actions (one per NPC present)
+    const chatActs = allNPCs.map(npcId => {
+      const npc = teammates.getNPC(npcId);
+      if (!npc) return null;
+      return {
+        id: 'chat_' + npcId,
+        name: `與${npc.name}交談`,
+        desc: npc.title,
+        slots: 1, staminaCost: 5, foodCost: 0,
+        effects: [
+          { type: 'affection', key: npcId, delta: 3 },
+          { type: 'vital',     key: 'mood', delta: 5 },
+        ],
+      };
+    }).filter(Boolean);
+
+    const allActs = [...fieldActs, ...chatActs, ACTIONS.rest];
+
+    allActs.forEach(act => {
+      const noStamina = p.stamina < act.staminaCost;
+      const noFood    = (act.foodCost || 0) > 0 && p.food < act.foodCost;
+      const noSlots   = act.slots > sLeft;
+      const disabled  = noStamina || noFood || noSlots;
+      const reason    = noSlots ? '時間不足' : noStamina ? '體力不足' : noFood ? '飽食不足' : '';
+
+      const costs = [`⏱${act.slots * 2}小時`];
+      if (act.staminaCost > 0) costs.push(`⚡${act.staminaCost}`);
+      if ((act.foodCost || 0) > 0) costs.push(`🍖${act.foodCost}`);
+
+      const costStr  = costs.join(' · ');
+      const warnStr  = reason ? ` · <span style="color:#cc4444;font-size:13px;">${reason}</span>` : '';
+      const clickStr = disabled ? '' : `onclick="Game.doAction('${act.id}')"`;
+
+      html += `<button class="action-btn" ${disabled ? 'disabled' : clickStr}>
+        <div class="action-name">${act.name}</div>
+        <div class="action-cost">${costStr}${warnStr}</div>
+      </button>`;
+    });
+
+    // Sleep button always at bottom
+    html += `<button class="action-btn-sleep" onclick="Game.doAction('_sleep')" style="margin-top:8px;">就寢・結束今天</button>`;
+    con.innerHTML = html;
+  }
+
+  // ── Execute action ─────────────────────────────────────
+  function doAction(actionId) {
+    const p = Stats.player;
+
+    // Special: end-of-day sleep
+    if (actionId === '_sleep') {
+      sleepEndDay();
+      return;
+    }
+
+    // Resolve action definition (including dynamic chat actions)
+    let act;
+    if (actionId.startsWith('chat_')) {
+      const npcId = actionId.slice(5);
+      const npc   = teammates.getNPC(npcId);
+      act = {
+        id: actionId, slots: 1, staminaCost: 5, foodCost: 0,
+        name: npc ? `與${npc.name}交談` : '交談',
+        effects: [
+          { type: 'affection', key: npcId, delta: 3 },
+          { type: 'vital',     key: 'mood', delta: 5 },
+        ],
+      };
+    } else {
+      act = ACTIONS[actionId];
+    }
+    if (!act) return;
+
+    // Guard: enough slots
+    if (act.slots > slotsRemaining()) {
+      showToast('今天沒有足夠的時間了。');
+      return;
+    }
+    // Guard: stamina
+    if (p.stamina < act.staminaCost) {
+      showToast('體力不足，無法執行此行動。');
+      return;
+    }
+    // Guard: food
+    if ((act.foodCost || 0) > 0 && p.food < act.foodCost) {
+      showToast('飽食度不足，無法執行此行動。');
+      return;
+    }
+
+    // Deduct costs
+    if (act.staminaCost > 0) Stats.modVital('stamina', -act.staminaCost);
+    if ((act.foodCost || 0) > 0) Stats.modVital('food', -act.foodCost);
+
+    // ── Mood multiplier ──────────────────────────────────
+    // 心情好（≥70）→ 正向效果 ×1.25；心情差（≤30）→ ×0.75
+    function getMoodMult() {
+      if (p.mood >= 70) return 1.25;
+      if (p.mood <= 30) return 0.75;
+      return 1.0;
+    }
+    const moodMult = getMoodMult();
+    const moodDesc = moodMult > 1 ? '（心情佳 ×1.25）' : moodMult < 1 ? '（心情低落 ×0.75）' : '';
+
+    // Apply effects
+    (act.effects || []).forEach(eff => {
+      if (eff.type === 'vital') {
+        // 正向生命值/體力/飽食/心情效果受心情加成
+        const delta = (eff.delta > 0) ? Math.round(eff.delta * moodMult) : eff.delta;
+        Stats.modVital(eff.key, delta);
+      } else if (eff.type === 'attr') {
+        // 正向屬性成長受心情加成
+        const delta = (eff.delta > 0) ? Math.round(eff.delta * moodMult) : eff.delta;
+        Stats.modAttr(eff.key, delta);
+      } else if (eff.type === 'affection') {
+        teammates.modAffection(eff.key, eff.delta);
+        // Sync Stats.player.affection (used for field-access requirements)
+        const playerKey = NPC_AFF_KEY[eff.key];
+        if (playerKey && p.affection[playerKey] !== undefined) {
+          p.affection[playerKey] = teammates.getAffection(eff.key);
+        }
+      } else if (eff.type === 'fame') {
+        Stats.modFame(eff.delta);
+      
+      } else if (eff.type === 'affection_all_present') {
+  allNPCs.forEach(npcId => {
+    teammates.modAffection(npcId, eff.delta);
+    const playerKey = NPC_AFF_KEY[npcId];
+    if (playerKey && p.affection[playerKey] !== undefined)
+      p.affection[playerKey] = teammates.getAffection(npcId);
+  });
+}
+
+    });
+
+    // Advance time by slot(s)
+    Stats.advanceTime(act.slots * SLOT_DUR);
+
+    // Log — action header + brief effect summary
+    const gainSummary = (act.effects || []).map(eff => {
+      if (eff.type === 'attr')      return `${eff.key}${eff.delta > 0 ? '+' : ''}${eff.delta}`;
+      if (eff.type === 'vital')     return `${eff.key}${eff.delta > 0 ? '+' : ''}${eff.delta}`;
+      if (eff.type === 'affection') return `${eff.key}好感${eff.delta > 0 ? '+' : ''}${eff.delta}`;
+      return '';
+    }).filter(Boolean).join(' · ');
+    addLog(`【${act.name}】${gainSummary ? '　' + gainSummary : ''}${moodDesc ? '　' + moodDesc : ''}`, '#c8a060', false);
+
+    // Flavor text
+    if (act.flavorText) addLog(act.flavorText, '#a89070', false);
+
+    // Conditional effects (e.g. affection-gated bonuses)
+    (act.conditionalEffects || []).forEach(ce => {
+      const cond = ce.condition || {};
+      let pass = false;
+      if (cond.type === 'affection') {
+        const aff = teammates.getAffection(cond.npcId);
+        pass = aff >= (cond.min || 0) && aff <= (cond.max ?? Infinity);
+      }
+      if (!pass) return;
+      (ce.effects || []).forEach(eff => {
+        if (eff.type === 'vital') Stats.modVital(eff.key, eff.delta);
+        else if (eff.type === 'attr') Stats.modAttr(eff.key, eff.delta);
+        else if (eff.type === 'fame') Stats.modFame(eff.delta);
+      });
+      if (ce.flavorText) addLog(ce.flavorText, '#88b878', false);
+    });
+
+    // Post-action events
+    _postActionEvents(act);
+
+    saveGame();
+    renderAll();
+  }
+
+  // ── Post-action events ─────────────────────────────────
+  function _postActionEvents(act) {
+    // 40% chance: action-specific event
+    if (act.eventPool && act.eventPool.length > 0 && Math.random() < 0.40) {
+      const evId = act.eventPool[Math.floor(Math.random() * act.eventPool.length)];
+      const ev   = Events.getActionEvent(evId);
+      if (ev) { _applyEventAndLog(ev); return; }
+    }
+    // 15% chance: generic field event
+    if (Math.random() < 0.15) {
+      const ev = Events.rollRandom();
+      if (ev) _applyEventAndLog(ev);
+    }
+  }
+
+  function _applyEventAndLog(ev) {
+    if (!ev) return;
+    addLog(ev.text, ev.color || '#aaa', true);
+    // Apply vital/attr/fame effects (Events.applyEvent handles vital/fame/attr)
+    Events.applyEvent(ev, Stats);
+    // Handle affection effects (not in Events.applyEvent)
+    (ev.effects || []).forEach(eff => {
+      if (eff.type === 'affection') {
+        teammates.modAffection(eff.key, eff.delta);
+        const playerKey = NPC_AFF_KEY[eff.key];
+        if (playerKey && Stats.player.affection[playerKey] !== undefined) {
+          Stats.player.affection[playerKey] = teammates.getAffection(eff.key);
+        }
+      }
+    });
+  }
+
+  // ── Sleep / end day ────────────────────────────────────
+  function sleepEndDay() {
+    const p = Stats.player;
+    if (p.day >= 100) {
+      addLog('一百天到了。萬骸祭的鐘聲即將敲響。', '#8b0000', true);
+      return;
+    }
+    // Overnight effects
+    Stats.modVital('stamina', 40);
+    Stats.modVital('mood',    5);
+    Stats.modVital('food',  -12);  // overnight hunger
+
+    // Advance to next day
+    p.day  = Math.min(100, p.day + 1);
+    p.time = SLOT_START;
+
+    addLog(`\n────────────────────\n第 ${p.day} 天　天光未明，新的一天開始了。`, '#b8960c', false);
+
+    // Roll new day's NPCs
+    _lastNPCRollDay = -1;
+    rollDailyNPCs();
+
+    saveGame();
+    renderAll();
+    checkTimelineEvent();
+  }
+
   // ── Switch scene ──────────────────────────────────────
   function switchField(fieldId) {
     if (fieldId === currentFieldId) return;
     currentFieldId = fieldId;
-    currentNPCs = rollFieldNPCs(fieldId);
+    // Pull from today's NPC roll (no re-rolling on move)
+    currentNPCs = dailyNPCMap[fieldId] || rollFieldNPCs(fieldId);
 
     const f = FIELDS[fieldId];
     if (f) addLog(f.logText, '#ddd', true);
-
-    // Small time cost to move
-    Stats.advanceTime(15);
-
+    // No time cost for moving — time advances only via actions
+    const allNPCs = [...(currentNPCs.teammates || []), ...(currentNPCs.audience || [])];
+    //現場所有的NPC都會有機率觸發事件
     renderAll();
+  }
+
+  // ══════════════════════════════════════════════════════
+  // ARENA
+  // ══════════════════════════════════════════════════════
+
+  const ARENA_TIERS = [
+    {
+      minDay: 10, maxDay: 20,
+      label: '初等場・試煉', color: '#8a8060',
+      statsMin: 10, statsMax: 20,
+      hpMin: 40, hpMax: 60,
+      weaponPool: ['dagger', 'fists'],
+      armorPool:  ['rags'],
+      shieldPool: ['none'],
+      fameMin: 3, fameMax: 8,
+      titleStr: '試煉者',
+    },
+    {
+      minDay: 20, maxDay: 40,
+      label: '中等場・角鬥', color: '#b08040',
+      statsMin: 20, statsMax: 25,
+      hpMin: 60, hpMax: 80,
+      weaponPool: ['shortSword', 'hammer', 'dagger', 'spear'],
+      armorPool:  ['leather', 'rags'],
+      shieldPool: ['woodShield', 'none'],
+      fameMin: 6, fameMax: 14,
+      titleStr: '角鬥士',
+    },
+    {
+      minDay: 40, maxDay: 60,
+      label: '上等場・血鬥', color: '#c05020',
+      statsMin: 25, statsMax: 30,
+      hpMin: 80, hpMax: 100,
+      weaponPool: ['shortSword', 'spear', 'dagger', 'heavyAxe', 'longSword'],
+      armorPool:  ['chainmail', 'leather'],
+      shieldPool: ['ironShield', 'woodShield', 'none'],
+      fameMin: 10, fameMax: 20,
+      titleStr: '老手鬥士',
+    },
+    {
+      minDay: 60, maxDay: 81,
+      label: '精英場・死鬥', color: '#d03010',
+      statsMin: 30, statsMax: 40,
+      hpMin: 100, hpMax: 120,
+      weaponPool: ['longSword', 'spear', 'warHammer', 'heavyAxe'],
+      armorPool:  ['chainmail', 'ironPlate'],
+      shieldPool: ['ironShield', 'none'],
+      fameMin: 15, fameMax: 30,
+      titleStr: '精英鬥士',
+    },
+  ];
+
+  const ARENA_NAME_POOLS = [
+    ['野豬男', '草包漢', '菜鳥甲', '無名丁', '初陣者', '膽怯兵', '蘆葦腿'],
+    ['刀疤漢', '粗枝兵', '鐵拳男', '鈍刃客', '角鬥卒', '咆哮者', '亂刃兵'],
+    ['老鴉兵', '戰場犬', '鐵腕客', '斷骨者', '廝殺翁', '血戰士', '硬皮漢'],
+    ['暗刃客', '碎石者', '烈焰漢', '鐵血士', '戰狂兒', '屠殺者', '死鬥翁'],
+  ];
+
+  function _getArenaTier(day) {
+    return ARENA_TIERS.find(t => day >= t.minDay && day < t.maxDay) || null;
+  }
+
+  function _arenaRandInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function _arenaPickRandom(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  function _generateArenaOpponent(day) {
+    const tier = _getArenaTier(day);
+    if (!tier) return null;
+    const tierIdx = ARENA_TIERS.indexOf(tier);
+    const name = _arenaPickRandom(ARENA_NAME_POOLS[tierIdx]);
+    const s = () => _arenaRandInt(tier.statsMin, tier.statsMax);
+    return {
+      name,
+      title:        tier.titleStr,
+      STR: s(), DEX: s(), CON: s(), AGI: s(), WIL: s(), LUK: s(),
+      hpBase:       _arenaRandInt(tier.hpMin, tier.hpMax),
+      weaponId:     _arenaPickRandom(tier.weaponPool),
+      armorId:      _arenaPickRandom(tier.armorPool),
+      shieldId:     _arenaPickRandom(tier.shieldPool),
+      ai:           'normal',
+      fame:         _arenaRandInt(5, 15 * (tierIdx + 1)),
+      intimidation: 0,
+      fameReward:   _arenaRandInt(tier.fameMin, tier.fameMax),
+      tierColor:    tier.color,
+      tierLabel:    tier.label,
+    };
+  }
+
+  function renderArenaSection() {
+    const sec = document.getElementById('arena-section');
+    if (!sec) return;
+    const p = Stats.player;
+    const tier = _getArenaTier(p.day);
+    const sLeft = slotsRemaining();
+
+    if (!tier) {
+      if (p.day < 10) {
+        sec.innerHTML = `<div class="arena-locked"><span class="arena-lock-icon">🔒</span><span class="arena-lock-text">第10天開放競技場</span></div>`;
+      } else {
+        // Day 81+ or outside range
+        sec.innerHTML = `<div class="arena-locked"><span class="arena-lock-icon">🔒</span><span class="arena-lock-text">競技場已關閉</span></div>`;
+      }
+      return;
+    }
+
+    const canFight = sLeft >= 1 && p.stamina >= 10;
+    const disabledReason = !canFight ? (sLeft < 1 ? '時間不足' : '體力不足') : '';
+
+    sec.innerHTML = `
+      <button class="arena-btn${canFight ? '' : ' arena-btn-disabled'}"
+        ${canFight ? 'onclick="Game.startArenaBattle()"' : ''}>
+        <span class="arena-btn-icon">⚔</span>
+        <div class="arena-btn-content">
+          <div class="arena-btn-title">參戰競技場</div>
+          <div class="arena-btn-tier" style="color:${tier.color}">${tier.label}${disabledReason ? ' · <span style="color:#cc4444;font-size:16px;">' + disabledReason + '</span>' : ''}</div>
+        </div>
+        <div class="arena-btn-cost">⏱2小時<br>⚡10</div>
+      </button>`;
+  }
+
+  function startArenaBattle() {
+    const p = Stats.player;
+    const tier = _getArenaTier(p.day);
+    if (!tier) { showToast('目前無法進入競技場。'); return; }
+    if (slotsRemaining() < 1) { showToast('今天沒有足夠的時間了。'); return; }
+    if (p.stamina < 10) { showToast('體力不足（需要10），無法參戰。'); return; }
+
+    const opp = _generateArenaOpponent(p.day);
+    if (!opp) return;
+
+    // Deduct stamina only — time is deducted by _endBattle (same as timeline battles)
+    Stats.modVital('stamina', -10);
+
+    addLog(`【競技場】${tier.label}\n對手：${opp.name}（${opp.title}）\nSTR:${opp.STR} DEX:${opp.DEX} CON:${opp.CON} AGI:${opp.AGI} WIL:${opp.WIL} LUK:${opp.LUK}`, tier.color, true);
+
+    Battle.startFromConfig(
+      opp,
+      () => {
+        // onWin — fame already applied in battle.js _endBattle with rating multiplier
+        const rating = Battle.getLastRating();
+        if (rating === 'S') {
+          addLog('主人和長官都注意到了這場完美的勝利。', '#d4af37', false);
+        }
+        saveGame();
+        renderAll();
+      },
+      () => {
+        // onLose
+        addLog(`【競技場落敗】你在競技場上倒下了……`, '#8b0000', true);
+        if (typeof Endings !== 'undefined' && Endings.deathEnding) {
+          Endings.deathEnding(p.name);
+        }
+      }
+    );
   }
 
   // ── NPC interaction placeholder ───────────────────────
@@ -290,7 +777,11 @@ const Game = (() => {
     renderSceneInfoBar();
     renderSceneView();
     renderNPCSlots();
-    renderSceneButtons();
+    renderTimeSlots();
+    renderLocationTabs();
+    renderActionList();
+    try { renderArenaSection(); } catch(e) { console.error('[Arena] render error:', e); }
+    renderLog();
     Stats.renderAll();
     document.getElementById('player-name-display').textContent = Stats.player.name;
     checkTimelineEvent();
@@ -333,6 +824,8 @@ const Game = (() => {
     if (fameFill) fameFill.style.width = Math.min(100, p.fame) + '%';
 
     // ── Vital bars ──
+    p.hpMax = p.hpBase + Math.round(2 * Stats.eff('CON'));
+    p.hp = Math.min(p.hp, p.hpMax);
     [
       { id:'cs-bar-hp',      val:p.hp,      max:p.hpMax },
       { id:'cs-bar-stamina', val:p.stamina,  max:p.staminaMax },
@@ -352,7 +845,18 @@ const Game = (() => {
     const eqS = document.getElementById('cs-eq-shield');
     if (eqW) eqW.textContent = p.equippedWeapon ? (Weapons[p.equippedWeapon]?.name || p.equippedWeapon) : '— 空手 —';
     if (eqA) eqA.textContent = p.equippedArmor  ? (Armors[p.equippedArmor]?.name  || p.equippedArmor)  : '— 破布 —';
-    if (eqS) eqS.textContent = p.equippedShield ? (Armors[p.equippedShield]?.name || p.equippedShield) : '— 無 —';
+    if (eqS) {
+      const off = p.equippedOffhand;
+      if (!off) {
+        eqS.textContent = '— 無 —';
+      } else if (Armors[off]) {
+        eqS.textContent = Armors[off].name;          // 盾牌
+      } else if (Weapons[off]) {
+        eqS.textContent = Weapons[off].name + '（副）'; // 雙持
+      } else {
+        eqS.textContent = off;
+      }
+    }
 
     // ── Affection bars ──
     const affNpcs = ['master','officer','cassius','blacksmithGra','melaKook'];
@@ -368,18 +872,19 @@ const Game = (() => {
     ['STR','DEX','CON','AGI','WIL','LUK'].forEach(key => {
       const card = document.getElementById('cs-attr-' + key);
       if (!card) return;
-      card.querySelector('.cs-attr-val').textContent = Stats.eff(key);
+      card.querySelector('.cs-attr-val').textContent = Math.round(Stats.eff(key));
     });
 
     // ── Derived stats (bar max = 200 for visual scaling) ──
-    const DRV_MAX = { ATK:200, DEF:150, ACC:100, PEN:100, BLK:100, SPD:100, CRT:100, CDMG:300, EVA:100 };
-    const PCT_KEYS = new Set(['ACC','CRT','CDMG']);
+    const DRV_MAX = { ACC:95, PEN:75, BLK:75, BpWr:85, SPD:100, CRT:75, CDMG:300, EVA:95 };
+    const PCT_KEYS = new Set(['ACC','CRT','CDMG','BLK','BpWr','EVA']);
     Object.entries(d).forEach(([key, val]) => {
       const numEl  = document.getElementById('cs-drv-' + key);
       const barEl  = document.getElementById('cs-drv-bar-' + key);
       const maxV   = DRV_MAX[key] || 100;
       const pct    = Math.min(100, Math.round(val / maxV * 100));
-      if (numEl) numEl.textContent = PCT_KEYS.has(key) ? val + '%' : val;
+      const rounded = Math.round(val);
+      if (numEl) numEl.textContent = PCT_KEYS.has(key) ? rounded + '%' : rounded;
       if (barEl) barEl.style.width = pct + '%';
     });
 
@@ -438,10 +943,160 @@ const Game = (() => {
     updateSettingsUI();
   }
 
+  // ── Save / Load ───────────────────────────────────────
+  const SAVE_KEY = 'bairi_save_v1';
+
+  function saveGame() {
+    try {
+      const data = {
+        version:      4,
+        player:       { ...Stats.player,
+                        inventory:    [...Stats.player.inventory],
+                        affection:    { ...Stats.player.affection },
+                        eqBonus:      { ...Stats.player.eqBonus  },
+                        buffBonus:    { ...Stats.player.buffBonus },
+                        combatStats:  { ...Stats.player.combatStats },
+                        achievements: [...(Stats.player.achievements || [])],
+                        traits:       [...(Stats.player.traits       || [])],
+                      },
+        fieldId:      currentFieldId,
+        npcAffection: teammates.getAllAffection(),
+        savedAt:      Date.now(),
+      };
+      localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    } catch (e) {
+      console.warn('Save failed:', e);
+    }
+  }
+
+  function loadGame() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return false;
+      const data = JSON.parse(raw);
+      if (!data || ![2, 3, 4].includes(data.version) || !data.player) return false;
+
+      // Restore player
+      const p = Stats.player;
+      Object.assign(p, data.player);
+
+      // 向下相容：舊存檔沒有這些欄位時補上預設值
+      if (!Array.isArray(p.achievements)) p.achievements = [];
+      if (!Array.isArray(p.traits))       p.traits       = [];
+      if (p.title    === undefined)       p.title        = null;
+      if (p.fameBase === undefined)       p.fameBase     = 0;
+      p.combatStats.winStreak = p.combatStats.winStreak ?? 0;
+      // v3→v4 遷移：equippedShield → equippedOffhand
+      if (p.equippedOffhand === undefined) {
+        p.equippedOffhand = p.equippedShield || null;
+        delete p.equippedShield;
+      }
+      if (!p.staminaPenalty) p.staminaPenalty = { STR:0, DEX:0, CON:0, AGI:0, WIL:0, LUK:0 };
+
+      // Restore field
+      currentFieldId = data.fieldId || 'dirtyCell';
+
+      // Restore NPC affection
+      teammates.setAllAffection(data.npcAffection);
+
+      return true;
+    } catch (e) {
+      console.warn('Load failed:', e);
+      return false;
+    }
+  }
+
+  function clearSave() {
+    localStorage.removeItem(SAVE_KEY);
+  }
+
+  function hasSave() {
+    return !!localStorage.getItem(SAVE_KEY);
+  }
+
   // ── Name entry modal ──────────────────────────────────
   function openNameModal() {
+    // If a save exists, show continue/new-game choice instead
+    if (hasSave()) {
+      _showContinueModal();
+      return;
+    }
     document.getElementById('modal-name')?.classList.add('open');
     document.getElementById('name-input')?.focus();
+  }
+
+  function _showContinueModal() {
+    const overlay = document.getElementById('modal-name');
+    if (!overlay) return;
+    // Temporarily replace modal content with continue/new-game UI
+    const box = overlay.querySelector('.modal-box');
+    if (!box) return;
+
+    const raw  = localStorage.getItem(SAVE_KEY);
+    let infoHtml = '';
+    try {
+      const d = JSON.parse(raw);
+      const date = new Date(d.savedAt);
+      const timeStr = `${date.getMonth()+1}/${date.getDate()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+      infoHtml = `<p style="color:var(--text-dim);font-size:20px;margin:8px 0 4px;line-height:1.8;">
+        ${d.player.name} ・ 第 ${d.player.day} 天<br>
+        <span style="font-size:16px;color:var(--text-dim);">上次存檔：${timeStr}</span></p>`;
+    } catch(e) {}
+
+    box.innerHTML = `
+      <div class="modal-header"><span class="modal-title">百日萬骸祭</span></div>
+      <div class="modal-body">
+        ${infoHtml}
+      </div>
+      <div class="modal-footer" style="flex-direction:column;gap:8px;">
+        <button class="game-btn primary" id="btn-continue-game" style="width:100%;font-size:22px;letter-spacing:.2em;">繼續冒險</button>
+        <button class="game-btn" id="btn-new-game" style="width:100%;font-size:18px;color:var(--text-dim);">新的命運（清除存檔）</button>
+      </div>`;
+
+    overlay.classList.add('open');
+
+    document.getElementById('btn-continue-game')?.addEventListener('click', () => {
+      overlay.classList.remove('open');
+      rollDailyNPCs();
+      const f = FIELDS[currentFieldId];
+      if (f) addLog(`【繼續・第 ${Stats.player.day} 天】\n${f.logText}`, '#b8960c', true);
+      renderAll();
+    });
+
+    document.getElementById('btn-new-game')?.addEventListener('click', () => {
+      if (!confirm('確定開始新遊戲？目前存檔將被清除。')) return;
+      clearSave();
+      // Reset player to defaults
+      Object.assign(Stats.player, {
+        name:'無名', day:1, time:SLOT_START,
+        fame:0, hp:100, hpMax:100, hpBase:80,
+        stamina:50, staminaMax:100,
+        food:50, foodMax:100,
+        mood:50, moodMax:100,
+        STR:10, DEX:10, CON:10, AGI:10, WIL:10, LUK:10,
+        inventory:[], equippedWeapon:null, equippedArmor:null, equippedOffhand:null,
+        affection:{ master:0, officer:0, blacksmith:0, cook:0 },
+      });
+      currentFieldId = 'dirtyCell';
+      // Restore original name-entry form
+      box.innerHTML = `
+        <div class="modal-header"><span class="modal-title">你是誰</span></div>
+        <div class="modal-body">
+          <p style="color:var(--text-dim);font-size:24px;margin-bottom:12px;line-height:1.8">
+            鐵鏈將你押入競技場。<br>他們問你的名字，不是因為在乎你——而是要刻在你的墓碑上。
+          </p>
+          <input type="text" id="name-input" maxlength="6" placeholder="輸入名字（最多六字）" autocomplete="off"/>
+          <p class="name-hint">按 Enter 或點擊確認</p>
+        </div>
+        <div class="modal-footer">
+          <button class="game-btn primary" id="btn-confirm-name">踏入命運</button>
+        </div>`;
+      document.getElementById('btn-confirm-name')?.addEventListener('click', confirmName);
+      document.getElementById('name-input')?.addEventListener('keydown', e => {
+        if (e.key === 'Enter') confirmName();
+      });
+      document.getElementById('name-input')?.focus();
+    });
   }
 
   function confirmName() {
@@ -449,15 +1104,18 @@ const Game = (() => {
     let name = (input?.value || '').trim().slice(0, 6) || '無名';
     Stats.player.name = name;
     document.getElementById('modal-name')?.classList.remove('open');
-    // Enter initial scene
-    currentNPCs = rollFieldNPCs(currentFieldId);
+    rollDailyNPCs();
     const f = FIELDS[currentFieldId];
     if (f) addLog('【' + f.name + '】\n' + f.logText, '#ddd', true);
+    saveGame();
     renderAll();
   }
 
   // ── Init ──────────────────────────────────────────────
   function init() {
+    // Try to restore save first
+    const loaded = loadGame();
+
     // Wire up detail / settings buttons
     document.getElementById('btn-detail')   ?.addEventListener('click', openDetailModal);
     document.getElementById('btn-settings') ?.addEventListener('click', openSettingsModal);
@@ -484,13 +1142,18 @@ const Game = (() => {
 
     // Build day bar structure (once)
     _buildDayBar();
-    // Initial render (before name entry)
+    // Initial render
     renderAll();
-    // Show name entry
+    // Show name entry (or continue modal if save exists)
     openNameModal();
+
+    if (loaded) {
+      // Pre-roll NPCs silently so the UI is ready if they hit Continue immediately
+      rollDailyNPCs();
+    }
   }
 
-  return { init, switchField, addLog, renderAll, showToast, openDetailModal, openSettingsModal };
+  return { init, switchField, doAction, addLog, renderAll, showToast, openDetailModal, openSettingsModal, saveGame, clearSave, startArenaBattle };
 })();
 
 // Boot when DOM ready

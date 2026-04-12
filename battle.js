@@ -1,306 +1,1252 @@
 /**
- * battle.js — Battle interface (shell)
- * 戰鬥邏輯留待後續定義，本版本建立 UI 框架。
- *
- * 使用: Battle.start(enemyId, onWin, onLose)
+ * battle.js — Main game combat integration
+ * Wraps testbattle.js engine for in-game battles.
+ * Depends on: testbattle.js, stats.js, main.js (Game)
  */
 const Battle = (() => {
 
-  let _styleInjected = false;
-  function _injectStyle() {
-    if (_styleInjected) return;
-    _styleInjected = true;
-    const s = document.createElement('style');
-    s.textContent = `
-      #battle-overlay {
-        position: fixed; inset: 0; z-index: 5000;
-        background: rgba(0,0,0,.92);
-        display: flex; flex-direction: column;
-        font-family: 'Noto Serif TC', Georgia, serif;
-        color: #c8b898;
-        opacity: 0; transition: opacity .5s ease;
-      }
-      #battle-overlay.b-visible { opacity: 1; }
+  // ── State ──────────────────────────────────────────────
+  let _player      = null;
+  let _enemy       = null;
+  let _active      = false;
+  let _turn        = 0;
+  let _autoRunning    = false;
+  let _hardcoreActive = false;  // 硬核模式
+  let _hardcoreTimer  = null;   // setInterval for countdown
+  let _hardcoreCount  = 5;      // 倒數值 5→0
+  let _onWin          = null;
+  let _onLose         = null;
 
-      #battle-header {
-        display: flex; align-items: center; justify-content: center;
-        padding: 14px;
-        border-bottom: 1px solid #3a2a18;
-        background: #0f0c09;
-        font-size: 18px; font-weight: 700;
-        letter-spacing: .2em; color: #d4af37;
-      }
+  // ── Rating / finishing state ─────────────────────────────
+  let _battleTick       = 0;
+  let _isArenaBattle    = false;
+  let _pendingFameReward= 0;
+  let _lastRating       = null;
+  let _crowdMood        = null;  // 'bloodthirsty'|'neutral'|'merciful'|'special'
 
-      #battle-combatants {
-        display: flex; align-items: stretch;
-        gap: 0; border-bottom: 1px solid #3a2a18;
-        flex-shrink: 0;
-      }
+  // ── ATB state ────────────────────────────────────────────
+  let _atbLoop   = null;
+  let _playerAtb = 0;   // 0–100, fills each tick
+  let _enemyAtb  = 0;
 
-      .b-fighter {
-        flex: 1; padding: 20px 24px;
-        display: flex; flex-direction: column; gap: 8px;
-      }
-      .b-fighter.b-player { border-right: 1px solid #3a2a18; }
-      .b-fighter-name {
-        font-size: 18px; font-weight: 700;
-        letter-spacing: .1em; color: #e8d8b0;
-        margin-bottom: 4px;
-      }
-      .b-fighter-title { font-size: 12px; color: #6a5a48; letter-spacing: .1em; margin-bottom:8px; }
+  // ATB tick thresholds for rating (100ms ticks)
+  const RATING_TICKS = { S: 60, A: 100, B: 120 };
 
-      .b-hp-bar-wrap { display:flex; align-items:center; gap:8px; }
-      .b-hp-label { font-size:12px; color:#6a5a48; width:20px; }
-      .b-hp-track {
-        flex:1; height:12px; background:#0a0806;
-        border:1px solid #3a2a18; border-radius:2px; overflow:hidden;
-      }
-      .b-hp-fill { height:100%; transition:width .4s ease; }
-      .b-hp-fill.player-fill { background:#cc2200; }
-      .b-hp-fill.enemy-fill  { background:#8b0000; }
-      .b-hp-num { font-size:12px; color:#6a5a48; width:52px; text-align:right; }
+  // ── Crowd mood config ────────────────────────────────────
+  const CROWD_MOOD_CFG = {
+    bloodthirsty: {
+      hint: '觀眾席中傳來渴望的嘶吼，空氣中彷彿能聞到鮮血的味道。',
+      execute:  { crowdFame:10, masterAff:3, officerAff:5, melaAff:-5, dagiAff:-3 },
+      suppress: { crowdFame:4,  masterAff:0, officerAff:2, melaAff:0,  dagiAff:0  },
+      spare:    { crowdFame:-3, masterAff:-2,officerAff:0, melaAff:8,  dagiAff:5, oldSlaveAff:5 },
+    },
+    neutral: {
+      hint: '觀眾靜靜注視，等待你的決定。',
+      execute:  { crowdFame:5,  masterAff:2, officerAff:3, melaAff:-3, dagiAff:-2 },
+      suppress: { crowdFame:3,  masterAff:0, officerAff:2, melaAff:0,  dagiAff:0  },
+      spare:    { crowdFame:2,  masterAff:-1,officerAff:0, melaAff:5,  dagiAff:5, oldSlaveAff:5 },
+    },
+    merciful: {
+      hint: '有人開始為落敗的鬥士鼓掌——他打得很好。',
+      execute:  { crowdFame:-5, masterAff:2, officerAff:2, melaAff:-8, dagiAff:-5 },
+      suppress: { crowdFame:3,  masterAff:0, officerAff:1, melaAff:2,  dagiAff:0  },
+      spare:    { crowdFame:8,  masterAff:-1,officerAff:0, melaAff:10, dagiAff:8, oldSlaveAff:8 },
+    },
+    special: {
+      hint: '對手似乎在觀眾中頗有人緣——有人的眼神充滿緊張。',
+      execute:  { crowdFame:5,  masterAff:3, officerAff:4, melaAff:-5, dagiAff:-5 },
+      suppress: { crowdFame:8,  masterAff:1, officerAff:3, melaAff:0,  dagiAff:0  },
+      spare:    { crowdFame:15, masterAff:-1,officerAff:0, melaAff:8,  dagiAff:10, oldSlaveAff:10 },
+    },
+  };
 
-      .b-stat-row { display:flex; flex-wrap:wrap; gap:6px 14px; margin-top:4px; }
-      .b-stat { font-size:12px; color:#6a5a48; }
-      .b-stat span { color:#c8a060; font-weight:700; }
-
-      /* ── Battle log ── */
-      #battle-log {
-        flex: 1; overflow-y: auto;
-        padding: 14px 20px;
-        font-size: 14px; line-height: 1.9;
-        scrollbar-width: thin;
-        scrollbar-color: #3a2a18 transparent;
-        background: #0a0806;
-      }
-      .b-log-line { margin-bottom: 3px; }
-      .b-log-line.b-hit   { color: #e87060; }
-      .b-log-line.b-miss  { color: #6a5a48; }
-      .b-log-line.b-sys   { color: #d4af37; font-style:italic; }
-      .b-log-line.b-crit  { color: #ffb700; font-weight:700; }
-
-      /* ── Action bar ── */
-      #battle-actions {
-        display: flex; gap: 0;
-        border-top: 1px solid #3a2a18;
-        flex-shrink: 0;
-      }
-      .b-action-btn {
-        flex: 1; padding: 16px 8px;
-        background: #0f0c09;
-        border: none; border-right: 1px solid #3a2a18;
-        color: #c8b898;
-        font-family: inherit; font-size: 16px;
-        letter-spacing: .12em; cursor: pointer;
-        transition: background .2s, color .2s;
-        display: flex; flex-direction: column;
-        align-items: center; gap: 4px;
-      }
-      .b-action-btn:last-child { border-right: none; }
-      .b-action-btn:hover:not(:disabled) { background: #1a1410; color: #e8d8b0; }
-      .b-action-btn:disabled { opacity: .35; cursor: not-allowed; }
-      .b-action-btn .b-action-icon { font-size: 22px; }
-      .b-action-btn .b-action-label { font-size: 13px; letter-spacing:.1em; }
-      .b-action-btn .b-action-cost { font-size: 11px; color:#6a5a48; }
-
-      /* ── Coming soon notice ── */
-      #battle-placeholder {
-        position:absolute; inset:0;
-        background:rgba(0,0,0,.7);
-        display:flex; flex-direction:column;
-        align-items:center; justify-content:center;
-        gap:12px; pointer-events:none;
-      }
-      #battle-placeholder .bp-title {
-        font-size:20px; font-weight:700;
-        color:#d4af37; letter-spacing:.2em;
-      }
-      #battle-placeholder .bp-sub {
-        font-size:13px; color:#6a5a48; letter-spacing:.15em;
-      }
-    `;
-    document.head.appendChild(s);
+  function _generateCrowdMood() {
+    const roll = Math.random() * 100;
+    if (roll < 40) return 'bloodthirsty';
+    if (roll < 70) return 'neutral';
+    if (roll < 90) return 'merciful';
+    return 'special';
   }
 
-  // ── State ──────────────────────────────────────────
-  let _state = null;
-  let _onWin  = null;
-  let _onLose = null;
+  const ROUTE_CFG = {
+    rage:  { color:'#cc4422', label:'狂暴', icon:'⚔' },
+    focus: { color:'#3366cc', label:'集中', icon:'◈' },
+    fury:  { color:'#336633', label:'怒氣', icon:'⛊' },
+  };
 
-  // ── Build UI ───────────────────────────────────────
-  function _buildUI(player, enemy) {
-    document.getElementById('battle-overlay')?.remove();
-    const ov = document.createElement('div');
-    ov.id = 'battle-overlay';
-    ov.style.position = 'fixed';
-    document.body.appendChild(ov);
-    requestAnimationFrame(() => requestAnimationFrame(() => ov.classList.add('b-visible')));
+  const SPECIAL_FULL_DESC = {
+    rage:  '攻擊×2.0 · 防禦×0.5 · 迴避歸零 · 持續3回合',
+    focus: '命中必中 · 暴擊+40% · 速度×1.5 · 持續2回合',
+    fury:  '下次被攻完全格擋 · 以敵方ATK×1.5反擊 · 1回合',
+  };
 
-    // Header
-    const hdr = document.createElement('div');
-    hdr.id = 'battle-header';
-    hdr.textContent = '— 戰　鬥 —';
-    ov.appendChild(hdr);
+  // ── 50% 小技能設定 ──────────────────────────────────────
+  const HALF_SPECIALS = {
+    rage:  { name:'爆筋', desc:'下次攻擊 ATK+60%（即時）',               delay: 0 },
+    focus: { name:'瞬刺', desc:'下次攻擊必中 + 暴擊+20%（蓄力 1 tick）', delay: 1 },
+    fury:  { name:'強架', desc:'下次受擊傷害 -80%（即時）',               delay: 0 },
+  };
 
-    // Combatants
-    const comb = document.createElement('div');
-    comb.id = 'battle-combatants';
-    ov.appendChild(comb);
+  // ── Delay 狀態 ────────────────────────────────────────────
+  let _playerDelay      = 0;    // 剩餘蓄力 tick 數
+  let _playerDelaySkill = null; // 'half_focus' | null
 
-    // Player side
-    const pSide = _buildFighter(player, 'player');
-    comb.appendChild(pSide);
-
-    // VS
-    const vs = document.createElement('div');
-    vs.style.cssText = 'display:flex;align-items:center;justify-content:center;padding:0 16px;color:#3a2a18;font-size:22px;font-weight:900;flex-shrink:0;';
-    vs.textContent = 'VS';
-    comb.appendChild(vs);
-
-    // Enemy side
-    const eSide = _buildFighter(enemy, 'enemy');
-    comb.appendChild(eSide);
-
-    // Log
-    const log = document.createElement('div');
-    log.id = 'battle-log';
-    ov.appendChild(log);
-
-    // Actions
-    const actions = document.createElement('div');
-    actions.id = 'battle-actions';
-    ov.appendChild(actions);
-
-    const btnDefs = [
-      { icon: '⚔', label: '攻擊', cost: '體力 -10', id: 'btn-attack' },
-      { icon: '🛡', label: '防禦', cost: '體力 -5',  id: 'btn-defend' },
-      { icon: '✦', label: '技能', cost: '條件解鎖', id: 'btn-skill',  disabled: true },
-      { icon: '💨', label: '逃跑', cost: '名聲 -5',  id: 'btn-flee'  },
-    ];
-    btnDefs.forEach(def => {
-      const btn = document.createElement('button');
-      btn.className = 'b-action-btn';
-      btn.id = def.id;
-      if (def.disabled) btn.disabled = true;
-      btn.innerHTML = `
-        <span class="b-action-icon">${def.icon}</span>
-        <span class="b-action-label">${def.label}</span>
-        <span class="b-action-cost">${def.cost}</span>
-      `;
-      btn.addEventListener('click', () => _onAction(def.id));
-      actions.appendChild(btn);
-    });
-
-    // Placeholder notice (remove when combat is implemented)
-    const ph = document.createElement('div');
-    ph.id = 'battle-placeholder';
-    ph.innerHTML = `
-      <div class="bp-title">⚔ 戰鬥系統建構中</div>
-      <div class="bp-sub">介面已就緒 · 戰鬥邏輯待實裝</div>
-    `;
-    ov.appendChild(ph);
-
-    return { ov, log };
+  function _routeLabel(r) {
+    return { rage:'狂暴', focus:'集中', fury:'怒氣' }[r] || r;
   }
 
-  function _buildFighter(data, side) {
-    const div = document.createElement('div');
-    div.className = 'b-fighter b-' + side;
-    div.id = 'b-fighter-' + side;
-    const hpPct = Math.round((data.hp / data.hpMax) * 100);
-    div.innerHTML = `
-      <div class="b-fighter-name">${data.name}</div>
-      <div class="b-fighter-title">${data.title || ''}</div>
-      <div class="b-hp-bar-wrap">
-        <span class="b-hp-label">HP</span>
-        <div class="b-hp-track"><div class="b-hp-fill ${side}-fill" id="b-hp-fill-${side}" style="width:${hpPct}%"></div></div>
-        <span class="b-hp-num" id="b-hp-num-${side}">${data.hp}/${data.hpMax}</span>
-      </div>
-      <div class="b-stat-row">
-        <span class="b-stat">ATK <span>${data.ATK}</span></span>
-        <span class="b-stat">DEF <span>${data.DEF}</span></span>
-        <span class="b-stat">ACC <span>${data.ACC}%</span></span>
-        <span class="b-stat">SPD <span>${data.SPD}</span></span>
-        <span class="b-stat">EVA <span>${data.EVA}</span></span>
-      </div>
-    `;
-    return div;
-  }
-
-  function _log(logEl, text, cls = '') {
-    const line = document.createElement('div');
-    line.className = 'b-log-line' + (cls ? ' ' + cls : '');
-    line.innerHTML = text;
-    logEl.appendChild(line);
-    logEl.scrollTop = logEl.scrollHeight;
-  }
-
-  // ── Action handler (placeholder) ──────────────────
-  function _onAction(actionId) {
-    const logEl = document.getElementById('battle-log');
-    if (!logEl || !_state) return;
-    _log(logEl, `[ ${actionId} 功能待實裝 ]`, 'b-sys');
-  }
-
-  // ── Public: start ──────────────────────────────────
-  /**
-   * @param {string}   enemyId  - key from Enemies object
-   * @param {Function} onWin    - callback when player wins
-   * @param {Function} onLose   - callback when player loses
-   */
-  function start(enemyId, onWin, onLose) {
-    _injectStyle();
+  // ══════════════════════════════════════════════════════
+  // PUBLIC: start(opponentId, onWin, onLose)
+  // ══════════════════════════════════════════════════════
+  function start(opponentId, onWin, onLose) {
     _onWin  = onWin  || (() => {});
     _onLose = onLose || (() => {});
+    _turn        = 0;
+    _autoRunning    = false;
+    _hardcoreActive = false;
+    _battleTick       = 0;
+    _isArenaBattle    = false;
+    _pendingFameReward= 0;
+    _lastRating       = null;
+    _playerDelay      = 0;
+    _playerDelaySkill = null;
 
-    // Build player combat data from Stats
-    const p = (typeof Stats !== 'undefined') ? Stats.player : { name:'玩家', hp:100, hpMax:100 };
-    const d = (typeof Stats !== 'undefined') ? Stats.calcDerived() : { ATK:10, DEF:10, ACC:60, SPD:20, EVA:10 };
-    const playerCombat = {
-      name:  p.name,
-      title: '角鬥士',
-      hp: p.hp, hpMax: p.hpMax,
-      ATK: d.ATK, DEF: d.DEF, ACC: d.ACC, SPD: d.SPD, EVA: d.EVA,
+    // ── Build player unit from Stats.player ──
+    const p = Stats.player;
+    _player = TB_buildUnit({
+      name:     p.name || '無名',
+      STR: Stats.eff('STR'), DEX: Stats.eff('DEX'), CON: Stats.eff('CON'),
+      AGI: Stats.eff('AGI'), WIL: Stats.eff('WIL'), LUK: Stats.eff('LUK'),
+      // hpBase: back-calc so TB formula gives back the correct total
+      hpBase:   Math.max(10, p.hpMax - Math.round(2 * Stats.eff('CON'))),
+      fame:     p.fame || 0,
+      weaponId:  _mapId(p.equippedWeapon, TB_WEAPONS,  'fists'),
+      armorId:   _mapId(p.equippedArmor,  TB_ARMORS,   'rags'),
+      offhandId: _mapOffhand(p.equippedOffhand),
+      amuletId:  'none',
+      traitId:   'none',
+    }, true);
+
+    // ── Build enemy unit ──
+    _enemy  = TB_buildUnit({ enemyId: opponentId });
+    _active = true;
+
+    _showOverlay();
+    _initUI();
+
+    // Opening log (main game log gets a summary line)
+    const def = TB_ENEMIES[opponentId] || {};
+    Game.addLog(`\n⚔ 【戰鬥開始】\n${p.name} vs ${_enemy.name}【${def.title || ''}】`, '#d4af37', false);
+
+    _appendLog(`⚔ 戰鬥開始！${_player.name} vs ${_enemy.name}【${_enemy.title}】`, 'log-system');
+    if (def.passiveDesc) _appendLog(`▸ 被動：${def.passiveDesc}`, 'log-system');
+    if (def.specialDesc) _appendLog(`▸ 特技：${def.specialDesc}`, 'log-system');
+
+    const routeHints = {
+      rage:  '▸ 狂暴：被打+15 被暴擊+25 命中+10。滿→血怒',
+      focus: '▸ 集中：命中+12 暴擊+22 閃躲+20。被打扣量。滿→絕對瞬息',
+      fury:  '▸ 怒氣：被命中+10 格擋+28 防禦+25。滿→盾牆反擊',
     };
+    _appendLog(routeHints[_player.gaugeRoute] || '', 'log-system');
 
-    // Enemy data
-    const enemyDef = (typeof Enemies !== 'undefined') ? Enemies[enemyId] : null;
-    const enemyCombat = enemyDef ? {
-      name: enemyDef.name, title: enemyDef.desc || '',
-      hp: enemyDef.hp, hpMax: enemyDef.hp,
-      ATK: enemyDef.ATK, DEF: enemyDef.DEF,
-      ACC: enemyDef.ACC, SPD: enemyDef.SPD, EVA: enemyDef.EVA,
-    } : {
-      name: '未知對手', title: '', hp: 80, hpMax: 80,
-      ATK: 15, DEF: 10, ACC: 60, SPD: 20, EVA: 10,
-    };
+    // ── Pressure system ──
+    const p2e = TB_calcPressure(_player, _enemy);
+    const p2p = TB_calcPressure(_enemy,  _player);
+    if (p2e.penalty > 0) {
+      TB_applyPressure(_enemy, p2e.penalty, _player.name);
+      _appendLog(`◈ 你的威嚇 → ${_enemy.name} 全屬性 -${Math.round(p2e.penalty*100)}%`, 'log-special');
+    } else {
+      _appendLog(`◈ 你對 ${_enemy.name} 尚無壓制力`, 'log-system');
+    }
+    if (p2p.penalty > 0) {
+      TB_applyPressure(_player, p2p.penalty, _enemy.name);
+      _appendLog(`⚠ ${_enemy.name} 的威嚇 → 你的全屬性 -${Math.round(p2p.penalty*100)}%`, 'log-injury');
+    } else {
+      _appendLog(`◈ 你成功抵禦 ${_enemy.name} 的壓制`, 'log-system');
+    }
+    _applyOpeningTraits();
+    _appendLog('', 'log-turn');
 
-    _state = { player: playerCombat, enemy: enemyCombat, turn: 0 };
-
-    const { ov, log } = _buildUI(playerCombat, enemyCombat);
-
-    // Intro log
-    _log(log, `對手：<strong>${enemyCombat.name}</strong>`, 'b-sys');
-    if (enemyDef) _log(log, enemyDef.desc || '', 'b-sys');
-    _log(log, '──────────────', 'b-miss');
-    _log(log, '⚔ 戰鬥開始！', 'b-sys');
-    _log(log, '（戰鬥邏輯尚未實裝，點按鈕後回報結果）', 'b-miss');
-
-    // Close button (temp)
-    const closeBtn = document.createElement('button');
-    closeBtn.style.cssText = 'position:absolute;top:10px;right:14px;background:none;border:1px solid #3a2a18;color:#6a5a48;font-family:inherit;font-size:12px;padding:4px 10px;cursor:pointer;letter-spacing:.1em;z-index:1;';
-    closeBtn.textContent = '離開戰鬥';
-    closeBtn.onclick = close;
-    ov.appendChild(closeBtn);
+    _playerAtb = 0;
+    _enemyAtb  = 0;
+    _startAtbLoop();
+    _updateCombatantUI();
+    _updateSkillDisplay();
   }
 
-  function close() {
+  // ── Equipment ID mapper ────────────────────────────────
+  function _mapId(id, dict, fallback) {
+    return (id && dict[id]) ? id : fallback;
+  }
+  // 副手可以是盾牌 ID 或單手武器 ID，兩張表都查
+  function _mapOffhand(id) {
+    if (!id) return 'none';
+    if (TB_SHIELDS[id]) return id;
+    if (TB_WEAPONS[id] && !TB_WEAPONS[id].twoHanded) return id;
+    return 'none';
+  }
+
+  // ══════════════════════════════════════════════════════
+  // OVERLAY SHOW / HIDE
+  // ══════════════════════════════════════════════════════
+  function _showOverlay() {
     const ov = document.getElementById('battle-overlay');
-    if (!ov) return;
-    ov.style.opacity = 0;
-    setTimeout(() => ov.remove(), 500);
-    _state = null;
+    if (ov) ov.style.display = 'flex';
   }
 
-  return { start, close };
+  function _hideOverlay() {
+    const ov = document.getElementById('battle-overlay');
+    if (ov) ov.style.display = 'none';
+  }
+
+  // ══════════════════════════════════════════════════════
+  // INIT UI
+  // ══════════════════════════════════════════════════════
+  function _initUI() {
+    const log = document.getElementById('bt-log');
+    if (log) log.innerHTML = '';
+    const rd = document.getElementById('bt-round');
+    if (rd) rd.textContent = '— 戰鬥開始 —';
+    _fillEnemyInfo();
+  }
+
+  function _fillEnemyInfo() {
+    const def = TB_ENEMIES[_enemy.id] || {};
+    const d   = _enemy.derived;
+    const fameTierNames = ['無名','初出茅廬','小有名氣','競技老手','場上傳說','不敗之名'];
+    const fTier = Math.min(5, Math.floor((_enemy.fame || 0) / 20));
+
+    _setTxt('bt-ei-name',    def.name  || _enemy.name);
+    _setTxt('bt-ei-title',   `【${def.title || _enemy.title || ''}】${fameTierNames[fTier]}`);
+    _setTxt('bt-ei-passive', def.passiveDesc ? `【被動】${def.passiveDesc}` : '');
+    _setTxt('bt-ei-special', def.specialDesc ? `【特技】${def.specialDesc}` : '');
+    _setTxt('bt-ei-weak',    def.weakPoint   ? `【弱點】${def.weakPoint}`   : '');
+
+    // 6 base attrs
+    const attrMap = { STR:'力量', DEX:'靈巧', CON:'體質', AGI:'反應', WIL:'意志', LUK:'幸運' };
+    const el = document.getElementById('bt-ei-attrs');
+    if (el) {
+      el.innerHTML = Object.entries(attrMap).map(([k, cn]) =>
+        `<span class="bt-attr-item"><span class="bt-attr-k">${cn}</span><span class="bt-attr-v">${_enemy[k] || 0}</span></span>`
+      ).join('');
+    }
+
+    // Derived stats + route badge
+    const rc = ROUTE_CFG[d.route] || { color:'#888', label:'?', icon:'?' };
+    const drvEl = document.getElementById('bt-ei-derived');
+    if (drvEl) {
+      drvEl.innerHTML =
+        `<span style="color:${rc.color}">${rc.icon} ${rc.label}路線</span>　` +
+        `ATK<b>${d.ATK}</b> DEF<b>${d.DEF}</b> HP<b>${d.hpMax}</b> ` +
+        `ACC<b>${d.ACC}%</b> EVA<b>${d.EVA}%</b> CRT<b>${d.CRT}%</b> ` +
+        `SPD<b>${d.SPD}</b> BLK<b>${d.BLK}%</b> BpWr<b>${d.BpWr}%</b>`;
+    }
+
+    // Equipment
+    const w  = TB_WEAPONS[_enemy.weaponId]  || {};
+    const ar = TB_ARMORS[_enemy.armorId]    || {};
+    const sh = TB_SHIELDS[_enemy.shieldId]  || {};
+    _setTxt('bt-ei-equip', `武器：${w.name || '—'}　護甲：${ar.name || '—'}　盾牌：${sh.name || '無'}`);
+  }
+
+  function _setTxt(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  }
+
+  // ══════════════════════════════════════════════════════
+  // PUBLIC: doAction(action)
+  // ══════════════════════════════════════════════════════
+  function doAction(action) {
+    if (!_active) return;
+    if (_playerAtb < 100) return;     // ATB: must wait for bar to fill
+    if (_hardcoreActive) _clearHcCountdown(); // 玩家及時行動，取消倒數
+    _setButtons(false);
+
+    if (action === 'special') {
+      if (_player.gauge >= TBC.GAUGE_MAX) {
+        // ── 大招（100%）──
+        if (TB_releaseSpecial(_player)) {
+          const sp = TBC.SPECIALS[_player.gaugeRoute];
+          _appendLog(`【${_player.name}】釋放【${sp.name}】！持續 ${sp.turns} 回合。`, 'log-special');
+          _appendLog(`  ${SPECIAL_FULL_DESC[_player.gaugeRoute] || ''}`, 'log-special');
+          _updateSkillDisplay();
+        }
+        // 大招走正常流程（下方 _playerAtb=0 + cleanup）
+      } else if (_player.gauge >= 50) {
+        // ── 小技（50%）── 內部自行處理 ATB 歸零與 cleanup，直接 return
+        _activateHalfSkill();
+        return;
+      } else {
+        _appendLog('▸ 技能條不足（需 50%+）！', 'log-system');
+        _playerAtb = 100;
+        _setButtons(true);
+        _checkSpecialReady();
+        return;
+      }
+    } else if (action === 'defend') {
+      const r = TB_defend(_player);
+      _appendLog(r.log, 'log-system');
+    } else {
+      _playerAttack();
+    }
+
+    _playerAtb = 0;                   // Reset ATB — bar must refill before next action
+
+    if (!_checkDeath()) {
+      _endTurnCleanup_atb();
+    }
+  }
+
+  // ── 50% 小技能啟動（doAction 的 'special' 分支在 gauge≥50 時呼叫）──
+  function _activateHalfSkill() {
+    const route = _player.gaugeRoute;
+    const hs    = HALF_SPECIALS[route];
+
+    if (route === 'rage') {
+      // 爆筋：下次攻擊 ATK+60%（即時，delay=0）
+      _player.gauge   -= 50;
+      _player._burstVein = true;
+      _appendLog(`【爆筋】${hs.desc}`, 'log-special');
+      _updateSkillDisplay();
+      _playerAtb = 0;
+      if (!_checkDeath()) _endTurnCleanup_atb();
+
+    } else if (route === 'focus') {
+      // 瞬刺：delay=1 個 ATB 週期，期間被打即中斷（gauge 不消耗）
+      const delayTicks = Math.max(5, Math.round(100 / _calcFillRate(_player)));
+      _playerDelay      = delayTicks;
+      _playerDelaySkill = 'half_focus';
+      _appendLog(`【瞬刺蓄力】約 ${(delayTicks * 0.1).toFixed(1)} 秒後自動發動（被打即中斷）`, 'log-special');
+      _setButtons(false);
+      _playerAtb = 0;
+      _updateSkillDisplay();
+      // 不呼叫 cleanup — delay 期間 ATB 自行推進
+
+    } else if (route === 'fury') {
+      // 強架：下次受擊傷害 -80%（即時，delay=0）
+      _player.gauge   -= 50;
+      _player._powerBlock = true;
+      _appendLog(`【強架】${hs.desc}`, 'log-special');
+      _updateSkillDisplay();
+      _playerAtb = 0;
+      if (!_checkDeath()) _endTurnCleanup_atb();
+    }
+  }
+
+  // ── Delay 計時結束後自動發動（由 _atbTick 呼叫）──
+  function _executeDelayedSkill() {
+    const skill       = _playerDelaySkill;
+    _playerDelaySkill = null;
+    _playerDelay      = 0;
+
+    if (skill === 'half_focus') {
+      _appendLog(`【瞬刺發動！】必中 + 暴擊+20%`, 'log-special');
+      _player.gauge -= 50;
+
+      // 暫時提升派生屬性
+      const savedACC = _player.derived.ACC;
+      const savedCRT = _player.derived.CRT;
+      _player.derived.ACC = 100;
+      _player.derived.CRT = Math.min(75, savedCRT + 20);
+
+      _playerAttack();
+
+      _player.derived.ACC = savedACC;
+      _player.derived.CRT = savedCRT;
+
+      _playerAtb = 0;
+      _updateSkillDisplay();
+      if (!_checkDeath()) _endTurnCleanup_atb();
+    }
+  }
+
+  function _playerAttack() {
+    const w    = TB_WEAPONS[_player.weaponId];
+    const hits = w && w.dualHit ? 2 : 1;
+
+    // 爆筋：暫時提升 ATK×1.6
+    let savedATK = null;
+    if (_player._burstVein) {
+      _player._burstVein = false;
+      savedATK = _player.derived.ATK;
+      _player.derived.ATK = Math.round(savedATK * 1.6);
+      _appendLog(`  ★ 爆筋觸發：ATK ${savedATK} → ${_player.derived.ATK}`, 'log-special');
+    }
+
+    for (let i = 0; i < hits; i++) {
+      if (_enemy.hp <= 0) break;
+      const r = TB_attack(_player, _enemy, { turn: _turn });
+      _applyDamage(_enemy, r.damage, r.counterDamage ? _player : null, r.counterDamage);
+      _appendLog((hits > 1 ? `[第${i+1}擊] ` : '') + r.log,
+        r.crit ? 'log-crit' : r.hit ? '' : 'log-miss');
+      if (r.injuredPart)   _appendLog(`  ※ ${_enemy.name}【${r.injuredPart}】受傷（${r.injuryLevel}）`, 'log-injury');
+      if (r.counterDamage) _appendLog(`  ↩ 反擊！玩家受到 ${r.counterDamage} 傷害`, 'log-crit');
+      // killAura
+      if (r.hit && _player._killIntimActivated && !_player._killAuraApplied && _player._killIntimBonus > 0) {
+        _player._killAuraApplied = true;
+        const nP2e = TB_calcPressure(_player, _enemy);
+        if (nP2e.penalty > (_enemy._pressurePenalty || 0)) {
+          TB_applyPressure(_enemy, nP2e.penalty, _player.name + '（殺戮美學）');
+          _appendLog(`  ★ 殺戮美學觸發！威嚇加深 -${Math.round(nP2e.penalty*100)}%`, 'log-special');
+        }
+      }
+    }
+
+    // 恢復爆筋暫時提升的 ATK
+    if (savedATK !== null) _player.derived.ATK = savedATK;
+  }
+
+  // ══════════════════════════════════════════════════════
+  // ENEMY TURN
+  // ══════════════════════════════════════════════════════
+  function _enemyTurn() {
+    if (!_active || _enemy.hp <= 0) { _endTurnCleanup_atb(); return; }
+
+    const decision = TB_bossDecide(_enemy, _player, { turn: _turn });
+    const isBigMove = ['triple_stab','mountain_crash','special_release'].includes(decision.action);
+    if (decision.log) _appendLog(decision.log, isBigMove ? 'log-special' : 'log-system');
+
+    switch (decision.action) {
+      case 'attack': {
+        const r = TB_attack(_enemy, _player, { turn: _turn });
+        _applyDamage(_player, r.damage, r.counterDamage ? _enemy : null, r.counterDamage);
+        _appendLog(r.log, r.crit ? 'log-crit' : r.hit ? '' : 'log-miss');
+        if (r.injuredPart) _appendLog(`  ※ 玩家【${r.injuredPart}】受傷（${r.injuryLevel}）`, 'log-injury');
+        break;
+      }
+      case 'mountain_crash': {
+        const r = TB_attack(_enemy, _player, { turn: _turn }, { mountainCrash: true });
+        _applyDamage(_player, r.damage, null, 0);
+        _appendLog(r.log, 'log-crit');
+        if (r.injuredPart) _appendLog(`  ※ 玩家【${r.injuredPart}】受傷（${r.injuryLevel}）`, 'log-injury');
+        break;
+      }
+      case 'triple_stab': {
+        for (let i = 0; i < 3; i++) {
+          if (_player.hp <= 0) break;
+          const r = TB_attack(_enemy, _player, { turn: _turn });
+          _applyDamage(_player, r.damage, r.counterDamage ? _enemy : null, r.counterDamage);
+          _appendLog(`  [刺${i+1}] ${r.log}`, r.crit ? 'log-crit' : r.hit ? '' : 'log-miss');
+        }
+        break;
+      }
+      case 'defend': {
+        TB_defend(_enemy);
+        break;
+      }
+      case 'counter_stance':
+      case 'charge':
+        _updateSkillDisplay();
+        break;
+      case 'special_release': {
+        const eSp = TBC.SPECIALS[_enemy.gaugeRoute];
+        if (eSp) _appendLog(`  ${SPECIAL_FULL_DESC[_enemy.gaugeRoute] || ''}`, 'log-special');
+        _updateSkillDisplay();
+        break;
+      }
+    }
+
+    if (!_checkDeath()) {
+      _endTurnCleanup_atb();
+    }
+  }
+
+  function _endTurnCleanup() {
+    if (!_active) return;
+
+    const pMsg = TB_endTurnGauge(_player);
+    const eMsg = TB_endTurnGauge(_enemy);
+    if (pMsg) _appendLog(pMsg, 'log-system');
+    if (eMsg) _appendLog(eMsg, 'log-system');
+
+    // Gruen passive regen
+    if (_enemy.passive === 'regen5') {
+      const regenCap = Math.round(_enemy._hpMax * 0.5);
+      const regen    = Math.min(3, Math.max(0, regenCap - _enemy.hp));
+      if (regen > 0) {
+        _enemy.hp = Math.min(_enemy._hpMax, _enemy.hp + regen);
+        _appendLog(`  ${_enemy.name} 被動回血 +${regen}`, 'log-system');
+      }
+    }
+
+    _turn++;
+    _appendLog(`── 回合 ${_turn} ──`, 'log-turn');
+    const rd = document.getElementById('bt-round');
+    if (rd) rd.textContent = `第 ${_turn} 回合`;
+
+    _updateCombatantUI();
+    _updateSkillDisplay();
+    _setButtons(true);
+    _checkSpecialReady();
+  }
+
+  // ATB version: no _setButtons — ATB tick re-enables when bar fills
+  function _endTurnCleanup_atb() {
+    if (!_active) return;
+
+    const pMsg = TB_endTurnGauge(_player);
+    const eMsg = TB_endTurnGauge(_enemy);
+    if (pMsg) _appendLog(pMsg, 'log-system');
+    if (eMsg) _appendLog(eMsg, 'log-system');
+
+    // Gruen passive regen
+    if (_enemy.passive === 'regen5') {
+      const regenCap = Math.round(_enemy._hpMax * 0.5);
+      const regen    = Math.min(3, Math.max(0, regenCap - _enemy.hp));
+      if (regen > 0) {
+        _enemy.hp = Math.min(_enemy._hpMax, _enemy.hp + regen);
+        _appendLog(`  ${_enemy.name} 被動回血 +${regen}`, 'log-system');
+      }
+    }
+
+    _turn++;
+    _appendLog(`── 回合 ${_turn} ──`, 'log-turn');
+    const rd = document.getElementById('bt-round');
+    if (rd) rd.textContent = `第 ${_turn} 回合`;
+
+    _updateCombatantUI();
+    _updateSkillDisplay();
+    // Note: _setButtons is intentionally omitted — ATB loop handles it
+  }
+
+  // ══════════════════════════════════════════════════════
+  // DEATH CHECK / END BATTLE
+  // ══════════════════════════════════════════════════════
+  function _checkDeath() {
+    if (_enemy.hp <= 0) {
+      _appendLog(`\n勝利！${_enemy.name} 已倒下。`, 'log-win');
+      _endBattle(true);
+      return true;
+    }
+    if (_player.hp <= 0) {
+      _appendLog(`\n敗北。你倒在競技場的血泊中。`, 'log-die');
+      _endBattle(false);
+      return true;
+    }
+    return false;
+  }
+
+  // ── Rating calculation ──────────────────────────────────
+  function _calcRating() {
+    const hpPct = _player.hp / _player._hpMax;
+    // 效率殺手特性：評分 tick 閾值各降 10%
+    const eff   = Stats.player.traits?.includes('efficiency') ? 0.9 : 1.0;
+    const tS    = Math.round(RATING_TICKS.S * eff);
+    const tA    = Math.round(RATING_TICKS.A * eff);
+    const tB    = Math.round(RATING_TICKS.B * eff);
+    if (_battleTick <= tS && hpPct > 0.70) return 'S';
+    if (_battleTick <= tA && hpPct > 0.40) return 'A';
+    if (_battleTick <= tB)                 return 'B';
+    return 'C';
+  }
+
+  // ── 成就定義表 ────────────────────────────────────────────
+  const ACHIEVEMENTS = [
+    {
+      id: 'bloody_1', name: '嗜血狂魔 Lv.1', desc: '砍首 10 人',
+      check: cs => cs.executionCount >= 10,
+      reward: { trait: 'bloodthirst' },
+      rewardDesc: '特性【窮凶惡極】：開場威嚇 +10%',
+    },
+    {
+      id: 'bloody_2', name: '嗜血狂魔 Lv.2', desc: '砍首 25 人',
+      check: cs => cs.executionCount >= 25,
+      reward: { trait: 'executioner', title: '劊子手' },
+      rewardDesc: '稱號【劊子手】：低名聲對手開場心理崩潰 -20%',
+    },
+    {
+      id: 'mercy_1', name: '仁慈之心 Lv.1', desc: '饒恕 10 人',
+      check: cs => cs.spareCount >= 10,
+      reward: { trait: 'kindness' },
+      rewardDesc: '特性【寬厚】：隊友好感成長速度 +20%',
+    },
+    {
+      id: 'perfectionist', name: '完美主義者', desc: 'S 評分 5 場',
+      check: cs => cs.sRankCount >= 5,
+      reward: { trait: 'efficiency' },
+      rewardDesc: '特性【效率殺手】：評分 tick 閾值各降 10%',
+    },
+    {
+      id: 'streak_5', name: '連勝者', desc: '競技場連續勝利 5 場',
+      check: cs => (cs.winStreak || 0) >= 5,
+      reward: { fameBase: 5 },
+      rewardDesc: '名聲基礎加成 +5（每場競技場）',
+    },
+  ];
+
+  function _checkAchievements() {
+    const p   = Stats.player;
+    const cs  = p.combatStats;
+    if (!Array.isArray(p.achievements)) p.achievements = [];
+    if (!Array.isArray(p.traits))       p.traits       = [];
+
+    for (const ach of ACHIEVEMENTS) {
+      if (p.achievements.includes(ach.id)) continue;
+      if (!ach.check(cs)) continue;
+
+      // ── 解鎖 ──
+      p.achievements.push(ach.id);
+      if (ach.reward.trait   && !p.traits.includes(ach.reward.trait))
+        p.traits.push(ach.reward.trait);
+      if (ach.reward.title)  p.title    = ach.reward.title;
+      if (ach.reward.fameBase) p.fameBase = (p.fameBase || 0) + ach.reward.fameBase;
+
+      // ── 通知 ──
+      _appendLog(
+        `\n╔═══ 成就解鎖 ═══╗\n  🏆 【${ach.name}】\n  ${ach.rewardDesc}\n╚════════════════╝`,
+        'log-special'
+      );
+      Game.addLog(`🏆 成就解鎖：【${ach.name}】　${ach.rewardDesc}`, '#d4af37', false);
+      _showAchievementToast(ach.name);
+    }
+  }
+
+  // 開場特性套用（壓制計算後呼叫）
+  function _applyOpeningTraits() {
+    const traits = Stats.player.traits || [];
+    if (!traits.length) return;
+
+    // 窮凶惡極：額外施加 10% 威嚇
+    if (traits.includes('bloodthirst')) {
+      TB_applyPressure(_enemy, 0.10, '窮凶惡極');
+      _appendLog(`  ★ 【窮凶惡極】額外威嚇 ${_enemy.name} -10%！`, 'log-special');
+    }
+
+    // 劊子手：低名聲敵人（fame<30）開場心理崩潰 -20%
+    if (traits.includes('executioner') && (_enemy.fame || 0) < 30) {
+      TB_applyPressure(_enemy, 0.20, '劊子手');
+      _appendLog(`  ★ 【劊子手】${_enemy.name} 聽聞你名號，心理崩潰 -20%！`, 'log-special');
+    }
+  }
+
+  function _showAchievementToast(name) {
+    const el = document.getElementById('toast');
+    if (!el) return;
+    el.textContent = `🏆 成就解鎖：【${name}】`;
+    el.classList.add('visible');
+    setTimeout(() => el.classList.remove('visible'), 3500);
+  }
+
+  const RATING_CFG = {
+    S: { label:'S 迅雷', color:'#d4af37', fameMult:2.0,  desc:'快速制敵，技壓全場！' },
+    A: { label:'A 穩健', color:'#88ccff', fameMult:1.5,  desc:'攻守得當，表現出色。' },
+    B: { label:'B 消耗', color:'#c8a060', fameMult:1.0,  desc:'勝負已分，但不夠漂亮。' },
+    C: { label:'C 殘喘', color:'#888888', fameMult:0.7,  desc:'勉強獲勝，差點倒在場上。' },
+  };
+
+  function _endBattle(won) {
+    _active = false;
+    _stopAtbLoop();
+    _clearHcCountdown();
+    _hardcoreActive = false;
+    _stopAuto();
+    _setButtons(false);
+    _updateCombatantUI();
+
+    // Battle costs 1 time slot (2 hours)
+    Stats.advanceTime(120);
+
+    const resultText = won
+      ? `【戰鬥勝利】擊倒 ${_enemy.name}，歷時 ${_turn} 回合。`
+      : `【戰鬥落敗】倒在 ${_enemy.name} 腳下，第 ${_turn} 回合。`;
+    Game.addLog(resultText, won ? '#d4af37' : '#cc3300', false);
+
+    // ── Arena rating (won only) ──────────────────────────
+    if (won && _isArenaBattle) {
+      _lastRating = _calcRating();
+      const rc    = RATING_CFG[_lastRating];
+      const hpPct = Math.round(_player.hp / _player._hpMax * 100);
+      // 連勝者特性：每場加固定名聲；fameBase 由成就解鎖後永久儲存
+      const fameAwarded = Math.round((_pendingFameReward + (Stats.player.fameBase || 0)) * rc.fameMult);
+
+      // Apply fame
+      Stats.modFame(fameAwarded);
+
+      // Update combatStats
+      const cs = Stats.player.combatStats;
+      cs.arenaWins++;
+      cs.totalTicks += _battleTick;
+      cs.winStreak   = (cs.winStreak || 0) + 1;
+      if (_lastRating === 'S') cs.sRankCount++;
+      if (_lastRating === 'A') cs.aRankCount++;
+
+      // S/A rank affection bonuses (officer & master)
+      if (_lastRating === 'S' || _lastRating === 'A') {
+        const affBonus = _lastRating === 'S' ? 8 : 4;
+        if (typeof teammates !== 'undefined') {
+          teammates.modAffection('officer',     affBonus);
+          teammates.modAffection('masterArtus', affBonus);
+        }
+      }
+      // C rank stamina penalty
+      if (_lastRating === 'C') {
+        Stats.modVital('stamina', -15);
+        _appendLog('  體力因過度消耗額外扣減 15。', 'log-injury');
+      }
+
+      // Log rating result
+      const fameBaseNote = (Stats.player.fameBase || 0) > 0
+        ? ` + 基底 ${Stats.player.fameBase}` : '';
+      _appendLog(
+        `\n╔═══ 競技場評分 ═══╗\n` +
+        `  ${rc.label}　${rc.desc}\n` +
+        `  行動次數：${_battleTick}　HP剩餘：${hpPct}%\n` +
+        `  名聲獎勵：+${fameAwarded}（基礎 ${_pendingFameReward}${fameBaseNote} × ${rc.fameMult}）\n` +
+        `╚══════════════════╝`,
+        'log-special'
+      );
+      Game.addLog(`【評分】${rc.label}　名聲 +${fameAwarded}`, rc.color, false);
+
+      // 成就檢查（勝利後）
+      _checkAchievements();
+
+    } else if (!won && _isArenaBattle) {
+      const cs = Stats.player.combatStats;
+      cs.arenaLosses++;
+      cs.winStreak = 0;   // 連勝中斷
+    }
+
+    if (won && _isArenaBattle) {
+      // Show rating result briefly, then show finishing panel
+      setTimeout(() => _showFinishPanel(), 1800);
+    } else {
+      setTimeout(() => {
+        _hideOverlay();
+        Game.renderAll();
+        if (won) _onWin();
+        else     _onLose();
+      }, 2200);
+    }
+  }
+
+  // ── Finishing move panel ─────────────────────────────────
+  function _showFinishPanel() {
+    const rc    = RATING_CFG[_lastRating] || RATING_CFG.B;
+    const mood  = CROWD_MOOD_CFG[_crowdMood] || CROWD_MOOD_CFG.neutral;
+    const hpPct = Math.round(_player.hp / _player._hpMax * 100);
+
+    const moodEl   = document.getElementById('bt-finish-mood');
+    const ratingEl = document.getElementById('bt-finish-rating');
+    const panel    = document.getElementById('bt-finish-panel');
+
+    if (moodEl)   moodEl.textContent   = mood.hint;
+    if (ratingEl) ratingEl.textContent = `評分：${rc.label}　HP剩餘：${hpPct}%`;
+    if (panel)    panel.classList.add('open');
+  }
+
+  function finishChoice(choice) {
+    const panel = document.getElementById('bt-finish-panel');
+    if (panel) panel.classList.remove('open');
+
+    const mood   = CROWD_MOOD_CFG[_crowdMood] || CROWD_MOOD_CFG.neutral;
+    const fx     = mood[choice] || {};
+    const cs     = Stats.player.combatStats;
+
+    // Update cumulative stats
+    if (choice === 'execute')  cs.executionCount++;
+    if (choice === 'suppress') cs.suppressCount++;
+    if (choice === 'spare')    cs.spareCount++;
+
+    // 成就檢查（砍首 / 饒恕達標時）
+    _checkAchievements();
+
+    // Apply crowd fame bonus
+    if (fx.crowdFame) Stats.modFame(fx.crowdFame);
+
+    // Apply NPC affection changes
+    if (typeof teammates !== 'undefined') {
+      if (fx.masterAff)    teammates.modAffection('masterArtus',   fx.masterAff);
+      if (fx.officerAff)   teammates.modAffection('officer',       fx.officerAff);
+      if (fx.melaAff)      teammates.modAffection('melaKook',      fx.melaAff);
+      if (fx.dagiAff)      teammates.modAffection('dagiSlave',     fx.dagiAff);
+      if (fx.oldSlaveAff)  teammates.modAffection('oldSlave',      fx.oldSlaveAff);
+    }
+
+    // Log
+    const choiceText = { execute:'砍首', suppress:'踩臉', spare:'饒恕' };
+    const fameSign   = fx.crowdFame >= 0 ? '+' : '';
+    _appendLog(
+      `【${choiceText[choice]}】${fx.crowdFame ? `觀眾名聲 ${fameSign}${fx.crowdFame}` : ''}`,
+      choice === 'execute' ? 'log-crit' : choice === 'spare' ? 'log-system' : ''
+    );
+    Game.addLog(`【${choiceText[choice]}】`, choice === 'execute' ? '#cc3300' : choice === 'spare' ? '#336633' : '#c8a060', false);
+
+    // Done — restore scene and call onWin
+    setTimeout(() => {
+      _hideOverlay();
+      Game.renderAll();
+      _onWin();
+    }, 600);
+  }
+
+  // ══════════════════════════════════════════════════════
+  // DAMAGE / LAST-STAND
+  // ══════════════════════════════════════════════════════
+  function _applyDamage(target, dmg, counterTarget, counterDmg) {
+    // 強架（fury 50%）：受擊傷害 -80%
+    if (target === _player && _player._powerBlock && dmg > 0) {
+      const blocked = Math.round(dmg * 0.8);
+      dmg -= blocked;
+      _player._powerBlock = false;
+      _appendLog(`  ⛊ 強架生效！傷害 ${dmg + blocked} → ${dmg}（減免 ${blocked}）`, 'log-special');
+      _updateSkillDisplay();
+    }
+
+    // 瞬刺蓄力中斷：被打即取消（gauge 保留）
+    if (target === _player && dmg > 0 && _playerDelay > 0) {
+      _playerDelay      = 0;
+      _playerDelaySkill = null;
+      _appendLog(`  ⚡ 瞬刺被打斷！技能條保留。`, 'log-injury');
+      _updateSkillDisplay();
+      if (_playerAtb >= 100) { _setButtons(true); _checkSpecialReady(); }
+    }
+
+    const wasAbove30 = target.hp >= target._hpMax * 0.30;
+    if (dmg > 0) target.hp = Math.max(0, target.hp - dmg);
+    if (counterTarget && counterDmg > 0)
+      counterTarget.hp = Math.max(0, counterTarget.hp - counterDmg);
+
+    if (wasAbove30 && target.hp < target._hpMax * 0.30 && _active) {
+      const opp = target === _player ? _enemy : _player;
+      if (TB_triggerLastStand(target, opp)) {
+        _appendLog(`【背水一戰】${target.name} HP跌破30%！恐懼消散，對 ${opp.name} 反施壓 -15%！`, 'log-special');
+        _updateCombatantUI();
+      }
+    }
+  }
+
+  // ══════════════════════════════════════════════════════
+  // UI HELPERS
+  // ══════════════════════════════════════════════════════
+  function _setButtons(enabled) {
+    ['bt-btn-attack','bt-btn-defend','bt-btn-special','bt-btn-auto'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.disabled = !enabled;
+    });
+  }
+
+  function _checkSpecialReady() {
+    if (!_player) return;
+    const btn = document.getElementById('bt-btn-special');
+    if (!btn) return;
+    if (_player.gauge >= TBC.GAUGE_MAX) {
+      btn.classList.add('special-ready');
+      btn.classList.remove('half-ready');
+      const sp = TBC.SPECIALS[_player.gaugeRoute];
+      btn.textContent = `★ ${sp?.name || '大招'}`;
+    } else if (_player.gauge >= 50) {
+      btn.classList.add('special-ready');
+      btn.classList.add('half-ready');
+      const hs = HALF_SPECIALS[_player.gaugeRoute];
+      btn.textContent = `◈ ${hs?.name || '小技'}`;
+    } else {
+      btn.classList.remove('special-ready');
+      btn.classList.remove('half-ready');
+      btn.textContent = '技 能';
+    }
+  }
+
+  function _updateCombatantUI() {
+    if (!_player || !_enemy) return;
+
+    // Player
+    _setTxt('bt-pname',  _player.name);
+    _setTxt('bt-ptitle', '角鬥士');
+    _setBarUI('bt-php',    _player.hp,    _player._hpMax);
+    _setGaugeUI('bt-pgauge', _player.gauge, _player.gaugeRoute);
+    _setTxt('bt-pgauge-lbl', `儀表 (${_routeLabel(_player.gaugeRoute)})`);
+    let pStatus = '';
+    if (_playerDelay > 0) {
+      pStatus = `【瞬刺蓄力】${Math.ceil(_playerDelay * 0.1)}s…`;
+    } else if (_player._burstVein) {
+      pStatus = '【爆筋待命】下次攻擊 ATK+60%';
+    } else if (_player._powerBlock) {
+      pStatus = '【強架待命】下次受擊 -80%';
+    } else if (_player.gaugeActive) {
+      const sp = TBC.SPECIALS[_player.gaugeRoute];
+      pStatus = `【${sp?.name || '?'}】剩${_player.gaugeActiveLeft}回合`;
+    }
+    if (_player._pressurePenalty > 0)
+      pStatus += (pStatus ? '　' : '') + `⚠受壓 -${Math.round(_player._pressurePenalty*100)}%`;
+    _setTxt('bt-pstatus', pStatus);
+
+    // Enemy
+    _setTxt('bt-ename',  _enemy.name);
+    _setTxt('bt-etitle', _enemy.title);
+    _setBarUI('bt-ehp',    _enemy.hp,    _enemy._hpMax);
+    _setGaugeUI('bt-egauge', _enemy.gauge, _enemy.gaugeRoute);
+    _setTxt('bt-egauge-lbl', `儀表 (${_routeLabel(_enemy.gaugeRoute)})`);
+    let eStatus = '';
+    if (_enemy._counterStance) eStatus = '【反制姿態】';
+    if (_enemy._charging)      eStatus = '【蓄力中…】';
+    if (_enemy.gaugeActive) {
+      const sp = TBC.SPECIALS[_enemy.gaugeRoute];
+      eStatus += `【${sp?.name || '?'}】剩${_enemy.gaugeActiveLeft}回合`;
+    }
+    if (_enemy._pressurePenalty > 0)
+      eStatus += (eStatus ? '　' : '') + `⚠受壓 -${Math.round(_enemy._pressurePenalty*100)}%`;
+    _setTxt('bt-estatus', eStatus);
+
+    _fillMiniStats('bt-p-mini', _player);
+    _fillMiniStats('bt-e-mini', _enemy);
+  }
+
+  function _fillMiniStats(targetId, unit) {
+    const el = document.getElementById(targetId);
+    if (!el || !unit) return;
+    const d   = unit.derived;
+    const pen = (unit._pressurePenalty || 0) > 0;
+    const vc  = pen ? ' pressured' : '';
+    const rows = [
+      ['ATK',  d.ATK],        ['DEF',  d.DEF],        ['HP', `${Math.round(unit.hp)}/${unit._hpMax}`],
+      ['ACC',  d.ACC + '%'],   ['EVA',  d.EVA + '%'],   ['SPD', d.SPD],
+      ['BLK',  d.BLK + '%'],   ['BpWr', d.BpWr + '%'], ['CRT', d.CRT + '%'],
+    ];
+    el.innerHTML = rows.map(([k, v]) =>
+      `<div class="bt-ms-item"><span class="bt-ms-lbl">${k}</span><span class="bt-ms-val${vc}">${v}</span></div>`
+    ).join('');
+  }
+
+  function _updateSkillDisplay() {
+    if (!_player || !_enemy) return;
+    _fillSkillCard('bt-p', _player, false);
+    _fillSkillCard('bt-e', _enemy,  true);
+  }
+
+  function _fillSkillCard(prefix, unit, isEnemy) {
+    const route = unit.gaugeRoute;
+    const rc    = ROUTE_CFG[route] || { color:'#888', label:route, icon:'?' };
+    const sp    = TBC.SPECIALS[route];
+    const card  = document.getElementById(prefix + '-skill-card');
+    const pct   = Math.round(unit.gauge / TBC.GAUGE_MAX * 100);
+
+    if (card) card.className = `bt-skill-card ${route}-card${unit.gaugeActive ? ' active-card' : ''}`;
+
+    const routeEl = document.getElementById(prefix + '-sk-route');
+    if (routeEl) routeEl.innerHTML =
+      `<span style="color:${rc.color}">${rc.icon} ${isEnemy ? unit.name + ' · ' : ''}${rc.label}</span>`;
+
+    const gaugeEl = document.getElementById(prefix + '-sk-gauge');
+    if (gaugeEl) {
+      gaugeEl.textContent = `儀表 ${pct}%`;
+      gaugeEl.style.color = pct >= 100 ? '#ffcc44' : '#444456';
+    }
+
+    const nameEl = document.getElementById(prefix + '-sk-name');
+    const descEl = document.getElementById(prefix + '-sk-desc');
+    if (!nameEl || !descEl) return;
+
+    if (unit.gaugeActive) {
+      nameEl.textContent = `★ ${sp?.name || '?'} 發動中！`;
+      nameEl.style.color = '#ffcc44';
+      descEl.innerHTML   = `<span style="color:#ffcc44">剩餘 ${unit.gaugeActiveLeft} 回合</span>　<span style="color:#555568">${SPECIAL_FULL_DESC[route] || ''}</span>`;
+    } else if (isEnemy && unit._charging) {
+      nameEl.textContent = '▲ 山崩蓄力中…';
+      nameEl.style.color = '#ff4422';
+      descEl.innerHTML   = '<span style="color:#ff6644">下回合發動！傷害×2.5，觸發重傷判定</span>';
+    } else if (isEnemy && unit._counterStance) {
+      nameEl.textContent = '⟳ 反制姿態';
+      nameEl.style.color = '#ff8844';
+      descEl.innerHTML   = '<span style="color:#ff8844">此回合攻擊將觸發反擊！考慮防禦或等待</span>';
+    } else {
+      nameEl.textContent = sp ? `★ ${sp.name}` : '無特技';
+      nameEl.style.color = pct >= 100 ? '#ffcc44' : (rc.color || '#888');
+      const defData = TB_ENEMIES[unit.id];
+      descEl.innerHTML   = pct >= 100
+        ? `<span style="color:#ffcc44">儀表已滿！可釋放技能</span>`
+        : `<span style="color:#555568">${defData?.specialDesc || SPECIAL_FULL_DESC[route] || '—'}</span>`;
+    }
+  }
+
+  function _setBarUI(prefix, current, max) {
+    const pct = max > 0 ? Math.max(0, (current / max) * 100) : 0;
+    const bar = document.getElementById(prefix + '-bar');
+    const txt = document.getElementById(prefix + '-txt');
+    if (bar) bar.style.width = pct + '%';
+    if (txt) txt.textContent = `${Math.max(0, Math.round(current))} / ${max}`;
+  }
+
+  function _setGaugeUI(prefix, value, route) {
+    const pct = Math.min(100, Math.max(0, value));
+    const bar = document.getElementById(prefix + '-bar');
+    const txt = document.getElementById(prefix + '-txt');
+    if (bar) { bar.style.width = pct + '%'; bar.className = `bt-bar-fill bt-gauge-fill ${route}`; }
+    if (txt) txt.textContent = `${Math.round(value)} / 100`;
+  }
+
+  function _appendLog(text, cls) {
+    const log = document.getElementById('bt-log');
+    if (!log || (!text && cls !== 'log-turn')) return;
+    const div = document.createElement('div');
+    div.className = 'bt-log-line ' + (cls || '');
+    div.textContent = text;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  // ══════════════════════════════════════════════════════
+  // PUBLIC: toggleAuto()
+  // ══════════════════════════════════════════════════════
+  // 循環：關閉 → 自動 → 硬核 → 關閉
+  function toggleAuto() {
+    if (_autoRunning)      { _stopAuto();    _startHardcore(); }
+    else if (_hardcoreActive) { _stopHardcore(); }
+    else                   { _startAuto(); }
+  }
+
+  function _startAuto() {
+    if (!_active) return;
+    _autoRunning = true;
+    _updateAutoBtn();
+    if (_playerAtb >= 100 && _playerDelay <= 0) {
+      const action = (_player.gauge >= TBC.GAUGE_MAX) ? 'special' : 'attack';
+      doAction(action);
+    }
+  }
+
+  function _stopAuto() {
+    _autoRunning = false;
+    _updateAutoBtn();
+    if (_active && _playerAtb >= 100 && _playerDelay <= 0) { _setButtons(true); _checkSpecialReady(); }
+  }
+
+  // ── 硬核模式 ──────────────────────────────────────────
+  function _startHardcore() {
+    if (!_active) return;
+    _hardcoreActive = true;
+    _updateAutoBtn();
+    if (_playerAtb >= 100 && _playerDelay <= 0) _startHcCountdown();
+  }
+
+  function _stopHardcore() {
+    _clearHcCountdown();
+    _hardcoreActive = false;
+    _updateAutoBtn();
+    if (_active && _playerAtb >= 100 && _playerDelay <= 0) { _setButtons(true); _checkSpecialReady(); }
+  }
+
+  function _startHcCountdown() {
+    _clearHcCountdown();
+    _hardcoreCount = 5;
+    _updateHcCountUI();
+    _hardcoreTimer = setInterval(_hcCountStep, 1000);
+  }
+
+  function _hcCountStep() {
+    _hardcoreCount--;
+    if (_hardcoreCount <= 0) {
+      _clearHcCountdown();
+      _appendLog('  ⏱ 猶豫！跳過本次行動。', 'log-system');
+      _playerAtb = 0;
+      _setButtons(false);
+      if (_active && !_checkDeath()) _endTurnCleanup_atb();
+    } else {
+      _updateHcCountUI();
+    }
+  }
+
+  function _clearHcCountdown() {
+    if (_hardcoreTimer) { clearInterval(_hardcoreTimer); _hardcoreTimer = null; }
+    _hardcoreCount = 0;
+    _updateHcCountUI();
+  }
+
+  function _updateHcCountUI() {
+    const el = document.getElementById('bt-hc-count');
+    if (!el) return;
+    if (_hardcoreCount > 0) {
+      el.style.display = 'block';
+      el.textContent   = `⏱ ${_hardcoreCount}`;
+    } else {
+      el.style.display = 'none';
+    }
+  }
+
+  function _updateAutoBtn() {
+    const btn = document.getElementById('bt-btn-auto');
+    if (!btn) return;
+    btn.classList.remove('auto-on', 'hardcore-on');
+    if (_autoRunning) {
+      btn.textContent = '自動中';
+      btn.classList.add('auto-on');
+    } else if (_hardcoreActive) {
+      btn.textContent = '硬核中';
+      btn.classList.add('hardcore-on');
+    } else {
+      btn.textContent = '自 動';
+    }
+  }
+
+  // ══════════════════════════════════════════════════════
+  // ATB LOOP
+  // ══════════════════════════════════════════════════════
+  function _calcFillRate(unit) {
+    const sw = (TB_WEAPONS[unit.weaponId] || {}).swingTime || 5;
+    return Math.min(6.5, Math.max(8, unit.derived.SPD) / sw);
+  }
+
+  function _startAtbLoop() {
+    _stopAtbLoop();
+    _playerAtb = 0;
+    _enemyAtb  = 0;
+    _atbLoop   = setInterval(_atbTick, 100);
+  }
+
+  function _stopAtbLoop() {
+    if (_atbLoop) { clearInterval(_atbLoop); _atbLoop = null; }
+  }
+
+  function _atbTick() {
+    if (!_active) { _stopAtbLoop(); return; }
+
+    _battleTick++;
+
+    // ── Delay 倒數（瞬刺蓄力）──
+    if (_playerDelay > 0) {
+      _playerDelay--;
+      if (_playerDelay <= 0 && _playerDelaySkill) {
+        _executeDelayedSkill();
+        if (!_active) return;
+      }
+    }
+
+    // Fill enemy bar
+    const eRate = _calcFillRate(_enemy);
+    _enemyAtb   = Math.min(100, _enemyAtb + eRate);
+
+    // Fill player bar
+    const pRate    = _calcFillRate(_player);
+    const wasReady = _playerAtb >= 100;
+    _playerAtb     = Math.min(100, _playerAtb + pRate);
+    const nowReady = _playerAtb >= 100;
+
+    // Enemy acts when bar fills (sync — JS single-threaded, no race condition)
+    if (_enemyAtb >= 100) {
+      _enemyAtb = 0;
+      _enemyTurn();
+      if (!_active) return;
+    }
+
+    // Player bar just filled → 依模式分流（蓄力中跳過）
+    if (!wasReady && nowReady && _playerDelay <= 0) {
+      if (_autoRunning) {
+        // 自動模式：立即攻擊
+        const action = (_player.gauge >= TBC.GAUGE_MAX) ? 'special' : 'attack';
+        doAction(action);
+      } else if (_hardcoreActive) {
+        // 硬核模式：開放按鈕 + 啟動 5 秒倒數
+        _setButtons(true);
+        _checkSpecialReady();
+        _startHcCountdown();
+      } else {
+        // 一般模式：開放按鈕等玩家選擇
+        _setButtons(true);
+        _checkSpecialReady();
+      }
+    }
+
+    _updateAtbBarsUI();
+  }
+
+  function _updateAtbBarsUI() {
+    const pBar = document.getElementById('bt-patb-bar');
+    const eBar = document.getElementById('bt-eatb-bar');
+    const pTxt = document.getElementById('bt-patb-txt');
+    const eTxt = document.getElementById('bt-eatb-txt');
+    if (pBar) {
+      pBar.style.width = _playerAtb + '%';
+      if (_playerAtb >= 100) pBar.classList.add('ready');
+      else                   pBar.classList.remove('ready');
+    }
+    if (eBar) eBar.style.width = _enemyAtb + '%';
+    if (pTxt) pTxt.textContent = Math.round(_playerAtb) + '%';
+    if (eTxt) eTxt.textContent = Math.round(_enemyAtb) + '%';
+  }
+
+  // ══════════════════════════════════════════════════════
+  // PUBLIC: startFromConfig(enemyCfg, onWin, onLose)
+  // Used by Arena — builds enemy from custom stat config instead of TB_ENEMIES id
+  // ══════════════════════════════════════════════════════
+  function startFromConfig(enemyCfg, onWin, onLose) {
+    _onWin  = onWin  || (() => {});
+    _onLose = onLose || (() => {});
+    _turn        = 0;
+    _autoRunning    = false;
+    _hardcoreActive = false;
+    _battleTick       = 0;
+    _isArenaBattle    = true;
+    _pendingFameReward= enemyCfg.fameReward || 0;
+    _lastRating       = null;
+    _crowdMood        = _generateCrowdMood();
+    _playerDelay      = 0;
+    _playerDelaySkill = null;
+
+    const p = Stats.player;
+    _player = TB_buildUnit({
+      name:     p.name || '無名',
+      STR: Stats.eff('STR'), DEX: Stats.eff('DEX'), CON: Stats.eff('CON'),
+      AGI: Stats.eff('AGI'), WIL: Stats.eff('WIL'), LUK: Stats.eff('LUK'),
+      hpBase:   Math.max(20, p.hpMax - Math.round(2 * Stats.eff('CON'))),
+      fame:     p.fame || 0,
+      weaponId:  _mapId(p.equippedWeapon, TB_WEAPONS,  'fists'),
+      armorId:   _mapId(p.equippedArmor,  TB_ARMORS,   'rags'),
+      offhandId: _mapOffhand(p.equippedOffhand),
+      amuletId:  'none',
+      traitId:   'none',
+    }, true);
+
+    _enemy = TB_buildUnit({
+      enemyId:      '_arena',
+      name:         enemyCfg.name,
+      title:        enemyCfg.title,
+      STR: enemyCfg.STR, DEX: enemyCfg.DEX, CON: enemyCfg.CON,
+      AGI: enemyCfg.AGI, WIL: enemyCfg.WIL, LUK: enemyCfg.LUK,
+      hpBase:       enemyCfg.hpBase,
+      weaponId:     enemyCfg.weaponId  || 'rustySword',
+      armorId:      enemyCfg.armorId   || 'rags',
+      shieldId:     enemyCfg.shieldId  || 'none',
+      amuletId:     'none',
+      traitId:      'none',
+      ai:           enemyCfg.ai        || 'normal',
+      fame:         enemyCfg.fame      || 0,
+      intimidation: enemyCfg.intimidation || 0,
+    });
+    _active = true;
+
+    _showOverlay();
+    _initUI();
+
+    Game.addLog(`\n⚔ 【競技場對戰】\n${p.name} vs ${_enemy.name}【${enemyCfg.title || ''}】`, '#c06030', false);
+    _appendLog(`⚔ 競技場開始！${_player.name} vs ${_enemy.name}【${_enemy.title}】`, 'log-system');
+    _appendLog('', 'log-turn');
+
+    const p2e = TB_calcPressure(_player, _enemy);
+    const p2p = TB_calcPressure(_enemy,  _player);
+    if (p2e.penalty > 0) {
+      TB_applyPressure(_enemy, p2e.penalty, _player.name);
+      _appendLog(`◈ 你的威嚇 → ${_enemy.name} 全屬性 -${Math.round(p2e.penalty*100)}%`, 'log-special');
+    } else {
+      _appendLog(`◈ 你對 ${_enemy.name} 尚無壓制力`, 'log-system');
+    }
+    if (p2p.penalty > 0) {
+      TB_applyPressure(_player, p2p.penalty, _enemy.name);
+      _appendLog(`⚠ ${_enemy.name} 的威嚇 → 你的全屬性 -${Math.round(p2p.penalty*100)}%`, 'log-injury');
+    } else {
+      _appendLog(`◈ 你成功抵禦 ${_enemy.name} 的壓制`, 'log-system');
+    }
+    _applyOpeningTraits();
+    _appendLog('', 'log-turn');
+
+    _playerAtb = 0;
+    _enemyAtb  = 0;
+    _startAtbLoop();
+    _updateCombatantUI();
+    _updateSkillDisplay();
+  }
+
+  // ══════════════════════════════════════════════════════
+  function getLastRating() { return _lastRating; }
+
+  return { start, startFromConfig, doAction, toggleAuto, getLastRating, finishChoice };
 })();

@@ -5,11 +5,11 @@ const Stats = (() => {
   const player = {
     name: '無名',
     day:  1,
-    time: 480, // minutes since midnight (8:00)
+    time: 360, // minutes since midnight (6:00)
 
     // ── Vitals ──
     fame:       0,
-    hp:         100, hpMax:      100,
+    hp:         100, hpMax:      100, hpBase: 80,
     stamina:    50,  staminaMax: 100,
     food:       50,  foodMax:    100,
     mood:       50,  moodMax:    100,
@@ -22,14 +22,14 @@ const Stats = (() => {
     eqBonus: {
       STR:0, DEX:0, CON:0, AGI:0, WIL:0, LUK:0,
       ATK:0, DEF:0, ACC:0, PEN:0,
-      BLK:0, SPD:0, CRT:0, CDMG:0, EVA:0,
+      BLK:0, BpWr:0, SPD:0, CRT:0, CDMG:0, EVA:0,
     },
 
     // ── Temporary buff bonuses ──
     buffBonus: {
       STR:0, DEX:0, CON:0, AGI:0, WIL:0, LUK:0,
       ATK:0, DEF:0, ACC:0, PEN:0,
-      BLK:0, SPD:0, CRT:0, CDMG:0, EVA:0,
+      BLK:0, BpWr:0, SPD:0, CRT:0, CDMG:0, EVA:0,
     },
 
     // ── Affection levels per NPC ──
@@ -42,37 +42,95 @@ const Stats = (() => {
 
     // ── Inventory ──
     inventory: [],
-    equippedWeapon: null,
-    equippedArmor:  null,
-    equippedShield: null,
+    equippedWeapon:  null,
+    equippedArmor:   null,
+    equippedOffhand: null,   // 盾牌 ID 或單手武器 ID（雙持）
+
+    // ── Combat statistics (累積戰績) ──
+    combatStats: {
+      executionCount: 0,   // 砍首累積次數
+      spareCount:     0,   // 饒恕累積次數
+      suppressCount:  0,   // 踩臉累積次數
+      arenaWins:      0,   // 競技場勝場
+      arenaLosses:    0,   // 競技場敗場
+      sRankCount:     0,   // S 評分次數
+      aRankCount:     0,   // A 評分次數
+      totalTicks:     0,   // 累積戰鬥 tick 數（用於統計）
+      winStreak:      0,   // 當前連勝場數（輸了歸 0）
+    },
+
+    // ── Stamina penalty (applied via eff()) ──
+    staminaPenalty: { STR:0, DEX:0, CON:0, AGI:0, WIL:0, LUK:0 },
+
+    // ── Achievements & Traits ──
+    achievements: [],      // 已解鎖成就 ID 陣列
+    traits:       [],      // 已激活特性 ID 陣列
+    title:        null,    // 額外稱號（字串 or null）
+    fameBase:     0,       // 每場競技場獲勝的額外固定名聲
   };
 
-  // Effective attr = base + equipment bonus + buff bonus
+  // Effective attr = base + equipment bonus + buff bonus - stamina penalty
   function eff(attr) {
-    return player[attr] + (player.eqBonus[attr] || 0) + (player.buffBonus[attr] || 0);
-  }
+    return player[attr]
+      + (player.eqBonus[attr]      || 0)
+      + (player.buffBonus[attr]    || 0)
+      - (player.staminaPenalty[attr] || 0);
+  };
 
   function calcDerived() {
     const S = eff('STR'), D = eff('DEX'), C = eff('CON'),
           A = eff('AGI'), W = eff('WIL'), L = eff('LUK');
-    const eq = player.eqBonus, bf = player.buffBonus;
+    const w  = (typeof TB_WEAPONS !== 'undefined' && TB_WEAPONS[player.equippedWeapon])
+               ? TB_WEAPONS[player.equippedWeapon]  : { ATK:0, ACC:0, CRT:0, CDMG:0, SPD:0, PEN:0, route:'fury' };
+    const ar = (typeof TB_ARMORS  !== 'undefined' && TB_ARMORS[player.equippedArmor])
+               ? TB_ARMORS[player.equippedArmor]    : { DEF:0, SPD:0, EVA:0 };
 
-    return {
-      ATK:  Math.round(1.5*S + 0.5*D               + eq.ATK  + bf.ATK),
-      DEF:  Math.round(1.5*C + 0.5*S               + eq.DEF  + bf.DEF),
-      ACC:  Math.round(60   + 0.5*D + 0.25*L       + eq.ACC  + bf.ACC),
-      PEN:  Math.round(0.5*D + 0.5*S               + eq.PEN  + bf.PEN),
-      BLK:  Math.round(0.5*S + 0.25*C              + eq.BLK  + bf.BLK),
-      SPD:  Math.round(0.75*A + 0.25*D             + eq.SPD  + bf.SPD),
-      CRT:  Math.round(0.5*D + L                   + eq.CRT  + bf.CRT),
-      CDMG: Math.round(150  + 1*D + 0.5*L          + eq.CDMG + bf.CDMG),
-      EVA:  Math.round(2*A  + 0.5*L                + eq.EVA  + bf.EVA),
-    };
+    // ── 副手判定 ──────────────────────────────────────────
+    const offId = player.equippedOffhand || 'none';
+    const isOffhandShield = (offId !== 'none') && (typeof TB_SHIELDS !== 'undefined') && !!TB_SHIELDS[offId];
+    const isOffhandWeapon = (offId !== 'none') && !isOffhandShield
+                            && (typeof TB_WEAPONS !== 'undefined') && !!TB_WEAPONS[offId] && !TB_WEAPONS[offId].twoHanded;
+    const isDualWield     = isOffhandWeapon;
+    const sh  = isOffhandShield ? TB_SHIELDS[offId] : { BLK:0, DEF:0, SPD:0 };
+    const offW = isDualWield    ? TB_WEAPONS[offId] : null;
+
+    const eb = player.eqBonus, bb = player.buffBonus;
+
+    let ATK  = Math.round(1.5*S  + 0.5*D  + w.ATK            + (eb.ATK ||0) + (bb.ATK ||0));
+    let DEF  = Math.round(1.5*C  + 0.5*S  + ar.DEF + sh.DEF  + (eb.DEF ||0) + (bb.DEF ||0));
+    let ACC  = Math.min(100, Math.round(60 + 0.5*D + 0.25*L + (w.ACC||0)  + (eb.ACC ||0) + (bb.ACC ||0)));
+    let CRT  = Math.min(75,  Math.round(0.25*D + 0.5*L + w.CRT            + (eb.CRT ||0) + (bb.CRT ||0)));
+    let CDMG = Math.min(300, Math.round(150 + 0.5*D + 0.25*L + 0.5*W + (w.CDMG||0) + (eb.CDMG||0) + (bb.CDMG||0)));
+    let PEN  = Math.min(75,  Math.round(0.5*D + 0.5*S + w.PEN  + (eb.PEN||0) + (bb.PEN||0)));
+    let BLK  = Math.min(75,  Math.round(0.5*C + sh.BLK         + (eb.BLK ||0) + (bb.BLK ||0)));
+    let BpWr = Math.min(85,  Math.round(0.5*S + sh.BLK * 1.5   + (eb.BpWr||0) + (bb.BpWr||0)));
+    let EVA  = Math.min(95,  Math.round(2*A   + 0.5*L + ar.EVA  + (eb.EVA ||0) + (bb.EVA ||0)));
+    let SPD  = Math.round(0.75*A + 0.25*D + w.SPD + ar.SPD      + (eb.SPD ||0) + (bb.SPD ||0));
+
+    // ── 雙持修正 ──────────────────────────────────────────
+    if (isDualWield && offW) {
+      ATK += Math.round(offW.ATK * 0.5);
+      ACC  = Math.max(0, ACC - 5);
+      SPD -= 3;
+      BLK  = 0;
+      BpWr = 0;
+    }
+
+    // ── 路線判定：副手覆蓋武器原始路線 ────────────────────
+    let route;
+    if (isOffhandShield)     route = 'fury';
+    else if (isDualWield)    route = 'rage';
+    else                     route = w.route || 'fury';
+
+    const gaugeBonus = Math.min(0.30, Math.floor(W / 10) * 0.03);
+    const spdBonus   = Math.min(0.30, SPD * 0.005);
+    return { ATK, DEF, ACC, CRT, CDMG, PEN, BLK, BpWr, EVA, SPD, route, gaugeBonus, spdBonus };
   }
-
   // ── Render helpers ────────────────────────────────────
 
   function renderVitalBars() {
+    player.hpMax = player.hpBase + Math.round(2 * eff('CON'));
+    player.hp = Math.min(player.hp, player.hpMax);
     const defs = [
       { id:'bar-hp',      val: player.hp,      max: player.hpMax,      color:'#cc2200', label:'HP'   },
       { id:'bar-stamina', val: player.stamina,  max: player.staminaMax, color:'#cc7700', label:'體力' },
@@ -97,19 +155,26 @@ const Stats = (() => {
     ];
     map.forEach(([label, key]) => {
       const el = document.getElementById('attr-' + key);
-      if (el) el.textContent = eff(key);
+      if (el) el.textContent = Math.round(eff(key));
     });
   }
 
   function renderDerivedStats() {
     const d = calcDerived();
-    const keys = ['ATK','DEF','ACC','PEN','BLK','SPD','CRT','CDMG','EVA'];
-    const pctKeys = new Set(['ACC','CRT','CDMG']);
+    const keys = ['ATK','DEF','ACC','PEN','BLK','BpWr','SPD','CRT','CDMG','EVA'];
+    const pctKeys = new Set(['ACC','CRT','CDMG','BLK','BpWr','EVA']);
     keys.forEach(k => {
       const el = document.getElementById('drv-' + k);
       if (!el) return;
       el.textContent = pctKeys.has(k) ? d[k] + '%' : d[k];
     });
+    // Route badge
+    const routeEl = document.getElementById('drv-route');
+    if (routeEl) {
+      const routeLabels = { rage: '狂暴', focus: '集中', fury: '怒氣' };
+      routeEl.textContent = routeLabels[d.route] || d.route;
+      routeEl.className = 'route-badge route-' + d.route;
+    }
   }
 
   function renderFame() {
@@ -128,9 +193,22 @@ const Stats = (() => {
 
   // ── Modifiers ─────────────────────────────────────────
 
+  // ── Stamina penalty ──────────────────────────────────
+  // 體力 ≤30 → 所有基礎屬性 -2；≤15 → -4
+  function updateStaminaPenalty() {
+    const pen = player.stamina <= 15 ? 4
+              : player.stamina <= 30 ? 2
+              : 0;
+    const ATTRS = ['STR','DEX','CON','AGI','WIL','LUK'];
+    ATTRS.forEach(a => { player.staminaPenalty[a] = pen; });
+    renderAttributes();
+    renderDerivedStats();
+  }
+
   function modVital(key, delta) {
     const maxKey = key + 'Max';
     player[key] = Math.max(0, Math.min(player[maxKey] || 100, player[key] + delta));
+    if (key === 'stamina') updateStaminaPenalty();
     renderVitalBars();
   }
 
@@ -183,5 +261,6 @@ const Stats = (() => {
     getTimeStr,
     advanceTime,
     getRoomTier,
+    updateStaminaPenalty,
   };
 })();

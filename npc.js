@@ -47,6 +47,9 @@ const teammates = (() => {
       id: 'overseer', name: '監督官',
       role: 'audience',
       title: '訓練監督',
+        schedule: [
+    { hours: [14, 16], fields: ['oldTraining', 'stdTraining'] },
+      ],  // 14:00-16:00 在訓練場出現，其他時間 → 不強制出現（隨機決定）
       desc: '嚴厲、精確、毫無憐憫。他訓練出來的人，要麼成為最強的鬥士，要麼死在訓練場。',
       baseAffection: 0,
     },
@@ -68,6 +71,9 @@ const teammates = (() => {
       id: 'melaKook', name: '梅拉',
       role: 'audience',
       title: '廚娘',
+        schedule: [
+    { hours: [6, 12, 18], fields: ['kitchen'] },],  // 06:00-08:00、12:00-14:00、18:00-20:00 出現
+    // 其他時段 → 不強制出現（隨機決定）
       desc: '用廚房剩料也能做出讓人流淚的食物。她悄悄多塞給你的那口飯，你永遠記得。',
       baseAffection: 15,
     },
@@ -100,6 +106,10 @@ const teammates = (() => {
   }
 
   function modAffection(npcId, delta) {
+    // 寬厚特性：正向好感成長速度 +20%
+    if (delta > 0 && typeof Stats !== 'undefined' && Stats.player.traits?.includes('kindness')) {
+      delta = Math.round(delta * 1.2);
+    }
     affectionMap[npcId] = Math.max(0, Math.min(100, (affectionMap[npcId] || 0) + delta));
   }
 
@@ -107,5 +117,16 @@ const teammates = (() => {
     return NPC_DEFS[npcId] || null;
   }
 
-  return { NPC_DEFS, getAffection, modAffection, getNPC };
+  function getAllAffection() {
+    return { ...affectionMap };
+  }
+
+  function setAllAffection(map) {
+    if (!map) return;
+    Object.keys(affectionMap).forEach(id => {
+      if (map[id] !== undefined) affectionMap[id] = map[id];
+    });
+  }
+
+  return { NPC_DEFS, getAffection, modAffection, getNPC, getAllAffection, setAllAffection };
 })();

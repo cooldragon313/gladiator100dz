@@ -5,7 +5,7 @@
  *   Endings.test('survivor')
  *   Endings.test('death')
  *
- * 或直接開啟 ending_test.html
+ * 或直接開啟 測試業面/ending_test.html
  */
 const Endings = (() => {
 
@@ -79,7 +79,7 @@ const Endings = (() => {
 
       /* ── lines ── */
       .e-line {
-        font-size:16px; line-height:2.1; color:#c8b898;
+        font-size:26px; line-height:2.1; color:#c8b898;
         margin-bottom:2px;
         opacity:0; transform:translateY(8px);
         transition:opacity .65s ease, transform .65s ease;

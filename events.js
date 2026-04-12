@@ -153,5 +153,182 @@ const Events = (() => {
     },
   };
 
-  return { EVENT_POOL, TIMELINE_EVENTS, rollRandom, applyEvent };
+  // ── Action Event Pool ─────────────────────────────
+  const ACTION_EVENTS = {
+    goodDream: {
+      id: 'goodDream',
+      text: '你夢到了某個早已忘卻的地方，陽光、麥田、和某個模糊的臉。醒來時心頭多了幾分暖意。',
+      color: '#8899cc',
+      effects: [{ type: 'vital', key: 'mood', delta: 12 }],
+    },
+    overseerWatch: {
+      id: 'overseerWatch',
+      text: '監督官停在你旁邊看了一會兒，沒說什麼，轉身離開。你不知道這代表滿意還是失望。',
+      color: '#999999',
+      effects: [],
+    },
+    overseerNod: {
+      id: 'overseerNod',
+      text: '監督官罕見地點了點頭。「還不壞。」這兩個字，勝過任何讚美。',
+      color: '#ccaa55',
+      effects: [
+        { type: 'vital', key: 'mood', delta: 8 },
+        { type: 'fame',  key: 'fame', delta: 1 },
+      ],
+    },
+    trainingInjury: {
+      id: 'trainingInjury',
+      text: '練習中用力過猛，手腕傳來一陣刺痛。不算嚴重，但今天之後最好別再逞強。',
+      color: '#cc4444',
+      effects: [
+        { type: 'vital', key: 'stamina', delta: -10 },
+        { type: 'vital', key: 'mood',    delta: -5  },
+      ],
+    },
+    sparringBond: {
+      id: 'sparringBond',
+      text: '對練結束後，對方拍了拍你的肩膀，什麼也沒說。但那個動作讓你感覺到某種連結。',
+      color: '#66aacc',
+      effects: [{ type: 'vital', key: 'mood', delta: 10 }],
+    },
+    melaChat: {
+      id: 'melaChat',
+      text: '梅拉趁人不注意悄悄多塞給你一塊烤餅，擠了下眼睛。「吃飽了才打得贏。」',
+      color: '#88cc77',
+      effects: [
+        { type: 'vital', key: 'food', delta: 10 },
+        { type: 'vital', key: 'mood', delta: 8  },
+      ],
+    },
+    blackCooking: {
+      id: 'blackCooking',
+      text: '今天的肉不知道是什麼，顏色有點不對。你強忍著吞下去，胃裡隱隱作痛。',
+      color: '#888844',
+      effects: [
+        { type: 'vital', key: 'food',    delta: -5 },
+        { type: 'vital', key: 'stamina', delta: -8 },
+      ],
+    },
+    melaSecret: {
+      id: 'melaSecret',
+      text: '梅拉壓低聲音說，上週有個鬥士吃了獄卒的暗虧。她沒說細節，但眼神裡有警示。',
+      color: '#aaaa66',
+      effects: [{ type: 'vital', key: 'mood', delta: 5 }],
+    },
+    stealCaught: {
+      id: 'stealCaught',
+      text: '伸手的瞬間，梅拉的眼睛對上了你的。她沒吼叫，只是平靜地說：「下次這樣，我去報告。」你把食物放回去，背脊發涼。',
+      color: '#cc4444',
+      effects: [
+        { type: 'vital',     key: 'food',     delta: -20 },
+        { type: 'affection', key: 'melaKook', delta: -5  },
+        { type: 'vital',     key: 'mood',     delta: -10 },
+      ],
+    },
+    stealSuccess: {
+      id: 'stealSuccess',
+      text: '沒人注意到。你把食物藏進衣服裡，心跳加速。',
+      color: '#888888',
+      effects: [],
+    },
+    graStory: {
+      id: 'graStory',
+      text: '葛拉沒有停手，但嘴裡吐出幾個字：「我打過的最好的劍，送給了一個不會用的人。」你沒問後續，他也沒說。',
+      color: '#aa8855',
+      effects: [{ type: 'vital', key: 'mood', delta: 6 }],
+    },
+    graRepair: {
+      id: 'graRepair',
+      text: '葛拉拿起你的武器翻看了一下，哼了一聲。「等到明天。」你知道明天拿到的，絕對比今天交的好。',
+      color: '#aa8855',
+      effects: [{ type: 'vital', key: 'mood', delta: 8 }],
+    },
+    officerMission: {
+      id: 'officerMission',
+      text: '長官示意你坐下，翻開一份文書。「下週有場非正式的表演賽，你上。」這不是商量。',
+      color: '#8899bb',
+      effects: [
+        { type: 'vital', key: 'mood', delta: -5 },
+        { type: 'fame',  key: 'fame', delta: 2  },
+      ],
+    },
+    officerCold: {
+      id: 'officerCold',
+      text: '長官抬起頭，淡淡掃了你一眼，然後繼續翻文書，沒有說一個字。你在門口站了很久，最後悄悄退出去。',
+      color: '#888888',
+      effects: [{ type: 'vital', key: 'mood', delta: -8 }],
+    },
+    officerPraise: {
+      id: 'officerPraise',
+      text: '長官難得開口：「最近看到你在訓練場，有在用心。」就這一句，卻讓你心情好了整個上午。',
+      color: '#ccaa55',
+      effects: [
+        { type: 'vital',     key: 'mood',    delta: 15 },
+        { type: 'affection', key: 'officer', delta: 3  },
+      ],
+    },
+    masterEval: {
+      id: 'masterEval',
+      text: '主人靜靜地看了你很久，最後說：「你比我預期的耐打。」這是讚美，你決定這麼解讀。',
+      color: '#d4af37',
+      effects: [
+        { type: 'vital', key: 'mood', delta: 10 },
+        { type: 'fame',  key: 'fame', delta: 1  },
+      ],
+    },
+    masterGift: {
+      id: 'masterGift',
+      text: '主人從桌上拿起一瓶小藥劑推給你。「訓練之前喝。」沒有解釋。你選擇相信。',
+      color: '#d4af37',
+      effects: [
+        { type: 'vital', key: 'stamina', delta: 20 },
+        { type: 'vital', key: 'mood',    delta: 5  },
+      ],
+    },
+    masterWarning: {
+      id: 'masterWarning',
+      text: '主人沒有抬頭，只是說：「我的投資要有回報。若是沒有，帳本上的數字就得調整。」你知道那意味著什麼。',
+      color: '#cc3300',
+      effects: [{ type: 'vital', key: 'mood', delta: -15 }],
+    },
+    marketThief: {
+      id: 'marketThief',
+      text: '人群中一個輕微的碰觸，你的荷包變輕了一些。等你察覺，那個身影早已不見。',
+      color: '#cc4444',
+      effects: [{ type: 'vital', key: 'mood', delta: -8 }],
+    },
+    marketRumor: {
+      id: 'marketRumor',
+      text: '攤販壓低聲音說，萬骸祭今年會有來自北境的劍客。沒有人知道這消息是真是假，但它讓你的胃緊了一下。',
+      color: '#aaaaaa',
+      effects: [{ type: 'vital', key: 'mood', delta: -5 }],
+    },
+    marketFan: {
+      id: 'marketFan',
+      text: '一個年輕人認出了你，激動地說見過你上次的比賽。你接受了他的讚美，心情好了一點。',
+      color: '#88aacc',
+      effects: [
+        { type: 'vital', key: 'mood', delta: 10 },
+        { type: 'fame',  key: 'fame', delta: 1  },
+      ],
+    },
+    herbFind: {
+      id: 'herbFind',
+      text: '你找到了一叢野薑，和幾株不知名的香草。帶回去也許能用上。',
+      color: '#66aa66',
+      effects: [{ type: 'vital', key: 'food', delta: 8 }],
+    },
+    wildAnimal: {
+      id: 'wildAnimal',
+      text: '草叢裡竄出一隻受傷的野兔，驚得你退了兩步。牠跑掉了，但你的心跳還沒平靜下來。',
+      color: '#aaaaaa',
+      effects: [{ type: 'vital', key: 'stamina', delta: -5 }],
+    },
+  };
+
+  function getActionEvent(evId) {
+    return ACTION_EVENTS[evId] || null;
+  }
+
+  return { EVENT_POOL, ACTION_EVENTS, TIMELINE_EVENTS, rollRandom, applyEvent, getActionEvent };
 })();

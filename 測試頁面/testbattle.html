@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>戰鬥模擬器 — 百日萬骸祭</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #0e0e14;
+  color: #d0d0d8;
+  font-family: 'Segoe UI', '微軟正黑體', sans-serif;
+  font-size: 14px;
+  min-height: 100vh;
+}
+h1.page-title {
+  text-align: center;
+  padding: 12px 0 8px;
+  font-size: 20px;
+  letter-spacing: 6px;
+  color: #cc6600;
+  text-shadow: 0 0 10px #441100;
+  border-bottom: 1px solid #2a2a36;
+}
+
+/* ─── Layout ─────────────────────────────────────────── */
+#app {
+  display: grid;
+  grid-template-columns: 330px 1fr 300px;
+  gap: 0;
+  height: calc(100vh - 48px);
+}
+aside, main { padding: 12px; overflow-y: auto; border-right: 1px solid #252530; }
+aside:last-child { border-right: none; border-left: 1px solid #252530; }
+
+/* ─── Panel headers ──────────────────────────────────── */
+.panel-title {
+  font-size: 13px;
+  letter-spacing: 3px;
+  color: #996633;
+  border-bottom: 1px solid #333340;
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+}
+
+/* ─── Attribute inputs ───────────────────────────────── */
+.attr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px; }
+.attr-row { display: flex; align-items: center; gap: 4px; }
+.attr-row label { width: 36px; font-size: 12px; color: #aaa; flex-shrink:0; }
+.attr-row input[type=number] {
+  width: 54px; background: #1a1a22; border: 1px solid #333; color: #e0e0e0;
+  padding: 3px 5px; font-size: 13px; text-align: center;
+}
+.attr-row .btn-adj {
+  background: #2a2a38; border: 1px solid #444; color: #aaa;
+  width: 20px; height: 24px; cursor: pointer; font-size: 14px; line-height:1;
+  display:flex;align-items:center;justify-content:center;
+}
+.attr-row .btn-adj:hover { background: #3a3a50; }
+
+/* ─── Selects / dropdowns ────────────────────────────── */
+.sel-group { margin-bottom: 8px; }
+.sel-group label { display: block; font-size: 11px; color: #888; margin-bottom: 3px; }
+.sel-group select {
+  width: 100%; background: #1a1a22; border: 1px solid #333; color: #d0d0d8;
+  padding: 4px 6px; font-size: 13px;
+}
+.sel-group select:disabled { opacity: 0.4; }
+
+/* ─── Derived stats ──────────────────────────────────── */
+#player-derived, #enemy-derived {
+  background: #15151e;
+  border: 1px solid #2a2a38;
+  padding: 8px 10px;
+  font-size: 12px;
+  margin-top: 8px;
+}
+.drv-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px 8px; }
+.drv-item { display: flex; justify-content: space-between; }
+.drv-item .dv { color: #cc9944; font-weight: bold; }
+
+/* ─── Stat comparison table ─────────────────────────── */
+#stat-compare {
+  background: #0e0e18;
+  border: 1px solid #252535;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+.cmp-header {
+  display: grid; grid-template-columns: 1fr 80px 80px;
+  background: #16161e; padding: 4px 8px;
+  font-size: 11px; letter-spacing:2px; color:#555568;
+  border-bottom: 1px solid #252535;
+}
+.cmp-row {
+  display: grid; grid-template-columns: 1fr 80px 80px;
+  padding: 2px 8px; font-size: 12px; border-bottom: 1px solid #1a1a24;
+  align-items: center;
+}
+.cmp-row:last-child { border-bottom: none; }
+.cmp-stat { color: #666680; font-size:11px; }
+.cmp-p { text-align:right; font-weight:bold; padding-right:12px; }
+.cmp-e { text-align:right; font-weight:bold; }
+.cmp-adv  { color: #44aa66; }  /* player advantage */
+.cmp-dis  { color: #cc4433; }  /* player disadvantage */
+.cmp-neu  { color: #888899; }  /* roughly equal */
+.cmp-info { color: #cc9944; }  /* neutral display (HP, CDMG etc) */
+
+/* ─── HP / Gauge bars ────────────────────────────────── */
+#combatants {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.combatant-card {
+  flex: 1;
+  background: #15151e;
+  border: 1px solid #2a2a38;
+  padding: 10px;
+  min-width: 0;
+}
+.combatant-card.is-player { border-color: #3355aa; }
+.combatant-card.is-enemy  { border-color: #882222; }
+.comb-name { font-size: 15px; font-weight: bold; letter-spacing:2px; margin-bottom:4px; }
+.comb-title { font-size: 11px; color: #888; margin-bottom: 8px; }
+.bar-label { font-size: 11px; color: #888; display:flex; justify-content:space-between; margin-bottom:2px; }
+.bar-track { background: #222230; height: 14px; border-radius: 2px; overflow: hidden; margin-bottom: 6px; }
+.bar-fill { height: 100%; transition: width 0.25s ease; border-radius: 2px; }
+.hp-fill   { background: linear-gradient(to right, #660000, #cc2200); }
+.gauge-fill.rage  { background: linear-gradient(to right, #440000, #cc4400); }
+.gauge-fill.focus { background: linear-gradient(to right, #002244, #3366cc); }
+.gauge-fill.fury  { background: linear-gradient(to right, #002200, #336622); }
+.comb-status { font-size: 11px; color: #cc8800; min-height: 16px; }
+
+/* ─── Mini derived stats inside card ────────────────── */
+.mini-stats {
+  margin-top: 7px;
+  padding-top: 6px;
+  border-top: 1px solid #252535;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px 4px;
+}
+.ms-item { display: flex; justify-content: space-between; padding: 1px 3px; font-size: 11px; }
+.ms-label { color: #444458; }
+.ms-val   { color: #aa8833; font-weight: bold; }
+.ms-val.pressured { color: #cc4422 !important; }
+.ms-pressure-note { grid-column:1/-1; text-align:center; font-size:10px; color:#cc4422; margin-top:2px; }
+
+/* ─── Skill info panel ───────────────────────────────── */
+#skill-display {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.skill-card {
+  background: #0d0d16;
+  border: 1px solid #222230;
+  padding: 7px 9px;
+  font-size: 11px;
+}
+.skill-card.rage-card  { border-color: #3a1a1a; }
+.skill-card.focus-card { border-color: #1a1a3a; }
+.skill-card.fury-card  { border-color: #1a3a1a; }
+.skill-card.active-card { border-color: #cc9900; background: #16120a; animation: sk-pulse 1.2s infinite; }
+@keyframes sk-pulse { 0%,100%{box-shadow:0 0 4px #443300;} 50%{box-shadow:0 0 10px #886600;} }
+.sk-header { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px; }
+.sk-route  { font-size:10px; letter-spacing:2px; }
+.sk-name   { font-size:13px; font-weight:bold; }
+.sk-gauge  { font-size:10px; color:#555568; }
+.sk-desc   { color:#666677; line-height:1.55; font-size:11px; }
+.sk-active { color:#ffcc44; }
+.sk-warn   { color:#ff6644; }
+
+/* ─── VS divider ─────────────────────────────────────── */
+.vs-divider {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; color: #553333; font-weight: bold; min-width: 30px; flex-shrink:0;
+}
+
+/* ─── Battle log ─────────────────────────────────────── */
+#battle-log {
+  background: #0e0e14;
+  border: 1px solid #252530;
+  height: 220px;
+  overflow-y: auto;
+  padding: 8px 10px;
+  font-size: 13px;
+  line-height: 1.7;
+  scroll-behavior: smooth;
+}
+.log-line { margin-bottom: 1px; }
+.log-crit   { color: #ffaa22; }
+.log-miss   { color: #666680; }
+.log-special { color: #cc88ff; font-weight: bold; }
+.log-injury { color: #ff6644; font-style: italic; }
+.log-system { color: #5577aa; }
+.log-die    { color: #ff2200; font-weight: bold; letter-spacing:2px; }
+.log-win    { color: #ccaa00; font-weight: bold; letter-spacing:2px; }
+.log-turn   { color: #444460; font-size: 11px; border-top:1px solid #1c1c28; margin: 4px 0; padding-top:4px; }
+
+/* ─── Action buttons ─────────────────────────────────── */
+#action-bar {
+  display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;
+}
+.action-btn {
+  flex: 1; min-width: 80px;
+  background: #1c1c2e; border: 1px solid #3a3a55;
+  color: #c0c0d4; padding: 10px 6px; font-size: 14px;
+  cursor: pointer; letter-spacing: 2px; text-align: center;
+  transition: background 0.15s, border-color 0.15s;
+}
+.action-btn:hover:not(:disabled) { background: #28283a; border-color: #6655aa; }
+.action-btn:disabled { opacity: 0.35; cursor: default; }
+.action-btn.danger { border-color: #662222; color: #ff8866; }
+.action-btn.danger:hover:not(:disabled) { background: #2a1818; border-color: #cc3322; }
+.action-btn.special-ready { border-color: #cc9900 !important; color: #ffcc44 !important; animation: pulse-gold 1s infinite; }
+@keyframes pulse-gold {
+  0%,100% { box-shadow: 0 0 4px #aa7700; }
+  50%      { box-shadow: 0 0 12px #cc9900; }
+}
+.action-btn.auto-on { border-color: #336633; color: #66cc66; }
+
+#round-display {
+  text-align:center; font-size:12px; color:#555568; margin-top:6px; letter-spacing:2px;
+}
+
+/* ─── Enemy panel ────────────────────────────────────── */
+.enemy-info-box {
+  background: #18181f;
+  border: 1px solid #2e2020;
+  padding: 10px;
+  margin-top: 10px;
+  font-size: 12px;
+}
+.enemy-info-box .ei-name { font-size: 16px; font-weight:bold; color: #cc4422; margin-bottom:2px; }
+.enemy-info-box .ei-title { color: #885544; font-size:11px; margin-bottom:8px; }
+.enemy-info-box .ei-passive { color: #cc8822; margin-bottom:4px; }
+.enemy-info-box .ei-special { color: #bb66cc; margin-bottom:4px; }
+.enemy-info-box .ei-weak { color: #6699aa; }
+.enemy-info-box .ei-desc { color: #888; font-style: italic; margin-top:8px; line-height:1.6; }
+
+.ctrl-btn {
+  display:block; width:100%; padding:10px; margin-top:8px;
+  background: #1c1c2e; border: 1px solid #3a3a55;
+  color: #c0c0d4; font-size: 14px; cursor: pointer; letter-spacing: 3px;
+  text-align:center; transition: background 0.15s;
+}
+.ctrl-btn:hover { background: #28283a; }
+.ctrl-btn.start { border-color: #665533; color: #cc9933; }
+.ctrl-btn.start:hover { background: #201a10; border-color: #cc8822; }
+.ctrl-btn.reset { border-color: #442222; color: #aa4433; margin-top:6px; }
+.ctrl-btn.reset:hover { background: #1a1010; }
+
+/* ─── Trait list ─────────────────────────────────────── */
+.trait-desc { font-size:11px; color:#777; margin-top:3px; min-height:14px; }
+
+/* ─── Misc ───────────────────────────────────────────── */
+hr.sep { border: none; border-top: 1px solid #252530; margin: 10px 0; }
+.section-sub { font-size:11px; color:#666677; letter-spacing:2px; margin-bottom:6px; margin-top:10px; }
+</style>
+</head>
+<body>
+
+<h1 class="page-title">⚔ 戰鬥模擬器 ⚔</h1>
+
+<div id="app">
+
+<!-- ════ LEFT: Player Setup ════════════════════════════ -->
+<aside id="player-panel">
+  <div class="panel-title">玩 家 設 定</div>
+
+  <div class="section-sub">快速預設</div>
+  <div style="display:flex;gap:4px;margin-bottom:10px;">
+    <button class="btn-adj" style="flex:1;width:auto;height:auto;padding:4px 2px;font-size:11px;" onclick="applyPreset('rookie')">新手</button>
+    <button class="btn-adj" style="flex:1;width:auto;height:auto;padding:4px 2px;font-size:11px;" onclick="applyPreset('fighter')">鬥士</button>
+    <button class="btn-adj" style="flex:1;width:auto;height:auto;padding:4px 2px;font-size:11px;" onclick="applyPreset('veteran')">老手</button>
+    <button class="btn-adj" style="flex:1;width:auto;height:auto;padding:4px 2px;font-size:11px;" onclick="applyPreset('elite')">精英</button>
+    <button class="btn-adj" style="flex:1;width:auto;height:auto;padding:4px 2px;font-size:11px;" onclick="applyPreset('max')">滿值</button>
+  </div>
+
+  <div class="section-sub">基礎屬性</div>
+  <div class="attr-grid">
+    <div class="attr-row" id="row-STR">
+      <label>STR</label>
+      <button class="btn-adj" onclick="adjAttr('STR',-1)">−</button>
+      <input type="number" id="attr-STR" value="25" min="1" max="100" onchange="refreshDerived()">
+      <button class="btn-adj" onclick="adjAttr('STR',1)">+</button>
+    </div>
+    <div class="attr-row" id="row-DEX">
+      <label>DEX</label>
+      <button class="btn-adj" onclick="adjAttr('DEX',-1)">−</button>
+      <input type="number" id="attr-DEX" value="25" min="1" max="100" onchange="refreshDerived()">
+      <button class="btn-adj" onclick="adjAttr('DEX',1)">+</button>
+    </div>
+    <div class="attr-row" id="row-CON">
+      <label>CON</label>
+      <button class="btn-adj" onclick="adjAttr('CON',-1)">−</button>
+      <input type="number" id="attr-CON" value="25" min="1" max="100" onchange="refreshDerived()">
+      <button class="btn-adj" onclick="adjAttr('CON',1)">+</button>
+    </div>
+    <div class="attr-row" id="row-AGI">
+      <label>AGI</label>
+      <button class="btn-adj" onclick="adjAttr('AGI',-1)">−</button>
+      <input type="number" id="attr-AGI" value="25" min="1" max="100" onchange="refreshDerived()">
+      <button class="btn-adj" onclick="adjAttr('AGI',1)">+</button>
+    </div>
+    <div class="attr-row" id="row-WIL">
+      <label>WIL</label>
+      <button class="btn-adj" onclick="adjAttr('WIL',-1)">−</button>
+      <input type="number" id="attr-WIL" value="25" min="1" max="100" onchange="refreshDerived()">
+      <button class="btn-adj" onclick="adjAttr('WIL',1)">+</button>
+    </div>
+    <div class="attr-row" id="row-LUK">
+      <label>LUK</label>
+      <button class="btn-adj" onclick="adjAttr('LUK',-1)">−</button>
+      <input type="number" id="attr-LUK" value="25" min="1" max="100" onchange="refreshDerived()">
+      <button class="btn-adj" onclick="adjAttr('LUK',1)">+</button>
+    </div>
+  </div>
+  <div class="attr-row" style="margin-bottom:6px;">
+    <label style="width:50px;">基礎HP</label>
+    <input type="number" id="attr-hpMax" value="60" min="20" max="300" style="width:70px;background:#1a1a22;border:1px solid #333;color:#e0e0e0;padding:3px 5px;font-size:13px;text-align:center;" onchange="refreshDerived()">
+    <span style="font-size:10px;color:#555;margin-left:4px;">+2×CON</span>
+  </div>
+  <div class="attr-row" style="margin-bottom:10px;">
+    <label style="width:50px;color:#996633;">名聲</label>
+    <button class="btn-adj" onclick="adjFame(-5)">−</button>
+    <input type="number" id="attr-FAME" value="0" min="0" max="100" style="width:54px;background:#1a1a22;border:1px solid #553300;color:#cc9933;padding:3px 5px;font-size:13px;text-align:center;" onchange="refreshDerived()">
+    <button class="btn-adj" onclick="adjFame(5)">+</button>
+    <span id="fame-tier-label" style="font-size:11px;color:#665522;margin-left:4px;"></span>
+  </div>
+
+  <div class="section-sub">裝備</div>
+  <div class="sel-group">
+    <label>武器</label>
+    <select id="sel-weapon" onchange="onWeaponChange()"></select>
+  </div>
+  <div class="sel-group">
+    <label>護甲</label>
+    <select id="sel-armor" onchange="refreshDerived()"></select>
+  </div>
+  <div class="sel-group">
+    <label>盾牌</label>
+    <select id="sel-shield" onchange="refreshDerived()"></select>
+  </div>
+  <div class="sel-group">
+    <label>護符</label>
+    <select id="sel-amulet" onchange="refreshDerived()"></select>
+  </div>
+
+  <div class="section-sub">天賦特性</div>
+  <div class="sel-group">
+    <label>特性</label>
+    <select id="sel-trait" onchange="onTraitChange()"></select>
+  </div>
+  <div class="trait-desc" id="trait-desc-text"></div>
+
+  <hr class="sep">
+  <div class="panel-title" style="margin-bottom:8px;">衍 生 數 值</div>
+  <div id="player-derived"></div>
+</aside>
+
+<!-- ════ CENTER: Battle Arena ══════════════════════════ -->
+<main id="battle-panel">
+
+  <div id="combatants">
+    <div class="combatant-card is-player" id="card-player">
+      <div class="comb-name" id="pname">玩家</div>
+      <div class="comb-title" id="ptitle">—</div>
+      <div class="bar-label"><span>HP</span><span id="php-txt">100 / 100</span></div>
+      <div class="bar-track"><div class="bar-fill hp-fill" id="php-bar" style="width:100%"></div></div>
+      <div class="bar-label"><span id="pgauge-label">儀表 (fury)</span><span id="pgauge-txt">0 / 100</span></div>
+      <div class="bar-track"><div class="bar-fill gauge-fill fury" id="pgauge-bar" style="width:0%"></div></div>
+      <div class="comb-status" id="pstatus"></div>
+      <div class="mini-stats" id="p-mini-stats"></div>
+    </div>
+
+    <div class="vs-divider">VS</div>
+
+    <div class="combatant-card is-enemy" id="card-enemy">
+      <div class="comb-name" id="ename">—</div>
+      <div class="comb-title" id="etitle">選擇敵人</div>
+      <div class="bar-label"><span>HP</span><span id="ehp-txt">— / —</span></div>
+      <div class="bar-track"><div class="bar-fill hp-fill" id="ehp-bar" style="width:100%"></div></div>
+      <div class="bar-label"><span id="egauge-label">儀表</span><span id="egauge-txt">0 / 100</span></div>
+      <div class="bar-track"><div class="bar-fill gauge-fill fury" id="egauge-bar" style="width:0%"></div></div>
+      <div class="comb-status" id="estatus"></div>
+      <div class="mini-stats" id="e-mini-stats"></div>
+    </div>
+  </div>
+ 
+  <!-- Skill info panel -->
+  <div id="skill-display">
+    <div class="skill-card" id="p-skill-card">
+      <div class="sk-header">
+        <span class="sk-route" id="p-sk-route">玩家</span>
+        <span class="sk-gauge" id="p-sk-gauge">儀表 0%</span>
+      </div>
+      <div class="sk-name" id="p-sk-name">— 未開戰 —</div>
+      <div class="sk-desc" id="p-sk-desc">選好裝備後開始戰鬥</div>
+    </div>
+    <div class="skill-card" id="e-skill-card">
+      <div class="sk-header">
+        <span class="sk-route" id="e-sk-route">敵方</span>
+        <span class="sk-gauge" id="e-sk-gauge">儀表 0%</span>
+      </div>
+      <div class="sk-name" id="e-sk-name">— 未開戰 —</div>
+      <div class="sk-desc" id="e-sk-desc">選擇敵人後顯示技能</div>
+    </div>
+  </div>
+
+  <div id="battle-log"><div class="log-system">▸ 請在右側選擇敵人，配置玩家，然後按「開始戰鬥」。</div></div>
+
+  <div id="action-bar">
+    <button class="action-btn" id="btn-attack"  onclick="doAction('attack')"  disabled>攻 擊</button>
+    <button class="action-btn" id="btn-defend"  onclick="doAction('defend')"  disabled>防 禦</button>
+    <button class="action-btn danger" id="btn-special" onclick="doAction('special')" disabled>釋放特技</button>
+    <button class="action-btn" id="btn-auto"   onclick="toggleAuto()"         disabled>自 動</button>
+  </div>
+  <div id="round-display">— 準備中 —</div>
+ <!-- Stat comparison table -->
+  <div id="stat-compare">
+    <div class="cmp-header"><span>數值對比</span><span style="text-align:right;padding-right:12px;">玩家</span><span style="text-align:right;">敵方</span></div>
+    <div id="cmp-rows">
+      <div class="cmp-row"><span class="cmp-stat">—</span><span class="cmp-p cmp-neu">—</span><span class="cmp-e cmp-neu">—</span></div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ════ RIGHT: Enemy Setup ════════════════════════════ -->
+<aside id="enemy-panel">
+  <div class="panel-title">敵 方 設 定</div>
+
+  <div class="sel-group">
+    <label>選擇敵人</label>
+    <select id="sel-enemy" onchange="onEnemyChange()"></select>
+  </div>
+
+  <div id="enemy-info-box" class="enemy-info-box" style="display:none">
+    <div class="ei-name" id="ei-name"></div>
+    <div class="ei-title" id="ei-title"></div>
+    <div class="ei-passive" id="ei-passive"></div>
+    <div class="ei-special" id="ei-special"></div>
+    <div class="ei-weak" id="ei-weak"></div>
+    <div class="ei-desc" id="ei-desc"></div>
+  </div>
+
+  <div class="panel-title" style="margin-top:12px; margin-bottom:8px;">敵 方 數 值</div>
+  <div id="enemy-derived"></div>
+
+  <button class="ctrl-btn start" onclick="startBattle()">⚔ 開始戰鬥</button>
+  <button class="ctrl-btn reset" onclick="resetBattle()">↺ 重置戰場</button>
+</aside>
+
+</div><!-- #app -->
+
+<script src="testbattle.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════
+// UI STATE
+// ═══════════════════════════════════════════════════════
+let player = null;
+let enemy  = null;
+let battleActive = false;
+let autoTimer    = null;
+let turn         = 0;
+let autoRunning  = false;
+
+// These consts must be declared before the initSelects IIFE runs below
+const ROUTE_CFG = {
+  rage:  { color:'#cc4422', label:'狂暴', icon:'⚔',
+           featured: ['ATK','CDMG','HP'],
+           attrs: { primary:['STR','WIL'], secondary:['CON'] } },
+  focus: { color:'#3366cc', label:'集中', icon:'◈',
+           featured: ['ACC','CRT','EVA'],
+           attrs: { primary:['DEX','AGI'], secondary:['LUK'] } },
+  fury:  { color:'#336633', label:'怒氣', icon:'⛊',
+           featured: ['DEF','BLK','BpWr'],
+           attrs: { primary:['CON','STR'], secondary:['WIL'] } },
+};
+
+const SPECIAL_FULL_DESC = {
+  rage:  '攻擊×2.0 · 防禦×0.5 · 迴避歸零 · 持續3回合',
+  focus: '命中必中 · 暴擊+40% · 速度×1.5 · 持續2回合',
+  fury:  '下次被攻完全格擋 · 以敵方ATK×1.5反擊 · 1回合反應式觸發',
+};
+
+// ─── Populate selects ─────────────────────────────────
+(function initSelects() {
+  const sel = (id, obj, labelFn) => {
+    const el = document.getElementById(id);
+    Object.entries(obj).forEach(([k, v]) => {
+      const opt = document.createElement('option');
+      opt.value = k;
+      opt.textContent = labelFn(k, v);
+      el.appendChild(opt);
+    });
+  };
+
+  const routeCN = { rage:'狂暴', focus:'集中', fury:'怒氣' };
+  sel('sel-weapon', TB_WEAPONS,  (k,v) => `${v.name}（${routeCN[v.route]||v.route} | ATK+${v.ATK} SPD${v.SPD>=0?'+':''}${v.SPD}）`);
+  sel('sel-armor',  TB_ARMORS,   (k,v) => `${v.name}（DEF+${v.DEF}）`);
+  sel('sel-shield', TB_SHIELDS,  (k,v) => `${v.name}（BLK${v.BLK?'+'+v.BLK:'0'}）`);
+  sel('sel-amulet', TB_AMULETS,  (k,v) => v.name);
+  sel('sel-trait',  TB_TRAITS,   (k,v) => v.name + (v.desc ? ` — ${v.desc}` : ''));
+  sel('sel-enemy',  TB_ENEMIES,  (k,v) => `${v.name}【${v.title}】`);
+
+  refreshDerived();
+  onEnemyChange();
+  onTraitChange();
+})();
+
+// ─── Attribute adjust helper ───────────────────────────
+function adjAttr(key, delta) {
+  const el = document.getElementById('attr-' + key);
+  const v = Math.max(1, Math.min(100, +el.value + delta));
+  el.value = v;
+  refreshDerived();
+}
+function adjFame(delta) {
+  const el = document.getElementById('attr-FAME');
+  el.value = Math.max(0, Math.min(100, +el.value + delta));
+  refreshDerived();
+}
+
+function onWeaponChange() {
+  const wid = document.getElementById('sel-weapon').value;
+  const w = TB_WEAPONS[wid];
+  const shieldSel = document.getElementById('sel-shield');
+  if (w.twoHanded) {
+    shieldSel.value = 'none';
+    shieldSel.disabled = true;
+  } else {
+    shieldSel.disabled = false;
+  }
+  refreshDerived(); // refreshDerived already calls highlightAttrs
+}
+
+function onTraitChange() {
+  const tid = document.getElementById('sel-trait').value;
+  const t = TB_TRAITS[tid];
+  document.getElementById('trait-desc-text').textContent = t.desc || (t.trainBonus ? `訓練效率 +${(t.trainBonus*100).toFixed(0)}%` : '') || (t.hpBonusPct ? `最大HP +${(t.hpBonusPct*100).toFixed(0)}%` : '');
+  refreshDerived();
+}
+
+// ─── Derived stat display ─────────────────────────────
+function buildPreviewUnit(isPlayer) {
+  if (isPlayer) {
+    return TB_buildUnit({
+      name:     '玩家',
+      STR:      +document.getElementById('attr-STR').value,
+      DEX:      +document.getElementById('attr-DEX').value,
+      CON:      +document.getElementById('attr-CON').value,
+      AGI:      +document.getElementById('attr-AGI').value,
+      WIL:      +document.getElementById('attr-WIL').value,
+      LUK:      +document.getElementById('attr-LUK').value,
+      hpBase:   +document.getElementById('attr-hpMax').value || 60,
+      fame:     +document.getElementById('attr-FAME').value || 0,
+      weaponId: document.getElementById('sel-weapon').value,
+      armorId:  document.getElementById('sel-armor').value,
+      shieldId: document.getElementById('sel-shield').value,
+      amuletId: document.getElementById('sel-amulet').value,
+      traitId:  document.getElementById('sel-trait').value,
+    }, true);
+  } else {
+    const eid = document.getElementById('sel-enemy').value;
+    return TB_buildUnit({ enemyId: eid });
+  }
+}
+
+function renderDerivedBox(targetId, unit) {
+  const d = unit.derived;
+  const route = d.route;
+  const rc = ROUTE_CFG[route] || { color:'#888', label:route, icon:'?', featured:[], attrs:{primary:[],secondary:[]} };
+
+  const willLabel = d.gaugeBonus > 0
+    ? `${d.WIL} (+${Math.round(d.gaugeBonus*100)}%)`
+    : String(d.WIL);
+  const spdLabel = d.spdBonus > 0
+    ? `${d.SPD} (攻速-${Math.round(d.spdBonus*100)}%)`
+    : String(d.SPD);
+  const hpLabel = (() => {
+    const base = unit.hpBase || 0;
+    const conBonus = Math.round(2 * unit.CON);
+    const extra = d.hpMax - base - conBonus;
+    let s = `${d.hpMax}`;
+    if (base || conBonus) s += ` (${base}+${conBonus}` + (extra !== 0 ? `${extra > 0 ? '+' : ''}${extra}` : '') + ')';
+    return s;
+  })();
+  const allStats = {
+    'ATK':  d.ATK,
+    'DEF':  d.DEF,
+    'HP':   hpLabel,
+    'ACC':  d.ACC+'%',
+    'EVA':  d.EVA+'%',
+    'CRT':  d.CRT+'%',
+    'CDMG': d.CDMG+'%',
+    'PEN':  d.PEN,
+    'BLK':  d.BLK+'%',
+    'BpWr': d.BpWr+'%',
+    'SPD':  spdLabel,
+    'WIL':  willLabel,
+  };
+
+  // Route badge
+  let html = `<div style="text-align:center;margin-bottom:8px;">
+    <span style="background:${rc.color}22;border:1px solid ${rc.color}66;color:${rc.color};
+    padding:3px 14px;font-size:12px;letter-spacing:3px;">${rc.icon} ${rc.label}路線</span>
+  </div>`;
+
+  // Featured stats — big display
+  html += `<div style="display:flex;gap:6px;margin-bottom:8px;">`;
+  rc.featured.forEach(k => {
+    html += `<div style="flex:1;text-align:center;background:${rc.color}18;border:1px solid ${rc.color}44;padding:6px 2px;">
+      <div style="font-size:10px;color:#888;margin-bottom:2px;">${k}</div>
+      <div style="font-size:20px;color:${rc.color};font-weight:bold;line-height:1;">${allStats[k] ?? '—'}</div>
+    </div>`;
+  });
+  html += '</div>';
+
+  // Remaining stats — compact grid
+  const others = Object.entries(allStats).filter(([k]) => !rc.featured.includes(k));
+  html += `<div class="drv-grid">${
+    others.map(([k,v])=>`<div class="drv-item"><span style="color:#666">${k}</span><span class="dv">${v}</span></div>`).join('')
+  }</div>`;
+
+  document.getElementById(targetId).innerHTML = html;
+}
+
+// Highlight relevant base attrs based on route
+function highlightAttrs(route) {
+  const rc = ROUTE_CFG[route];
+  const ATTRS = ['STR','DEX','CON','AGI','WIL','LUK'];
+  ATTRS.forEach(a => {
+    const row = document.getElementById('row-'+a);
+    if (!row) return;
+    if (rc && rc.attrs.primary.includes(a)) {
+      row.style.background = rc.color + '18';
+      row.style.outline = `1px solid ${rc.color}55`;
+      row.style.borderRadius = '2px';
+    } else if (rc && rc.attrs.secondary.includes(a)) {
+      row.style.background = rc.color + '0a';
+      row.style.outline = `1px solid ${rc.color}33`;
+      row.style.borderRadius = '2px';
+    } else {
+      row.style.background = '';
+      row.style.outline = '';
+    }
+  });
+}
+
+function refreshDerived() {
+  const pu = buildPreviewUnit(true);
+  renderDerivedBox('player-derived', pu);
+  const route = pu.derived.route;
+  // Update gauge bar and label
+  document.getElementById('pgauge-label').textContent = `儀表 (${routeLabel(route)})`;
+  document.getElementById('pgauge-bar').className = `bar-fill gauge-fill ${route}`;
+  // Highlight relevant attributes
+  highlightAttrs(route);
+  // Fame tier label
+  const fame = +document.getElementById('attr-FAME').value || 0;
+  const fameTier = Math.floor(fame / 20);
+  const fameTierNames = ['無名','初出茅廬','小有名氣','競技老手','場上傳說','不敗之名'];
+  const tierLabel = document.getElementById('fame-tier-label');
+  if (tierLabel) tierLabel.textContent = fameTierNames[fameTier] || '';
+  // Update comparison table
+  try { const eu = buildPreviewUnit(false); renderStatCompare(pu, eu); } catch(e) {}
+}
+
+// Preset builds
+// 預設：對應遊戲早/中/後期各階段的屬性參考值
+const PRESETS = {
+  rookie:  { STR:10, DEX:8,  CON:10, AGI:8,  WIL:8,  LUK:8,  HP:45  },  // 新入角鬥場
+  fighter: { STR:22, DEX:20, CON:22, AGI:18, WIL:18, LUK:15, HP:65  },  // 熟練鬥士
+  veteran: { STR:38, DEX:35, CON:38, AGI:32, WIL:30, LUK:25, HP:85  },  // 老練戰士
+  elite:   { STR:55, DEX:50, CON:55, AGI:48, WIL:45, LUK:40, HP:105 },  // 精英選手
+  max:     { STR:80, DEX:75, CON:80, AGI:70, WIL:70, LUK:65, HP:130 },  // 頂峰狀態
+};
+function applyPreset(key) {
+  const p = PRESETS[key];
+  if (!p) return;
+  ['STR','DEX','CON','AGI','WIL','LUK'].forEach(a => {
+    document.getElementById('attr-'+a).value = p[a];
+  });
+  document.getElementById('attr-hpMax').value = p.HP;
+  refreshDerived();
+}
+
+function onEnemyChange() {
+  const eid = document.getElementById('sel-enemy').value;
+  const def = TB_ENEMIES[eid];
+  if (!def) return;
+
+  // Info box
+  const box = document.getElementById('enemy-info-box');
+  box.style.display = 'block';
+  document.getElementById('ei-name').textContent = def.name;
+  document.getElementById('ei-title').textContent = def.title;
+  const fameTierNames = ['無名','初出茅廬','小有名氣','競技老手','場上傳說','不敗之名'];
+  const fTier = Math.min(5, Math.floor((def.fame||0) / 20));
+  document.getElementById('ei-passive').textContent =
+    `【名聲 ${def.fame||0}】${fameTierNames[fTier]}` +
+    (def.intimidation > 0 ? `  被動威嚇+${Math.round(def.intimidation*100)}%` : '') +
+    (def.passiveDesc ? `\n【被動】${def.passiveDesc}` : '');
+  document.getElementById('ei-special').textContent = def.specialDesc ? `【特技】${def.specialDesc}` : '';
+  document.getElementById('ei-weak').textContent    = def.weakPoint   ? `【弱點】${def.weakPoint}`   : '';
+  document.getElementById('ei-desc').textContent    = def.desc || '';
+
+  // Derived
+  const u = buildPreviewUnit(false);
+  renderDerivedBox('enemy-derived', u);
+
+  const route = u.derived.route;
+  document.getElementById('egauge-label').textContent = `儀表 (${routeLabel(route)})`;
+  document.getElementById('egauge-bar').className = `bar-fill gauge-fill ${route}`;
+  // Update comparison table
+  try { const pu = buildPreviewUnit(true); renderStatCompare(pu, u); } catch(e) {}
+  // Pre-battle enemy skill card preview
+  if (!battleActive) {
+    const rc = ROUTE_CFG[route] || { color:'#888', label:route, icon:'?' };
+    const sp = TBC.SPECIALS[route];
+    const card = document.getElementById('e-skill-card');
+    card.className = `skill-card ${route}-card`;
+    document.getElementById('e-sk-route').innerHTML =
+      `<span style="color:${rc.color}">${rc.icon} ${def.name} · ${rc.label}路線</span>`;
+    document.getElementById('e-sk-gauge').textContent = `名聲 ${def.fame||0}`;
+    document.getElementById('e-sk-name').textContent = sp ? `★ ${sp.name}` : '無特技';
+    document.getElementById('e-sk-name').style.color = rc.color;
+    document.getElementById('e-sk-desc').innerHTML =
+      `<span style="color:#555568">${def.specialDesc || SPECIAL_FULL_DESC[route] || '—'}</span>`;
+  }
+}
+
+function routeLabel(r) {
+  return { rage:'狂暴', focus:'集中', fury:'怒氣' }[r] || r;
+}
+
+// ─── Mini stats in combatant cards ────────────────────
+function fillMiniStats(targetId, unit) {
+  const el = document.getElementById(targetId);
+  if (!el || !unit) return;
+  const d = unit.derived;
+  const pen = (unit._pressurePenalty || 0) > 0;
+  const vc = pen ? ' pressured' : '';
+  const rows = [
+    ['ATK',  d.ATK],        ['DEF',  d.DEF],        ['HP',   unit.hp+'/'+unit._hpMax],
+    ['ACC',  d.ACC+'%'],    ['EVA',  d.EVA+'%'],     ['SPD',  d.SPD],
+    ['CRT',  d.CRT+'%'],    ['CDMG', d.CDMG+'%'],   ['PEN',  d.PEN],
+    ['BLK',  d.BLK+'%'],   ['BpWr', d.BpWr+'%'],
+  ];
+  let html = rows.map(([k,v]) =>
+    `<div class="ms-item"><span class="ms-label">${k}</span><span class="ms-val${vc}">${v}</span></div>`
+  ).join('');
+  if (pen) html += `<div class="ms-pressure-note">⚠ 受壓制 −${Math.round(unit._pressurePenalty*100)}%</div>`;
+  el.innerHTML = html;
+}
+
+// ─── Skill info panel ─────────────────────────────────
+function updateSkillDisplay() {
+  if (!player || !enemy) return;
+  _fillSkillCard('p', player, player);
+  _fillSkillCard('e', enemy, enemy);
+}
+
+function _fillSkillCard(side, unit, _ref) {
+  const route  = unit.gaugeRoute;
+  const rc     = ROUTE_CFG[route] || { color:'#888', label:route, icon:'?' };
+  const sp     = TBC.SPECIALS[route];
+  const card   = document.getElementById(side + '-skill-card');
+  const pct    = Math.round(unit.gauge / TBC.GAUGE_MAX * 100);
+  const isEnemy = side === 'e';
+
+  // Card border class
+  let cls = `skill-card ${route}-card`;
+  if (unit.gaugeActive) cls += ' active-card';
+  card.className = cls;
+
+  // Route / name header
+  const routeEl = document.getElementById(side + '-sk-route');
+  routeEl.innerHTML = `<span style="color:${rc.color}">${rc.icon} ${isEnemy ? unit.name + ' · ' : ''}${rc.label}路線</span>`;
+
+  const gaugeEl = document.getElementById(side + '-sk-gauge');
+  gaugeEl.textContent = `儀表 ${pct}%`;
+  gaugeEl.style.color = pct >= 100 ? '#ffcc44' : '#444456';
+
+  const nameEl = document.getElementById(side + '-sk-name');
+  const descEl = document.getElementById(side + '-sk-desc');
+
+  if (unit.gaugeActive) {
+    nameEl.textContent = `★ ${sp?.name || '?'} 發動中！`;
+    nameEl.style.color = '#ffcc44';
+    descEl.innerHTML =
+      `<span class="sk-active">剩餘 ${unit.gaugeActiveLeft} 回合</span>　` +
+      `<span style="color:#555568">${SPECIAL_FULL_DESC[route] || ''}</span>`;
+  } else if (isEnemy && unit._charging) {
+    nameEl.textContent = '▲ 山崩蓄力中…';
+    nameEl.style.color = '#ff4422';
+    descEl.innerHTML = `<span class="sk-warn">下回合發動！傷害×2.5，強制觸發重傷判定</span>`;
+  } else if (isEnemy && unit._counterStance) {
+    nameEl.textContent = '⟳ 反制姿態';
+    nameEl.style.color = '#ff8844';
+    descEl.innerHTML = `<span class="sk-warn">此回合攻擊將觸發反擊！考慮防禦或等待</span>`;
+  } else {
+    nameEl.textContent = sp ? `★ ${sp.name}` : '無特技';
+    nameEl.style.color = pct >= 100 ? '#ffcc44' : (rc.color || '#888');
+    const defData = TB_ENEMIES[unit.id];
+    const bossSpecDesc = defData?.specialDesc || '';
+    descEl.innerHTML = pct >= 100
+      ? `<span class="sk-active">儀表已滿！可釋放技能</span>`
+      : `<span style="color:#555568">${bossSpecDesc || SPECIAL_FULL_DESC[route] || '—'}</span>`;
+  }
+}
+
+// ─── Stat comparison table ────────────────────────────
+function renderStatCompare(pu, eu) {
+  if (!pu || !eu) return;
+  const pd = pu.derived, ed = eu.derived;
+
+  // [label, playerVal, enemyVal, mode]
+  // mode: 'higher' = green for higher, 'lower' = green for lower, 'info' = no colour
+  // Pre-calc pressure
+  const p2e = TB_calcPressure(pu, eu);  // player→enemy
+  const p2p = TB_calcPressure(eu, pu);  // enemy→player
+
+  const pPenStr = p2p.penalty > 0 ? `-${Math.round(p2p.penalty*100)}%` : '—';
+  const ePenStr = p2e.penalty > 0 ? `-${Math.round(p2e.penalty*100)}%` : '—';
+
+  const rows = [
+    ['ATK',  pd.ATK,             ed.ATK,              'higher'],
+    ['DEF',  pd.DEF,             ed.DEF,              'higher'],
+    ['HP',   pd.hpMax,           ed.hpMax,            'higher'],
+    ['ACC',  pd.ACC+'%',         ed.ACC+'%',          'higher', pd.ACC,  ed.ACC],
+    ['EVA',  pd.EVA+'%',         ed.EVA+'%',          'higher', pd.EVA,  ed.EVA],
+    ['CRT',  pd.CRT+'%',         ed.CRT+'%',          'higher', pd.CRT,  ed.CRT],
+    ['CDMG', pd.CDMG+'%',        ed.CDMG+'%',         'higher', pd.CDMG, ed.CDMG],
+    ['PEN',  pd.PEN,             ed.PEN,              'higher'],
+    ['BLK',  pd.BLK+'%',        ed.BLK+'%',          'higher', pd.BLK,  ed.BLK],
+    ['BpWr', pd.BpWr+'%',       ed.BpWr+'%',         'higher', pd.BpWr, ed.BpWr],
+    ['SPD',  pd.SPD + (pd.spdBonus>0?` (-${Math.round(pd.spdBonus*100)}%)` : ''),
+             ed.SPD + (ed.spdBonus>0?` (-${Math.round(ed.spdBonus*100)}%)` : ''),
+             'higher', pd.SPD, ed.SPD],
+    ['WIL',  pd.WIL + (pd.gaugeBonus>0 ? ` (+${Math.round(pd.gaugeBonus*100)}%)` : ''),
+             ed.WIL  + (ed.gaugeBonus>0 ? ` (+${Math.round(ed.gaugeBonus*100)}%)` : ''),
+             'info'],
+    // Pressure rows
+    ['名聲',  `${pu.fame||0}（${['無名','初出','有名','老手','傳說','不敗'][Math.min(5,Math.floor((pu.fame||0)/20))]})`,
+              `${eu.fame||0}（${['無名','初出','有名','老手','傳說','不敗'][Math.min(5,Math.floor((eu.fame||0)/20))]})`,
+              'info'],
+    ['威嚇力', `${Math.round(p2e.totalIntim*100)}%`, `${Math.round(p2p.totalIntim*100)}%`, 'higher',
+               p2e.totalIntim, p2p.totalIntim],
+    ['抗壓力', `${Math.round(p2e.wilResist*100)}%（防）`,
+               `${Math.round(p2p.wilResist*100)}%（防）`, 'info'],
+    ['壓制效果',
+      p2p.penalty>0 ? `受壓 ${pPenStr}` : '未受壓',
+      p2e.penalty>0 ? `受壓 ${ePenStr}` : '未受壓',
+      'info'],
+  ];
+
+  const container = document.getElementById('cmp-rows');
+  container.innerHTML = rows.map(([label, pv, ev, mode, pn, en]) => {
+    const pNum = pn !== undefined ? pn : (typeof pv === 'number' ? pv : parseFloat(pv));
+    const eNum = en !== undefined ? en : (typeof ev === 'number' ? ev : parseFloat(ev));
+    let pCls = 'cmp-info', eCls = 'cmp-info';
+    if (mode === 'higher') {
+      const diff = pNum - eNum;
+      if (diff > eNum * 0.08) { pCls = 'cmp-adv'; eCls = 'cmp-dis'; }
+      else if (diff < -eNum * 0.08) { pCls = 'cmp-dis'; eCls = 'cmp-adv'; }
+      else { pCls = 'cmp-neu'; eCls = 'cmp-neu'; }
+    }
+    return `<div class="cmp-row">
+      <span class="cmp-stat">${label}</span>
+      <span class="cmp-p ${pCls}">${pv}</span>
+      <span class="cmp-e ${eCls}">${ev}</span>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// BATTLE CONTROL
+// ═══════════════════════════════════════════════════════
+function startBattle() {
+  stopAuto();
+  player = buildPreviewUnit(true);
+  enemy  = buildPreviewUnit(false);
+  battleActive = true;
+  turn = 0;
+
+  document.getElementById('battle-log').innerHTML = '';
+  appendLog(`⚔ 戰鬥開始！${player.name} vs ${enemy.name}【${enemy.title}】`, 'log-system');
+  if (enemy.passiveDesc) appendLog(`▸ 被動：${enemy.passiveDesc}`, 'log-system');
+  if (enemy.specialDesc) appendLog(`▸ 特技：${enemy.specialDesc}`, 'log-system');
+  // Route hint
+  const routeHints = {
+    rage:  '▸ 狂暴路線：被打(+15)、被暴擊(+25)、命中(+10)，HP低時增幅。滿100→血怒',
+    focus: '▸ 集中路線：命中(+12)、暴擊(+22)、閃躲(+20)。被打會扣。滿100→絕對瞬息',
+    fury:  '▸ 怒氣路線：被命中(+10)、格擋(+28)、部分擋(+18)、防禦(+25)。滿100→盾牆反擊',
+  };
+  appendLog(routeHints[player.gaugeRoute] || '', 'log-system');
+
+  // ── 壓制系統：雙方互相計算威嚇 ──
+  const p2e = TB_calcPressure(player, enemy);
+  const p2p = TB_calcPressure(enemy, player);
+
+  if (p2e.penalty > 0) {
+    TB_applyPressure(enemy, p2e.penalty, player.name);
+    appendLog(
+      `◈ 你的威嚇（名聲${player.fame||0} + WIL${Math.round(p2e.wilAmp*100)}% + 特性${Math.round(p2e.traitIntim*100)}%）` +
+      ` → 威嚇力${Math.round(p2e.totalIntim*100)}% × (1-抗壓${Math.round(p2e.wilResist*100)}%)` +
+      ` ＝ ${enemy.name}全屬性 -${Math.round(p2e.penalty*100)}%`, 'log-special');
+  } else {
+    appendLog(`◈ 威嚇：你對 ${enemy.name} 尚無壓制力`, 'log-system');
+  }
+
+  if (p2p.penalty > 0) {
+    TB_applyPressure(player, p2p.penalty, enemy.name);
+    appendLog(
+      `⚠ 敵方威嚇（${enemy.name} 名聲${enemy.fame} + 威嚇${Math.round(p2p.traitIntim*100)}%）` +
+      ` → ${enemy.name}威嚇力${Math.round(p2p.totalIntim*100)}%` +
+      ` → 你的全屬性 -${Math.round(p2p.penalty*100)}%`, 'log-injury');
+  } else {
+    appendLog(`◈ 抗壓：你成功抵禦 ${enemy.name} 的壓制`, 'log-system');
+  }
+
+  appendLog('', 'log-turn');
+  appendLog('', 'log-turn');
+
+  setActionButtons(true);
+  try { updateCombatantUI(); }  catch(e) { console.error('[UI] updateCombatantUI:', e); }
+  try { updateSkillDisplay(); } catch(e) { console.error('[UI] updateSkillDisplay:', e); }
+}
+
+function resetBattle() {
+  stopAuto();
+  battleActive = false;
+  player = null;
+  enemy  = null;
+  turn   = 0;
+  setActionButtons(false);
+  document.getElementById('battle-log').innerHTML = '<div class="log-system">▸ 戰場已重置。</div>';
+  document.getElementById('round-display').textContent = '— 準備中 —';
+  // reset bars
+  setBar('php', 100, 100); setBar('ehp', 0, 100);
+  setGaugeBar('pgauge', 0, 'rage'); setGaugeBar('egauge', 0, 'rage');
+  document.getElementById('pstatus').textContent = '';
+  document.getElementById('estatus').textContent = '';
+  document.getElementById('pname').textContent  = '玩家';
+  document.getElementById('ename').textContent  = '—';
+  document.getElementById('ptitle').textContent = '—';
+  document.getElementById('etitle').textContent = '選擇敵人';
+}
+
+function setActionButtons(enabled) {
+  ['btn-attack','btn-defend','btn-special','btn-auto'].forEach(id => {
+    document.getElementById(id).disabled = !enabled;
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// PLAYER ACTION
+// ═══════════════════════════════════════════════════════
+function doAction(action) {
+  if (!battleActive) return;
+  setActionButtons(false);
+
+  if (action === 'special') {
+    if (player.gauge < TBC.GAUGE_MAX) {
+      appendLog('▸ 儀表未滿，無法釋放特技！', 'log-system');
+      setActionButtons(true);
+      return;
+    }
+    if (TB_releaseSpecial(player)) {
+      const sp = TBC.SPECIALS[player.gaugeRoute];
+      appendLog(`【${player.name}】釋放【${sp.name}】！持續 ${sp.turns} 回合。`, 'log-special');
+      appendLog(`  ${SPECIAL_FULL_DESC[player.gaugeRoute] || ''}`, 'log-special');
+      updateSkillDisplay();
+    }
+  } else if (action === 'defend') {
+    const r = TB_defend(player);
+    appendLog(r.log, 'log-system');
+  } else {
+    // attack — handle dual weapons
+    playerAttack();
+  }
+
+  if (!checkDeath()) {
+    resolveEnemyTurn();
+  }
+}
+
+function playerAttack() {
+  const w = TB_WEAPONS[player.weaponId];
+  const hits = w.dualHit ? 2 : 1;
+  for (let i = 0; i < hits; i++) {
+    if (enemy.hp <= 0) break;
+    const r = TB_attack(player, enemy, { turn });
+    applyDamage(enemy, r.damage, r.counterDamage ? player : null, r.counterDamage);
+    appendLog((hits > 1 ? `[第${i+1}擊] ` : '') + r.log,
+      r.crit ? 'log-crit' : r.hit ? '' : 'log-miss');
+    if (r.injuredPart) appendLog(`  ※ ${enemy.name}【${r.injuredPart}】受傷（${r.injuryLevel}）`, 'log-injury');
+    if (r.counterDamage) {
+      appendLog(`  ↩ 反擊！玩家受到 ${r.counterDamage} 傷害`, 'log-crit');
+    }
+    // killAura：首次命中後重算壓制
+    if (r.hit && player._killIntimActivated && !player._killAuraApplied && player._killIntimBonus > 0) {
+      player._killAuraApplied = true;
+      const newP2e = TB_calcPressure(player, enemy);
+      if (newP2e.penalty > (enemy._pressurePenalty || 0)) {
+        TB_applyPressure(enemy, newP2e.penalty, player.name + '（殺戮美學）');
+        appendLog(`  ★ 殺戮美學觸發！威嚇加深，${enemy.name}全屬性壓制升至 -${Math.round(newP2e.penalty*100)}%`, 'log-special');
+      }
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// ENEMY TURN
+// ═══════════════════════════════════════════════════════
+function resolveEnemyTurn() {
+  if (!battleActive || enemy.hp <= 0) { endTurnCleanup(); return; }
+
+  const decision = TB_bossDecide(enemy, player, { turn });
+
+  if (decision.log) appendLog(decision.log,
+    decision.action === 'triple_stab' || decision.action === 'mountain_crash' || decision.action === 'special_release'
+      ? 'log-special' : 'log-system');
+
+  switch (decision.action) {
+    case 'attack': {
+      const r = TB_attack(enemy, player, { turn });
+      applyDamage(player, r.damage, r.counterDamage ? enemy : null, r.counterDamage);
+      appendLog(r.log, r.crit ? 'log-crit' : r.hit ? '' : 'log-miss');
+      if (r.injuredPart) appendLog(`  ※ 玩家【${r.injuredPart}】受傷（${r.injuryLevel}）`, 'log-injury');
+      break;
+    }
+    case 'mountain_crash': {
+      const r = TB_attack(enemy, player, { turn }, { mountainCrash: true });
+      applyDamage(player, r.damage, null, 0);
+      appendLog(r.log, 'log-crit');
+      if (r.injuredPart) appendLog(`  ※ 玩家【${r.injuredPart}】受傷（${r.injuryLevel}）`, 'log-injury');
+      break;
+    }
+    case 'triple_stab': {
+      for (let i = 0; i < 3; i++) {
+        if (player.hp <= 0) break;
+        const r = TB_attack(enemy, player, { turn });
+        applyDamage(player, r.damage, r.counterDamage ? enemy : null, r.counterDamage);
+        appendLog(`  [刺${i+1}] ${r.log}`, r.crit ? 'log-crit' : r.hit ? '' : 'log-miss');
+      }
+      break;
+    }
+    case 'defend': {
+      TB_defend(enemy);
+      break;
+    }
+    case 'counter_stance':
+    case 'charge':
+      updateSkillDisplay(); // show stance/charge warning immediately
+      break;
+    case 'special_release': {
+      const eSp = TBC.SPECIALS[enemy.gaugeRoute];
+      if (eSp) appendLog(`  ${SPECIAL_FULL_DESC[enemy.gaugeRoute] || ''}`, 'log-special');
+      updateSkillDisplay();
+      break;
+    }
+  }
+
+  if (!checkDeath()) {
+    endTurnCleanup();
+  }
+}
+
+function endTurnCleanup() {
+  if (!battleActive) return;
+
+  const pMsg = TB_endTurnGauge(player);
+  const eMsg = TB_endTurnGauge(enemy);
+  if (pMsg) appendLog(pMsg, 'log-system');
+  if (eMsg) appendLog(eMsg, 'log-system');
+
+  // Gruen regen
+  if (enemy.passive === 'regen5') {
+    const regenCap = Math.round(enemy._hpMax * 0.5);
+    const regen = Math.min(3, Math.max(0, regenCap - enemy.hp));
+    if (regen > 0) {
+      enemy.hp = Math.min(enemy._hpMax, enemy.hp + regen);
+      appendLog(`  ${enemy.name} 被動回血 +${regen}`, 'log-system');
+    }
+  }
+
+  turn++;
+  appendLog(`── 回合 ${turn} ──`, 'log-turn');
+  document.getElementById('round-display').textContent = `第 ${turn} 回合`;
+
+  try { updateCombatantUI(); }   catch(e) { console.error('[UI] updateCombatantUI:', e); }
+  try { updateSkillDisplay(); }  catch(e) { console.error('[UI] updateSkillDisplay:', e); }
+  setActionButtons(true);
+  try { checkSpecialReady(); }   catch(e) { console.error('[UI] checkSpecialReady:', e); }
+}
+
+// ═══════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════
+function applyDamage(target, dmg, counterTarget, counterDmg) {
+  const wasAbove30 = target.hp >= target._hpMax * 0.30;
+  if (dmg > 0) target.hp = Math.max(0, target.hp - dmg);
+  if (counterTarget && counterDmg > 0)
+    counterTarget.hp = Math.max(0, counterTarget.hp - counterDmg);
+
+  // 背水一戰：首次跌破30%時觸發
+  if (wasAbove30 && target.hp < target._hpMax * 0.30 && battleActive) {
+    const opp = target === player ? enemy : player;
+    if (TB_triggerLastStand(target, opp)) {
+      appendLog(`【背水一戰】${target.name} HP跌破30%！恐懼消散，對 ${opp.name} 反施壓 -15%！`, 'log-special');
+      updateCombatantUI();
+    }
+  }
+}
+
+function checkDeath() {
+  if (enemy.hp <= 0) {
+    appendLog(`\n勝利！${enemy.name} 已倒下。`, 'log-win');
+    battleActive = false;
+    stopAuto();
+    setActionButtons(false);
+    updateCombatantUI();
+    return true;
+  }
+  if (player.hp <= 0) {
+    appendLog(`\n敗北。你倒在競技場的血泊中。`, 'log-die');
+    battleActive = false;
+    stopAuto();
+    setActionButtons(false);
+    updateCombatantUI();
+    return true;
+  }
+  return false;
+}
+
+function checkSpecialReady() {
+  if (!player) return;
+  const btn = document.getElementById('btn-special');
+  if (player.gauge >= TBC.GAUGE_MAX) {
+    btn.classList.add('special-ready');
+    const sp = TBC.SPECIALS[player.gaugeRoute];
+    btn.textContent = `★ ${sp.name}`;
+  } else {
+    btn.classList.remove('special-ready');
+    btn.textContent = '釋放特技';
+  }
+}
+
+function appendLog(text, cls='') {
+  if (!text && !cls) return;
+  const log = document.getElementById('battle-log');
+  const div = document.createElement('div');
+  div.className = 'log-line ' + cls;
+  div.textContent = text;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+// ─── Bar updates ─────────────────────────────────────
+function setBar(prefix, current, max) {
+  const pct = max > 0 ? Math.max(0, (current / max) * 100) : 0;
+  document.getElementById(prefix+'-bar').style.width = pct + '%';
+  document.getElementById(prefix+'-txt').textContent = `${Math.max(0,current)} / ${max}`;
+}
+
+function setGaugeBar(prefix, value, route) {
+  const pct = Math.min(100, Math.max(0, value));
+  const bar = document.getElementById(prefix+'-bar');
+  bar.style.width = pct + '%';
+  bar.className = `bar-fill gauge-fill ${route}`;
+  document.getElementById(prefix+'-txt').textContent = `${Math.round(value)} / 100`;
+}
+
+function updateCombatantUI() {
+  if (!player || !enemy) return;
+
+  // Player
+  document.getElementById('pname').textContent  = player.name;
+  document.getElementById('ptitle').textContent = player.traitId !== 'none'
+    ? (TB_TRAITS[player.traitId]?.name || '') : '—';
+  setBar('php', player.hp, player._hpMax);
+  setGaugeBar('pgauge', player.gauge, player.gaugeRoute);
+  document.getElementById('pgauge-label').textContent = `儀表 (${routeLabel(player.gaugeRoute)})`;
+  // Status
+  let pStatus = '';
+  if (player.gaugeActive) {
+    const sp = TBC.SPECIALS[player.gaugeRoute];
+    pStatus = `【${sp.name}】剩${player.gaugeActiveLeft}回合`;
+  }
+  document.getElementById('pstatus').textContent = pStatus;
+
+  // Enemy
+  document.getElementById('ename').textContent = enemy.name;
+  document.getElementById('etitle').textContent = enemy.title;
+  setBar('ehp', enemy.hp, enemy._hpMax);
+  setGaugeBar('egauge', enemy.gauge, enemy.gaugeRoute);
+  document.getElementById('egauge-label').textContent = `儀表 (${routeLabel(enemy.gaugeRoute)})`;
+  // Enemy status
+  let eStatus = '';
+  if (enemy._counterStance)  eStatus = '【反制姿態】';
+  if (enemy._charging)       eStatus = '【蓄力中…】';
+  if (enemy.gaugeActive) {
+    const sp = TBC.SPECIALS[enemy.gaugeRoute];
+    eStatus += `【${sp.name}】剩${enemy.gaugeActiveLeft}回合`;
+  }
+  document.getElementById('estatus').textContent = eStatus;
+
+  // Mini derived stats
+  fillMiniStats('p-mini-stats', player);
+  fillMiniStats('e-mini-stats', enemy);
+}
+
+// ═══════════════════════════════════════════════════════
+// AUTO BATTLE
+// ═══════════════════════════════════════════════════════
+function toggleAuto() {
+  if (autoRunning) {
+    stopAuto();
+  } else {
+    startAuto();
+  }
+}
+
+function startAuto() {
+  if (!battleActive) return;
+  autoRunning = true;
+  const btn = document.getElementById('btn-auto');
+  btn.textContent = '停止自動';
+  btn.classList.add('auto-on');
+  runAutoStep();
+}
+
+function stopAuto() {
+  if (autoTimer) clearTimeout(autoTimer);
+  autoTimer = null;
+  autoRunning = false;
+  const btn = document.getElementById('btn-auto');
+  if (btn) { btn.textContent = '自 動'; btn.classList.remove('auto-on'); }
+}
+
+function runAutoStep() {
+  if (!battleActive || !autoRunning) { stopAuto(); return; }
+
+  // Disable manual buttons during auto
+  ['btn-attack','btn-defend','btn-special'].forEach(id =>
+    document.getElementById(id).disabled = true);
+
+  // Auto-player logic: release special if full, else attack
+  const action = (player.gauge >= TBC.GAUGE_MAX) ? 'special' : 'attack';
+  doAction(action);
+
+  if (battleActive && autoRunning) {
+    autoTimer = setTimeout(runAutoStep, 600);
+  } else {
+    stopAuto();
+  }
+}
+
+// ─── Initial UI ───────────────────────────────────────
+refreshDerived();
+</script>
+</body>
+</html>

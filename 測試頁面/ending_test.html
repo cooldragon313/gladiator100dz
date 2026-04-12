@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8"/>
+<title>Ending 測試頁</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#080604; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; gap:20px; font-family:'Noto Serif TC',serif; }
+  h1 { color:#6a5a48; font-size:14px; letter-spacing:.3em; margin-bottom:10px; }
+  .test-btn {
+    padding:14px 48px;
+    background:transparent;
+    font-family:inherit; font-size:16px; letter-spacing:.2em;
+    cursor:pointer; transition:background .2s, border-color .2s;
+  }
+  .btn-survivor { border:1px solid #b8960c; color:#d4af37; }
+  .btn-survivor:hover { background:rgba(212,175,55,.1); }
+  .btn-death    { border:1px solid #8b0000; color:#c0392b; }
+  .btn-death:hover { background:rgba(139,0,0,.1); }
+  .hint { color:#3a2a18; font-size:11px; letter-spacing:.2em; margin-top:20px; }
+</style>
+</head>
+<body>
+  <h1>百日萬骸祭 · ENDING 測試</h1>
+  <button class="test-btn btn-survivor" onclick="Endings.test('survivor')">⚔ 測試：萬骸祭生存者</button>
+  <button class="test-btn btn-death"    onclick="Endings.test('death')">💀 測試：戰死</button>
+  <p class="hint">亦可在 game.html console 輸入 Endings.test('survivor') 測試</p>
+
+  <!-- Mock Stats so ending.js can get player name -->
+  <script>
+    const Stats = { player: { name: '試煉者' } };
+  </script>
+  <script src="../ending.js"></script>
+</body>
+</html>

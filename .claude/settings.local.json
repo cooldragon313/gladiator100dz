@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(python -c ':*)",
-      "Bash(where python:*)"
+      "Bash(where python:*)",
+      "Bash(cmd /c \"node -e \\\\\"const r={ATK:Math.round\\(0.7*10+0.2*8+4\\),DEF:Math.round\\(0.3*10+0.1*10\\),EVA:Math.round\\(1.2*8+0.3*8\\)};console.log\\(JSON.stringify\\(r\\)\\)\\\\\"\")",
+      "Bash(cmd /c \"cd /d \\\\\"c:\\\\Users\\\\plee3\\\\Downloads\\\\AI FOLDER\\\\100dz2LoD\\\\\" && node -e \\\\\"const fs=require\\('fs'\\); eval\\(fs.readFileSync\\('testbattle.js','utf8'\\)\\); try{ TB_calcDerived\\({STR:25,DEX:25,CON:25,AGI:25,WIL:25,LUK:25,hpBase:60,weaponId:'fists',armorId:'rags',shieldId:'none',amuletId:'none',traitId:'none'}\\); console.log\\('OK'\\); }catch\\(e\\){ console.log\\('ERR:'+e.message\\); }\\\\\" 2>&1\")",
+      "Bash(node -e ':*)"
     ]
   }
 }

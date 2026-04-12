@@ -207,6 +207,495 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       v1.6  主手/副手雙槽系統
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">FEATURE</span>
+      <span class="version-title">v1.6 — 主手/副手雙槽系統</span>
+      <span class="version-date">2026-04-13</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">裝備槽位重構：副手槽 <span class="file-tag">stats.js</span>
+          — <code>equippedShield</code> 改為 <code>equippedOffhand</code>，
+          副手槽可裝備盾牌（原有）或單手武器（雙持），雙手武器裝備時副手強制為空</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">路線由裝備組合決定 <span class="file-tag">testbattle.js</span> <span class="file-tag">stats.js</span>
+          — 副手為盾牌 → 鎖定 <strong>fury</strong>（盾牆流）；
+          副手為單手武器（雙持）→ 鎖定 <strong>rage</strong>（狂暴流）；
+          其他情況 → 沿用主手武器原始路線</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">雙持修正 <span class="file-tag">testbattle.js</span> <span class="file-tag">stats.js</span>
+          — 副手武器 ATK ×50% 加入總攻擊；ACC −5（精度分散）；SPD −3（協調困難）；
+          BLK / BpWr 歸 0（雙持無法格擋）</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">戰鬥單位副手支援 <span class="file-tag">battle.js</span>
+          — 新增 <code>_mapOffhand()</code> 輔助函式（同時檢查 TB_SHIELDS 與 TB_WEAPONS）；
+          <code>start()</code> / <code>startFromConfig()</code> 改傳 <code>offhandId</code>；
+          敵人仍使用 <code>shieldId</code>（透過 fallback 向下相容）</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">存檔版本升至 v4 <span class="file-tag">main.js</span>
+          — 同時接受 v2/v3/v4；讀檔自動遷移 <code>equippedShield → equippedOffhand</code>；
+          角色狀態面板「盾牌」標籤改為「副手」，雙持時顯示武器名＋「（副）」</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">設計文件更新 <span class="file-tag">DESIGN.md</span>
+          — 新增「主手/副手雙槽系統」段落，記錄路線判定規則、雙持代價與加成、
+          三種玩法定位（盾衛 / 狂戰 / 刺客），取代舊「盾牌待修問題」</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
+       v1.5  左欄 UI 放大 + 時間格顯示兩小時
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag tweak">TWEAK</span>
+      <span class="version-title">v1.5 — 左欄 UI 放大 · 時間格顯示兩小時</span>
+      <span class="version-date">2026-04-13</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">左欄整體字體放大 <span class="file-tag">game.html</span>
+          — 左欄寬度 240→290px；時間格文字 9→13px；地點頁籤圖示 14→18px、名稱 9→12px；
+          動作名 14→17px、費用 11→14px；就寢按鈕 13→16px；競技場費用 16→17px</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">時間格改顯示兩小時區間 <span class="file-tag">main.js</span>
+          — 從顯示單一時刻（<code>06</code>）改為區間（<code>06-08</code>、<code>08-10</code>…<code>20-22</code>）；
+          費用顯示從「⏱1格」改為「⏱2小時」；競技場費用同步調整</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
+       v1.4  心情與體力連動
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">FEATURE</span>
+      <span class="version-title">v1.4 — 心情與體力連動</span>
+      <span class="version-date">2026-04-13</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">心情加成乘數 <span class="file-tag">main.js</span>
+          — 心情 ≥70：訓練／休息／進食等行動的所有正向效果（vital 與 attr）乘以 <strong>×1.25</strong>；
+          心情 ≤30：乘以 <strong>×0.75</strong>；其餘區間不作調整；
+          行動 log 列尾自動附加說明（例：「（心情佳 ×1.25）」或「（心情低落 ×0.75）」）</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">體力懲罰機制 <span class="file-tag">stats.js</span>
+          — 體力 ≤30：六項基礎屬性（STR／DEX／CON／AGI／WIL／LUK）各 <strong>−2</strong>；
+          體力 ≤15：各 <strong>−4</strong>；懲罰值存於 <code>player.staminaPenalty</code>，
+          在 <code>eff(attr)</code> 函式中與裝備加成、Buff 加成一同計算，
+          並於每次 <code>modVital('stamina', ...)</code> 後自動更新</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">戰鬥屬性快照改用 <code>Stats.eff()</code> <span class="file-tag">battle.js</span>
+          — <code>start()</code> 與 <code>startFromConfig()</code> 建立玩家戰鬥單位時，
+          改從 <code>Stats.eff('STR')</code> 等取值（原為直接讀 <code>p.STR</code>），
+          使體力懲罰與裝備／Buff 加成在進入戰鬥時均能正確反映</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
+       v1.3  成就系統（Layer 7）
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">FEATURE</span>
+      <span class="version-title">v1.3 — 成就系統 · 特性效果</span>
+      <span class="version-date">2026-04-13</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">成就定義表（5 個成就）<span class="file-tag">battle.js</span>
+          — 嗜血狂魔 Lv.1（砍首≥10）、嗜血狂魔 Lv.2（砍首≥25）、仁慈之心 Lv.1（饒恕≥10）、
+          完美主義者（S評分≥5）、連勝者（連勝≥5）；
+          解鎖時戰鬥 log 顯示 <code>╔═══ 成就解鎖 ═══╗</code> 框，主場景出現金色通知，頂部 toast 持續 3.5 秒</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">特性系統（4 種特性）<span class="file-tag">battle.js</span> <span class="file-tag">npc.js</span>
+          — 窮凶惡極：開場額外施加 -10% 威嚇；
+          劊子手：低名聲（&lt;30）敵人開場心理崩潰 -20%；
+          寬厚：所有正向好感成長 ×1.2（npc.js 的 <code>modAffection</code> 加乘）；
+          效率殺手：評分 tick 閾值各降 10%</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">連勝場數追蹤 <span class="file-tag">battle.js</span> <span class="file-tag">stats.js</span>
+          — <code>combatStats.winStreak</code>：勝利 +1，失敗歸 0；
+          連勝者成就解鎖後 <code>player.fameBase</code> 永久 +5，每場競技場勝利固定加成</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">玩家新增欄位 <span class="file-tag">stats.js</span>
+          — <code>achievements[]</code>、<code>traits[]</code>、<code>title</code>、<code>fameBase</code></span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">存檔版本升至 v3 <span class="file-tag">main.js</span>
+          — 同時接受 v2（向下相容），讀檔後自動補齊新欄位預設值；
+          存檔新增 <code>achievements</code>、<code>traits</code> 陣列序列化</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
+       v1.2  自動模式三段切換（Layer 6）
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">FEATURE</span>
+      <span class="version-title">v1.2 — 自動模式三段切換 · 硬核倒數</span>
+      <span class="version-date">2026-04-13</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">自動按鈕三段循環 <span class="file-tag">battle.js</span>
+          — 關閉 → 自動 → 硬核 → 關閉；按鈕顏色：一般（灰）→ 自動中（綠）→ 硬核中（紅閃爍）</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">硬核模式 <span class="file-tag">battle.js</span> <span class="file-tag">game.html</span>
+          — ATB 滿時開放按鈕並啟動 5 秒倒數（<code>#bt-hc-count</code>，紅色閃爍）；
+          玩家及時行動則取消倒數；超時記為「猶豫」，跳過本次行動，ATB 歸 0</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">硬核模式樣式 <span class="file-tag">game.html</span>
+          — <code>.bt-btn.hardcore-on</code> 橙紅色 + 脈衝動畫；倒數數字 <code>⏱ 5</code> 紅色閃爍動畫</span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       v1.1  雙門檻技能 + Delay（Layer 5）
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">FEATURE</span>
+      <span class="version-title">v1.1 — 雙門檻技能系統 · Delay 機制</span>
+      <span class="version-date">2026-04-13</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">50% 小技能（三條路線）<span class="file-tag">battle.js</span>
+          — rage：爆筋（下次攻擊 ATK×1.6，即時）；
+          focus：瞬刺（下次攻擊必中 + 暴擊+20%，delay 1 個 ATB 週期）；
+          fury：強架（下次受擊傷害 -80%，即時）</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">Delay 蓄力機制 <span class="file-tag">battle.js</span>
+          — gauge 不消耗、按鈕鎖定；倒數完成後自動發動攻擊；
+          蓄力中被敵人命中即打斷，gauge 保留，log 顯示「瞬刺被打斷！」</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">技能按鈕雙段顯示 <span class="file-tag">battle.js</span> <span class="file-tag">game.html</span>
+          — gauge&lt;50%：禁用「技能」；
+          gauge≥50%：橙色脈衝 <code>◈ 爆筋</code>；
+          gauge≥100%：金色 <code>★ 血怒</code>；
+          狀態列顯示蓄力倒數秒數、爆筋待命、強架待命</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">強架傷害減免邏輯 <span class="file-tag">battle.js</span>
+          — 在 <code>_applyDamage()</code> 中攔截，被打 -80%，log 顯示減免前後數值</span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       v1.0  ATB 時間條系統（Layer 4）
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">FEATURE</span>
+      <span class="version-title">v1.0 — ATB 時間條系統（核心改造）</span>
+      <span class="version-date">2026-04-13</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">ATB 條（FFVI 風格）<span class="file-tag">battle.js</span>
+          — 玩家 / 敵人各有獨立 0–100 ATB 條；每 100ms tick 填充；
+          填充速率：<code>min(6.5, max(8, SPD) / swingTime)</code>；
+          敵人 ATB 滿 → AI 自動行動；玩家 ATB 滿 → 開放行動按鈕（或自動模式觸發）</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">全局 tick 計數器 <span class="file-tag">battle.js</span>
+          — <code>_battleTick++</code> 移入 <code>_atbTick()</code>；
+          評分閾值更新：<code>RATING_TICKS = { S:60, A:100, B:120 }</code>（原為回合數代理 5/9/14）</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">ATB 條 UI <span class="file-tag">game.html</span>
+          — 玩家卡：藍色漸層，滿格綠色發光；敵人卡：紅色漸層；
+          無過渡動畫（<code>transition:none</code>，即時更新）；顯示百分比數字</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">自動模式重構 <span class="file-tag">battle.js</span>
+          — 移除舊 <code>setInterval</code> 計時器；改由 <code>_atbTick()</code> 在 ATB 滿時偵測並觸發；
+          新增 <code>_stopAtbLoop()</code> 確保戰鬥結束時清理計時器</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
+       v0.9  自動存檔 · 日誌修正
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">FEATURE</span>
+      <span class="version-title">v0.9 — 自動存檔系統 · 日誌修正</span>
+      <span class="version-date">2026-04-12</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">實裝自動存檔系統 <span class="file-tag">main.js</span> <span class="file-tag">npc.js</span>
+          — <code>saveGame()</code> / <code>loadGame()</code> / <code>clearSave()</code>；
+          存入 <code>localStorage['bairi_save_v1']</code>，包含玩家所有數值、當前場景、所有 NPC 好感度、存檔時間戳</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">繼續/新遊戲 Modal <span class="file-tag">main.js</span>
+          — 開啟遊戲時若有存檔，命名 Modal 改顯示「繼續冒險」與「新的命運（清除存檔）」選項；
+          顯示角色名、第幾天、上次存檔時間</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">自動存檔觸發點 <span class="file-tag">main.js</span>
+          — 每次執行動作、每次就寢換天、首次輸入名字後各自呼叫 <code>saveGame()</code></span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">設定頁新增「清除存檔」按鈕 <span class="file-tag">game.html</span>
+          — 確認後清除 localStorage 並重新整理頁面</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">FIX</span>
+        <span class="change-text">日誌不再更新問題 <span class="file-tag">main.js</span>
+          — 將 <code>renderLog()</code> 加入 <code>renderAll()</code>，確保每次畫面刷新同步；
+          新增 <code>scrollTop = 0</code> 讓最新條目永遠顯示在頂端</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">動作日誌加入效果摘要 <span class="file-tag">main.js</span>
+          — 執行動作後日誌顯示格式：<code>【基礎揮砍】　STR+0.5</code>、<code>【用正餐】　food+40 · mood+8</code></span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">FIX</span>
+        <span class="change-text">NPC 槽位改顯示職稱而非角色類型 <span class="file-tag">main.js</span>
+          — 隊友/觀眾標籤改用 <code>npc.title</code>（老練劍士、訓練監督、廚娘等）</span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       v0.8  動作系統 · 時間格推進 · NPC 每日擲骰 · 事件觸發
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">FEATURE</span>
+      <span class="version-title">v0.8 — 動作系統 · 2小時時間格 · NPC每日擲骰 · 動作後事件</span>
+      <span class="version-date">2026-04-12</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">建立動作定義系統 <span class="file-tag">actions.js</span>（新檔）
+          — 27 個動作，涵蓋：通用休息、寢室（小睡/沉思/記錄）、訓練場（6種）、廚房（用餐/幫廚/偷食）、
+          鍛造坊、長官房、主人房、市集、出城；每個動作含 <code>slots</code>、體力消耗、飽食消耗、效果、事件池</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">左側面板全面重設計 <span class="file-tag">game.html</span> <span class="file-tag">main.js</span>
+          — 舊版場景按鈕列表移除，改為三層結構：
+          ①時間格列（8格×2小時，已用/當前/未來三色），
+          ②地點分頁（4×2緊湊格，圖示+3字名，點擊免費切換），
+          ③動作列表（捲動，含體力/時間消耗，不足時灰化並標示原因）</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">2 小時時間格推進系統 <span class="file-tag">main.js</span>
+          — 每天 06:00–22:00 共 8 格；執行動作消耗 1 格（120分鐘），切換地點免費；
+          「就寢」按鈕結束當天，觸發隔夜恢復（體力+40、心情+5、飽食-12），進入次日 06:00</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">NPC 每日在場擲骰 <span class="file-tag">main.js</span>
+          — <code>rollDailyNPCs()</code> 每天首次呼叫時為所有場景一次性擲骰，結果存入 <code>dailyNPCMap</code>；
+          切換場景時從日地圖讀取，不重複擲骰；就寢換天後自動重新擲骰</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">動作後事件觸發系統 <span class="file-tag">main.js</span> <span class="file-tag">events.js</span>
+          — 40% 機率觸發動作專屬事件池；15% 觸發通用隨機場地事件；
+          新增 25 個動作後事件：訓練受傷、監督官點頭、切磋連結、梅拉偷塞食物、黑暗料理、
+          被抓偷竊、葛拉故事、長官評價/任務/冷漠、主人賞賜/警告、市場小偷/謠言/粉絲、採草藥、野生動物等</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">FIX</span>
+        <span class="change-text">好感度雙軌同步 <span class="file-tag">main.js</span> <span class="file-tag">actions.js</span>
+          — 透過 <code>NPC_AFF_KEY</code> 映射表，動作/事件套用 affection 效果時同步更新
+          <code>teammates.affectionMap</code> 與 <code>Stats.player.affection</code>（後者用於場景解鎖判斷）</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">起始時間調整 <span class="file-tag">stats.js</span>
+          — <code>time: 480 → 360</code>（08:00 → 06:00），配合 8 格時間系統</span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       v0.7  派生屬性重設計 · HP/BpWr/SPD · 戰鬥平衡
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">FEATURE</span>
+      <span class="version-title">v0.7 — 派生屬性重設計 · 新增 BpWr · HP/SPD 公式</span>
+      <span class="version-date">2026-04-12</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">全面重設計派生屬性公式 <span class="file-tag">testbattle.js</span>
+          — ATK/DEF/ACC/CRT/CDMG/PEN/BLK/EVA/SPD 各有新上限（CRT≤75%、CDMG≤300%、PEN≤75%、BLK≤75%、EVA≤95%）；
+          STR/CON/DEX/AGI/WIL/LUK 在不同派生屬性中各有主副加成比例</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">新增格檔減傷屬性 BpWr（Block Power）<span class="file-tag">testbattle.js</span>
+          — 上限 85%；由 STR×0.5 + 盾牌BLK×1.5 + 護符 計算；
+          BLK 負責格檔觸發率，BpWr 負責格檔後減傷比例，兩者概念分離</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">HP 公式重定義 <span class="file-tag">testbattle.js</span>
+          — <code>hpMax = hpBase + 2×CON + 護符加成 + 特性加成</code>；
+          派生面板顯示格式：<code>80 (45+20+15)</code>（基礎+CON加成+其他）</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">SPD 作為攻速加乘 <span class="file-tag">testbattle.js</span>
+          — <code>spdBonus = min(30%, SPD×0.5%)</code>；面板顯示：<code>18 (攻速-9%)</code></span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">名聲壓制與意志抗壓系統 <span class="file-tag">testbattle.js</span>
+          — 差值公式：<code>(高名聲-低名聲) × 基數</code>；WIL 僅作防禦性抗壓，不影響施壓；
+          新增特性：勇往直前（逆境壓制免疫）、窮凶惡極（殺人後威嚇+10%）</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">敵人數值重設計 <span class="file-tag">testbattle.js</span>
+          — 所有敵人六維/HP 縮小以延長戰鬥回合數；Boss 三人組（格魯恩/沃達/賽拉）HP 各 100-120；
+          武器 ATK 減半（鐵劍 18→8）、防具 DEF 縮減（鐵甲 38→14）</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">FIX</span>
+        <span class="change-text">testbattle.html 戰鬥鍵無法啟動修正 <span class="file-tag">testbattle.html</span>
+          — 修正 HTML 標籤缺少 <code>&gt;</code>（line 321）；
+          修正 <code>buildPreviewUnit</code> 傳入 <code>hpBase</code> 而非 <code>hpMax</code>；
+          修正預設值讀取 <code>p.HP</code> 而非 <code>p.hpMax</code></span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       v0.6  戰鬥測試平台 testbattle
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">FEATURE</span>
+      <span class="version-title">v0.6 — 戰鬥測試平台（testbattle）</span>
+      <span class="version-date">2026-04-12</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">建立獨立戰鬥測試頁 <span class="file-tag">testbattle.html</span> <span class="file-tag">testbattle.js</span>
+          — 可自由調整玩家六維/HP/名聲、選擇武器/護甲/護符/特性/敵人；
+          即時顯示派生屬性面板、與敵人的屬性對比表、敵人資訊欄</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">三條儀表路線系統 <span class="file-tag">testbattle.js</span>
+          — 狂暴路線（被打/被暴擊/低血量蓄積→血怒：ATK×2、DEF×0.5）；
+          集中路線（命中/暴擊/閃躲蓄積→絕對瞬息：必中+暴擊+攻速×1.5）；
+          怒氣路線（格擋/防禦蓄積→盾牆反擊：防禦+999+反擊×1.5）</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">Boss AI 系統 <span class="file-tag">testbattle.js</span>
+          — 格魯恩（蓄力重擊+回血）、沃達（強化重擊+HP<30%狂化）、賽拉（冷眼凝視+閃電雙擊）；
+          各有被動、特技說明、弱點標記</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">FIX</span>
+        <span class="change-text">修正戰鬥一擊即停 Bug <span class="file-tag">testbattle.html</span>
+          — <code>ROUTE_CFG</code>、<code>SPECIAL_FULL_DESC</code> const 宣告位置在 IIFE 之後導致 Temporal Dead Zone；
+          將兩個 const 移至 IIFE 前方解決</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">完整武器/防具/護符/特性資料 <span class="file-tag">testbattle.js</span>
+          — 11 種武器、4 種護甲、3 種盾牌、6 種護符、15+ 種天賦特性（含鐵骨、嗜血、殺氣、無畏等）</span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
        v0.5  Ending / Battle / 百日條 / 天氣時鐘
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">
@@ -225,7 +714,7 @@ html, body {
       </li>
       <li class="change-item">
         <span class="change-badge badge-new">NEW</span>
-        <span class="change-text">建立 Ending 測試頁 <span class="file-tag">ending_test.html</span>
+        <span class="change-text">建立 Ending 測試頁 <span class="file-tag">測試業面/ending_test.html</span>
           — 可獨立開啟，直接點擊預覽兩種 Ending 效果</span>
       </li>
       <li class="change-item">

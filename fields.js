@@ -318,12 +318,35 @@ function rollFieldNPCs(fieldId) {
   const f = FIELDS[fieldId];
   if (!f) return { teammates: [], audience: [] };
 
-  const teammates = [], audience = [];
+  // Grab NPC_DEFS before any local variable named 'teammates' is declared
+  const NPC_ALL = (typeof teammates !== 'undefined' && teammates.NPC_DEFS)
+                  ? teammates.NPC_DEFS : {};
+
+  // Current slot start hour: 6, 8, 10 … 20
+  const rawTime = (typeof Stats !== 'undefined') ? Stats.player.time : 360;
+  const curHour = 6 + Math.max(0, Math.floor((rawTime - 360) / 120)) * 2;
+
+  const forcedIds = new Set();
+  const tmList = [], audList = [];
+
+  // Step 1: force-add scheduled NPCs
+  Object.values(NPC_ALL).forEach(npc => {
+    if (!npc.schedule) return;
+    npc.schedule.forEach(rule => {
+      if (rule.fields.includes(fieldId) && rule.hours.includes(curHour) && !forcedIds.has(npc.id)) {
+        forcedIds.add(npc.id);
+        (npc.role === 'teammate' ? tmList : audList).push(npc.id);
+      }
+    });
+  });
+
+  // Step 2: random fill, skip already-forced NPCs
   (f.characters || []).forEach(entry => {
+    if (forcedIds.has(entry.npcId)) return;
     if (Math.random() < entry.chance) {
-      if (entry.role === 'teammate') teammates.push(entry.npcId);
-      else audience.push(entry.npcId);
+      (entry.role === 'teammate' ? tmList : audList).push(entry.npcId);
     }
   });
-  return { teammates, audience };
+
+  return { teammates: tmList, audience: audList };
 }
