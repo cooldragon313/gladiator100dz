@@ -3,8 +3,11 @@
  * Depends on: stats.js, fields.js, npc.js, events.js, actions.js
  */
 const Game = (() => {
-  let currentFieldId = 'dirtyCell';
-  let currentNPCs    = { teammates: [], audience: [] };
+  // ── Session state（同步至 GameState 模組）─────────────
+  // 這些 local 變數是 main.js 內部快取，每個 mutation 都會同步到 GameState。
+  // 外部模組請透過 GameState.getXxx() 存取，不要直接讀這裡。
+  let currentFieldId = GameState.getFieldId();          // D.1.12: synced with GameState
+  let currentNPCs    = GameState.getCurrentNPCs();
   const logHistory   = [];
   const MAX_LOG      = 80;
 
@@ -16,8 +19,31 @@ const Game = (() => {
 
   // ── Daily NPC state ───────────────────────────────────
   // Pre-rolled at day start: { fieldId: { teammates:[], audience:[] } }
+  // 同樣同步到 GameState（見 rollDailyNPCs）
   let dailyNPCMap     = {};
   let _lastNPCRollDay = -1;
+
+  // ── 內部：同步 local state 到 GameState ───────────────
+  function _syncField(id) {
+    currentFieldId = id;
+    GameState.setFieldId(id);
+  }
+  function _syncCurrentNPCs(data) {
+    currentNPCs = data;
+    GameState.setCurrentNPCs(data);
+  }
+  function _syncDailyMap(fieldId, data) {
+    dailyNPCMap[fieldId] = data;
+    GameState.setDailyNPCs(fieldId, data);
+  }
+  function _resetDailyMap() {
+    dailyNPCMap = {};
+    GameState.clearDailyNPCs();
+  }
+  function _syncLastRollDay(day) {
+    _lastNPCRollDay = day;
+    GameState.setLastNPCRollDay(day);
+  }
 
   // ── Settings (persisted in localStorage) ─────────────
   const settings = {
@@ -146,8 +172,8 @@ const Game = (() => {
 
     // Force scene + NPCs
     if (ev.forced) {
-      currentFieldId = ev.forcedField;
-      currentNPCs = ev.forcedNPCs;
+      _syncField(ev.forcedField);
+      _syncCurrentNPCs(ev.forcedNPCs);
       renderAll();
 
       // Show battle trigger button inside scene area
@@ -278,13 +304,13 @@ const Game = (() => {
   function rollDailyNPCs() {
     const p = Stats.player;
     if (_lastNPCRollDay === p.day) return;
-    _lastNPCRollDay = p.day;
-    dailyNPCMap = {};
+    _syncLastRollDay(p.day);
+    _resetDailyMap();
     Object.keys(FIELDS).forEach(fid => {
-      dailyNPCMap[fid] = rollFieldNPCs(fid);
+      _syncDailyMap(fid, rollFieldNPCs(fid));
     });
     // Sync currentNPCs for current field
-    currentNPCs = dailyNPCMap[currentFieldId] || { teammates: [], audience: [] };
+    _syncCurrentNPCs(dailyNPCMap[currentFieldId] || { teammates: [], audience: [] });
   }
 
   // ── Time-slot helpers ──────────────────────────────────
@@ -579,7 +605,7 @@ const Game = (() => {
     addLog(`\n────────────────────\n第 ${p.day} 天　天光未明，新的一天開始了。`, '#b8960c', false);
 
     // Roll new day's NPCs
-    _lastNPCRollDay = -1;
+    _syncLastRollDay(-1);
     rollDailyNPCs();
 
     saveGame();
@@ -590,9 +616,9 @@ const Game = (() => {
   // ── Switch scene ──────────────────────────────────────
   function switchField(fieldId) {
     if (fieldId === currentFieldId) return;
-    currentFieldId = fieldId;
+    _syncField(fieldId);
     // Pull from today's NPC roll (no re-rolling on move)
-    currentNPCs = dailyNPCMap[fieldId] || rollFieldNPCs(fieldId);
+    _syncCurrentNPCs(dailyNPCMap[fieldId] || rollFieldNPCs(fieldId));
 
     const f = FIELDS[fieldId];
     if (f) addLog(f.logText, '#ddd', true);
@@ -972,8 +998,9 @@ const Game = (() => {
                         scars:         [...(p.scars || [])],
                       },
         fieldId:      currentFieldId,
+        gameState:    GameState.getSerializable(),  // 🆕 D.1.12: session state
         npcAffection: teammates.getAllAffection(),
-        flags:        Flags.getAll(),            // v5: 故事旗標
+        flags:        Flags.getAll(),                // v5: 故事旗標
         savedAt:      Date.now(),
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(data));
@@ -1034,8 +1061,16 @@ const Game = (() => {
       if (p.religion === undefined) p.religion = null;
       if (p.faction  === undefined) p.faction  = null;
 
-      // Restore field
-      currentFieldId = data.fieldId || 'dirtyCell';
+      // Restore field + game state
+      // 🆕 D.1.12: 統一從 GameState 還原 session state
+      if (data.gameState) {
+        GameState.loadFrom(data.gameState);
+      } else {
+        // 舊存檔（v4 或更早）只有 fieldId
+        GameState.loadFrom({ fieldId: data.fieldId || 'dirtyCell' });
+      }
+      currentFieldId = GameState.getFieldId();
+      currentNPCs    = GameState.getCurrentNPCs();
 
       // Restore NPC affection
       teammates.setAllAffection(data.npcAffection);
@@ -1144,7 +1179,9 @@ const Game = (() => {
         },
       });
       Flags.clear();          // 清空所有故事旗標
-      currentFieldId = 'dirtyCell';
+      GameState.reset();       // 🆕 D.1.12: 清空 session state
+      currentFieldId = GameState.getFieldId();
+      currentNPCs    = GameState.getCurrentNPCs();
       // Restore original name-entry form
       box.innerHTML = `
         <div class="modal-header"><span class="modal-title">你是誰</span></div>
