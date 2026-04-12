@@ -114,18 +114,17 @@ const Game = (() => {
       inner.appendChild(tick);
     }
 
-    // Event markers
-    const events = Events.TIMELINE_EVENTS;
-    Object.entries(events).forEach(([dayStr, ev]) => {
-      const d = parseInt(dayStr);
-      const x = (d - 1) * DAY_W + DAY_W / 2;
+    // 🆕 D.1.10: Event markers（從陣列取代舊的 object lookup）
+    const markers = Events.getTimelineMarkers();
+    markers.forEach(m => {
+      const x = (m.day - 1) * DAY_W + DAY_W / 2;
       const marker = document.createElement('div');
       marker.className = 'hdb-event';
       marker.style.left = x + 'px';
-      marker.title = `第 ${d} 天：${ev.name}`;
+      marker.title = `第 ${m.day} 天：${m.name}`;
       marker.innerHTML = `
-        <span class="hdb-event-icon" style="color:${ev.iconColor}">${ev.icon}</span>
-        <span class="hdb-event-name">${ev.name}</span>
+        <span class="hdb-event-icon" style="color:${m.iconColor}">${m.icon}</span>
+        <span class="hdb-event-name">${m.name}</span>
       `;
       inner.appendChild(marker);
     });
@@ -149,7 +148,8 @@ const Game = (() => {
     if (past) past.style.width = todayX + 'px';
 
     // Today icon — changes if today is a timeline event
-    const tlEv = Events.TIMELINE_EVENTS[p.day];
+    // 🆕 D.1.10: 用條件化查詢
+    const tlEv = Events.getTimelineEvent(p.day);
     if (todayIcon) {
       todayIcon.textContent = tlEv ? tlEv.icon : '◆';
       todayIcon.style.color = tlEv ? tlEv.iconColor : 'var(--blood-lt)';
@@ -162,7 +162,8 @@ const Game = (() => {
 
   function checkTimelineEvent() {
     const p   = Stats.player;
-    const ev  = Events.TIMELINE_EVENTS[p.day];
+    // 🆕 D.1.10: 使用條件化查詢
+    const ev  = Events.getTimelineEvent(p.day);
     if (!ev || _lastTriggeredDay === p.day) return;
     _lastTriggeredDay = p.day;
 

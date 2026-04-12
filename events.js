@@ -87,17 +87,38 @@ const Events = (() => {
 
   // ── Timeline Events (百日條) ──────────────────────────
   /**
-   * 每個條目對應某天觸發的特殊事件。
-   * icon      : 百日條上顯示的符號
-   * iconColor : 符號顏色
-   * type      : 'forced_battle' | 'final' | 'story'
-   * forced    : true = 當天只能待在 forcedField，無法切換場景
-   * forcedNPCs: 強制出現的 NPC 列表
-   * opponent  : 戰鬥對手 (Enemies key)
-   * actionLabel: 觸發戰鬥的按鈕文字
+   * D.1.10 重構：從「天數 → 單一事件」改為「事件池 + 條件篩選」。
+   *
+   * 每個條目欄位：
+   *   day         : 天數（必須）
+   *   priority    : 優先度（多個事件符合條件時，高者勝；預設 10）
+   *   conditions  : 觸發條件（見 _matchConditions）
+   *   icon/iconColor/name/type/forced/forcedField/forcedNPCs/opponent/actionLabel/logText
+   *
+   * conditions 支援的鍵：
+   *   flag       : 'x' or ['x','y']（必須全部為 true）
+   *   flagNot    : 同上（必須全部為 false）
+   *   origin     : 'farmBoy' （玩家背景必須是這個）
+   *   originNot  : 'farmBoy' （玩家背景不能是這個）
+   *   facility   : 訓練所 ID
+   *   worldState : 'warTime' / 'plague' / ...
+   *   worldStateNot: 同上
+   *   minFame    : 最低名聲
+   *   maxFame    : 最高名聲
+   *   minDay     : 最低天數（通常與 day 一致）
+   *
+   * 範例（未來可加入）：
+   *   { day: 5, priority: 20, conditions: { worldState: 'warTime' },
+   *     id: 'trial_war', ... }  // 戰亂時版本
+   *   { day: 5, priority: 10, conditions: {},
+   *     id: 'trial', ... }      // 和平預設版本
    */
-  const TIMELINE_EVENTS = {
-    5: {
+  const TIMELINE_EVENTS = [
+    // Day 5：基礎考驗（通用）
+    {
+      day: 5,
+      priority: 10,
+      conditions: {},
       id: 'trial',
       name: '基礎考驗',
       icon: '⚔',
@@ -113,7 +134,12 @@ const Events = (() => {
       actionLabel: '進入考驗',
       logText: '訓練場的沙地今天格外安靜。\n長官站在觀台上，主人也親自到場。\n這不是平常的練習——今天是你第一次真正的考驗。\n贏，才能繼續走下去。',
     },
-    50: {
+
+    // Day 50：大型競技（通用）
+    {
+      day: 50,
+      priority: 10,
+      conditions: {},
       id: 'major_arena',
       name: '大型競技',
       icon: '★',
@@ -129,7 +155,12 @@ const Events = (() => {
       actionLabel: '踏上沙場',
       logText: '第五十天。整個競技場都動員了起來。\n領主的使者也出現在觀台上，這場競技不只是娛樂。\n你的名字已傳出這片沙地——今天，你要讓更多人記住它。',
     },
-    75: {
+
+    // Day 75：宿敵會戰（通用）
+    {
+      day: 75,
+      priority: 10,
+      conditions: {},
       id: 'rival_battle',
       name: '宿敵會戰',
       icon: '⚔',
@@ -145,7 +176,12 @@ const Events = (() => {
       actionLabel: '迎戰宿敵',
       logText: '你知道這一天遲早會來。\n那個一直在暗中觀察你的人——今天終於走上了對面。\n沒有退路，沒有第二次機會。\n贏，或者死。',
     },
-    100: {
+
+    // Day 100：萬骸祭（終局）
+    {
+      day: 100,
+      priority: 10,
+      conditions: {},
       id: 'final_festival',
       name: '萬骸祭',
       icon: '🔥',
@@ -161,7 +197,90 @@ const Events = (() => {
       actionLabel: '踏入萬骸祭',
       logText: '一百天。你活過了一百天。\n萬骸祭的號角已然吹響，整個城市都在震顫。\n這是最後一場。\n勝者得到一切——敗者化作萬骸祭的祭品。',
     },
-  };
+  ];
+
+  // ── Timeline condition matcher ────────────────────────
+  /**
+   * 檢查條件是否符合當前遊戲狀態。
+   * 所有鍵都是 AND 關係（全部必須符合才算 pass）。
+   */
+  function _matchConditions(cond) {
+    if (!cond || typeof cond !== 'object') return true;
+
+    const p = (typeof Stats !== 'undefined') ? Stats.player : null;
+
+    // flag / flagNot（支援字串或陣列）
+    if (cond.flag && typeof Flags !== 'undefined') {
+      const flags = Array.isArray(cond.flag) ? cond.flag : [cond.flag];
+      if (!Flags.hasAll(flags)) return false;
+    }
+    if (cond.flagNot && typeof Flags !== 'undefined') {
+      const flags = Array.isArray(cond.flagNot) ? cond.flagNot : [cond.flagNot];
+      if (!Flags.hasNone(flags)) return false;
+    }
+
+    // 身分
+    if (cond.origin    && p && p.origin   !== cond.origin)    return false;
+    if (cond.originNot && p && p.origin   === cond.originNot) return false;
+    if (cond.facility  && p && p.facility !== cond.facility)  return false;
+
+    // 世界狀態（來自 GameState）
+    if (cond.worldState && typeof GameState !== 'undefined') {
+      if (GameState.getWorldState() !== cond.worldState) return false;
+    }
+    if (cond.worldStateNot && typeof GameState !== 'undefined') {
+      if (GameState.getWorldState() === cond.worldStateNot) return false;
+    }
+
+    // 名聲
+    if (cond.minFame !== undefined && p && p.fame < cond.minFame) return false;
+    if (cond.maxFame !== undefined && p && p.fame > cond.maxFame) return false;
+
+    // 天數下限（通常跟 day 一致，但也能用於「至少第 X 天後才觸發」）
+    if (cond.minDay !== undefined && p && p.day < cond.minDay) return false;
+
+    return true;
+  }
+
+  /**
+   * 取得指定天數的時間軸事件。
+   * 多個符合條件的事件中，回傳 priority 最高的。
+   * 沒有符合則回傳 null。
+   *
+   * @param {number} day
+   * @returns {object|null}
+   */
+  function getTimelineEvent(day) {
+    const candidates = TIMELINE_EVENTS.filter(
+      ev => ev.day === day && _matchConditions(ev.conditions)
+    );
+    if (candidates.length === 0) return null;
+    // 按 priority 降序，回傳第一個
+    candidates.sort((a, b) => (b.priority || 0) - (a.priority || 0));
+    return candidates[0];
+  }
+
+  /**
+   * 取得所有時間軸事件的「顯示 marker」（for 百日條 UI）。
+   * 目前直接返回所有事件，未來可根據當前狀態過濾（隱藏不滿足條件的）。
+   *
+   * @returns {Array<{day, name, icon, iconColor}>}
+   */
+  function getTimelineMarkers() {
+    // 按 day + priority 去重：同一天只顯示 priority 最高的
+    const byDay = {};
+    TIMELINE_EVENTS.forEach(ev => {
+      if (!byDay[ev.day] || (ev.priority || 0) > (byDay[ev.day].priority || 0)) {
+        byDay[ev.day] = ev;
+      }
+    });
+    return Object.values(byDay).map(ev => ({
+      day:       ev.day,
+      name:      ev.name,
+      icon:      ev.icon,
+      iconColor: ev.iconColor,
+    }));
+  }
 
   // ── Action Event Pool ─────────────────────────────
   const ACTION_EVENTS = {
@@ -340,5 +459,15 @@ const Events = (() => {
     return ACTION_EVENTS[evId] || null;
   }
 
-  return { EVENT_POOL, ACTION_EVENTS, TIMELINE_EVENTS, rollRandom, applyEvent, getActionEvent };
+  return {
+    EVENT_POOL,
+    ACTION_EVENTS,
+    TIMELINE_EVENTS,       // 舊 API（保留，但建議使用 getTimelineEvent / getTimelineMarkers）
+    rollRandom,
+    applyEvent,
+    getActionEvent,
+    // 🆕 D.1.10 條件化時間軸事件
+    getTimelineEvent,
+    getTimelineMarkers,
+  };
 })();
