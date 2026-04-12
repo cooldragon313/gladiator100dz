@@ -34,7 +34,7 @@
  *   ]);
  *
  * 載入順序：需要在 flags.js / game_state.js / stats.js 之後。
- *           放在 actions.js 之後最安全（能讀到 NPC_AFF_KEY）。
+ *           其他依賴（teammates/Flags/GameState）在 runtime 才查，順序不嚴格。
  */
 const Effects = (() => {
 
@@ -123,7 +123,6 @@ const Effects = (() => {
       case 'affection':
         if (typeof teammates !== 'undefined') {
           teammates.modAffection(eff.key, delta);
-          _syncLegacyAffection(eff.key);
         }
         break;
 
@@ -134,10 +133,7 @@ const Effects = (() => {
             ...(ctx.currentNPCs.teammates || []),
             ...(ctx.currentNPCs.audience  || []),
           ];
-          allIds.forEach(id => {
-            teammates.modAffection(id, delta);
-            _syncLegacyAffection(id);
-          });
+          allIds.forEach(id => teammates.modAffection(id, delta));
         }
         break;
 
@@ -254,25 +250,6 @@ const Effects = (() => {
       default:
         console.warn('[Effects] Unknown effect type:', eff.type, eff);
     }
-  }
-
-  // ══════════════════════════════════════════════════
-  // 舊系統相容：sync player.affection（D.1.2 完成後移除）
-  // ══════════════════════════════════════════════════
-
-  /**
-   * 將 teammates.affectionMap 的值同步到 Stats.player.affection
-   * （為了場地存取檢查等舊 API）。
-   *
-   * D.1.2 完成後此函式應該被移除。
-   */
-  function _syncLegacyAffection(npcId) {
-    if (typeof NPC_AFF_KEY === 'undefined') return;
-    const legacyKey = NPC_AFF_KEY[npcId];
-    if (!legacyKey) return;
-    if (!Stats.player.affection) return;
-    if (Stats.player.affection[legacyKey] === undefined) return;
-    Stats.player.affection[legacyKey] = teammates.getAffection(npcId);
   }
 
   // ══════════════════════════════════════════════════

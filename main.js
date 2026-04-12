@@ -877,13 +877,19 @@ const Game = (() => {
     if (spEl) spEl.textContent = p.sp || 0;
 
     // ── Affection bars ──
+    // 🆕 D.1.2: 好感度範圍 -100 ~ +100，bar 顯示正值部分（負值視覺處理留到 D.4）
     const affNpcs = ['master','officer','cassius','blacksmithGra','melaKook'];
     affNpcs.forEach(npcId => {
       const val = teammates.getAffection(npcId);
       const fill = document.getElementById('cs-aff-' + npcId);
       const num  = document.getElementById('cs-aff-' + npcId + '-n');
-      if (fill) fill.style.width = val + '%';
-      if (num)  num.textContent  = val;
+      if (fill) {
+        // 正向用原色，負向暫時顯示 0 寬度（D.4 完整 UI）
+        fill.style.width = Math.max(0, val) + '%';
+        // 負向時變紅色（仇恨）
+        if (val < 0) fill.style.background = 'linear-gradient(90deg, #8b0000, #c02020)';
+      }
+      if (num)  num.textContent  = val;  // 顯示真實數值（可能是負的）
     });
 
     // ── Six attribute cards ──

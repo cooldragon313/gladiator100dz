@@ -279,10 +279,11 @@ function getSlotField(slotId, playerRef) {
     if (req.maxFame !== undefined && playerRef.fame > req.maxFame) continue;
 
     // Affection checks (AND — all must be met)
+    // 🆕 D.1.2: 改為查 teammates.getAffection（支援 legacy 別名如 master/blacksmith/cook）
     if (req.affection) {
       let ok = true;
       for (const [npc, minAff] of Object.entries(req.affection)) {
-        if ((playerRef.affection[npc] || 0) < minAff) { ok = false; break; }
+        if (teammates.getAffection(npc) < minAff) { ok = false; break; }
       }
       if (!ok) continue;
     }
@@ -291,7 +292,7 @@ function getSlotField(slotId, playerRef) {
     if (req.affectionOr) {
       const anyMet = req.affectionOr.some(cond =>
         Object.entries(cond).every(([npc, minAff]) =>
-          (playerRef.affection[npc] || 0) >= minAff
+          teammates.getAffection(npc) >= minAff
         )
       );
       if (!anyMet) continue;

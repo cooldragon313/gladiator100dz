@@ -93,24 +93,66 @@ const teammates = (() => {
     },
   };
 
-  // ── Runtime affection state (separate from player.affection for NPCs) ──
-  // Key: npcId, Value: current affection
+  // ── Runtime affection state ────────────────────────
+  // Key: npcId, Value: current affection (-100 ~ +100, D.4 仇恨系統)
   const affectionMap = {};
+
+  // D.1.2: legacy key aliases for backward compat with fields.js / 舊存檔
+  // 未來新資料應該使用 canonical NPC ID
+  const AFF_ALIASES = {
+    master:     'masterArtus',
+    blacksmith: 'blacksmithGra',
+    cook:       'melaKook',
+    // officer → officer 已是 canonical
+  };
+
+  function _resolveId(id) {
+    return AFF_ALIASES[id] || id;
+  }
 
   Object.values(NPC_DEFS).forEach(npc => {
     affectionMap[npc.id] = npc.baseAffection;
   });
 
+  /**
+   * 取得 NPC 好感度。
+   * 範圍 -100 ~ +100（D.4 仇恨系統）。
+   * 未見過的 NPC 回傳 0（中立）。
+   * 支援 legacy 別名（master/blacksmith/cook）。
+   */
   function getAffection(npcId) {
-    return affectionMap[npcId] || 0;
+    const id = _resolveId(npcId);
+    return affectionMap[id] || 0;
   }
 
+  /**
+   * 修改 NPC 好感度。
+   * D.1.2 更新：允許負值（-100 ~ +100）。
+   * 負值 = 仇恨，用於 D.4 仇恨系統。
+   */
   function modAffection(npcId, delta) {
+    const id = _resolveId(npcId);
     // 寬厚特性：正向好感成長速度 +20%
     if (delta > 0 && typeof Stats !== 'undefined' && Stats.player.traits?.includes('kindness')) {
       delta = Math.round(delta * 1.2);
     }
-    affectionMap[npcId] = Math.max(0, Math.min(100, (affectionMap[npcId] || 0) + delta));
+    affectionMap[id] = Math.max(-100, Math.min(100, (affectionMap[id] || 0) + delta));
+  }
+
+  /**
+   * 取得好感度等級名稱（9 級，D.4）。
+   */
+  function getAffectionLevel(npcId) {
+    const v = getAffection(npcId);
+    if (v >= 90)   return 'loyal';       // 忠誠
+    if (v >= 70)   return 'devoted';     // 崇敬
+    if (v >= 40)   return 'friendly';    // 友好
+    if (v >= 10)   return 'acquainted';  // 認識
+    if (v >= -9)   return 'neutral';     // 中立
+    if (v >= -29)  return 'annoyed';     // 不悅
+    if (v >= -59)  return 'disliked';    // 厭惡
+    if (v >= -89)  return 'hated';       // 憎恨
+    return 'nemesis';                    // 不共戴天
   }
 
   function getNPC(npcId) {
@@ -128,5 +170,13 @@ const teammates = (() => {
     });
   }
 
-  return { NPC_DEFS, getAffection, modAffection, getNPC, getAllAffection, setAllAffection };
+  return {
+    NPC_DEFS,
+    getAffection,
+    modAffection,
+    getAffectionLevel,   // D.1.2 / D.4 仇恨系統
+    getNPC,
+    getAllAffection,
+    setAllAffection,
+  };
 })();

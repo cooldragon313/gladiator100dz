@@ -261,15 +261,10 @@ const ACTIONS = {
 };
 
 /**
- * NPC ID → Stats.player.affection key mapping
- * Used to keep player.affection (for field access checks) in sync with teammates.affectionMap
+ * D.1.2 移除：NPC_AFF_KEY legacy 映射已不再需要。
+ * 現在所有好感度都透過 teammates.getAffection() / modAffection() 統一處理，
+ * 且 npc.js 內部支援 legacy 別名（master/blacksmith/cook）自動解析。
  */
-const NPC_AFF_KEY = {
-  officer:       'officer',
-  masterArtus:   'master',
-  blacksmithGra: 'blacksmith',
-  melaKook:      'cook',
-};
 
 /**
  * Returns action definitions available in the given field right now.

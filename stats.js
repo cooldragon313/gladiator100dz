@@ -33,6 +33,10 @@ const Stats = (() => {
     },
 
     // ── Affection levels per NPC ──
+    // ⚠️ D.1.2: LEGACY 欄位，已不再寫入或讀取。
+    // 所有好感度現在由 teammates 模組統一管理（npc.js）。
+    // 保留此欄位僅為向下相容舊存檔。
+    // 未來任何地方想查好感度：teammates.getAffection(npcId)
     affection: {
       master:    0,
       officer:   0,
