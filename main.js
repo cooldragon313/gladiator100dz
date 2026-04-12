@@ -949,7 +949,7 @@ const Game = (() => {
   function saveGame() {
     try {
       const data = {
-        version:      4,
+        version:      5,
         player:       { ...Stats.player,
                         inventory:    [...Stats.player.inventory],
                         affection:    { ...Stats.player.affection },
@@ -961,6 +961,7 @@ const Game = (() => {
                       },
         fieldId:      currentFieldId,
         npcAffection: teammates.getAllAffection(),
+        flags:        Flags.getAll(),            // 🆕 v5: 故事旗標
         savedAt:      Date.now(),
       };
       localStorage.setItem(SAVE_KEY, JSON.stringify(data));
@@ -974,7 +975,7 @@ const Game = (() => {
       const raw = localStorage.getItem(SAVE_KEY);
       if (!raw) return false;
       const data = JSON.parse(raw);
-      if (!data || ![2, 3, 4].includes(data.version) || !data.player) return false;
+      if (!data || ![2, 3, 4, 5].includes(data.version) || !data.player) return false;
 
       // Restore player
       const p = Stats.player;
@@ -998,6 +999,10 @@ const Game = (() => {
 
       // Restore NPC affection
       teammates.setAllAffection(data.npcAffection);
+
+      // 🆕 v5: Restore story flags
+      if (data.flags) Flags.loadFrom(data.flags);
+      else            Flags.clear();
 
       return true;
     } catch (e) {
@@ -1077,6 +1082,7 @@ const Game = (() => {
         inventory:[], equippedWeapon:null, equippedArmor:null, equippedOffhand:null,
         affection:{ master:0, officer:0, blacksmith:0, cook:0 },
       });
+      Flags.clear();          // 🆕 清空所有故事旗標
       currentFieldId = 'dirtyCell';
       // Restore original name-entry form
       box.innerHTML = `
