@@ -615,7 +615,8 @@ const Game = (() => {
     // Post-action events
     _postActionEvents(act);
 
-    saveGame();
+    // 🆕 D.1.8: 依設定自動存檔（寫到 auto slot，不影響手動槽）
+    autoSave('action');
     renderAll();
   }
 
@@ -673,7 +674,8 @@ const Game = (() => {
     _syncLastRollDay(-1);
     rollDailyNPCs();
 
-    saveGame();
+    // 🆕 D.1.8: 每日結束自動存檔（即使 autoSave 設為 'day' 也會寫入）
+    autoSave('day');
     renderAll();
     checkTimelineEvent();
   }
@@ -845,7 +847,8 @@ const Game = (() => {
         if (rating === 'S') {
           addLog('主人和長官都注意到了這場完美的勝利。', '#d4af37', false);
         }
-        saveGame();
+        // 🆕 D.1.8: 競技場勝利後自動存檔（算作一次重大行動）
+        autoSave('action');
         renderAll();
       },
       () => {
@@ -1089,123 +1092,175 @@ const Game = (() => {
     updateSettingsUI();
   }
 
-  // ── Save / Load ───────────────────────────────────────
-  const SAVE_KEY = 'bairi_save_v1';
+  // ── Save / Load (D.1.8: 透過 SaveSystem 多槽位管理) ──
+  // 預設的手動存檔槽位。未來加多槽位 UI 時可由選單決定。
+  const DEFAULT_MANUAL_SLOT = 'slot_0';
 
+  /**
+   * 建立完整的存檔 payload（純資料物件）。
+   * 和讀取邏輯對稱，方便 SaveSystem 和其他模組使用。
+   */
+  function _buildSavePayload() {
+    const p = Stats.player;
+    return {
+      version:      5,
+      player:       { ...p,
+                      inventory:     [...p.inventory],
+                      affection:     { ...p.affection },
+                      eqBonus:       { ...p.eqBonus  },
+                      buffBonus:     { ...p.buffBonus },
+                      combatStats:   { ...p.combatStats },
+                      achievements:  [...(p.achievements || [])],
+                      traits:        [...(p.traits       || [])],
+                      exp:           { ...(p.exp || {}) },
+                      personalItems: [...(p.personalItems || [])],
+                      pets:          { ...(p.pets || {}) },
+                      scars:         [...(p.scars || [])],
+                    },
+      fieldId:      currentFieldId,
+      gameState:    GameState.getSerializable(),
+      npcAffection: teammates.getAllAffection(),
+      flags:        Flags.getAll(),
+      savedAt:      Date.now(),
+    };
+  }
+
+  /**
+   * 把存檔 payload 套用到當前遊戲狀態。
+   * 包含所有向下相容的欄位補齊邏輯。
+   */
+  function _applySavePayload(data) {
+    if (!data || ![2, 3, 4, 5].includes(data.version) || !data.player) return false;
+
+    // Restore player
+    const p = Stats.player;
+    Object.assign(p, data.player);
+
+    // 向下相容：舊存檔沒有這些欄位時補上預設值
+    if (!Array.isArray(p.achievements)) p.achievements = [];
+    if (!Array.isArray(p.traits))       p.traits       = [];
+    if (p.title    === undefined)       p.title        = null;
+    if (p.fameBase === undefined)       p.fameBase     = 0;
+    p.combatStats.winStreak = p.combatStats.winStreak ?? 0;
+
+    // v3→v4 遷移：equippedShield → equippedOffhand
+    if (p.equippedOffhand === undefined) {
+      p.equippedOffhand = p.equippedShield || null;
+      delete p.equippedShield;
+    }
+    if (!p.staminaPenalty) p.staminaPenalty = { STR:0, DEX:0, CON:0, AGI:0, WIL:0, LUK:0 };
+
+    // v4→v5 欄位補齊（D.1.4 + D.1.6 新增欄位）
+    if (p.equippedHelmet === undefined) p.equippedHelmet = null;
+    if (p.equippedChest  === undefined) p.equippedChest  = null;
+    if (p.equippedArms   === undefined) p.equippedArms   = null;
+    if (p.equippedLegs   === undefined) p.equippedLegs   = null;
+    if (p.money       === undefined) p.money       = 0;
+    if (p.moneyEarned === undefined) p.moneyEarned = 0;
+    if (p.moneySpent  === undefined) p.moneySpent  = 0;
+    if (!p.exp || typeof p.exp !== 'object') {
+      p.exp = { STR:0, DEX:0, CON:0, AGI:0, WIL:0, LUK:0 };
+    }
+    if (p.sp       === undefined) p.sp       = 0;
+    if (p.spEarned === undefined) p.spEarned = 0;
+    if (!Array.isArray(p.personalItems)) p.personalItems = [];
+    if (!p.pets || typeof p.pets !== 'object') {
+      p.pets = { companion: null, cell: null, outside: null };
+    }
+    if (!Array.isArray(p.scars)) p.scars = [];
+    if (p.origin   === undefined) p.origin   = null;
+    if (p.facility === undefined) p.facility = null;
+    if (p.religion === undefined) p.religion = null;
+    if (p.faction  === undefined) p.faction  = null;
+
+    // GameState
+    if (data.gameState) {
+      GameState.loadFrom(data.gameState);
+    } else {
+      GameState.loadFrom({ fieldId: data.fieldId || 'dirtyCell' });
+    }
+    currentFieldId = GameState.getFieldId();
+    currentNPCs    = GameState.getCurrentNPCs();
+
+    // NPC affection
+    teammates.setAllAffection(data.npcAffection);
+
+    // Story flags
+    if (data.flags) Flags.loadFrom(data.flags);
+    else            Flags.clear();
+
+    return true;
+  }
+
+  /**
+   * 存檔到預設手動槽位（保留向下相容的 API）。
+   */
   function saveGame() {
     try {
-      const p = Stats.player;
-      const data = {
-        version:      5,
-        player:       { ...p,
-                        inventory:     [...p.inventory],
-                        affection:     { ...p.affection },
-                        eqBonus:       { ...p.eqBonus  },
-                        buffBonus:     { ...p.buffBonus },
-                        combatStats:   { ...p.combatStats },
-                        achievements:  [...(p.achievements || [])],
-                        traits:        [...(p.traits       || [])],
-                        // 🆕 v5 新欄位深拷貝
-                        exp:           { ...(p.exp || {}) },
-                        personalItems: [...(p.personalItems || [])],
-                        pets:          { ...(p.pets || {}) },
-                        scars:         [...(p.scars || [])],
-                      },
-        fieldId:      currentFieldId,
-        gameState:    GameState.getSerializable(),  // 🆕 D.1.12: session state
-        npcAffection: teammates.getAllAffection(),
-        flags:        Flags.getAll(),                // v5: 故事旗標
-        savedAt:      Date.now(),
-      };
-      localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+      const payload = _buildSavePayload();
+      return SaveSystem.saveToSlot(DEFAULT_MANUAL_SLOT, payload);
     } catch (e) {
       console.warn('Save failed:', e);
+      return false;
     }
   }
 
+  /**
+   * 自動存檔（依 settings.gameplay.autoSave）。
+   * 寫到 auto 槽位，不影響手動槽。
+   */
+  function autoSave(reason) {
+    try {
+      const mode = settings?.gameplay?.autoSave || 'action';
+      if (mode === 'never') return;
+      if (reason === 'day' && mode !== 'day' && mode !== 'action') return;
+      if (reason === 'action' && mode !== 'action') return;
+
+      const payload = _buildSavePayload();
+      SaveSystem.saveToSlot(SaveSystem.AUTO_SLOT, payload);
+    } catch (e) {
+      console.warn('AutoSave failed:', e);
+    }
+  }
+
+  /**
+   * 讀取最新的存檔（手動或自動，以時間戳較新者優先）。
+   * 向下相容的 API。
+   */
   function loadGame() {
     try {
-      const raw = localStorage.getItem(SAVE_KEY);
-      if (!raw) return false;
-      const data = JSON.parse(raw);
-      if (!data || ![2, 3, 4, 5].includes(data.version) || !data.player) return false;
-
-      // Restore player
-      const p = Stats.player;
-      Object.assign(p, data.player);
-
-      // 向下相容：舊存檔沒有這些欄位時補上預設值
-      if (!Array.isArray(p.achievements)) p.achievements = [];
-      if (!Array.isArray(p.traits))       p.traits       = [];
-      if (p.title    === undefined)       p.title        = null;
-      if (p.fameBase === undefined)       p.fameBase     = 0;
-      p.combatStats.winStreak = p.combatStats.winStreak ?? 0;
-      // v3→v4 遷移：equippedShield → equippedOffhand
-      if (p.equippedOffhand === undefined) {
-        p.equippedOffhand = p.equippedShield || null;
-        delete p.equippedShield;
-      }
-      if (!p.staminaPenalty) p.staminaPenalty = { STR:0, DEX:0, CON:0, AGI:0, WIL:0, LUK:0 };
-
-      // 🆕 v4→v5 欄位補齊（所有 D.1.4 + D.1.6 新增欄位）
-      // 多部位裝備
-      if (p.equippedHelmet === undefined) p.equippedHelmet = null;
-      if (p.equippedChest  === undefined) p.equippedChest  = null;
-      if (p.equippedArms   === undefined) p.equippedArms   = null;
-      if (p.equippedLegs   === undefined) p.equippedLegs   = null;
-      // 金錢
-      if (p.money       === undefined) p.money       = 0;
-      if (p.moneyEarned === undefined) p.moneyEarned = 0;
-      if (p.moneySpent  === undefined) p.moneySpent  = 0;
-      // EXP / SP
-      if (!p.exp || typeof p.exp !== 'object') {
-        p.exp = { STR:0, DEX:0, CON:0, AGI:0, WIL:0, LUK:0 };
-      }
-      if (p.sp       === undefined) p.sp       = 0;
-      if (p.spEarned === undefined) p.spEarned = 0;
-      // 個人物品 / 寵物 / 疤痕
-      if (!Array.isArray(p.personalItems)) p.personalItems = [];
-      if (!p.pets || typeof p.pets !== 'object') {
-        p.pets = { companion: null, cell: null, outside: null };
-      }
-      if (!Array.isArray(p.scars)) p.scars = [];
-      // 身分
-      if (p.origin   === undefined) p.origin   = null;
-      if (p.facility === undefined) p.facility = null;
-      if (p.religion === undefined) p.religion = null;
-      if (p.faction  === undefined) p.faction  = null;
-
-      // Restore field + game state
-      // 🆕 D.1.12: 統一從 GameState 還原 session state
-      if (data.gameState) {
-        GameState.loadFrom(data.gameState);
-      } else {
-        // 舊存檔（v4 或更早）只有 fieldId
-        GameState.loadFrom({ fieldId: data.fieldId || 'dirtyCell' });
-      }
-      currentFieldId = GameState.getFieldId();
-      currentNPCs    = GameState.getCurrentNPCs();
-
-      // Restore NPC affection
-      teammates.setAllAffection(data.npcAffection);
-
-      // 🆕 v5: Restore story flags
-      if (data.flags) Flags.loadFrom(data.flags);
-      else            Flags.clear();
-
-      return true;
+      const latestSlot = SaveSystem.getLatest();
+      if (!latestSlot) return false;
+      const data = SaveSystem.loadFromSlot(latestSlot);
+      if (!data) return false;
+      return _applySavePayload(data);
     } catch (e) {
       console.warn('Load failed:', e);
       return false;
     }
   }
 
-  function clearSave() {
-    localStorage.removeItem(SAVE_KEY);
+  /**
+   * 從指定槽位讀取（未來 UI 用）。
+   */
+  function loadGameFromSlot(slotId) {
+    const data = SaveSystem.loadFromSlot(slotId);
+    if (!data) return false;
+    return _applySavePayload(data);
   }
 
+  /**
+   * 清除所有存檔。
+   */
+  function clearSave() {
+    SaveSystem.clearAll();
+  }
+
+  /**
+   * 是否有任何存檔可讀。
+   */
   function hasSave() {
-    return !!localStorage.getItem(SAVE_KEY);
+    return SaveSystem.hasAnySave();
   }
 
   // ── Name entry modal ──────────────────────────────────
@@ -1226,16 +1281,20 @@ const Game = (() => {
     const box = overlay.querySelector('.modal-box');
     if (!box) return;
 
-    const raw  = localStorage.getItem(SAVE_KEY);
+    // 🆕 D.1.8: 從 SaveSystem 取最新槽位的 metadata 顯示
     let infoHtml = '';
     try {
-      const d = JSON.parse(raw);
-      const date = new Date(d.savedAt);
-      const timeStr = `${date.getMonth()+1}/${date.getDate()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
-      infoHtml = `<p style="color:var(--text-dim);font-size:20px;margin:8px 0 4px;line-height:1.8;">
-        ${d.player.name} ・ 第 ${d.player.day} 天<br>
-        <span style="font-size:16px;color:var(--text-dim);">上次存檔：${timeStr}</span></p>`;
-    } catch(e) {}
+      const latestSlot = SaveSystem.getLatest();
+      const m = latestSlot ? SaveSystem.getSlotMetadata(latestSlot) : null;
+      if (m) {
+        const date = new Date(m.savedAt);
+        const timeStr = `${date.getMonth()+1}/${date.getDate()} ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+        const slotLabel = latestSlot === 'auto' ? '自動存檔' : `槽位 ${latestSlot.replace('slot_','')}`;
+        infoHtml = `<p style="color:var(--text-dim);font-size:20px;margin:8px 0 4px;line-height:1.8;">
+          ${m.playerName} ・ 第 ${m.day} 天 ・ 名聲 ${m.fame}<br>
+          <span style="font-size:16px;color:var(--text-dim);">${slotLabel} ・ ${timeStr}</span></p>`;
+      }
+    } catch(e) { /* ignore */ }
 
     box.innerHTML = `
       <div class="modal-header"><span class="modal-title">百日萬骸祭</span></div>
@@ -1374,7 +1433,15 @@ const Game = (() => {
     }
   }
 
-  return { init, switchField, doAction, addLog, renderAll, showToast, openDetailModal, openSettingsModal, saveGame, clearSave, startArenaBattle };
+  return {
+    init, switchField, doAction,
+    addLog, renderAll, showToast,
+    openDetailModal, openSettingsModal,
+    saveGame, clearSave, startArenaBattle,
+    // 🆕 D.1.8 存檔槽管理
+    autoSave,
+    loadGameFromSlot,
+  };
 })();
 
 // Boot when DOM ready
