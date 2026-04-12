@@ -60,6 +60,7 @@
 45. [D.8 音效系統框架](#d8-音效系統框架)
 46. [D.9 其他忽略項目補遺](#d9-其他忽略項目補遺)
 47. [D.10 最終整合優先度（取代 Part C 檢查清單）](#d10-最終整合優先度取代-part-c-檢查清單)
+48. [D.11 內容作者模板指南 & 顯示規範](#d11-內容作者模板指南--顯示規範) ⭐
 
 ---
 
@@ -2767,3 +2768,1519 @@ function switchField(id) {
 ---
 
 **這份文件是活的。隨著開發進行，請持續更新 ⬜ → ✅，並在 Part D 後追加新的討論結論。**
+
+---
+---
+
+# D.11 內容作者模板指南 & 顯示規範 ⭐
+
+> **這一章是本文件最實用的部分。未來要加任何新內容（NPC、任務、裝備、宗教、寵物、天氣、絕招等），照這裡的模板填就好。**
+>
+> 此章節分兩層：
+> - **資料層**（D.11.1 ~ D.11.14）：11 個內容模板 + 統一規範
+> - **顯示層**（D.11.15 ~ D.11.17）：資料在 UI 上該怎麼呈現
+
+---
+
+## D.11.1 統一 assets 欄位規範
+
+所有內容模板都必須包含 `assets` 物件，預留美術與音效槽位。**即使現在用不到，欄位也要存在**，避免未來擴展時遷移所有資料。
+
+### 標準 assets 結構
+
+```js
+assets: {
+  portrait:   null,   // 立繪/頭像（PNG/WebP 帶透明）
+  icon:       null,   // 小圖示（UI 列表/狀態欄）
+  cg:         null,   // 全螢幕 CG（事件/結局的強調畫面）
+  background: null,   // 場景/卡片背景圖
+  bgm:        null,   // 背景音樂（loop）
+  sfx: {              // 音效組（物件，可延伸任意鍵）
+    activate:   null,   // 觸發/使用
+    ambient:    null,   // 環境/持續
+    notify:     null,   // 通知/解鎖
+    // 可因內容類型添加其他鍵：greet/death/happy/alarm/swing/hit/equip 等
+  },
+},
+```
+
+### 欄位意義
+
+| 欄位 | 用途 | 未填時 fallback |
+|---|---|---|
+| `portrait` | 大圖（NPC 立繪、寵物圖、宗教神像） | 文字卡片 + 剪影圖 |
+| `icon` | 小圖（32~64px，列表/狀態用） | 第一個中文字元 |
+| `cg` | 全螢幕（重大事件/結局/開場） | 文字敘述全螢幕 |
+| `background` | 場景背景（訓練所/天氣色調） | CSS gradient |
+| `bgm` | 背景音樂循環 | 靜音或保持前一首 |
+| `sfx.*` | 短音效 | 靜音 |
+
+### 檔案 fallback 規則
+
+```js
+// UI 讀取規則範例
+function renderPortrait(npc) {
+  if (npc.assets?.portrait) {
+    return `<img src="${npc.assets.portrait}" alt="${npc.name}">`;
+  }
+  // fallback：顯示首字 + 灰底
+  return `<div class="portrait-fallback">${npc.name[0]}</div>`;
+}
+```
+
+**原則：缺資產不會讓遊戲崩潰，只會顯示文字替代。**
+
+---
+
+## D.11.2 檔案與命名慣例
+
+### 資料夾結構
+
+```
+asset/
+├── image/
+│   ├── npc/
+│   │   ├── marcus.webp
+│   │   ├── cassius.webp
+│   │   └── ...
+│   ├── field/
+│   │   ├── dirty_cell.webp
+│   │   ├── old_training.webp
+│   │   └── ...
+│   ├── cg/
+│   │   ├── opening_farmboy.webp
+│   │   ├── ending_champion.webp
+│   │   └── ...
+│   ├── icon/
+│   │   ├── weapon/
+│   │   ├── armor/
+│   │   ├── trait/
+│   │   ├── pet/
+│   │   └── deity/
+│   ├── deity/
+│   │   ├── mars.webp
+│   │   └── ...
+│   └── weather/
+│       ├── snow.webp
+│       └── ...
+├── audio/
+│   ├── bgm/
+│   │   ├── arena.ogg
+│   │   ├── dirty_cell.ogg
+│   │   └── ...
+│   ├── sfx/
+│   │   ├── combat/
+│   │   │   ├── sword_swing.ogg
+│   │   │   ├── hit_flesh.ogg
+│   │   │   └── ...
+│   │   ├── ui/
+│   │   │   ├── button_click.ogg
+│   │   │   └── ...
+│   │   └── ambient/
+│   │       ├── crowd_cheer.ogg
+│   │       └── ...
+│   └── voice/
+│       └── (可選，若有配音)
+```
+
+### 命名規則
+
+| 項目 | 規則 | 範例 |
+|---|---|---|
+| 檔名 | 全小寫、底線分隔、ASCII | `marcus_angry.webp` |
+| 圖片格式 | WebP 優先（透明 + 小） | `.webp` |
+| 音效格式 | OGG Vorbis（跨瀏覽器） | `.ogg` |
+| BGM 時長 | 無縫循環（loop-friendly） | 60~180 秒 |
+| 立繪尺寸 | 512×768 建議 | 帶透明背景 |
+| 圖示尺寸 | 64×64 或 128×128 | 圓形/方形 |
+| CG 尺寸 | 1920×1080 或 1280×720 | 16:9 |
+
+### 路徑寫法
+
+所有資產路徑 **相對於專案根目錄**：
+
+```js
+assets: {
+  portrait: 'asset/image/npc/marcus.webp',    // ✅ 對
+  portrait: '/asset/image/npc/marcus.webp',   // ❌ 錯（絕對路徑）
+  portrait: 'C:/Users/.../marcus.webp',       // ❌ 錯（本機路徑）
+  portrait: 'assets/npc/marcus.png',          // ❌ 錯（資料夾叫 asset 非 assets）
+}
+```
+
+---
+
+## D.11.3 模板 1：新天氣
+
+```js
+const WEATHER_DEFS = {
+  // 範本 ID：全小寫 + 底線
+  snow_storm: {
+    // ── 基本資料 ────────────────────────────────
+    id: 'snow_storm',
+    name: '暴風雪',
+    desc: '刺骨的寒風捲著雪花，視線所及的一切都被白色吞沒。',
+
+    // ── 觸發條件 ────────────────────────────────
+    season: ['winter'],             // 會出現在哪些季節 ['spring','summer','autumn','winter']
+    dayRange: [85, 100],             // 會出現在哪個天數區間
+    spawnChance: 0.15,               // 每日觸發機率 (0~1)
+    duration: [1, 2],                // 持續天數 [min, max]
+
+    // ── 戰鬥影響 ────────────────────────────────
+    combatEffects: {
+      // 全域修正（套用到玩家和敵人）
+      allStats: -3,                  // 六維 -3
+      SPD: -5,                       // 額外 SPD -5
+      EVA: -5,                       // 閃避下降
+    },
+
+    // ── 日常影響 ────────────────────────────────
+    dailyEffects: {
+      outdoorBlocked: true,          // 禁止戶外訓練
+      sicknessChance: 0.20,          // 生病機率
+      moodDaily: -3,                 // 每日 mood -3
+      staminaRecoveryMult: 0.7,      // 休息恢復 ×0.7
+    },
+
+    // ── NPC 連動 ────────────────────────────────
+    npcInteraction: {
+      forceIndoor: true,             // NPC 被迫待在室內
+      specialEventPool: ['winter_firesite', 'shelter_conflict'],
+    },
+
+    // ── 場地可用性 ──────────────────────────────
+    fieldModifiers: {
+      oldTraining:  { available: false },  // 不能使用
+      stdTraining:  { available: false },
+      kitchen:      { moodBonus: +2 },     // 廚房有暖爐
+    },
+
+    // ── 顯示文字 ────────────────────────────────
+    logText: '第 {day} 天。暴風雪席捲訓練所。外面一片雪白。',
+    shortText: '暴風雪',              // 狀態欄顯示
+    iconText: '❄',                  // 無圖示時的 emoji fallback
+
+    // ── 🎨 資產 ─────────────────────────────────
+    assets: {
+      icon:       null,   // 'asset/image/weather/snow_storm.webp'
+      background: null,   // 'asset/image/weather/snow_storm_bg.webp'
+      bgm:        null,   // 'asset/audio/bgm/winter_storm.ogg'
+      sfx: {
+        ambient: null,    // 'asset/audio/sfx/ambient/wind_loud.ogg'
+      },
+    },
+  },
+};
+```
+
+**最小必填**：`id, name, desc, season, dayRange, assets`
+
+---
+
+## D.11.4 模板 2：新世界狀況
+
+```js
+const WORLD_STATES = {
+  warTime: {
+    // ── 基本 ───────────────────────────────────
+    id: 'warTime',
+    name: '戰亂之時',
+    desc: '邊境戰火連天。訓練所的優秀戰士隨時可能被徵召。',
+    difficulty: +2,                  // 額外難度星數
+
+    // ── 全局修正 ───────────────────────────────
+    modifiers: {
+      arenaFameBase:  1.3,            // 競技場名聲倍率
+      equipmentCost:  1.5,            // 裝備漲價
+      bandidtEvents:  0.4,            // 強盜事件機率
+      foodCost:       1.2,            // 食物消耗
+      tradeRouteOpen: false,          // 商路關閉
+    },
+
+    // ── 觸發的事件池 ───────────────────────────
+    storyEventPool: ['conscription', 'bandit_raid', 'soldier_defection'],
+
+    // ── 天氣機率調整 ───────────────────────────
+    weatherBias: {
+      // 戰亂時更多陰天，少雪
+      rainy: +0.10,
+      snow: -0.05,
+    },
+
+    // ── NPC 行為修正 ───────────────────────────
+    npcModifiers: {
+      masterArtus:  { affectionMod: -5, reason: '戰爭讓他焦慮' },
+      prisonGuard:  { affectionMod: -3 },
+    },
+
+    // ── 結局影響 ───────────────────────────────
+    endingModifiers: {
+      revenge: { difficulty: -1 },    // 戰亂時復仇更容易達成
+      escape:  { difficulty: +1 },
+    },
+
+    // ── 開場敘述 ───────────────────────────────
+    openingNarrative: '煙從東方升起，戰歌已經傳入了這座城。',
+
+    // ── 🎨 資產 ─────────────────────────────────
+    assets: {
+      icon:       null,
+      background: null,   // 標題畫面壓色調
+      bgm:        null,   // 主選單 BGM override
+      sfx: {
+        notify: null,     // 狀態觸發時的音效
+      },
+    },
+  },
+};
+```
+
+**最小必填**：`id, name, desc, difficulty, modifiers, assets`
+
+---
+
+## D.11.5 模板 3：新宗教
+
+```js
+const DEITIES = {
+  mars_bloodgod: {
+    // ── 基本 ───────────────────────────────────
+    id: 'mars_bloodgod',
+    name: '瑪爾斯',
+    title: '戰神',
+    domain: '戰鬥、勇氣、榮耀',
+    path: '血之道',
+    desc: '戰士之神。他不在乎你為什麼戰鬥，只在乎你戰鬥得多兇狠。',
+
+    // ── 祈禱機制 ───────────────────────────────
+    prayer: {
+      cost: { time: 30, mood: -3 },   // 消耗：30 分鐘 + mood -3
+      buff: {
+        duration: 1,                   // 持續戰鬥數
+        ATK: +10,
+        fearImmune: true,              // 免疫恐懼/壓制
+      },
+    },
+
+    // ── 信仰任務 ───────────────────────────────
+    questlineId: 'mars_trials',
+
+    // ── 契合背景（加成好感） ────────────────────
+    backgroundAffinity: {
+      farmBoy:      +10,
+      gladiatorSon: +20,
+      nobleman:     -5,
+    },
+
+    // ── 契合特性 ───────────────────────────────
+    traitAffinity: {
+      bloodlust:    +1,               // 嗜血 → 瑪爾斯愛你
+      pacifist:     -10,              // 和平主義 → 叛教
+    },
+
+    // ── 隱藏結局 ───────────────────────────────
+    hiddenEnding: 'martyr_of_mars',
+    endingCondition: {
+      faith_level: 100,
+      arenaWins: 20,
+      finalBattleChoice: 'self_sacrifice',
+    },
+
+    // ── 祭壇位置 ───────────────────────────────
+    altarField: 'arena_underground',
+
+    // ── NPC 連動 ───────────────────────────────
+    followerNPCs: ['cassius', 'ursa'],
+    opposedNPCs:  ['melaKook'],
+
+    // ── 改信代價 ───────────────────────────────
+    apostasyPenalty: {
+      affection_loss: 20,             // 失去所有信徒 NPC 20 好感
+      trait_remove: ['blessed'],       // 失去「受祝福」特性
+    },
+
+    // ── 🎨 資產 ─────────────────────────────────
+    assets: {
+      portrait: null,   // 神祇繪像（D.11 詳細頁）
+      icon:     null,   // 狀態欄信仰圖示
+      cg:       null,   // 殉道者結局 CG
+      bgm:      null,   // 祈禱 BGM
+      sfx: {
+        activate: null,   // 祈禱音效
+        notify:   null,   // 神諭觸發
+      },
+    },
+  },
+};
+```
+
+**最小必填**：`id, name, title, domain, desc, prayer, assets`
+
+---
+
+## D.11.6 模板 4：新寵物
+
+```js
+const PETS = {
+  stray_rat: {
+    // ── 基本 ───────────────────────────────────
+    id: 'stray_rat',
+    name: '老鼠',
+    defaultName: '灰灰',              // 玩家可重新命名
+    species: 'rat',                   // 種類（衝突檢查用）
+
+    // ── 槽位 ───────────────────────────────────
+    slot: 'cell',                     // 'companion' | 'cell' | 'outside'
+    homeFields: ['dirtyCell', 'basicRoom'],
+
+    // ── 被動效果 ───────────────────────────────
+    passiveEffects: {
+      DEX: +1,
+      stealBonus: +0.05,
+    },
+
+    // ── 場地連動 ───────────────────────────────
+    fieldSynergy: {
+      dirtyCell: { mood: +2, eventRate: +0.1 },
+    },
+
+    // ── 衝突寵物 ───────────────────────────────
+    conflicts: ['stray_dog', 'stray_cat', 'hawk'],
+
+    // ── 五階段進程 ─────────────────────────────
+    stages: [
+      {
+        stage: 0,
+        id: 'stranger',
+        triggeredBy: 'first_sighting',
+      },
+      {
+        stage: 1,
+        id: 'wary',
+        condition: { fedTimes: 1 },
+        daysToNext: 2,
+      },
+      {
+        stage: 2,
+        id: 'familiar',
+        condition: { fedTimes: 3 },
+        onEnter: { acquirePet: true },    // 正式成為寵物
+        effects: {
+          passive: { DEX: +1 },
+          fieldSynergy: { dirtyCell: { mood: +2 } },
+        },
+        daysToNext: 7,
+      },
+      {
+        stage: 3,
+        id: 'close',
+        condition: { daysWithPet: 10, triggeredEvent: 'rat_rescue' },
+        effects: {
+          passive: { DEX: +2, stealBonus: +0.05 },
+        },
+        unlocksQuest: 'rat_loyalty',
+      },
+      {
+        stage: 4,
+        id: 'inseparable',
+        condition: { questComplete: 'rat_loyalty' },
+        effects: {
+          passive: { DEX: +3, stealBonus: +0.10, LUK: +1 },
+          scriptedEvents: ['rat_sacrifice_save'],
+        },
+        unlocksEnding: 'rats_gift',
+        permanent: true,               // 不會因忽視離開
+      },
+    ],
+
+    // ── 被動觸發事件 ───────────────────────────
+    triggerEvents: [
+      { id: 'rat_warns_of_assassin', trigger: 'nightly', minStage: 3 },
+      { id: 'rat_finds_coin',        trigger: 'daily',   chance: 0.08, minStage: 2 },
+      { id: 'rat_brings_trinket',    trigger: 'weekly',  chance: 0.3,  minStage: 3 },
+    ],
+
+    // ── NPC 反應 ───────────────────────────────
+    npcDislike: {
+      melaKook:   -15,
+      masterArtus: -10,
+    },
+    npcLike: {
+      oldSlave:   +10,
+      dagiSlave:  +5,
+    },
+
+    // ── 消失條件 ───────────────────────────────
+    leaveConditions: [
+      { daysNeglected: 14, chance: 0.3 },
+    ],
+
+    // ── 🎨 資產 ─────────────────────────────────
+    assets: {
+      portrait: null,   // 寵物頭像（詳細頁）
+      icon:     null,   // 狀態欄小圖示
+      sfx: {
+        happy: null,    // 開心音效
+        alarm: null,    // 警告音效
+      },
+    },
+
+    // ── 取得事件鏈 ID ──────────────────────────
+    acquisitionEvent: 'rat_encounter_series',
+  },
+};
+```
+
+**最小必填**：`id, name, slot, homeFields, stages, assets`
+
+---
+
+## D.11.7 模板 5：新 NPC（ELITE_DEFS）
+
+```js
+const ELITE_DEFS = {
+  marcus: {
+    // ── 基本 ───────────────────────────────────
+    id: 'marcus',
+    name: '馬庫斯',
+    title: '斷臂傭兵',
+    desc: '曾是邊境傭兵，因殺了僱主被賣入訓練所。',
+    role: 'teammate',                 // teammate | officer | audience
+
+    // ── 成長原型 ───────────────────────────────
+    archetype: 'power',               // power | agile | balanced | tank | berserker
+    growthRate: 1.0,                  // 成長速率倍率
+    baseStats: { STR:14, DEX:8, CON:12, AGI:7, WIL:10, LUK:8 },
+
+    // ── 初始裝備 ───────────────────────────────
+    weaponId:  'warHammer',
+    offhandId: null,
+    armorId:   'leatherArmor',
+    helmetId:  null,
+    armsId:    null,
+    legsId:    null,
+
+    // ── 人格 ───────────────────────────────────
+    personality: 'aggressive',        // aggressive | cautious | support | loner | cunning
+    background: '曾是邊境傭兵，為了養活女兒接了不該接的任務。一次他殺了一個不該殺的人——他的僱主。三年後他被俘，賣到這裡。',
+
+    // ── 時間軸 ────────────────────────────────
+    arriveDay: 1,                     // 第幾天出現
+    leaveDay: null,                   // 固定離開天數（null = 除非死亡/事件）
+
+    // ── 漸進揭露資料（詳見 D.11.16）────────────
+    // 好感 40 解鎖
+    personalityDesc: '粗魯但重情義。他不相信話語，只相信行動。',
+    // 好感 60 解鎖
+    schedule: [
+      { hours: [6, 10],  fields: ['oldTraining'] },
+      { hours: [14, 18], fields: ['basicRoom'] },
+    ],
+    // 好感 80 解鎖
+    secrets: [
+      { id: 'daughter_alive',    text: '他的女兒還活著，被遠親收養。' },
+      { id: 'murder_was_accident', text: '僱主的死其實是自衛。' },
+    ],
+    // 仇恨 40 解鎖
+    weaknesses: [
+      { id: 'left_arm_missing', text: '左臂舊傷，揮拳距離較短。' },
+    ],
+    // 仇恨 60 解鎖
+    fears: [
+      { id: 'fire',          text: '害怕火——看到火把會手抖。' },
+      { id: 'being_watched', text: '不能忍受被多人盯著——壓力會爆炸。' },
+    ],
+    // 好感 40/60/80 逐階提示
+    hiddenQuestHints: {
+      '40': '他最近常看向東邊',
+      '60': '他枕下有一把刻名短刀',
+      '80': '「馬庫斯的誓言」下次交談觸發',
+    },
+
+    // ── 連動系統 ───────────────────────────────
+    questlineId: 'marcus_revenge',
+    religion:    'mars_bloodgod',
+    faction:     'veterans',
+    petReactions: { stray_dog: +5, stray_rat: -2 },
+
+    // ── 語音台詞 ───────────────────────────────
+    voiceLines: {
+      greet: '少廢話，用拳頭說。',
+      win:   '站起來，再來。',
+      lose:  '……下次不會了。',
+      death: '原來……死亡是這種感覺。',
+    },
+
+    // ── 存活狀態（執行時） ──────────────────────
+    alive: true,                      // runtime 會變
+    storyFlags: [],                    // runtime 會變
+
+    // ── 🎨 資產 ─────────────────────────────────
+    assets: {
+      portrait: null,   // 立繪（主要）'asset/image/npc/marcus.webp'
+      icon:     null,   // 小頭像（列表用）
+      bgm:      null,   // 遭遇主題曲（可選）
+      sfx: {
+        greet: null,    // 招呼音效
+        death: null,    // 死亡音效
+      },
+    },
+  },
+};
+```
+
+**最小必填**：`id, name, title, desc, role, archetype, baseStats, arriveDay, assets`
+
+---
+
+## D.11.8 模板 6：新任務（QUEST_DEFS）
+
+```js
+const QUEST_DEFS = {
+  marcus_revenge: {
+    // ── 基本 ───────────────────────────────────
+    id: 'marcus_revenge',
+    name: '斷臂的誓言',
+    desc: '馬庫斯似乎有未完成的復仇。',
+    type: 'npc_storyline',            // npc_storyline | main | side | hidden
+
+    // ── 關聯 ───────────────────────────────────
+    npcId: 'marcus',                  // 主要關聯 NPC
+    relatedNpcs: ['cassius'],          // 次要關聯
+
+    // ── 接取條件 ───────────────────────────────
+    triggerCondition: {
+      affection: { marcus: 30 },
+      dayMin: 10,
+      flag_required: ['marcus_told_story'],
+      flag_blocked:  ['marcus_dead', 'marcus_left'],
+    },
+
+    // ── 步驟 ───────────────────────────────────
+    steps: [
+      {
+        id: 'step1',
+        name: '過去的影子',
+        trigger: {
+          field: 'basicRoom',
+          dayMin: 10,
+        },
+        event: 'marcus_past_reveal',   // 觸發的事件 ID
+        setFlag: 'marcus_told_story',
+      },
+      {
+        id: 'step2',
+        name: '鐵匠的訂製',
+        trigger: {
+          flag: 'marcus_told_story',
+          dayMin: 25,
+          field: 'forge',
+        },
+        event: 'marcus_request_weapon',
+        setFlag: 'marcus_weapon_quest',
+        reward: {
+          money: -50,                  // 玩家出錢
+        },
+      },
+      {
+        id: 'step3',
+        name: '復仇之鎚',
+        trigger: {
+          flag: 'marcus_weapon_quest',
+          item: 'masterHammer',
+        },
+        event: 'marcus_receives_weapon',
+        setFlag: 'marcus_quest_complete',
+        reward: {
+          affection: { marcus: +20 },
+          trait: 'sworn_brother',
+          sp: +5,
+          flag: 'can_call_marcus_help',
+        },
+      },
+    ],
+
+    // ── 失敗條件 ───────────────────────────────
+    failCondition: {
+      flag_any: ['marcus_killed', 'marcus_betrayed'],
+    },
+    onFail: {
+      affection: { marcus: -50 },
+      setFlag: 'marcus_quest_failed',
+    },
+
+    // ── 🎨 資產 ─────────────────────────────────
+    assets: {
+      icon: null,       // 任務列表圖示
+      cg: null,         // 關鍵步驟的 CG（例如 step3 打鐵完成）
+      sfx: {
+        accept:   null, // 接取音效
+        progress: null, // 步驟推進
+        complete: null, // 完成音效
+      },
+    },
+  },
+};
+```
+
+**最小必填**：`id, name, desc, triggerCondition, steps, assets`
+
+---
+
+## D.11.9 模板 7：新裝備（Weapons / Armors）
+
+### 武器模板
+
+```js
+const Weapons = {
+  sunforge_sword: {
+    // ── 基本 ───────────────────────────────────
+    id: 'sunforge_sword',
+    name: '日鍛劍',
+    type: 'blade',                    // blade | blunt | polearm | axe | unarmed
+    hands: 1,                         // 1 | 2
+    twoHanded: false,                  // 雙手武器標記（TB_WEAPONS 相容）
+    desc: '傳說由失傳的聖匠鍛造。劍身有細微的金色紋路。',
+
+    // ── 命中部位（D.2 多部位系統） ─────────────
+    hitParts: ['頸部', '身體', '頭'],
+    hitBias: {
+      head: 0.20,
+      body: 0.50,
+      arms: 0.20,
+      legs: 0.10,
+    },
+
+    // ── 數值（eqBonus 會加到衍生屬性） ─────────
+    eqBonus: {
+      ATK:  18,
+      ACC:  8,
+      CRT:  10,
+      CDMG: 15,
+      SPD:  3,
+      PEN:  6,
+    },
+    swingTime: 3,                     // ATB 填充速率
+
+    // ── 路線（被副手覆蓋） ──────────────────────
+    route: 'focus',                   // rage | focus | fury
+
+    // ── 稀有度 & 價格 ──────────────────────────
+    rarity: 'legendary',              // common | uncommon | rare | epic | legendary
+    price: 500,
+    obtainMethod: 'quest',            // shop | quest | drop | event | start
+    craftable: false,                  // 鐵匠能做嗎
+
+    // ── 🎨 資產 ─────────────────────────────────
+    assets: {
+      icon:     null,   // 背包/商店圖示 32×32
+      portrait: null,   // 詳細檢視大圖 256×256
+      sfx: {
+        swing: null,    // 揮動
+        hit:   null,    // 命中
+        equip: null,    // 裝備
+      },
+    },
+  },
+};
+```
+
+### 防具模板（4 部位）
+
+```js
+const Armors = {
+  iron_helmet: {
+    id: 'iron_helmet',
+    name: '鐵盔',
+    slot: 'helmet',                   // helmet | chest | arms | legs | offhand
+    coverage: 'head',                  // 對應 BODY_PARTS
+    desc: '粗製的鐵盔，能擋下致命一擊。',
+
+    eqBonus: { DEF: 10, SPD: -1 },
+    price: 80,
+    rarity: 'common',
+
+    assets: {
+      icon: null,
+      sfx: {
+        equip: null,
+        hit:   null,   // 被擊中時的金屬聲
+      },
+    },
+  },
+};
+```
+
+**最小必填武器**：`id, name, type, hands, eqBonus, assets`
+**最小必填防具**：`id, name, slot, coverage, eqBonus, assets`
+
+---
+
+## D.11.10 模板 8：新開場角色（ORIGINS）
+
+```js
+const ORIGINS = {
+  farmBoy: {
+    // ── 基本 ───────────────────────────────────
+    id: 'farmBoy',
+    name: '農家子弟',
+    desc: '你的村莊被燒了。你被抓來這裡。你記得每一張臉。',
+
+    // ── 屬性修正 ───────────────────────────────
+    statMod: { STR: +2, CON: +3, DEX: -1, WIL: -1 },
+
+    // ── 初始狀態 ───────────────────────────────
+    startingTraits: ['grudge'],        // 初始特性
+    startingFlags:  ['village_burned', 'story_lord_is_enemy'],
+    startingItems: [],                 // 初始個人物品
+    startingMoney: 0,
+    hiddenTag:     'lord_is_enemy',    // 遊戲中不顯示，用於條件判定
+
+    // ── 結局傾向（命運抽取顯示用） ─────────────
+    endingAffinities: {
+      revenge:  +30,
+      escape:   +10,
+      champion: -20,
+      buyFreedom: 0,
+    },
+
+    // ── 難度分數（命運抽取顯示用） ─────────────
+    difficultyScore: {
+      survival: 1,
+      social:   2,
+      combat:   2,
+      resource: 1,
+    },
+
+    // ── 專屬事件池 ─────────────────────────────
+    exclusiveEvents: [
+      'recognize_lord_banner',
+      'survivor_letter',
+      'farm_dream',
+    ],
+
+    // ── 排除事件 ───────────────────────────────
+    blockedEvents: [
+      'noble_seal_recognition',        // 非貴族不能觸發
+    ],
+
+    // ── 開場敘述（多行） ────────────────────────
+    openingNarrative: [
+      '你記得那天。煙從田邊升起。',
+      '你記得母親的最後一個眼神。',
+      '你記得那個戴冠的人。',
+      '現在，你被賣進了他的競技場。',
+    ],
+
+    // ── NPC 初始反應 ───────────────────────────
+    initialNpcAffection: {
+      dagiSlave: +5,                   // 同是被擄的奴隸
+      oldSlave:  +10,
+    },
+
+    // ── 🎨 資產 ─────────────────────────────────
+    assets: {
+      portrait:   null,   // 角色預設立繪 'asset/image/origin/farmboy.webp'
+      background: null,   // 開場畫面背景（燒毀的村莊）
+      cg:         null,   // 開場 CG
+      bgm:        null,   // 開場主題曲
+      sfx: {
+        opening: null,
+      },
+    },
+  },
+};
+```
+
+**最小必填**：`id, name, desc, statMod, startingFlags, difficultyScore, openingNarrative, assets`
+
+---
+
+## D.11.11 模板 9：新訓練所（FACILITIES）
+
+```js
+const FACILITIES = {
+  mudPit: {
+    // ── 基本 ───────────────────────────────────
+    id: 'mudPit',
+    name: '泥坑',
+    tier: 1,                          // 1 | 2 | 3（難度層級）
+    difficultyStars: '★★',
+    desc: '最底層的訓練所。活著就是勝利。',
+    tagline: '「能活著就是勝利」',
+
+    // ── 難度修正 ───────────────────────────────
+    difficultyModifiers: {
+      enemyStatMult:    0.85,          // 敵人屬性 ×0.85
+      equipmentQuality: 0.7,           // 裝備品質打折
+      expMultiplier:    0.9,           // EXP 成長較慢
+      startingMoney:    0,              // 窮
+    },
+
+    // ── NPC 池 ─────────────────────────────────
+    npcPool: {
+      teammatesCore: ['cassius', 'dagiSlave', 'oldSlave'],  // 保證有
+      teammatesOptional: ['ursa', 'marcus'],                 // 機率出現
+      authorities: ['prisonGuard', 'overseer', 'masterArtus'],
+      professions: {
+        cook:       'melaKook',        // 保證
+        doctor:     null,               // 沒有
+        blacksmith: null,               // 沒有
+        trainer:    null,
+        merchant:   { optional: true, chance: 0.3 },
+      },
+    },
+
+    // ── 場地配置 ───────────────────────────────
+    fieldConfig: {
+      rooms:    ['dirtyCell', 'basicRoom'],
+      training: ['oldTraining'],
+      services: ['kitchen'],            // 沒有鐵匠鋪
+    },
+
+    // ── 天氣影響倍率 ───────────────────────────
+    weatherResistance: {
+      cold: 1.5,                        // 寒冷影響 ×1.5
+      rain: 1.2,                        // 下雨漏水
+      heat: 1.0,
+    },
+
+    // ── 萬骸祭門票條件 ─────────────────────────
+    finalTicketRequirement: {
+      fame:      30,
+      arenaWins: 3,
+    },
+
+    // ── 結局條件修正 ───────────────────────────
+    endingConditionMod: {
+      escape:      { easier: true },    // 管制鬆
+      revenge:     { harder: true },    // 離領主遠
+    },
+
+    // ── 🎨 資產 ─────────────────────────────────
+    assets: {
+      background: null,   // 訓練所總覽圖（選擇畫面）
+      icon:       null,   // 選擇畫面圖示
+      bgm:        null,   // 主題曲
+      sfx: {
+        ambient: null,    // 環境音
+      },
+    },
+  },
+};
+```
+
+**最小必填**：`id, name, tier, desc, npcPool, fieldConfig, finalTicketRequirement, assets`
+
+---
+
+## D.11.12 模板 10：新技能/特性（PURCHASABLE_TRAITS）
+
+```js
+const PURCHASABLE_TRAITS = {
+  might_of_titan: {
+    // ── 基本 ───────────────────────────────────
+    id: 'might_of_titan',
+    name: '力拔山河',
+    tier: 2,                          // 1~5
+    category: 'offensive',            // offensive | defensive | utility | passive | special
+    desc: 'ATK +15，大幅提升攻擊力',
+    flavorText: '他的每一拳都帶著山一般的重量。',
+
+    // ── 購買成本 ───────────────────────────────
+    spCost: 12,
+
+    // ── 屬性需求 ───────────────────────────────
+    requirements: {
+      STR: 20,
+      CON: 15,
+    },
+
+    // ── 前置特性 ───────────────────────────────
+    requires: [],                     // 需要先學的特性 ID
+    conflictsWith: ['nimble_strike'], // 互斥特性
+
+    // ── 效果 ───────────────────────────────────
+    effects: {
+      ATK: +15,
+    },
+    // 或複雜效果：
+    // effects: {
+    //   combat: { ATK: +15 },
+    //   daily:  { staminaDaily: +2 },
+    //   special: { on: 'kill', trigger: 'heal_10' },
+    // },
+
+    // ── 🎨 資產 ─────────────────────────────────
+    assets: {
+      icon: null,       // 技能圖示 64×64
+      sfx: {
+        learn:    null, // 學習音效
+        activate: null, // 若為主動技能
+      },
+    },
+  },
+};
+```
+
+**最小必填**：`id, name, tier, spCost, requirements, effects, assets`
+
+---
+
+## D.11.13 模板 11：新絕招（ROUTE_ULTIMATES）
+
+```js
+const ROUTE_ULTIMATES = {
+  blood_rage: {
+    // ── 基本 ───────────────────────────────────
+    id: 'blood_rage',
+    name: '血怒',
+    route: 'rage',
+    threshold: 100,                   // 50 = 小招, 100 = 大招
+    desc: 'ATK×2，DEF×0.5，持續 3 回合',
+    flavorText: '你的視野被染紅。你已經不再是人。',
+
+    // ── 效果 ───────────────────────────────────
+    effects: {
+      ATK_mult: 2.0,
+      DEF_mult: 0.5,
+      EVA: 0,                          // 強制 0
+      duration: 3,
+    },
+
+    // ── 蓄力 ───────────────────────────────────
+    delay: 0,                         // 蓄力 tick 數
+    interruptible: false,             // 可否被打斷
+    preserveOnInterrupt: false,       // 打斷時是否保留技能條
+
+    // ── 條件 ───────────────────────────────────
+    requires: {
+      route: 'rage',                   // 必須是 rage 路線
+      gauge: 100,
+    },
+
+    // ── 解鎖方式 ───────────────────────────────
+    unlockMethod: 'route_default',    // route_default | trait | quest | event
+
+    // ── 顯示 ───────────────────────────────────
+    logText: '【血怒】你全身肌肉暴起，理智被鮮血的渴望淹沒！',
+    shortText: '血怒',
+
+    // ── 🎨 資產 ─────────────────────────────────
+    assets: {
+      icon: null,       // 技能條旁邊的圖示
+      cg:   null,       // 觸發時的強調畫面（可選）
+      sfx: {
+        activate: null, // 觸發音效
+        loop:     null, // 持續音效
+        end:      null, // 結束音效
+      },
+    },
+  },
+};
+```
+
+**最小必填**：`id, name, route, threshold, effects, delay, logText, assets`
+
+---
+
+## D.11.14 其他常用模板（補充）
+
+### 場地（已存在，補強）
+
+```js
+const FIELDS = {
+  dirtyCell: {
+    id: 'dirtyCell',
+    name: '骯髒牢房',
+    icon: '囚',
+    category: 'room',
+    timeRange: [0, 24],
+    requirements: { maxFame: 19 },
+    facility: 'mudPit',               // 🆕 綁定訓練所
+    characters: [...],
+    logText: '...',
+
+    // 🆕 統一 assets
+    assets: {
+      background: null,   // 'asset/image/field/dirty_cell.webp'
+      bgm:        null,   // 'asset/audio/bgm/dirty_cell.ogg'
+      sfx: {
+        ambient: null,    // 環境音循環（水滴、鐵鍊）
+      },
+    },
+  },
+};
+```
+
+### 行動（已存在，補強）
+
+```js
+const ACTIONS = {
+  basicSwing: {
+    id: 'basicSwing',
+    name: '基礎揮砍',
+    desc: '反覆揮動武器，磨礪攻擊動作。',
+    slots: 1,
+    staminaCost: 15,
+    foodCost: 5,
+    fields: ['oldTraining', 'stdTraining'],
+
+    effects: [
+      { type: 'exp', key: 'STR', delta: 8 },   // 🆕 改用 exp
+    ],
+
+    eventPool: ['overseerWatch', 'trainingInjury'],
+
+    // 🆕 統一 assets
+    assets: {
+      icon: null,       // 行動按鈕圖示
+      sfx: {
+        activate: null, // 執行音效
+      },
+    },
+  },
+};
+```
+
+---
+
+## D.11.15 人物面板顯示規範（主角）
+
+> 這一段定義玩家的角色頁要顯示什麼。
+> 每個資料欄位都有明確的顯示位置。
+
+### 版面結構（階段 B 完成後）
+
+```
+┌───────────────────────────────────────────────────────────┐
+│ [立繪] 名字 · 背景×訓練所   第 37 天   季節   世界狀態  [X]│ Header
+├───────────────────────────────────────────────────────────┤
+│ [角色] [所有人] [成就] [Codex] [設定]                     │ Tab bar
+├───────────────────────────────────────────────────────────┤
+│                                                           │
+│  ┌─ 左欄 ──────────────┬─ 右欄 ─────────────────────────┐│
+│  │ 狀態條              │ 六維屬性（含 EXP 條）           ││
+│  │ HP / 體力           │ STR 18 (▮▮▮▮░░ 12/40)          ││
+│  │ 飽食 / 心情         │ ...                             ││
+│  ├─────────────────────┼─────────────────────────────────┤│
+│  │ 裝備（6 槽）         │ 派生屬性                         ││
+│  │ 主手 副手            │ ATK DEF ACC ...                 ││
+│  │ 頭 胸 臂 腿          │                                 ││
+│  ├─────────────────────┼─────────────────────────────────┤│
+│  │ 掛件（3 槽）         │ 當前狀態                         ││
+│  │ 同伴 / 牢房 / 戶外   │ 信仰 / 派系 / 天氣 / 世界        ││
+│  ├─────────────────────┼─────────────────────────────────┤│
+│  │ 個人物品（6 格）     │ 特性                             ││
+│  │                     │ [購買] [任務]                    ││
+│  ├─────────────────────┼─────────────────────────────────┤│
+│  │ 金錢 / SP           │ 疤痕                             ││
+│  │                     │                                 ││
+│  └─────────────────────┴─────────────────────────────────┘│
+└───────────────────────────────────────────────────────────┘
+```
+
+### 資料欄位 → 顯示位置對照表
+
+| 資料欄位 | 來源 | 顯示位置 | 顯示格式 |
+|---|---|---|---|
+| `name` | Stats.player | Header | 大字 |
+| `origin` | Flags/GameState | Header 副標 | 「落魄貴族 × 鐵獄」 |
+| `portrait` | origin.assets 或 custom | Header 立繪 | 圖片 fallback 剪影 |
+| `day` | Stats.player | Header | 「第 37 天」 |
+| `season/weather` | WeatherSystem | Header | 圖示 + 名稱 |
+| `worldState` | WorldState | Header | 狀態標籤 |
+| `hp/stamina/food/mood` | Stats.player | 左欄狀態區 | bar + 數字 |
+| `equippedWeapon/Offhand/Helmet/Chest/Arms/Legs` | Stats.player | 左欄裝備區 | icon + 名字 |
+| `pets` | Stats.player | 左欄掛件區 | icon + 階段 |
+| `personalItems` | Stats.player | 左欄物品區 | 6 格 icon |
+| `money` | Stats.player | 左欄 | 數字 |
+| `sp` | Stats.player | 左欄 + 商店連結 | 數字 |
+| `STR/DEX/CON/AGI/WIL/LUK` | Stats.eff() | 右欄六維 | 數字 + EXP 條 |
+| `exp[attr]` | Stats.player.exp | 右欄 EXP 條 | 進度條 |
+| `calcDerived()` | Stats | 右欄派生 | 10 項數值 |
+| `religion` | Flags/GameState | 右欄狀態 | 信仰名 + icon |
+| `faction` | Flags/GameState | 右欄狀態 | 派系名 |
+| `traits` | Stats.player | 右欄特性區 | 清單（分購買/任務兩組） |
+| `achievements` | Stats.player | Tab 成就頁 | 網格 |
+| `scars` | Stats.player | 右欄疤痕 | 清單 + 效果說明 |
+
+---
+
+## D.11.16 NPC 百科顯示規範（漸進揭露）
+
+> 這一段定義 `[所有人]` tab 的顯示規則。
+> 五階段漸進 + 負向反向揭露。
+
+### 列表頁
+
+```
+世界上有 42 人 · 你已認識 18 人
+
+篩選：[全部] [隊友] [權威] [職業] [其他]
+排序：[好感降] [好感升] [最近互動] [姓名]
+
+┌────┐ ┌────┐ ┌────┐ ┌────┐
+│立繪│ │立繪│ │立繪│ │ ?? │
+│名字│ │名字│ │名字│ │??? │
+│❤85 │ │❤62 │ │💔-20│ │    │
+└────┘ └────┘ └────┘ └────┘
+```
+
+每個卡片顯示：
+- 剪影/立繪（依 reveal level）
+- 名字或 `???`
+- 好感等級 icon（❤ / 💔 / ??）
+- 好感數字（可隱藏為只顯示階段）
+
+### 詳細頁（正向揭露對照表）
+
+| Reveal Level | 好感 | 顯示欄位 |
+|---|---|---|
+| 0 未見過 | — | `???` + 剪影 + 「未知之人」+ 被提及次數 |
+| 1 見過 | 0~19 | name, title, desc, role, basic portrait |
+| 2 認識 | 20~39 | + baseStats, derived, hp |
+| 3 熟悉 | 40~59 | + personalityDesc, traits, faction |
+| 4 親近 | 60~79 | + equipment, pets, schedule, hiddenQuestHints['60'] |
+| 5 知心 | 80~100 | + background, secrets, hiddenQuestHints['80'] |
+
+### 詳細頁（負向揭露對照表）
+
+| Reveal Level | 仇恨 | 顯示欄位（不同於正向） |
+|---|---|---|
+| -1 不悅 | −19~−1 | 同「見過」+ 冷淡描述 |
+| -2 厭惡 | −39~−20 | + dislikeReason |
+| -3 憎恨 | −59~−40 | + **weaknesses** + **fears** |
+| -4 仇敵 | −79~−60 | + **schedule vulnerabilities**（刺殺用） |
+| -5 不共戴天 | −80~−100 | + **deepest secrets**（復仇線索） |
+
+### 顯示規則
+
+```js
+function renderNpcDetail(npcId) {
+  const level = NpcCodex.getRevealLevel(npcId);
+  const npc   = ELITE_DEFS[npcId] || NPC_DEFS[npcId];
+
+  if (level === 0) return renderUnknown(npc);
+
+  const sections = [];
+
+  if (level >= 1 || level <= -1) sections.push(renderBasic(npc));
+  if (level >= 2)                 sections.push(renderAttributes(npc));
+  if (level >= 3)                 sections.push(renderTraits(npc));
+  if (level >= 4)                 sections.push(renderEquipment(npc));
+  if (level >= 5)                 sections.push(renderBackground(npc));
+
+  // 負向揭露
+  if (level <= -2) sections.push(renderDislikeReason(npc));
+  if (level <= -3) sections.push(renderWeaknesses(npc));
+  if (level <= -4) sections.push(renderSchedule(npc, 'vulnerabilities'));
+  if (level <= -5) sections.push(renderDeepestSecrets(npc));
+
+  return sections.join('');
+}
+```
+
+### 顯示原則
+
+- **不顯示精確數字**：「好感度 23」顯示為「認識」
+- **不預告未來**：不說「再+10 就能看到特性」
+- **給方向感**：可以說「他似乎還有話沒說完」
+- **未見過可被提及**：如果其他 NPC 對話提到某人，記錄在 `_mentionedBy[]`，百科顯示「你聽過這個名字 N 次」
+
+---
+
+## D.11.17 事件面板顯示規範
+
+> 這一段定義劇情事件觸發時的彈窗呈現。
+
+### 事件結構
+
+```js
+const STORY_EVENTS = {
+  recognize_lord_banner: {
+    id: 'recognize_lord_banner',
+
+    // ── 顯示資料 ───────────────────────────────
+    title: null,                      // 可選，事件標題
+    text: '你看到牆上的旗幟。那個徽章——那是燒毀你村莊的軍隊的徽章。',
+    speaker: null,                    // 如果有 NPC 說話，填 NPC id
+
+    // ── 選項 ───────────────────────────────────
+    choices: [
+      {
+        text: '假裝沒看到',
+        effects: { flag: 'truth_suppressed', mood: -10 },
+      },
+      {
+        text: '記住這一切',
+        effects: { flag: 'truth_discovered', mood: -20, WIL: +2 },
+      },
+    ],
+
+    // ── 觸發後 ─────────────────────────────────
+    setFlags: ['banner_seen'],
+    consume: true,                    // 觸發一次後不再出現
+
+    // ── 🎨 資產 ─────────────────────────────────
+    assets: {
+      cg:         null,   // 全螢幕 CG（重大事件）
+      background: null,   // 背景色調
+      bgm:        null,   // 臨時切換 BGM
+      sfx: {
+        activate: null,   // 事件觸發音效
+        reveal:   null,   // 揭露音效
+      },
+    },
+  },
+};
+```
+
+### 事件面板 UI 結構
+
+```
+┌─────────────────────────────────────────────┐
+│                 [CG 全圖]                    │  ← assets.cg 若有
+├─────────────────────────────────────────────┤
+│  [說話者立繪]  speaker.assets.portrait       │
+├─────────────────────────────────────────────┤
+│                                              │
+│  事件文字內容...                             │
+│  （支援 \n 換行、{var} 變數替換）             │
+│                                              │
+├─────────────────────────────────────────────┤
+│  [ 選項 1 ]  [ 選項 2 ]  [ 選項 3 ]         │
+└─────────────────────────────────────────────┘
+```
+
+### 變數替換規則
+
+事件文字支援內嵌變數：
+
+```js
+text: '{player.name}，你還記得{flag.player_village}嗎？',
+// 渲染後：「馬庫斯之子，你還記得鐵木村嗎？」
+```
+
+可用變數：
+- `{player.name}` / `{player.day}` / `{player.fame}`
+- `{flag.xxx}` - 讀 flag 的值
+- `{npc.xxx.name}` - 讀 NPC 名字
+- `{random.pick:A,B,C}` - 隨機選一個
+
+---
+
+## D.11.18 新增內容的快速檢查清單
+
+當你（或未來的內容作者）要加新內容時，跟著這個 checklist：
+
+### 🆕 新增一個菁英 NPC
+
+- [ ] 在 `ELITE_DEFS` 加入新物件
+- [ ] 必填：`id, name, title, desc, role, archetype, baseStats, arriveDay, assets`
+- [ ] 選填（但強烈建議）：`background, secrets, weaknesses, fears, personalityDesc, hiddenQuestHints, voiceLines`
+- [ ] 資產預留 `assets.portrait`（未來填檔案路徑）
+- [ ] 如果有任務，在 `QUEST_DEFS` 加對應任務
+- [ ] 檢查 `arriveDay` 和訓練所 `npcPool` 是否匹配
+
+### 🆕 新增一個任務
+
+- [ ] 在 `QUEST_DEFS` 加入
+- [ ] 必填：`id, name, desc, triggerCondition, steps, assets`
+- [ ] 每個 step 要有 `trigger`、`event`、`setFlag`
+- [ ] 最後一個 step 要有 `reward`
+- [ ] 對應事件要在 `STORY_EVENTS` 定義
+- [ ] 失敗路徑要有 `failCondition` 和 `onFail`
+
+### 🆕 新增一個事件
+
+- [ ] 在 `STORY_EVENTS` 加入
+- [ ] 必填：`id, text, choices, assets`
+- [ ] `choices` 每個選項要有 `effects`
+- [ ] 如果是一次性事件，設 `consume: true`
+- [ ] 觸發條件通常由 `QUEST_DEFS.steps.trigger` 控制
+
+### 🆕 新增一個裝備
+
+- [ ] 在 `Weapons` / `Armors` 加入
+- [ ] 武器：`id, name, type, hands, hitBias, eqBonus, swingTime, route, assets`
+- [ ] 防具：`id, name, slot, coverage, eqBonus, assets`
+- [ ] 決定取得方式 `obtainMethod`
+- [ ] 如果需要鐵匠製作，檢查 `craftable` 和 material 需求
+
+### 🆕 新增一個寵物
+
+- [ ] 在 `PETS` 加入
+- [ ] 必填：`id, name, slot, homeFields, stages, conflicts, assets`
+- [ ] 階段條件要合理（不能太快也不能太久）
+- [ ] 設定 `conflicts` 避免邏輯矛盾
+- [ ] 定義 `triggerEvents`（至少 2~3 個）
+- [ ] 設定 `npcLike`/`npcDislike`
+
+### 🆕 新增一個開場背景
+
+- [ ] 在 `ORIGINS` 加入
+- [ ] 必填：`id, name, desc, statMod, startingFlags, difficultyScore, assets`
+- [ ] `endingAffinities` 要平衡（不能全部正或全部負）
+- [ ] 至少定義 3 個 `exclusiveEvents`
+- [ ] 開場敘述 3~5 行
+
+### 🆕 新增一個訓練所
+
+- [ ] 在 `FACILITIES` 加入
+- [ ] 必填：`id, name, tier, desc, npcPool, fieldConfig, finalTicketRequirement, assets`
+- [ ] `npcPool` 至少有廚娘或醫生其一（否則太嚴苛）
+- [ ] 難度修正數值合理（倍率在 0.7~1.5 之間）
+
+### 🆕 新增一個特性
+
+- [ ] 在 `PURCHASABLE_TRAITS` 加入
+- [ ] 必填：`id, name, tier, spCost, requirements, effects, assets`
+- [ ] Tier 和 spCost 對應：T1=5, T2=12, T3=20, T4=35, T5=60+
+- [ ] 需求屬性數量 = Tier 數量（T3 需要 3 個屬性門檻）
+- [ ] 檢查 `conflictsWith` 避免重複效果
+
+### 🆕 新增一個天氣
+
+- [ ] 在 `WEATHER_DEFS` 加入
+- [ ] 必填：`id, name, desc, season, dayRange, assets`
+- [ ] 至少一組效果（`combatEffects` 或 `dailyEffects`）
+- [ ] 設定 `spawnChance` 和 `duration`
+
+### 🆕 新增一個世界狀態
+
+- [ ] 在 `WORLD_STATES` 加入
+- [ ] 必填：`id, name, desc, difficulty, modifiers, assets`
+- [ ] 設定 `storyEventPool`（至少 2 個專屬事件）
+- [ ] 考慮 `npcModifiers`
+
+### 🆕 新增一個宗教
+
+- [ ] 在 `DEITIES` 加入
+- [ ] 必填：`id, name, title, domain, desc, prayer, assets`
+- [ ] 設定 `backgroundAffinity` 和 `hiddenEnding`
+- [ ] 至少定義 `followerNPCs` 或 `opposedNPCs`
+
+### 🆕 新增一個絕招
+
+- [ ] 在 `ROUTE_ULTIMATES` 加入
+- [ ] 必填：`id, name, route, threshold, effects, delay, logText, assets`
+- [ ] 50% 小招 delay 0 或 1，100% 大招 delay 0~3
+- [ ] 效果要平衡（不要讓某路線明顯強於其他）
+
+---
+
+## D.11.19 常見錯誤與檢查表
+
+### ❌ 常見錯誤 1：忘記 assets 欄位
+
+```js
+// ❌ 錯
+marcus: { name: '馬庫斯', ... }
+
+// ✅ 對
+marcus: { 
+  name: '馬庫斯', 
+  ...,
+  assets: { portrait: null, icon: null, sfx: {} },
+}
+```
+
+### ❌ 常見錯誤 2：中文路徑 or 絕對路徑
+
+```js
+// ❌ 錯
+assets: { portrait: '資產/NPC/馬庫斯.png' }
+assets: { portrait: '/home/user/project/asset/...' }
+
+// ✅ 對
+assets: { portrait: 'asset/image/npc/marcus.webp' }
+```
+
+### ❌ 常見錯誤 3：Flag 命名不一致
+
+```js
+// ❌ 錯（大小寫、空白、特殊字元）
+Flags.set('Marcus Told Story')
+Flags.set('marcusTold')
+
+// ✅ 對
+Flags.set('marcus_told_story')
+```
+
+### ❌ 常見錯誤 4：特性 Tier 與需求數量不匹配
+
+```js
+// ❌ 錯（Tier 3 只需要 1 個屬性 → 太好拿）
+perfect_form: {
+  tier: 3,
+  requirements: { STR: 18 },  // 只有 1 個
+  ...
+}
+
+// ✅ 對
+perfect_form: {
+  tier: 3,
+  requirements: { STR: 18, DEX: 18, AGI: 15 },  // 3 個
+  ...
+}
+```
+
+### ❌ 常見錯誤 5：任務 step 忘記設 flag
+
+```js
+// ❌ 錯
+steps: [
+  { id: 'step1', event: 'xxx' },  // 沒有 setFlag，下一步無法觸發
+  { id: 'step2', trigger: { flag: 'xxx_done' }, ... },
+]
+
+// ✅ 對
+steps: [
+  { id: 'step1', event: 'xxx', setFlag: 'marcus_step1_done' },
+  { id: 'step2', trigger: { flag: 'marcus_step1_done' }, ... },
+]
+```
+
+### ❌ 常見錯誤 6：裝備 hitBias 加總不等於 1.0
+
+```js
+// ❌ 錯
+hitBias: { head: 0.2, body: 0.5, arms: 0.2, legs: 0.2 }  // = 1.1
+
+// ✅ 對
+hitBias: { head: 0.2, body: 0.5, arms: 0.2, legs: 0.1 }  // = 1.0
+```
+
+---
+
+## D.11.20 這份模板指南的使用方式
+
+### 對內容作者
+
+1. 找到對應的模板（D.11.3 ~ D.11.13）
+2. 複製整個物件結構
+3. 替換欄位為你的內容
+4. 用 D.11.18 的 checklist 檢查
+5. 不確定的欄位**保留為 null/空陣列**，不要刪除
+
+### 對遊戲引擎
+
+1. 所有讀取欄位前**必須判斷存在**
+2. 找不到 `assets.portrait` → 用文字 fallback
+3. 找不到 `assets.bgm` → 靜音或保持前一首
+4. 找不到 `hiddenQuestHints['60']` → 不顯示提示
+5. **絕對不要因為 asset 缺失而崩潰**
+
+### 版本控制
+
+每次修改模板結構（增/刪欄位）時：
+1. 在本章更新對應的模板定義
+2. 在 Part D.10 的檢查清單標註影響
+3. 寫入 changelog.html 的新版本
+4. 如果改動欄位名，加入存檔遷移邏輯
+
+---
+
+**這份 D.11 是未來所有內容的「憲法」。任何新系統加入前，先在這裡定義模板。**
