@@ -925,6 +925,76 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   transition: width .4s ease;
 }
 
+/* 🆕 D.1.15: Tab bar */
+#cs-tabs {
+  display: flex;
+  gap: 0;
+  padding: 0 20px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.cs-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: var(--text-dim);
+  padding: 10px 24px;
+  font-family: var(--font);
+  font-size: 20px;
+  letter-spacing: .15em;
+  cursor: pointer;
+  transition: color .2s, border-color .2s, background .2s;
+}
+.cs-tab:hover {
+  color: var(--text);
+  background: rgba(139, 0, 0, .08);
+}
+.cs-tab.active {
+  color: var(--gold-lt);
+  border-bottom-color: var(--blood-lt);
+  background: rgba(139, 0, 0, .15);
+}
+
+/* 🆕 D.1.15: Tab content */
+.cs-tab-content {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+.cs-tab-content.hidden {
+  display: none;
+}
+
+/* 🆕 D.1.15: Placeholder 畫面 */
+.cs-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 40px 20px;
+  text-align: center;
+  gap: 20px;
+}
+.cs-placeholder-icon {
+  font-size: 80px;
+  opacity: .35;
+}
+.cs-placeholder-title {
+  font-size: 32px;
+  color: var(--gold-lt);
+  letter-spacing: .3em;
+  font-weight: 700;
+}
+.cs-placeholder-text {
+  font-size: 22px;
+  color: var(--text);
+  line-height: 2;
+  max-width: 600px;
+}
+
 /* ── Body ── */
 #cs-body {
   flex: 1;
@@ -1705,6 +1775,7 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 </div>
 
 <!-- ══ DETAIL MODAL (fullscreen character sheet) ════════ -->
+<!-- D.1.15: tab bar + dynamic affection list + placeholder tabs -->
 <div class="modal-overlay" id="modal-detail">
   <div id="char-sheet">
 
@@ -1721,6 +1792,18 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
       </div>
       <button class="modal-close" id="btn-close-detail" style="margin-left:auto;font-size:30px;">✕</button>
     </div>
+
+    <!-- 🆕 D.1.15: Tab bar -->
+    <div id="cs-tabs">
+      <button class="cs-tab active" data-tab="character">角色</button>
+      <button class="cs-tab"         data-tab="people">所有人</button>
+      <button class="cs-tab"         data-tab="achievements">成就</button>
+      <button class="cs-tab"         data-tab="codex">百科</button>
+      <button class="cs-tab"         data-tab="quests">任務</button>
+    </div>
+
+    <!-- 🆕 D.1.15: Tab content — character tab (原有內容) -->
+    <div class="cs-tab-content active" data-tab-content="character">
 
     <!-- Body: 3 columns -->
     <div id="cs-body">
@@ -1763,11 +1846,8 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 
         <div class="cs-divider"></div>
         <div class="cs-section-title">好感度</div>
-        <div class="cs-aff-row"><span class="cs-aff-name">阿圖斯大人</span><div class="cs-aff-bar-track"><div class="cs-aff-bar-fill" id="cs-aff-master"></div></div><span class="cs-aff-num" id="cs-aff-master-n">0</span></div>
-        <div class="cs-aff-row"><span class="cs-aff-name">塔倫長官</span><div class="cs-aff-bar-track"><div class="cs-aff-bar-fill" id="cs-aff-officer"></div></div><span class="cs-aff-num" id="cs-aff-officer-n">0</span></div>
-        <div class="cs-aff-row"><span class="cs-aff-name">卡西烏斯</span><div class="cs-aff-bar-track"><div class="cs-aff-bar-fill" id="cs-aff-cassius"></div></div><span class="cs-aff-num" id="cs-aff-cassius-n">0</span></div>
-        <div class="cs-aff-row"><span class="cs-aff-name">葛拉</span><div class="cs-aff-bar-track"><div class="cs-aff-bar-fill" id="cs-aff-blacksmithGra"></div></div><span class="cs-aff-num" id="cs-aff-blacksmithGra-n">0</span></div>
-        <div class="cs-aff-row"><span class="cs-aff-name">梅拉</span><div class="cs-aff-bar-track"><div class="cs-aff-bar-fill" id="cs-aff-melaKook"></div></div><span class="cs-aff-num" id="cs-aff-melaKook-n">0</span></div>
+        <!-- 🆕 D.1.15: 動態生成（見 main.js renderDetailModal） -->
+        <div id="cs-aff-list"></div>
       </div>
 
       <!-- ── CENTER: six base attributes ── -->
@@ -1877,6 +1957,55 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
       </div>
 
     </div><!-- /cs-body -->
+    </div><!-- /cs-tab-content character -->
+
+    <!-- 🆕 D.1.15: Placeholder tabs (待 Phase 1+ 實作) -->
+    <div class="cs-tab-content hidden" data-tab-content="people">
+      <div class="cs-placeholder">
+        <div class="cs-placeholder-icon">👥</div>
+        <div class="cs-placeholder-title">所有人</div>
+        <div class="cs-placeholder-text">
+          你會在這裡看到遇過的每一個人。<br>
+          好感與仇恨會逐步揭露他們的秘密、弱點、恐懼。<br>
+          <span style="color:var(--text-dim);font-size:18px;">（Phase 1 實作：NPC 漸進揭露百科）</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="cs-tab-content hidden" data-tab-content="achievements">
+      <div class="cs-placeholder">
+        <div class="cs-placeholder-icon">🏆</div>
+        <div class="cs-placeholder-title">成就</div>
+        <div class="cs-placeholder-text">
+          你的戰績與傳說將記錄於此。<br>
+          <span style="color:var(--text-dim);font-size:18px;">（Phase 2 實作：成就瀏覽頁）</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="cs-tab-content hidden" data-tab-content="codex">
+      <div class="cs-placeholder">
+        <div class="cs-placeholder-icon">📜</div>
+        <div class="cs-placeholder-title">百科</div>
+        <div class="cs-placeholder-text">
+          世界、地點、武器、事件、傳說——<br>
+          你接觸過的一切都會被記錄在這裡。<br>
+          <span style="color:var(--text-dim);font-size:18px;">（Phase 2 實作：Codex 百科）</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="cs-tab-content hidden" data-tab-content="quests">
+      <div class="cs-placeholder">
+        <div class="cs-placeholder-icon">📋</div>
+        <div class="cs-placeholder-title">任務</div>
+        <div class="cs-placeholder-text">
+          進行中的任務與故事線將顯示於此。<br>
+          <span style="color:var(--text-dim);font-size:18px;">（Phase 1 實作：任務系統）</span>
+        </div>
+      </div>
+    </div>
+
   </div><!-- /char-sheet -->
 </div>
 

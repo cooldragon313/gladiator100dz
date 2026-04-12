@@ -905,11 +905,30 @@ const Game = (() => {
     const modal = document.getElementById('modal-detail');
     if (!modal) return;
     _fillCharSheet();
+    // 🆕 D.1.15: 每次打開都回到「角色」tab
+    _switchCharSheetTab('character');
     modal.classList.add('open');
   }
 
   function closeDetailModal() {
     document.getElementById('modal-detail')?.classList.remove('open');
+  }
+
+  /**
+   * 🆕 D.1.15: 切換角色頁的 tab。
+   * @param {string} tabId 'character' | 'people' | 'achievements' | 'codex' | 'quests'
+   */
+  function _switchCharSheetTab(tabId) {
+    // 切換按鈕的 active 狀態
+    document.querySelectorAll('.cs-tab').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.tab === tabId);
+    });
+    // 切換內容 hidden 狀態
+    document.querySelectorAll('.cs-tab-content').forEach(panel => {
+      const isActive = panel.dataset.tabContent === tabId;
+      panel.classList.toggle('active', isActive);
+      panel.classList.toggle('hidden',  !isActive);
+    });
   }
 
   function _fillCharSheet() {
@@ -968,20 +987,39 @@ const Game = (() => {
     if (spEl) spEl.textContent = p.sp || 0;
 
     // ── Affection bars ──
-    // 🆕 D.1.2: 好感度範圍 -100 ~ +100，bar 顯示正值部分（負值視覺處理留到 D.4）
-    const affNpcs = ['master','officer','cassius','blacksmithGra','melaKook'];
-    affNpcs.forEach(npcId => {
-      const val = teammates.getAffection(npcId);
-      const fill = document.getElementById('cs-aff-' + npcId);
-      const num  = document.getElementById('cs-aff-' + npcId + '-n');
-      if (fill) {
-        // 正向用原色，負向暫時顯示 0 寬度（D.4 完整 UI）
-        fill.style.width = Math.max(0, val) + '%';
-        // 負向時變紅色（仇恨）
-        if (val < 0) fill.style.background = 'linear-gradient(90deg, #8b0000, #c02020)';
+    // 🆕 D.1.15: 動態生成好感度列表（不再硬編碼 5 個 NPC）
+    // 只顯示「有資料」的 NPC（未見過的 NPC 不顯示，留給 Phase 1 的 NPC 百科）
+    const affList = document.getElementById('cs-aff-list');
+    if (affList) {
+      const allAff = teammates.getAllAffection();
+      // 過濾：只顯示好感度 != 0 或有基礎好感的 NPC
+      const visible = Object.entries(allAff)
+        .filter(([npcId, val]) => val !== 0 || (teammates.getNPC(npcId)?.baseAffection || 0) !== 0)
+        // 依好感度絕對值降序（重要的在前）
+        .sort(([, a], [, b]) => Math.abs(b) - Math.abs(a));
+
+      if (visible.length === 0) {
+        affList.innerHTML = '<div class="cs-aff-empty" style="color:var(--text-dim);font-size:16px;padding:8px 4px;font-style:italic;">尚未與任何人建立連結</div>';
+      } else {
+        affList.innerHTML = visible.map(([npcId, val]) => {
+          const npc = teammates.getNPC(npcId);
+          const name = npc ? npc.name : npcId;
+          const pct  = Math.max(0, val);  // 負值顯示為 0 寬度（D.4 完整 UI 之前）
+          const isHate = val < 0;
+          const barStyle = isHate
+            ? 'background: linear-gradient(90deg, #8b0000, #c02020);'
+            : '';
+          return `
+            <div class="cs-aff-row">
+              <span class="cs-aff-name">${name}</span>
+              <div class="cs-aff-bar-track">
+                <div class="cs-aff-bar-fill" style="width:${pct}%; ${barStyle}"></div>
+              </div>
+              <span class="cs-aff-num" style="${isHate ? 'color:#c02020;' : ''}">${val}</span>
+            </div>`;
+        }).join('');
       }
-      if (num)  num.textContent  = val;  // 顯示真實數值（可能是負的）
-    });
+    }
 
     // ── Six attribute cards ──
     ['STR','DEX','CON','AGI','WIL','LUK'].forEach(key => {
@@ -1403,6 +1441,11 @@ const Game = (() => {
     document.getElementById('btn-settings') ?.addEventListener('click', openSettingsModal);
     document.getElementById('btn-close-detail')   ?.addEventListener('click', closeDetailModal);
     document.getElementById('btn-close-settings') ?.addEventListener('click', closeSettingsModal);
+
+    // 🆕 D.1.15: 角色頁 tab 切換
+    document.querySelectorAll('.cs-tab').forEach(btn => {
+      btn.addEventListener('click', () => _switchCharSheetTab(btn.dataset.tab));
+    });
     document.getElementById('btn-confirm-name')   ?.addEventListener('click', confirmName);
     document.getElementById('name-input')?.addEventListener('keydown', e => {
       if (e.key === 'Enter') confirmName();
