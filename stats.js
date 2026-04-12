@@ -253,9 +253,18 @@ const Stats = (() => {
     renderFame();
   }
 
+  /**
+   * 修改基礎屬性（STR/DEX/CON/AGI/WIL/LUK）。
+   *
+   * D.1.3: 下限從 0 改為 1。原因：
+   *   - 避免未來公式 division-by-zero
+   *   - 屬性 = 0 概念上等於「不存在」，不合理
+   *   - 背景修正（如 STR-2）仍可安全運作
+   *   - eff() 仍然可以透過 staminaPenalty/debuff 暫時降到 0 以下（戰鬥用）
+   */
   function modAttr(key, delta) {
     if (player[key] !== undefined) {
-      player[key] = Math.max(0, player[key] + delta);
+      player[key] = Math.max(1, player[key] + delta);
       renderAttributes();
       renderDerivedStats();
     }
