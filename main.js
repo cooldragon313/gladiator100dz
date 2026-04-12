@@ -490,35 +490,11 @@ const Game = (() => {
     const moodMult = getMoodMult();
     const moodDesc = moodMult > 1 ? '（心情佳 ×1.25）' : moodMult < 1 ? '（心情低落 ×0.75）' : '';
 
-    // Apply effects
-    (act.effects || []).forEach(eff => {
-      if (eff.type === 'vital') {
-        // 正向生命值/體力/飽食/心情效果受心情加成
-        const delta = (eff.delta > 0) ? Math.round(eff.delta * moodMult) : eff.delta;
-        Stats.modVital(eff.key, delta);
-      } else if (eff.type === 'attr') {
-        // 正向屬性成長受心情加成
-        const delta = (eff.delta > 0) ? Math.round(eff.delta * moodMult) : eff.delta;
-        Stats.modAttr(eff.key, delta);
-      } else if (eff.type === 'affection') {
-        teammates.modAffection(eff.key, eff.delta);
-        // Sync Stats.player.affection (used for field-access requirements)
-        const playerKey = NPC_AFF_KEY[eff.key];
-        if (playerKey && p.affection[playerKey] !== undefined) {
-          p.affection[playerKey] = teammates.getAffection(eff.key);
-        }
-      } else if (eff.type === 'fame') {
-        Stats.modFame(eff.delta);
-      
-      } else if (eff.type === 'affection_all_present') {
-  allNPCs.forEach(npcId => {
-    teammates.modAffection(npcId, eff.delta);
-    const playerKey = NPC_AFF_KEY[npcId];
-    if (playerKey && p.affection[playerKey] !== undefined)
-      p.affection[playerKey] = teammates.getAffection(npcId);
-  });
-}
-
+    // 🆕 D.1.9: 統一效果處理器
+    Effects.apply(act.effects || [], {
+      moodMult,
+      currentNPCs,
+      source: 'action:' + actionId,
     });
 
     // Advance time by slot(s)
@@ -545,10 +521,10 @@ const Game = (() => {
         pass = aff >= (cond.min || 0) && aff <= (cond.max ?? Infinity);
       }
       if (!pass) return;
-      (ce.effects || []).forEach(eff => {
-        if (eff.type === 'vital') Stats.modVital(eff.key, eff.delta);
-        else if (eff.type === 'attr') Stats.modAttr(eff.key, eff.delta);
-        else if (eff.type === 'fame') Stats.modFame(eff.delta);
+      // 🆕 D.1.9: 統一效果處理器（條件效果不吃心情加成）
+      Effects.apply(ce.effects || [], {
+        currentNPCs,
+        source: 'conditional:' + actionId,
       });
       if (ce.flavorText) addLog(ce.flavorText, '#88b878', false);
     });
@@ -578,17 +554,10 @@ const Game = (() => {
   function _applyEventAndLog(ev) {
     if (!ev) return;
     addLog(ev.text, ev.color || '#aaa', true);
-    // Apply vital/attr/fame effects (Events.applyEvent handles vital/fame/attr)
-    Events.applyEvent(ev, Stats);
-    // Handle affection effects (not in Events.applyEvent)
-    (ev.effects || []).forEach(eff => {
-      if (eff.type === 'affection') {
-        teammates.modAffection(eff.key, eff.delta);
-        const playerKey = NPC_AFF_KEY[eff.key];
-        if (playerKey && Stats.player.affection[playerKey] !== undefined) {
-          Stats.player.affection[playerKey] = teammates.getAffection(eff.key);
-        }
-      }
+    // 🆕 D.1.9: 統一效果處理器（取代 Events.applyEvent + 手動 affection 同步）
+    Effects.apply(ev.effects || [], {
+      currentNPCs,
+      source: 'event:' + (ev.id || 'unknown'),
     });
   }
 

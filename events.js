@@ -63,16 +63,26 @@ const Events = (() => {
 
   /**
    * Apply an event's effects to the game state.
-   * @param {object} ev  - event object
-   * @param {object} statsRef - Stats module
+   *
+   * D.1.9 更新：現在委派給統一的 Effects.apply()。
+   * 保留此函式作為向下相容的入口，但建議直接使用 Effects.apply(ev.effects)。
+   *
+   * @param {object} ev         - event object
+   * @param {object} [statsRef] - 舊 API 留存（不再使用），保留參數簽名避免呼叫端壞掉
    */
   function applyEvent(ev, statsRef) {
     if (!ev || !ev.effects) return;
-    ev.effects.forEach(eff => {
-      if (eff.type === 'vital')  statsRef.modVital(eff.key, eff.delta);
-      if (eff.type === 'fame')   statsRef.modFame(eff.delta);
-      if (eff.type === 'attr')   statsRef.modAttr(eff.key, eff.delta);
-    });
+    if (typeof Effects !== 'undefined') {
+      Effects.apply(ev.effects, { source: 'event:' + (ev.id || 'legacy') });
+    } else {
+      // Fallback：Effects 未載入時的最小實作（理論上不會發生）
+      const s = statsRef || Stats;
+      ev.effects.forEach(eff => {
+        if (eff.type === 'vital') s.modVital(eff.key, eff.delta);
+        if (eff.type === 'fame')  s.modFame(eff.delta);
+        if (eff.type === 'attr')  s.modAttr(eff.key, eff.delta);
+      });
+    }
   }
 
   // ── Timeline Events (百日條) ──────────────────────────
