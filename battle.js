@@ -167,6 +167,9 @@ const Battle = (() => {
     _applyOpeningTraits();
     _appendLog('', 'log-turn');
 
+    // D.1.13: 戰鬥開始音效
+    SoundManager.playSfx('battle_start');
+
     _playerAtb = 0;
     _enemyAtb  = 0;
     _startAtbLoop();
@@ -365,6 +368,9 @@ const Battle = (() => {
     const w    = TB_WEAPONS[_player.weaponId];
     const hits = w && w.dualHit ? 2 : 1;
 
+    // D.1.13: 播放武器揮動音效（依武器類型）
+    SoundManager.playSfx(w?.type ? `swing_${w.type}` : 'swing_blade');
+
     // 爆筋：暫時提升 ATK×1.6
     let savedATK = null;
     if (_player._burstVein) {
@@ -372,6 +378,7 @@ const Battle = (() => {
       savedATK = _player.derived.ATK;
       _player.derived.ATK = Math.round(savedATK * 1.6);
       _appendLog(`  ★ 爆筋觸發：ATK ${savedATK} → ${_player.derived.ATK}`, 'log-special');
+      SoundManager.playSfx('skill_rage');  // D.1.13
     }
 
     for (let i = 0; i < hits; i++) {
@@ -380,6 +387,14 @@ const Battle = (() => {
       _applyDamage(_enemy, r.damage, r.counterDamage ? _player : null, r.counterDamage);
       _appendLog((hits > 1 ? `[第${i+1}擊] ` : '') + r.log,
         r.crit ? 'log-crit' : r.hit ? '' : 'log-miss');
+      // D.1.13: 依結果播放命中音效
+      if (r.hit) {
+        if (r.crit)         SoundManager.playSfx('hit_crit');
+        else if (r.blocked) SoundManager.playSfx('hit_block');
+        else                SoundManager.playSfx('hit_flesh');
+      } else {
+        SoundManager.playSfx('hit_miss');
+      }
       if (r.injuredPart)   _appendLog(`  ※ ${_enemy.name}【${r.injuredPart}】受傷（${r.injuryLevel}）`, 'log-injury');
       if (r.counterDamage) _appendLog(`  ↩ 反擊！玩家受到 ${r.counterDamage} 傷害`, 'log-crit');
       // killAura
@@ -599,6 +614,7 @@ const Battle = (() => {
       );
       Game.addLog(`🏆 成就解鎖：【${ach.name}】　${ach.rewardDesc}`, '#d4af37', false);
       _showAchievementToast(ach.name);
+      SoundManager.playSfx('achievement');  // D.1.13
     }
   }
 
@@ -644,6 +660,9 @@ const Battle = (() => {
     _setButtons(false);
     _updateCombatantUI();
 
+    // D.1.13: 勝敗音效
+    SoundManager.playSfx(won ? 'battle_victory' : 'battle_defeat');
+
     // Battle costs 1 time slot (2 hours)
     Stats.advanceTime(120);
 
@@ -655,6 +674,8 @@ const Battle = (() => {
     // ── Arena rating (won only) ──────────────────────────
     if (won && _isArenaBattle) {
       _lastRating = _calcRating();
+      // D.1.13: 評分音效
+      SoundManager.playSfx(`rating_${_lastRating.toLowerCase()}`);
       const rc    = RATING_CFG[_lastRating];
       const hpPct = Math.round(_player.hp / _player._hpMax * 100);
       // 連勝者特性：每場加固定名聲；fameBase 由成就解鎖後永久儲存
@@ -1237,6 +1258,9 @@ const Battle = (() => {
     }
     _applyOpeningTraits();
     _appendLog('', 'log-turn');
+
+    // D.1.13: 戰鬥開始音效
+    SoundManager.playSfx('battle_start');
 
     _playerAtb = 0;
     _enemyAtb  = 0;

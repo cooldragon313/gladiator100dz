@@ -457,18 +457,24 @@ const Game = (() => {
     // Guard: enough slots
     if (act.slots > slotsRemaining()) {
       showToast('今天沒有足夠的時間了。');
+      SoundManager.playSfx('error');  // D.1.13 預留
       return;
     }
     // Guard: stamina
     if (p.stamina < act.staminaCost) {
       showToast('體力不足，無法執行此行動。');
+      SoundManager.playSfx('error');  // D.1.13 預留
       return;
     }
     // Guard: food
     if ((act.foodCost || 0) > 0 && p.food < act.foodCost) {
       showToast('飽食度不足，無法執行此行動。');
+      SoundManager.playSfx('error');  // D.1.13 預留
       return;
     }
+
+    // D.1.13: 行動確認音效（未來填入實際路徑即可生效）
+    SoundManager.playSfx(act.assets?.sfx?.activate || 'action_confirm');
 
     // Deduct costs
     if (act.staminaCost > 0) Stats.modVital('stamina', -act.staminaCost);
@@ -622,6 +628,10 @@ const Game = (() => {
 
     const f = FIELDS[fieldId];
     if (f) addLog(f.logText, '#ddd', true);
+
+    // D.1.13: 切換 BGM（未來 FIELDS.assets.bgm 填入路徑即可生效）
+    SoundManager.playSfx('menu_open');
+    if (f?.assets?.bgm) SoundManager.playBgm(f.assets.bgm);
     // No time cost for moving — time advances only via actions
     const allNPCs = [...(currentNPCs.teammates || []), ...(currentNPCs.audience || [])];
     //現場所有的NPC都會有機率觸發事件
