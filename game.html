@@ -1099,26 +1099,41 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 }
 .slot-box {
   flex: 1;
-  height: 36px;
+  height: 40px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   border: 1px solid transparent;
-  border-radius: 1px;
-  gap: 2px;
+  border-radius: 2px;
+  gap: 1px;
+  position: relative;
 }
-.slot-h { font-size: 13px; line-height: 1; letter-spacing: .02em; }
-.slot-dot { width: 5px; height: 5px; border-radius: 50%; }
-.slot-box.used { background: #150800; border-color: #2a1408; }
-.slot-box.used .slot-h  { color: #3a2010; }
-.slot-box.used .slot-dot { background: #3a1a08; }
-.slot-box.current { background: #200a00; border-color: var(--blood); }
-.slot-box.current .slot-h  { color: #cc7755; }
-.slot-box.current .slot-dot { background: var(--blood-lt); box-shadow: 0 0 4px var(--blood-lt); }
+.slot-h    { font-size: 12px; line-height: 1; letter-spacing: .02em; }
+.slot-icon { font-size: 14px; line-height: 1; }
+.slot-dot  { width: 5px; height: 5px; border-radius: 50%; }  /* 舊 class，保留相容 */
+
+/* 已過、當前、未來的視覺狀態 */
+.slot-box.used    { background: #150800; border-color: #2a1408; opacity: .5; }
+.slot-box.used .slot-h    { color: #3a2010; }
+.slot-box.used .slot-icon { filter: grayscale(1); opacity: .4; }
+
+.slot-box.current {
+  background: #200a00;
+  border-color: var(--blood);
+  box-shadow: 0 0 6px rgba(192, 57, 43, .4);
+}
+.slot-box.current .slot-h { color: #cc7755; }
+
 .slot-box.future { background: transparent; border-color: #1a1410; }
-.slot-box.future .slot-h  { color: var(--text-dim); }
-.slot-box.future .slot-dot { background: #1a1410; }
+.slot-box.future .slot-h    { color: var(--text-dim); }
+.slot-box.future .slot-icon { opacity: .5; }
+
+/* 🆕 Phase 1-B: 不同 slot type 的邊框顏色線索 */
+.slot-box.slot-training { border-left: 2px solid #cc7700; }
+.slot-box.slot-meal     { border-left: 2px solid #1e7a3a; }
+.slot-box.slot-rest     { border-left: 2px solid #2255aa; }
+.slot-box.slot-sleep    { border-left: 2px solid #6633aa; }
 
 /* ── Location tabs ── */
 #location-tabs {

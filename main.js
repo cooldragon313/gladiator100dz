@@ -17,6 +17,58 @@ const Game = (() => {
   const SLOT_DUR   = 120;   // 2 hours per slot
   const SLOT_COUNT = 8;     // 06→22 = 8 × 2h
 
+  // 🆕 Phase 1-B: 時段類型分類（Part E.2）
+  //
+  // Slot index  時間          類型           玩家可操作？
+  // ────────────────────────────────────────────────────
+  //  0          06:00~08:00   meal 早餐     自動觸發事件
+  //  1          08:00~10:00   training 1   玩家選訓練
+  //  2          10:00~12:00   training 2   玩家選訓練
+  //  3          12:00~14:00   meal 午餐    自動觸發事件
+  //  4          14:00~16:00   training 3   玩家選訓練
+  //  5          16:00~18:00   training 4   玩家選訓練
+  //  6          18:00~20:00   meal 晚餐    自動觸發事件
+  //  7          20:00~22:00   rest         自動或事件
+  //             22:00         sleep        就寢事件
+  const SLOT_TYPES = [
+    'meal',      // 0: 早餐
+    'training',  // 1: 上午訓練 1
+    'training',  // 2: 上午訓練 2
+    'meal',      // 3: 午餐
+    'training',  // 4: 下午訓練 1
+    'training',  // 5: 下午訓練 2
+    'meal',      // 6: 晚餐
+    'rest',      // 7: 晚間休息
+  ];
+
+  // 每種類型的顯示名稱（for UI）
+  const SLOT_TYPE_LABELS = {
+    training: '訓練',
+    meal:     '用餐',
+    rest:     '休息',
+    sleep:    '就寢',
+  };
+
+  // 每種類型的顯示圖示（for UI）
+  const SLOT_TYPE_ICONS = {
+    training: '⚔',
+    meal:     '🍴',
+    rest:     '💤',
+    sleep:    '🌙',
+  };
+
+  /**
+   * 取得某個 slot index 的類型。
+   */
+  function getSlotType(slotIdx) {
+    return SLOT_TYPES[slotIdx] || 'rest';
+  }
+
+  /**
+   * 訓練格總數（不含 meal/rest）。
+   */
+  const TRAINING_SLOT_COUNT = SLOT_TYPES.filter(t => t === 'training').length;
+
   // ── Daily NPC state ───────────────────────────────────
   // Pre-rolled at day start: { fieldId: { teammates:[], audience:[] } }
   // 同樣同步到 GameState（見 rollDailyNPCs）
@@ -406,11 +458,63 @@ const Game = (() => {
     return Math.max(0, Math.floor((Stats.player.time - SLOT_START) / SLOT_DUR));
   }
 
+  /**
+   * 剩餘的可用「訓練」格數。
+   * 🆕 Phase 1-B: 只計算 training 類型的 slot，meal/rest 不計。
+   */
   function slotsRemaining() {
+    const idx = currentSlotIndex();
+    let remaining = 0;
+    for (let i = idx; i < SLOT_COUNT; i++) {
+      if (SLOT_TYPES[i] === 'training') remaining++;
+    }
+    return remaining;
+  }
+
+  /**
+   * 取得「總」剩餘時段數（含 meal/rest，用於判斷今天是否結束）。
+   */
+  function totalSlotsRemaining() {
     return Math.max(0, SLOT_COUNT - currentSlotIndex());
   }
 
+  /**
+   * 🆕 Phase 1-B: 自動解決當前的 meal/rest 時段，直到進入 training 時段或日末。
+   *
+   * Phase 1-D 會把這個函式的 meal 分支改為「觸發用餐事件」。
+   * Phase 1-E 會把 rest 分支改為「觸發休息/疲勞事件」。
+   *
+   * 目前只是安靜推進時間 + 簡單恢復。
+   */
+  function _resolveNonTrainingSlots() {
+    const p = Stats.player;
+    let safeguard = 10;
+    while (safeguard-- > 0) {
+      const idx = currentSlotIndex();
+      if (idx >= SLOT_COUNT) break;  // 今天結束
+      const type = SLOT_TYPES[idx];
+      if (type === 'training') break; // 玩家可以行動了
+
+      // 自動解決當前 slot
+      if (type === 'meal') {
+        const mealName = idx === 0 ? '早餐' : idx === 3 ? '午餐' : '晚餐';
+        addLog(`【${mealName}】你排隊領到一份粥和一小塊硬麵包。`, '#9dbf80', true);
+        Stats.modVital('food', 25);
+        Stats.modVital('mood', 2);
+      } else if (type === 'rest') {
+        addLog('【傍晚】訓練結束，你靠在牆邊喘了口氣。', '#8899aa', true);
+        Stats.modVital('stamina', 10);
+        Stats.modVital('mood', 3);
+      }
+
+      Stats.advanceTime(SLOT_DUR);
+      // 日期可能因此推進
+      if (Stats.player.day > p.day) break;
+    }
+  }
+
   // ── Render: time slots ─────────────────────────────────
+  // 🆕 Phase 1-B: 不同 slot type 顯示不同圖示與顏色
   function renderTimeSlots() {
     const con = document.getElementById('time-slots');
     if (!con) return;
@@ -420,8 +524,18 @@ const Game = (() => {
       const h0   = 6 + i * 2;
       const h1   = h0 + 2;
       const label = String(h0).padStart(2,'0') + '-' + String(h1).padStart(2,'0');
-      const cls  = i < idx ? 'used' : (i === idx ? 'current' : 'future');
-      html += `<div class="slot-box ${cls}"><span class="slot-h">${label}</span><div class="slot-dot"></div></div>`;
+      const type = SLOT_TYPES[i];
+      const icon = SLOT_TYPE_ICONS[type] || '';
+      const cls  = [
+        'slot-box',
+        'slot-' + type,
+        i < idx ? 'used' : (i === idx ? 'current' : 'future'),
+      ].join(' ');
+      const title = `${label} ・ ${SLOT_TYPE_LABELS[type] || type}`;
+      html += `<div class="${cls}" title="${title}">
+                 <span class="slot-h">${label}</span>
+                 <span class="slot-icon">${icon}</span>
+               </div>`;
     }
     con.innerHTML = html;
   }
@@ -576,6 +690,10 @@ const Game = (() => {
     // Advance time by slot(s)
     Stats.advanceTime(act.slots * SLOT_DUR);
 
+    // 🆕 Phase 1-B: 自動解決當前的 meal/rest 時段
+    // （這樣玩家訓練完不會看到「用餐時段」的空白畫面）
+    _resolveNonTrainingSlots();
+
     // Log — action header + brief effect summary
     const gainSummary = (act.effects || []).map(eff => {
       if (eff.type === 'attr')      return `${eff.key}${eff.delta > 0 ? '+' : ''}${eff.delta}`;
@@ -666,6 +784,9 @@ const Game = (() => {
     // Roll new day's NPCs
     _syncLastRollDay(-1);
     rollDailyNPCs();
+
+    // 🆕 Phase 1-B: 06:00 是早餐時段，自動解決（Phase 1-D 會改為事件觸發）
+    _resolveNonTrainingSlots();
 
     // 🆕 D.1.8: 每日結束自動存檔（即使 autoSave 設為 'day' 也會寫入）
     autoSave('day');
@@ -1344,6 +1465,8 @@ const Game = (() => {
       rollDailyNPCs();
       const f = FIELDS[currentFieldId];
       if (f) addLog(`【繼續・第 ${Stats.player.day} 天】\n${f.logText}`, '#b8960c', true);
+      // 🆕 Phase 1-B: 載入後如果在 meal/rest 時段，自動解決
+      _resolveNonTrainingSlots();
       renderAll();
     });
 
@@ -1415,6 +1538,8 @@ const Game = (() => {
     rollDailyNPCs();
     const f = FIELDS[currentFieldId];
     if (f) addLog('【' + f.name + '】\n' + f.logText, '#ddd', true);
+    // 🆕 Phase 1-B: 新遊戲從 06:00 開始，直接跳過早餐時段進入訓練
+    _resolveNonTrainingSlots();
     saveGame();
     renderAll();
   }
