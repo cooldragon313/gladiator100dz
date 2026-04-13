@@ -315,6 +315,39 @@ const Stats = (() => {
     if (delta > 0) player.spEarned += delta;
   }
 
+  // ── 🆕 Phase 1-C: 狀態等級查詢 ──────────────────
+  /**
+   * 取得某個數值的當前等級名稱。
+   * 用於事件觸發條件判定（Phase 1-D/E）。
+   *
+   * @param {string} key 'food' | 'stamina' | 'mood' | 'hp'
+   * @returns {string}   等級名稱（見 Config.THRESHOLDS）
+   *
+   * @example
+   *   Stats.getVitalTier('food')  // 'normal' | 'hungry' | 'starving' 等
+   */
+  function getVitalTier(key) {
+    if (typeof Config === 'undefined') return 'normal';
+    return Config.getTier(key, player[key] || 0);
+  }
+
+  /**
+   * 快速檢查某數值是否處於某等級或更糟。
+   *
+   * @param {string} key   'food' | 'stamina' | 'mood'
+   * @param {string} tier  例如 'hungry', 'tired'
+   * @returns {boolean}
+   *
+   * @example
+   *   Stats.isVitalAtOrBelow('food', 'hungry')  // 餓或更糟 → true
+   */
+  function isVitalAtOrBelow(key, tier) {
+    if (typeof Config === 'undefined') return false;
+    const threshold = Config.THRESHOLDS[key]?.[tier];
+    if (threshold === undefined) return false;
+    return (player[key] || 0) <= threshold;
+  }
+
   function getTimeStr() {
     const h = Math.floor(player.time / 60) % 24;
     const m = player.time % 60;
@@ -354,6 +387,9 @@ const Stats = (() => {
     modMoney,   // 🆕 D.1.6
     modExp,     // 🆕 D.6 預留
     modSp,      // 🆕 D.6 預留
+    // 🆕 Phase 1-C 狀態等級查詢
+    getVitalTier,
+    isVitalAtOrBelow,
     // 時間
     getTimeStr,
     advanceTime,

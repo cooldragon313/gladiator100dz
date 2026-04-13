@@ -495,16 +495,17 @@ const Game = (() => {
       const type = SLOT_TYPES[idx];
       if (type === 'training') break; // 玩家可以行動了
 
-      // 自動解決當前 slot
+      // 自動解決當前 slot（使用 Config.DAILY 常數）
+      const daily = Config.DAILY;
       if (type === 'meal') {
         const mealName = idx === 0 ? '早餐' : idx === 3 ? '午餐' : '晚餐';
         addLog(`【${mealName}】你排隊領到一份粥和一小塊硬麵包。`, '#9dbf80', true);
-        Stats.modVital('food', 25);
-        Stats.modVital('mood', 2);
+        Stats.modVital('food', daily.MEAL_FOOD_GAIN);
+        Stats.modVital('mood', daily.MEAL_MOOD_GAIN);
       } else if (type === 'rest') {
         addLog('【傍晚】訓練結束，你靠在牆邊喘了口氣。', '#8899aa', true);
-        Stats.modVital('stamina', 10);
-        Stats.modVital('mood', 3);
+        Stats.modVital('stamina', daily.REST_STAMINA_GAIN);
+        Stats.modVital('mood',    daily.REST_MOOD_GAIN);
       }
 
       Stats.advanceTime(SLOT_DUR);
