@@ -459,13 +459,274 @@ const Events = (() => {
     return ACTION_EVENTS[evId] || null;
   }
 
+  // ══════════════════════════════════════════════════
+  // 🆕 Phase 1-F: NPC 注意事件池
+  // ══════════════════════════════════════════════════
+  /**
+   * 當 notice_count 累積達門檻時觸發。
+   * text    : 敘事文字
+   * color   : log 顏色
+   * effects : 套用效果
+   */
+  const NPC_NOTICE_EVENTS = {
+
+    gra_notice_invite: {
+      id: 'gra_notice_invite',
+      npcId: 'blacksmithGra',
+      text: '葛拉一言不發地走到你身邊，用下巴示意鍛造坊的方向。「有空來看看。」他的聲音像鐵塊落在石板上。',
+      color: '#b8860b',
+      effects: [
+        { type: 'affection', key: 'blacksmithGra', delta: 5 },
+        { type: 'vital',     key: 'mood',          delta: 8 },
+      ],
+      // 解鎖 watchSmith 動作（下次在鍛造坊時可用）
+      flagSet: 'gra_invited_to_forge',
+    },
+
+    mela_notice_food: {
+      id: 'mela_notice_food',
+      npcId: 'melaKook',
+      text: '梅拉從圍裙口袋裡摸出一個用布包著的東西，悄悄塞到你手裡，眼神掃了一圈確定沒人看見。「快吃，別說是我給的。」',
+      color: '#9dbf80',
+      effects: [
+        { type: 'vital',     key: 'food',     delta: 20 },
+        { type: 'vital',     key: 'mood',     delta: 10 },
+        { type: 'affection', key: 'melaKook', delta: 5  },
+      ],
+    },
+
+    overseer_notice_task: {
+      id: 'overseer_notice_task',
+      npcId: 'overseer',
+      text: '訓練結束後，監督官把你叫住。「你，訓練場清掃。其他人散了。」這不是建議。',
+      color: '#aa7755',
+      effects: [
+        { type: 'vital', key: 'stamina', delta: -10 },
+        { type: 'vital', key: 'mood',    delta: -5  },
+      ],
+      // 完成勞動任務：給一點好感累積（長官看到你服從）
+      flagSet: 'overseer_assigned_task',
+    },
+
+  };
+
+  function getNoticeEvent(evId) {
+    return NPC_NOTICE_EVENTS[evId] || null;
+  }
+
+  // ══════════════════════════════════════════════════
+  // 🆕 Phase 1-G: 傳喚事件池
+  // ══════════════════════════════════════════════════
+  /**
+   * 由 DayCycle.onDayStart 條件判斷後呼叫。
+   * doneFlag : 觸發後立刻 set，防止重複觸發。
+   * conditions: 同 _matchConditions 格式。
+   * effects   : 套用效果（可含 affection / vital / fame / money）。
+   */
+  const SUMMON_EVENTS = [
+
+    // 主人第一次傳喚（名聲 ≥ 15，初見）
+    {
+      id:        'master_first_eval',
+      doneFlag:  'summon_master_first_done',
+      conditions:{ minFame: 15, flagNot: 'summon_master_first_done' },
+      text:      '今早一名侍從走到你面前，低聲說：「大人要見你。」你跟著他穿過幾道迴廊，走進那個瀰漫香料氣味的房間。\n阿圖斯大人坐在椅子上，打量你片刻，像在估算一件貨物的價值。「你的成績……還不差。繼續這樣。」他揮手示意你退下，談話就此結束。',
+      color:     '#b8960c',
+      effects:   [
+        { type: 'vital',     key: 'mood',        delta: -5 },
+        { type: 'affection', key: 'masterArtus', delta: 3  },
+      ],
+    },
+
+    // 主人好感累積後的贈禮傳喚（好感 ≥ 30，未觸發）
+    {
+      id:        'master_gift',
+      doneFlag:  'summon_master_gift_done',
+      conditions:{ flagNot: 'summon_master_gift_done' },
+      minAffection: { npcId: 'masterArtus', min: 30 },
+      text:      '侍從帶來一個小皮袋，放在你手上就轉身離開。裡面是幾枚銅幣和一塊乾肉——主人的賞賜，沒有任何附帶說明。\n你懂那個意思：你讓他滿意了。',
+      color:     '#b8960c',
+      effects:   [
+        { type: 'money',     delta: 10              },
+        { type: 'vital',     key: 'food', delta: 15 },
+        { type: 'vital',     key: 'mood', delta: 12 },
+        { type: 'affection', key: 'masterArtus', delta: 2 },
+      ],
+    },
+
+    // 長官定期點名（每 12 天）
+    {
+      id:         'officer_check',
+      doneFlag:   null,   // 用 day-based flag 控制，見 main.js
+      conditions: {},
+      text:       '「停。」訓練場上監督官的聲音突然響起。他把你叫出隊伍，在你面前停下，眼睛像刀一樣掃過你全身。\n「你最近訓練的樣子——還可以。但別以為我沒注意到偷懶的時候。」他轉身走掉，沒有等你回答。',
+      color:      '#aa8855',
+      effects:    [
+        { type: 'vital', key: 'mood', delta: -3 },
+      ],
+    },
+
+    // 長官任務派遣（名聲 ≥ 25，未做過）
+    {
+      id:        'officer_mission',
+      doneFlag:  'summon_officer_mission_done',
+      conditions:{ minFame: 25, flagNot: 'summon_officer_mission_done' },
+      text:      '長官把你叫進辦公室，門關上後他靠著桌子說：「下個月有場小型公演，我需要一個撐得住場面的人。你去。」\n這不是詢問。你點頭。他把一張排程表塞到你手裡，補上一句：「別讓我失望。」',
+      color:     '#aa8855',
+      effects:   [
+        { type: 'fame',      delta: 3               },
+        { type: 'vital',     key: 'mood', delta: 8  },
+        { type: 'affection', key: 'officer', delta: 5 },
+      ],
+      flagSet:   'officer_mission_assigned',
+    },
+
+  ];
+
+  /**
+   * 取得傳喚事件（by id）。
+   */
+  function getSummonEvent(evId) {
+    return SUMMON_EVENTS.find(e => e.id === evId) || null;
+  }
+
+  // ══════════════════════════════════════════════════
+  // 🆕 Phase 1-H: 切磋邀請事件
+  // ══════════════════════════════════════════════════
+  const SPARRING_INVITE_EVENTS = {
+
+    sparring_by_cassius: {
+      id: 'sparring_by_cassius', npcId: 'cassius',
+      text: '卡西烏斯走到你旁邊，把一柄木劍扔給你。「過來。」他沒有多餘的話，但眼神裡有某種認可。\n你們對打了一個時段——他很快，你學到了東西。',
+      color: '#6699cc',
+      effects: [
+        { type: 'attr',      key: 'STR',    delta: 0.3 },
+        { type: 'attr',      key: 'DEX',    delta: 0.3 },
+        { type: 'vital',     key: 'stamina',delta: -15 },
+        { type: 'vital',     key: 'mood',   delta: 10  },
+        { type: 'affection', key: 'cassius',delta: 3   },
+      ],
+    },
+
+    sparring_by_dagi: {
+      id: 'sparring_by_dagi', npcId: 'dagiSlave',
+      text: '達吉拍了拍你的手臂，眼睛亮著。「喂，要不要比劃一下？我最近學了個新招。」\n他技巧生疏但熱情，你們打得滿頭大汗，笑了幾下。',
+      color: '#6699cc',
+      effects: [
+        { type: 'attr',      key: 'AGI',       delta: 0.3 },
+        { type: 'vital',     key: 'stamina',   delta: -12 },
+        { type: 'vital',     key: 'mood',      delta: 15  },
+        { type: 'affection', key: 'dagiSlave', delta: 5   },
+      ],
+    },
+
+    sparring_by_ursa: {
+      id: 'sparring_by_ursa', npcId: 'ursa',
+      text: '烏爾薩走過來，低頭看著你說：「我需要一個陪練。你不介意吧。」這是他少見的主動。\n他的力道驚人，光是接住他的攻擊就讓你雙臂發麻。',
+      color: '#6699cc',
+      effects: [
+        { type: 'attr',      key: 'STR',   delta: 0.4 },
+        { type: 'attr',      key: 'CON',   delta: 0.2 },
+        { type: 'vital',     key: 'stamina',delta: -20 },
+        { type: 'vital',     key: 'mood',   delta: 8   },
+        { type: 'affection', key: 'ursa',   delta: 3   },
+      ],
+    },
+
+  };
+
+  // 預設切磋事件（npcId 未對應到專屬版本時用）
+  const SPARRING_DEFAULT = {
+    id: 'sparring_generic',
+    text: '他朝你點頭，把木劍遞過來。你們對打了一陣，彼此都磨礪到了什麼。',
+    color: '#6699cc',
+    effects: [
+      { type: 'attr',  key: 'STR', delta: 0.2 },
+      { type: 'attr',  key: 'DEX', delta: 0.2 },
+      { type: 'vital', key: 'stamina', delta: -10 },
+      { type: 'vital', key: 'mood',    delta: 6   },
+    ],
+  };
+
+  function getSparringEvent(npcId) {
+    return SPARRING_INVITE_EVENTS[`sparring_by_${npcId}`] || { ...SPARRING_DEFAULT, npcId };
+  }
+
+  // ══════════════════════════════════════════════════
+  // 🆕 Phase 1-I: 主人派遣採購事件
+  // ══════════════════════════════════════════════════
+  const ERRAND_EVENTS = [
+
+    {
+      id:   'errand_market_food',
+      text: '今早侍從帶來指示：「大人要你去市集採買補給，下午前回來。」護衛跟在你三步外，但你還是感受到難得的空氣。\n市集嘈雜、充滿氣味，你按清單買完，順手打量了一下周圍的人。',
+      color: '#9dbf80',
+      effects: [
+        { type: 'vital', key: 'food', delta: 25 },
+        { type: 'vital', key: 'mood', delta: 12 },
+        { type: 'money', delta: 3 },   // 剩餘零錢
+      ],
+      flagSet: null,
+    },
+
+    {
+      id:   'errand_market_rumor',
+      text: '市集跑腿途中，隔壁攤的老人壓低聲音對你說：「最近有個傳言，說競技場要辦什麼大型公演…… 那個名額很搶手。」\n你裝作沒聽見，付了錢走人。腦子裡卻反覆轉著那句話。',
+      color: '#9dbf80',
+      effects: [
+        { type: 'vital', key: 'food', delta: 20 },
+        { type: 'vital', key: 'mood', delta: 8  },
+        { type: 'fame',  delta: 1 },  // 開始被市井聽說
+      ],
+      flagSet: 'heard_arena_rumor',
+    },
+
+    {
+      id:   'errand_market_incident',
+      text: '回程時有個小孩衝出來撞了你，摔在地上哭。你停下來把他扶起——護衛皺眉催你快走。\n小孩的母親衝上來，眼神從恐懼轉為感謝。你沒說什麼，跟著護衛離開。',
+      color: '#9dbf80',
+      effects: [
+        { type: 'vital', key: 'food', delta: 20 },
+        { type: 'vital', key: 'mood', delta: 18 },
+      ],
+      flagSet: null,
+    },
+
+  ];
+
+  function getErrandEvent() {
+    // 隨機抽一個跑腿事件
+    return ERRAND_EVENTS[Math.floor(Math.random() * ERRAND_EVENTS.length)];
+  }
+
   return {
     EVENT_POOL,
     ACTION_EVENTS,
+    NPC_NOTICE_EVENTS,
+    SUMMON_EVENTS,
+    SPARRING_INVITE_EVENTS,
+    ERRAND_EVENTS,
+    TIMELINE_EVENTS,
+    rollRandom,
+    applyEvent,
+    getActionEvent,
+    getNoticeEvent,
+    getSummonEvent,
+    getSparringEvent,
+    getErrandEvent,
+    // 🆕 D.1.10 條件化時間軸事件
+    getTimelineEvent,
+    getTimelineMarkers,
+  };
+})();
+    EVENT_POOL,
+    ACTION_EVENTS,
+    NPC_NOTICE_EVENTS,
     TIMELINE_EVENTS,       // 舊 API（保留，但建議使用 getTimelineEvent / getTimelineMarkers）
     rollRandom,
     applyEvent,
     getActionEvent,
+    getNoticeEvent,        // 🆕 Phase 1-F
     // 🆕 D.1.10 條件化時間軸事件
     getTimelineEvent,
     getTimelineMarkers,

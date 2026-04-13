@@ -103,9 +103,14 @@ const Stats = (() => {
 
     // ── Achievements & Traits ──
     achievements: [],      // 已解鎖成就 ID 陣列
-    traits:       [],      // 已激活特性 ID 陣列
+    traits:       [],      // 已激活特性 ID 陣列（positive/negative）
+    ailments:     [],      // 🆕 Phase 1-D: 當前病痛 ID 陣列（見 Config.AILMENT_DEFS）
     title:        null,    // 額外稱號（字串 or null）
     fameBase:     0,       // 每場競技場獲勝的額外固定名聲
+
+    // 🆕 Phase 1-D: 就寢狀態追蹤
+    insomniaStreak:    0,  // 連續失眠天數（≥2 觸發失眠症）
+    normalSleepStreak: 0,  // 連續正常睡眠天數（≥3 解除失眠症）
   };
 
   // Effective attr = base + equipment bonus + buff bonus - stamina penalty

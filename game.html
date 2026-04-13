@@ -356,7 +356,7 @@ html, body {
   flex: 1;
   position: relative;
   overflow: hidden;
-  background: #0a0804;
+  background: #0a0804; /* fallback；bg-* 類別會覆蓋 */
 }
 
 /* Watermark */
@@ -374,17 +374,52 @@ html, body {
   z-index: 0;
 }
 
-/* NPC area */
+/* NPC area — 上隊友、中舞台、下觀眾 */
 #npc-area {
   position: relative;
   z-index: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;
+  justify-content: space-between;
   height: 100%;
-  padding: 14px 16px 10px;
-  gap: 10px;
+  padding: 10px 14px 10px;
+  gap: 0;
+}
+/* 隊友區（頂部） */
+#teammate-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+/* 協力對話泡泡列 */
+#synergy-bubbles {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  min-height: 24px;
+  padding: 4px 0 2px;
+}
+.synergy-bubble {
+  background: rgba(0,0,0,.65);
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 12px;
+  padding: 3px 10px;
+  font-size: 20px;
+  color: #e0d0b0;
+  max-width: 160px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 中央舞台（留空，背景透出） */
+#stage-center { flex: 1; }
+/* 觀眾區（底部） */
+#audience-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .npc-row {
@@ -429,13 +464,140 @@ html, body {
 .aud-tag { color:#6688cc; }
 .npc-empty-label { color:var(--border); font-size:28px; }
 
-.audience-row-label {
-  font-size: 20px;
+.audience-zone-label {
+  font-size: 18px;
   color: var(--text-dim);
-  letter-spacing: .15em;
-  align-self: flex-start;
-  padding-left: 4px;
-  margin-top: 2px;
+  letter-spacing: .12em;
+  text-align: center;
+  opacity: .6;
+}
+
+/* ══════════════════════════════════════════════════════════
+   舞台特效 & 協力系統視覺
+════════════════════════════════════════════════════════════ */
+
+/* 特效覆蓋層（絕對定位，覆蓋整個 scene-view） */
+#action-fx-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 動作特效文字 */
+.action-effect {
+  position: absolute;
+  top: 48%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-weight: 900;
+  letter-spacing: .1em;
+  text-align: center;
+  pointer-events: none;
+  white-space: nowrap;
+  line-height: 1;
+}
+/* 等級：普通（1人以下） */
+.fx-normal {
+  font-size: clamp(22px,3vw,34px);
+  color: #e8dcc0;
+  text-shadow: 1px 2px 4px rgba(0,0,0,.85);
+  animation: fx-float 2s ease-out forwards;
+}
+/* 等級：協力（×1~2） */
+.fx-synergy {
+  font-size: clamp(28px,4vw,44px);
+  color: #88ee88;
+  text-shadow: 0 0 14px #44cc44, 1px 2px 6px rgba(0,0,0,.9);
+  animation: fx-float 2.2s ease-out forwards;
+}
+/* 等級：爆擊（×2~4） */
+.fx-crit {
+  font-size: clamp(38px,5.5vw,62px);
+  color: #77ccff;
+  text-shadow: 0 0 22px #44aaff, 0 0 44px #2277cc, 1px 2px 6px rgba(0,0,0,.9);
+  animation: fx-float-big 2.4s ease-out forwards;
+}
+/* 等級：超爆擊（×4~10） */
+.fx-mega {
+  font-size: clamp(52px,7.5vw,90px);
+  color: #99ddff;
+  text-shadow: 0 0 30px #44aaff, 0 0 60px #2255aa, 0 0 90px #0033aa;
+  animation: fx-float-big 2.6s ease-out forwards;
+}
+/* 等級：傳說（×10+） */
+.fx-legendary {
+  font-size: clamp(64px,9.5vw,110px);
+  color: #ee99ff;
+  text-shadow: 0 0 40px #cc44ff, 0 0 80px #aa00ff, 0 0 120px #8800cc;
+  animation: fx-float-legendary 3s ease-out forwards;
+}
+
+@keyframes fx-float {
+  0%   { opacity:0; transform:translateX(-50%) translateY(10px) scale(.65); }
+  18%  { opacity:1; transform:translateX(-50%) translateY(0)    scale(1);   }
+  72%  { opacity:1; transform:translateX(-50%) translateY(-22px) scale(1);  }
+  100% { opacity:0; transform:translateX(-50%) translateY(-55px) scale(.9); }
+}
+@keyframes fx-float-big {
+  0%   { opacity:0; transform:translateX(-50%) scale(.35); }
+  20%  { opacity:1; transform:translateX(-50%) scale(1.18); }
+  38%  { opacity:1; transform:translateX(-50%) scale(.96); }
+  75%  { opacity:1; transform:translateX(-50%) translateY(-35px) scale(.96); }
+  100% { opacity:0; transform:translateX(-50%) translateY(-75px) scale(.86); }
+}
+@keyframes fx-float-legendary {
+  0%   { opacity:0; transform:translateX(-50%) scale(.2) rotate(-4deg); }
+  16%  { opacity:1; transform:translateX(-50%) scale(1.28) rotate(2deg); }
+  32%  { opacity:1; transform:translateX(-50%) scale(1)   rotate(0deg); }
+  72%  { opacity:1; transform:translateX(-50%) translateY(-45px) scale(1); }
+  100% { opacity:0; transform:translateX(-50%) translateY(-95px) scale(.9); }
+}
+
+/* 協力泡泡（隊友對話） */
+.synergy-bubble {
+  animation: bubble-pop .32s ease-out both;
+}
+.synergy-bubble.bubble-partner {
+  border-color: rgba(80,160,255,.55);
+  color: #b8e0ff;
+  text-shadow: 0 0 8px rgba(80,160,255,.4);
+}
+
+@keyframes bubble-pop {
+  0%   { opacity:0; transform:scale(.45) translateY(10px); }
+  100% { opacity:1; transform:scale(1)   translateY(0);    }
+}
+
+/* 觀眾評語列 */
+#audience-speech {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  min-height: 22px;
+  padding: 3px 0 2px;
+}
+.aud-speech {
+  background: rgba(0,0,0,.62);
+  border: 1px solid rgba(180,140,80,.28);
+  border-radius: 10px;
+  padding: 3px 11px;
+  font-size: 19px;
+  color: #c8b890;
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: bubble-pop .4s ease-out both;
+}
+.aud-speech-name {
+  color: #8a7050;
+  font-size: 17px;
+  margin-right: 3px;
 }
 
 /* ── Log area ── */
@@ -680,8 +842,27 @@ html, body {
 .bg-dirty-cell   { background: radial-gradient(ellipse 70% 80% at 50% 90%, #1a1525 0%, #0e0c16 40%, #080610 100%); }
 .bg-basic-room   { background: radial-gradient(ellipse 80% 70% at 50% 50%, #1a1410 0%, #100e08 50%, #080604 100%); }
 .bg-luxury-room  { background: radial-gradient(ellipse 60% 50% at 50% 20%, #2a1800 0%, #1c1000 50%, #0a0600 100%); }
-.bg-old-training { background: radial-gradient(ellipse 100% 60% at 50% 100%, #2a1e08 0%, #180e04 50%, #080604 100%); }
-.bg-std-training { background: radial-gradient(ellipse 100% 60% at 50% 100%, #30200a 0%, #1e1206 50%, #080604 100%); }
+/* 訓練場背景圖（ID+class 提高特異性，蓋過 #scene-view 的預設色） */
+#scene-view.bg-old-training,
+#scene-view.bg-std-training {
+  background-image: url('asset/training_ground.png') !important;
+  background-size: cover;
+  background-position: center bottom;
+  background-color: #120c04;
+}
+/* 訓練場半透明暗化層 */
+#scene-view.bg-old-training::before,
+#scene-view.bg-std-training::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.42);
+  pointer-events: none;
+  z-index: 0;
+}
+/* 訓練場不顯示場地水印 */
+#scene-view.bg-old-training #scene-watermark,
+#scene-view.bg-std-training #scene-watermark { display: none; }
 .bg-officer-room { background: radial-gradient(ellipse 60% 70% at 30% 50%, #181820 0%, #100e14 50%, #080608 100%); }
 .bg-forge        { background: radial-gradient(ellipse 50% 80% at 25% 80%, #3d1400 0%, #200a00 40%, #080400 100%); }
 .bg-kitchen      { background: radial-gradient(ellipse 60% 70% at 40% 70%, #2a1400 0%, #180c00 50%, #080500 100%); }
@@ -1072,6 +1253,45 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 .cs-drv-bar-track { flex: 1; height: 8px; background: #0a0806; border: 1px solid var(--border); border-radius: 2px; overflow: hidden; }
 .cs-drv-bar-fill  { height: 100%; width: 30%; background: linear-gradient(90deg, #3d1500, var(--blood-lt)); transition: width .4s ease; }
 .cs-drv-num { width: 44px; font-size: 13px; font-weight: 700; color: var(--text-hi); text-align: right; flex-shrink: 0; }
+
+/* ── Traits & Ailments (Phase 1-D) ── */
+.cs-traits-empty { font-size: 12px; color: var(--text-dim); font-style: italic; padding: 4px 0 6px; }
+.cs-traits-list  { display: flex; flex-wrap: wrap; gap: 5px; padding: 2px 0 6px; }
+
+/* 特性標籤 — 共用底座 */
+.trait-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 8px; border-radius: 3px;
+  font-size: 12px; font-weight: 700; letter-spacing: .03em;
+  border: 1px solid;
+  cursor: default;
+}
+.trait-tag .trait-prefix { font-size: 10px; opacity: .85; }
+
+/* 積極特性 — 金色 */
+.trait-positive {
+  background: rgba(180,140,20,0.15);
+  border-color: #c8a030;
+  color: #e8d070;
+}
+/* 負面特性 — 琥珀橙 */
+.trait-negative {
+  background: rgba(150,70,20,0.12);
+  border-color: #a05020;
+  color: #d08050;
+}
+/* 病痛 — 暗紅脈動 */
+.trait-ailment {
+  background: #1e0808;
+  border-color: #8b2020;
+  color: #ff6868;
+  font-weight: 700;
+  animation: ailment-pulse 2.4s ease-in-out infinite;
+}
+@keyframes ailment-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(139,32,32,0); }
+  50%       { box-shadow: 0 0 5px 2px rgba(139,32,32,0.45); }
+}
 
 /* ── Skills ── */
 .cs-skill-empty { font-size: 12px; color: var(--text-dim); font-style: italic; padding: 6px 0; }
@@ -1558,26 +1778,39 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
     <!-- Scene view -->
     <div id="scene-view" class="bg-dirty-cell ambient-damp">
       <div id="scene-watermark">骯髒牢房</div>
+      <!-- 動作特效覆蓋層（JS 動態插入 .action-effect） -->
+      <div id="action-fx-layer"></div>
       <div id="npc-area">
 
-        <!-- Teammate rows (6 slots) -->
-        <div class="npc-row">
-          <div class="npc-slot empty" id="tm-slot-0"><span class="npc-empty-label">—</span></div>
-          <div class="npc-slot empty" id="tm-slot-1"><span class="npc-empty-label">—</span></div>
-          <div class="npc-slot empty" id="tm-slot-2"><span class="npc-empty-label">—</span></div>
-        </div>
-        <div class="npc-row">
-          <div class="npc-slot empty" id="tm-slot-3"><span class="npc-empty-label">—</span></div>
-          <div class="npc-slot empty" id="tm-slot-4"><span class="npc-empty-label">—</span></div>
-          <div class="npc-slot empty" id="tm-slot-5"><span class="npc-empty-label">—</span></div>
+        <!-- 頂部：隊友區 + 對話泡泡 -->
+        <div id="teammate-zone">
+          <div class="npc-row">
+            <div class="npc-slot empty" id="tm-slot-0"><span class="npc-empty-label">—</span></div>
+            <div class="npc-slot empty" id="tm-slot-1"><span class="npc-empty-label">—</span></div>
+            <div class="npc-slot empty" id="tm-slot-2"><span class="npc-empty-label">—</span></div>
+          </div>
+          <div class="npc-row">
+            <div class="npc-slot empty" id="tm-slot-3"><span class="npc-empty-label">—</span></div>
+            <div class="npc-slot empty" id="tm-slot-4"><span class="npc-empty-label">—</span></div>
+            <div class="npc-slot empty" id="tm-slot-5"><span class="npc-empty-label">—</span></div>
+          </div>
+          <!-- 協力對話泡泡列（JS 動態填入） -->
+          <div id="synergy-bubbles"></div>
         </div>
 
-        <!-- Audience row (3 slots) -->
-        <div class="audience-row-label">— 觀眾 —</div>
-        <div class="npc-row">
-          <div class="npc-slot empty" id="aud-slot-0"><span class="npc-empty-label">—</span></div>
-          <div class="npc-slot empty" id="aud-slot-1"><span class="npc-empty-label">—</span></div>
-          <div class="npc-slot empty" id="aud-slot-2"><span class="npc-empty-label">—</span></div>
+        <!-- 中央：空舞台（背景圖透出） -->
+        <div id="stage-center"></div>
+
+        <!-- 底部：觀眾區 -->
+        <div id="audience-zone">
+          <!-- 觀眾評語（JS 動態填入） -->
+          <div id="audience-speech"></div>
+          <div class="audience-zone-label">— 觀眾 —</div>
+          <div class="npc-row">
+            <div class="npc-slot empty" id="aud-slot-0"><span class="npc-empty-label">—</span></div>
+            <div class="npc-slot empty" id="aud-slot-1"><span class="npc-empty-label">—</span></div>
+            <div class="npc-slot empty" id="aud-slot-2"><span class="npc-empty-label">—</span></div>
+          </div>
         </div>
 
       </div><!-- /npc-area -->
@@ -1858,6 +2091,19 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
         <div class="cs-section-title">資源</div>
         <div class="cs-equip-row"><span class="cs-equip-slot">💰 金錢</span><span class="cs-equip-val" id="cs-money">0</span></div>
         <div class="cs-equip-row"><span class="cs-equip-slot">✦ 技能點</span><span class="cs-equip-val" id="cs-sp">0</span></div>
+
+        <!-- 🆕 Phase 1-D: 特性 & 病痛 -->
+        <div class="cs-divider"></div>
+        <div class="cs-section-title">特性</div>
+        <div id="cs-traits-list">
+          <div class="cs-traits-empty">尚無特性</div>
+        </div>
+
+        <div class="cs-divider"></div>
+        <div class="cs-section-title">病痛</div>
+        <div id="cs-ailments-list">
+          <div class="cs-traits-empty" style="color:var(--text-dim)">無病痛</div>
+        </div>
 
         <div class="cs-divider"></div>
         <div class="cs-section-title">好感度</div>

@@ -195,6 +195,101 @@ const Game = (() => {
 
   loadSettings();
 
+  // ══════════════════════════════════════════════════════
+  // 舞台視覺函式（D.8b / D.8c）
+  // ══════════════════════════════════════════════════════
+
+  /** 動作特效文字浮現在 #stage-center 上方 */
+  function _showActionEffect(name, mult) {
+    const layer = document.getElementById('action-fx-layer');
+    if (!layer) return;
+    layer.innerHTML = '';
+    const el = document.createElement('div');
+    el.className = 'action-effect ';
+    if      (mult >= 10) el.className += 'fx-legendary';
+    else if (mult >= 4)  el.className += 'fx-mega';
+    else if (mult >= 2)  el.className += 'fx-crit';
+    else if (mult > 1)   el.className += 'fx-synergy';
+    else                 el.className += 'fx-normal';
+    el.textContent = name;
+    layer.appendChild(el);
+    const dur = mult >= 10 ? 3100 : mult >= 4 ? 2700 : 2300;
+    setTimeout(() => { if (layer.contains(el)) layer.removeChild(el); }, dur);
+  }
+
+  /** 協力台詞泡泡（隊友列下方） */
+  const _SYNERGY_QUOTES = [
+    ['加油！',    '繼續！',       '不錯嘛！'],       // ×1~2
+    ['一起來！',  '團結！',       '這才對！'],       // ×2~4
+    ['無三不成禮！','天下無敵！', '這才是力量！'],   // ×4~10
+    ['傳說誕生了！','前所未見！', '神話啊！'],       // ×10+
+  ];
+
+  function _showSynergyBubbles(npcIds, mult) {
+    const container = document.getElementById('synergy-bubbles');
+    if (!container) return;
+    container.innerHTML = '';
+    const qi = mult >= 10 ? 3 : mult >= 4 ? 2 : mult >= 2 ? 1 : 0;
+    const quotes = _SYNERGY_QUOTES[qi];
+    let idx = 0;
+    (npcIds || []).forEach((npcId, i) => {
+      if (!npcId) return;
+      const aff = teammates.getAffection(npcId);
+      if (aff < 30) return;
+      const bubble = document.createElement('div');
+      bubble.className = 'synergy-bubble' + (aff >= 60 ? ' bubble-partner' : '');
+      bubble.style.animationDelay = (i * 0.13) + 's';
+      bubble.textContent = quotes[idx % quotes.length];
+      idx++;
+      container.appendChild(bubble);
+    });
+    setTimeout(() => { container.innerHTML = ''; }, 4500);
+  }
+
+  /** 觀眾評語（依 NPC 好感度隨機出現） */
+  const _AUD_COMMENTS = {
+    masterArtus: {
+      '60':  ['不錯。',       '有點意思。',     '繼續。'],
+      '30':  ['...（點頭）',  '還算賣力。'],
+      '0':   [],
+      '-1':  ['希望這投資值得。'],
+    },
+    melaKook: {
+      '60':  ['這小子挺俊俏的...', '加油！', '嘻嘻...'],
+      '30':  ['努力呢。',          '不錯嘛。'],
+      '0':   ['...'],
+      '-1':  [],
+    },
+    overseer: {
+      '30':  ['繼續訓練！',   '不許偷懶！'],
+      '0':   ['盯著你呢。'],
+      '-1':  ['廢物。'],
+    },
+  };
+
+  function _showAudienceComments(audNpcIds, act) {
+    const container = document.getElementById('audience-speech');
+    if (!container) return;
+    container.innerHTML = '';
+    (audNpcIds || []).forEach((npcId, i) => {
+      if (!npcId) return;
+      const map = _AUD_COMMENTS[npcId];
+      if (!map) return;
+      if (Math.random() > 0.55) return;   // 55% 機率才說話
+      const aff = teammates.getAffection(npcId);
+      const tier = aff >= 60 ? '60' : aff >= 30 ? '30' : aff >= 0 ? '0' : '-1';
+      const pool = map[tier] || [];
+      if (!pool.length) return;
+      const npc  = teammates.getNPC(npcId);
+      const el   = document.createElement('div');
+      el.className = 'aud-speech';
+      el.style.animationDelay = (i * 0.22) + 's';
+      el.innerHTML = `<span class="aud-speech-name">${npc?.name || npcId}：</span>${pool[Math.floor(Math.random() * pool.length)]}`;
+      container.appendChild(el);
+    });
+    setTimeout(() => { container.innerHTML = ''; }, 4200);
+  }
+
   // ── Log ───────────────────────────────────────────────
   function addLog(text, color = '#e0e0e0', italic = true) {
     logHistory.unshift({ text, color, italic });
@@ -478,38 +573,184 @@ const Game = (() => {
     return Math.max(0, SLOT_COUNT - currentSlotIndex());
   }
 
+  // ══════════════════════════════════════════════════
+  // 🆕 Phase 1-D: 用餐事件
+  // ══════════════════════════════════════════════════
   /**
-   * 🆕 Phase 1-B: 自動解決當前的 meal/rest 時段，直到進入 training 時段或日末。
-   *
-   * Phase 1-D 會把這個函式的 meal 分支改為「觸發用餐事件」。
-   * Phase 1-E 會把 rest 分支改為「觸發休息/疲勞事件」。
-   *
-   * 目前只是安靜推進時間 + 簡單恢復。
+   * 依好感度與隨機性選出用餐敘事，輸出 log 並套用效果。
+   * @param {'breakfast'|'lunch'|'dinner'} mealType
+   */
+  function _triggerMealEvent(mealType) {
+    const p     = Stats.player;
+    const melaAff = teammates.getAffection('melaKook');
+    const daily = Config.DAILY;
+
+    // ── 共用：失眠症被動（rest slot 在 _resolveNonTrainingSlots 處理，
+    //   meal slot 的失眠症扣除在這裡一併執行）
+    if (p.ailments?.includes('insomnia_disorder')) {
+      Stats.modVital('stamina', -3);
+      Stats.modVital('mood',    -3);
+    }
+
+    // ── 飽食時可能跳過食物效果（仍有心情/NPC 互動）
+    const isFull = p.food >= Config.THRESHOLDS.food.overStuffed;
+
+    let text, foodGain, moodGain;
+
+    if (mealType === 'breakfast') {
+      if (melaAff >= 60) {
+        text     = '🍴【早餐】梅拉把一個水煮蛋悄悄塞進你的碗底，目光輕柔地移開。你快速吃掉，心裡暖了一下。';
+        foodGain = 40; moodGain = 12;
+      } else if (melaAff >= 30) {
+        text     = '🍴【早餐】廚娘多盛了幾勺豆子，你低頭道了謝。她嗯了一聲，算是回應。';
+        foodGain = 35; moodGain = 8;
+      } else {
+        text     = '🍴【早餐】一份稀粥，半塊硬麵包。沒有味道，但填飽了肚子。';
+        foodGain = daily.MEAL_FOOD_GAIN; moodGain = daily.MEAL_MOOD_GAIN;
+      }
+    } else if (mealType === 'lunch') {
+      if (melaAff >= 60) {
+        text     = '🍴【午餐】梅拉說了句「吃好點才有力氣打架」，語氣比往常柔和許多。';
+        foodGain = 40; moodGain = 10;
+      } else if (melaAff >= 30) {
+        text     = '🍴【午餐】今天的燉豆多加了些鹽，比平常好吃一點。你猜是她故意的。';
+        foodGain = 35; moodGain = 7;
+      } else {
+        text     = '🍴【午餐】依舊是那幾樣東西，分量勉強撐到下午。你吃得很快，沒有停下來品嚐。';
+        foodGain = daily.MEAL_FOOD_GAIN; moodGain = daily.MEAL_MOOD_GAIN;
+      }
+    } else { // dinner
+      if (melaAff >= 60) {
+        text     = '🍴【晚餐】碗裡有一小塊肉，梅拉什麼都沒說。你也沒問。有些事不需要說出來。';
+        foodGain = 42; moodGain = 14;
+      } else if (melaAff >= 30) {
+        text     = '🍴【晚餐】今晚的燉菜有肉味，雖然只是骨頭熬的湯。你喝完了整碗。';
+        foodGain = 38; moodGain = 9;
+      } else {
+        text     = '🍴【晚餐】夜幕低垂，你沉默地吃完晚餐。今天又過了一天。';
+        foodGain = daily.MEAL_FOOD_GAIN + 5; moodGain = daily.MEAL_MOOD_GAIN + 3;
+      }
+    }
+
+    addLog(text, '#9dbf80', true);
+    if (!isFull) Stats.modVital('food', foodGain);
+    Stats.modVital('mood', moodGain);
+  }
+
+  /**
+   * 🆕 Phase 1-D: 就寢事件 — 加權隨機選 sleep_normal / insomnia / nightmare
+   * 在 sleepEndDay() 推進天數之前呼叫。
+   */
+  function _triggerSleepEvent() {
+    const p = Stats.player;
+    const daily = Config.DAILY;
+    const hasInsomniaDisorder = p.ailments?.includes('insomnia_disorder');
+
+    // ── 動態權重 ──────────────────────────────────
+    // 基礎：normal 60 / insomnia 25 / nightmare 15
+    let wNormal    = 60;
+    let wInsomnia  = 25;
+    let wNightmare = 15;
+
+    // 心情差 → 失眠+
+    if (p.mood <= 20)       { wInsomnia += 20; wNormal -= 15; }
+    else if (p.mood <= 40)  { wInsomnia += 10; wNormal -= 8;  }
+
+    // 體力過剩 → 失眠+（睡不著）
+    if (p.stamina >= Config.THRESHOLDS.stamina.overcharged) { wInsomnia += 10; wNormal -= 8; }
+
+    // 遊戲天數越高 → 噩夢稍多
+    if (p.day >= 20)  { wNightmare += 8; wNormal -= 5;  }
+    if (p.day >= 50)  { wNightmare += 7; wNormal -= 5;  }
+
+    // 已有失眠症 → 正常睡覺很難
+    if (hasInsomniaDisorder) { wInsomnia += 25; wNormal -= 20; }
+
+    wNormal = Math.max(10, wNormal);  // 正常睡眠最少保留 10%
+
+    const total = wNormal + wInsomnia + wNightmare;
+    const roll  = Math.random() * total;
+
+    let sleepType;
+    if (roll < wNormal)               sleepType = 'normal';
+    else if (roll < wNormal + wInsomnia) sleepType = 'insomnia';
+    else                               sleepType = 'nightmare';
+
+    // ── 就寢效果 ──────────────────────────────────
+    const staminaMax = hasInsomniaDisorder
+      ? (Config.AILMENT_DEFS.insomnia_disorder.sleepStaminaMax || 15)
+      : daily.SLEEP_STAMINA_GAIN;
+
+    const staminaGain = Math.min(staminaMax, daily.SLEEP_STAMINA_GAIN);
+
+    if (sleepType === 'normal') {
+      addLog('🌙【就寢】你閉上眼，很快沉入黑暗。沒有夢，只有沉重的疲倦與虛空。', '#8b87b8', true);
+      Stats.modVital('stamina', staminaGain);
+      Stats.modVital('mood',    daily.SLEEP_MOOD_GAIN);
+      // 正常睡眠 → 重置失眠計數，累積正常睡眠天數
+      p.insomniaStreak   = 0;
+      p.normalSleepStreak = (p.normalSleepStreak || 0) + 1;
+    } else if (sleepType === 'insomnia') {
+      addLog('🌙【就寢】夜深了，但眼睛怎麼也合不上。腦子裡轉的全是訓練場的聲音。等你終於睡著，天色已開始泛白。', '#c47a6e', true);
+      Stats.modVital('stamina', Math.round(staminaGain * 0.45));
+      Stats.modVital('mood',    -5);
+      // 失眠計數 +1
+      p.insomniaStreak   = (p.insomniaStreak || 0) + 1;
+      p.normalSleepStreak = 0;
+    } else { // nightmare
+      addLog('🌙【就寢】夢見鮮血。夢見沙土。夢見一張臉——你說不清楚是誰。驚醒時全身冷汗，天色才剛亮。', '#c47a6e', true);
+      Stats.modVital('stamina', Math.round(staminaGain * 0.55));
+      Stats.modVital('mood',    -12);
+      // 噩夢計入失眠（也算沒睡好）
+      p.insomniaStreak   = (p.insomniaStreak || 0) + 1;
+      p.normalSleepStreak = 0;
+    }
+
+    // ── 失眠症觸發 / 解除 ─────────────────────────
+    if (p.insomniaStreak >= 2 && !p.ailments.includes('insomnia_disorder')) {
+      p.ailments.push('insomnia_disorder');
+      addLog('⚕ 連續兩夜無法充分休息——你感覺到某種根深蒂固的疲憊在蔓延。【失眠症】發作。', '#ff6868', true);
+    }
+    if (p.normalSleepStreak >= 3 && p.ailments.includes('insomnia_disorder')) {
+      p.ailments = p.ailments.filter(a => a !== 'insomnia_disorder');
+      p.insomniaStreak = 0;
+      addLog('✦ 連續幾夜好眠，那種深層的疲憊終於消散了。【失眠症】已解除。', '#88d870', true);
+    }
+  }
+
+  /**
+   * 🆕 Phase 1-D: 自動解決當前的 meal/rest 時段，直到進入 training 時段或日末。
+   * meal 分支→ _triggerMealEvent()，rest 分支→被動恢復（Phase 1-E 再事件化）。
    */
   function _resolveNonTrainingSlots() {
     const p = Stats.player;
     let safeguard = 10;
     while (safeguard-- > 0) {
       const idx = currentSlotIndex();
-      if (idx >= SLOT_COUNT) break;  // 今天結束
+      if (idx >= SLOT_COUNT) break;
       const type = SLOT_TYPES[idx];
-      if (type === 'training') break; // 玩家可以行動了
+      if (type === 'training') break;
 
-      // 自動解決當前 slot（使用 Config.DAILY 常數）
       const daily = Config.DAILY;
       if (type === 'meal') {
-        const mealName = idx === 0 ? '早餐' : idx === 3 ? '午餐' : '晚餐';
-        addLog(`【${mealName}】你排隊領到一份粥和一小塊硬麵包。`, '#9dbf80', true);
-        Stats.modVital('food', daily.MEAL_FOOD_GAIN);
-        Stats.modVital('mood', daily.MEAL_MOOD_GAIN);
+        const mealType = idx === 0 ? 'breakfast' : idx === 3 ? 'lunch' : 'dinner';
+        _triggerMealEvent(mealType);
       } else if (type === 'rest') {
+        // Phase 1-E 會改為事件；目前保留安靜恢復
         addLog('【傍晚】訓練結束，你靠在牆邊喘了口氣。', '#8899aa', true);
         Stats.modVital('stamina', daily.REST_STAMINA_GAIN);
         Stats.modVital('mood',    daily.REST_MOOD_GAIN);
+        // 失眠症：rest 時段額外被動消耗
+        if (p.ailments?.includes('insomnia_disorder')) {
+          const passive = Config.AILMENT_DEFS.insomnia_disorder.passiveOnRest;
+          if (passive) {
+            Stats.modVital('stamina', passive.stamina || 0);
+            Stats.modVital('mood',    passive.mood    || 0);
+          }
+        }
       }
 
       Stats.advanceTime(SLOT_DUR);
-      // 日期可能因此推進
       if (Stats.player.day > p.day) break;
     }
   }
@@ -667,12 +908,64 @@ const Game = (() => {
     // D.1.13: 行動確認音效（未來填入實際路徑即可生效）
     SoundManager.playSfx(act.assets?.sfx?.activate || 'action_confirm');
 
-    // Deduct costs
-    if (act.staminaCost > 0) Stats.modVital('stamina', -act.staminaCost);
-    if ((act.foodCost || 0) > 0) Stats.modVital('food', -act.foodCost);
+    // ── 是否含屬性效果（Phase 1-E 需要提前判斷）──────
+    const hasAttrEffect = (act.effects || []).some(e => e.type === 'attr');
+    const isTraining    = hasAttrEffect && act.staminaCost > 0;
+
+    // ══════════════════════════════════════════════════
+    // 🆕 Phase 1-E: 閾值強制中斷（Pre-check）
+    // ══════════════════════════════════════════════════
+    if (isTraining) {
+      // ── fatigue_force：體力 ≤ 10，100% 強制取消訓練 ──
+      if (p.stamina <= 10) {
+        addLog('【力竭】你的膝蓋一軟，幾乎跌倒。你根本沒力氣舉起武器。今天到此為止。', '#cc7733', true);
+        Stats.modVital('stamina', 5);   // 強制休息回一點體力
+        Stats.advanceTime(act.slots * SLOT_DUR);
+        _resolveNonTrainingSlots();
+        autoSave('action');
+        renderAll();
+        return;
+      }
+      // ── mood_despair：心情 ≤ 9，100% 強制取消訓練 ──
+      if (p.mood <= 9) {
+        addLog('【崩潰】你站在訓練場上，腦子一片空白。你不知道自己為什麼還在這裡。', '#cc7733', true);
+        Stats.modVital('mood', -5);   // 自我螺旋
+        Stats.advanceTime(act.slots * SLOT_DUR);
+        _resolveNonTrainingSlots();
+        autoSave('action');
+        renderAll();
+        return;
+      }
+    }
+
+    // ══════════════════════════════════════════════════
+    // 🆕 Phase 1-E: 閾值軟修正（Soft-modify，影響訓練效率）
+    // ══════════════════════════════════════════════════
+    let thresholdMult = 1.0;
+    let thresholdDesc = '';
+
+    if (isTraining) {
+      // mood_flow：心情 ≥ 80，40% 機率進入心流（×1.5）
+      if (p.mood >= 80 && Math.random() < 0.40) {
+        thresholdMult *= 1.5;
+        addLog('✨ 你的腦子出奇地清醒，每個動作都流暢到讓人不敢置信——你進入了心流。', '#ffe866', false);
+        thresholdDesc += '（心流 ×1.5）';
+      }
+      // training_slacker：體力 ≤ 25，25% 機率擺爛（×0.4）
+      if (p.stamina <= 25 && Math.random() < 0.25) {
+        thresholdMult *= 0.4;
+        addLog('😮‍💨 你有氣無力地揮著武器，這算訓練嗎？效果大打折扣。', '#aa7733', false);
+        thresholdDesc += '（擺爛 ×0.4）';
+      }
+      // hunger_minor：飽食 ≤ 30，25% 機率輕度飢餓（×0.75）
+      if (p.food <= 30 && Math.random() < 0.25) {
+        thresholdMult *= 0.75;
+        addLog('🫙 肚子開始咕嚕叫，注意力難以集中。', '#aa7733', false);
+        thresholdDesc += '（飢餓 ×0.75）';
+      }
+    }
 
     // ── Mood multiplier ──────────────────────────────────
-    // 心情好（≥70）→ 正向效果 ×1.25；心情差（≤30）→ ×0.75
     function getMoodMult() {
       if (p.mood >= 70) return 1.25;
       if (p.mood <= 30) return 0.75;
@@ -681,9 +974,40 @@ const Game = (() => {
     const moodMult = getMoodMult();
     const moodDesc = moodMult > 1 ? '（心情佳 ×1.25）' : moodMult < 1 ? '（心情低落 ×0.75）' : '';
 
+    // ── 協力倍率（D.8c）+ 體力消耗倍率 ──────────────
+    let synergyMult = 1.0;
+    let partnerCount = 0;
+    if (hasAttrEffect) {
+      (currentNPCs.teammates || []).forEach(npcId => {
+        if (!npcId) return;
+        const aff = teammates.getAffection(npcId);
+        if      (aff >= 60) { synergyMult *= 1.6; partnerCount++; }
+        else if (aff >= 30) { synergyMult *= 1.3; partnerCount++; }
+      });
+    }
+
+    // 協力體力消耗倍率（訓練動作才套用，上限 70）
+    const _STAMINA_MULT = [1.0, 1.2, 1.5, 1.8, 2.1, 2.5];
+    const staminaMult = (hasAttrEffect && act.staminaCost > 0)
+      ? _STAMINA_MULT[Math.min(partnerCount, 5)]
+      : 1.0;
+    const effectiveStaminaCost = hasAttrEffect
+      ? Math.min(Math.round(act.staminaCost * staminaMult), 70)
+      : act.staminaCost;
+
+    // 記錄扣除前的體力（受傷計算用）
+    const staminaBefore = p.stamina;
+
+    // Deduct costs（使用有效消耗值）
+    if (effectiveStaminaCost > 0) Stats.modVital('stamina', -effectiveStaminaCost);
+    if ((act.foodCost || 0) > 0) Stats.modVital('food', -act.foodCost);
+
     // 🆕 D.1.9: 統一效果處理器
+    // 🆕 Phase 1-E: thresholdMult（心流/擺爛/飢餓）折入 synergyMult 一起傳入
+    const finalSynergyMult = synergyMult * thresholdMult;
     Effects.apply(act.effects || [], {
       moodMult,
+      synergyMult: finalSynergyMult,
       currentNPCs,
       source: 'action:' + actionId,
     });
@@ -697,15 +1021,91 @@ const Game = (() => {
 
     // Log — action header + brief effect summary
     const gainSummary = (act.effects || []).map(eff => {
-      if (eff.type === 'attr')      return `${eff.key}${eff.delta > 0 ? '+' : ''}${eff.delta}`;
+      if (eff.type === 'attr') {
+        const actual = Math.round(eff.delta * finalSynergyMult * moodMult * 100) / 100;
+        return `${eff.key}+${actual}`;
+      }
       if (eff.type === 'vital')     return `${eff.key}${eff.delta > 0 ? '+' : ''}${eff.delta}`;
       if (eff.type === 'affection') return `${eff.key}好感${eff.delta > 0 ? '+' : ''}${eff.delta}`;
       return '';
     }).filter(Boolean).join(' · ');
-    addLog(`【${act.name}】${gainSummary ? '　' + gainSummary : ''}${moodDesc ? '　' + moodDesc : ''}`, '#c8a060', false);
+    const extraDesc = [moodDesc, thresholdDesc].filter(Boolean).join(' ');
+    addLog(`【${act.name}】${gainSummary ? '　' + gainSummary : ''}${extraDesc ? '　' + extraDesc : ''}`, '#c8a060', false);
+
+    // ── 協力爆擊日誌（D.8c）─────────────────────────
+    if (hasAttrEffect && synergyMult > 1.0) {
+      const multStr = synergyMult.toFixed(1);
+      if (synergyMult >= 10) {
+        addLog(`🌟 傳說爆擊！協力 ×${multStr}`, '#cc44ff', false);
+      } else if (synergyMult >= 4) {
+        addLog(`💥 超協力爆擊！×${multStr}`, '#44aaff', false);
+      } else if (synergyMult >= 2) {
+        addLog(`⚡ 協力爆擊！×${multStr}`, '#44aaff', false);
+      } else {
+        addLog(`（協力加成 ×${multStr}）`, '#44bb44', false);
+      }
+    }
 
     // Flavor text
     if (act.flavorText) addLog(act.flavorText, '#a89070', false);
+
+    // ── 受傷判定 v2（Phase 1-E 重構）────────────────
+    // 核心邏輯：「訓練強度過高」才受傷，擺爛不受傷。
+    // 主要驅動因子：超負荷比例 + 協力倍率；體虛只有輕微加成。
+    if (hasAttrEffect && act.staminaCost > 0 && thresholdMult >= 1.0) {
+      // thresholdMult < 1.0（擺爛/飢餓）→ 跳過，沒有過度施力就不受傷
+
+      // 協力加乘消耗提示
+      if (staminaMult > 1.0) {
+        addLog(`（協力消耗 ×${staminaMult.toFixed(1)}　體力 -${effectiveStaminaCost}）`, '#aa7733', false);
+      }
+
+      let injuryChance = 0.05; // 基礎 5%
+
+      // ── 超負荷比例（主要驅動）────────────────────
+      // ratio = 本次消耗 / 扣除前體力：比例越高越危險
+      const overloadRatio = effectiveStaminaCost / Math.max(1, staminaBefore);
+      if      (overloadRatio >= 2.0) injuryChance += 0.50; // 消耗超過現有體力兩倍
+      else if (overloadRatio >= 1.5) injuryChance += 0.35; // 消耗超過體力 1.5 倍
+      else if (overloadRatio >= 1.0) injuryChance += 0.20; // 剛好耗盡
+      else if (overloadRatio >= 0.7) injuryChance += 0.08; // 高強度但未耗盡
+
+      // ── 絕對透支量（超負荷越深，額外疊加）────────
+      const overDraft = Math.max(0, effectiveStaminaCost - staminaBefore);
+      injuryChance += overDraft * 0.015; // 每點透支 +1.5%
+
+      // ── 協力強度（多人高倍協力本身就是極限訓練）──
+      if      (synergyMult >= 6.0) injuryChance += 0.30;
+      else if (synergyMult >= 3.0) injuryChance += 0.18;
+      else if (synergyMult >= 1.8) injuryChance += 0.08;
+
+      // ── 體虛輕微加成（身體弱，小傷也更難撐）──────
+      if (staminaBefore <= 20) injuryChance += 0.05;
+
+      injuryChance = Math.min(injuryChance, 0.85);
+
+      if (Math.random() < injuryChance) {
+        const part = act.injuryPart || '身體';
+        // 受傷程度依超負荷比例分輕/重
+        const isHeavy = overloadRatio >= 1.5 || synergyMult >= 3.0;
+        if (isHeavy) {
+          Stats.modVital('stamina', -25);
+          Stats.modVital('mood',    -20);
+          addLog(`🩸 ${part}重傷！極限超載的代價。（體力 -25　心情 -20）`, '#cc3333', false);
+        } else {
+          Stats.modVital('stamina', -12);
+          Stats.modVital('mood',    -8);
+          addLog(`⚠️ ${part}輕傷。訓練強度稍微超出負荷。（體力 -12　心情 -8）`, '#cc7733', false);
+        }
+      }
+    }
+
+    // ── 舞台視覺效果（D.8b / D.8c）──────────────────────
+    _showActionEffect(act.name, finalSynergyMult);
+    if (hasAttrEffect && finalSynergyMult > 1.0) {
+      _showSynergyBubbles(currentNPCs.teammates, finalSynergyMult);
+    }
+    _showAudienceComments(currentNPCs.audience, act);
 
     // Conditional effects (e.g. affection-gated bonuses)
     (act.conditionalEffects || []).forEach(ce => {
@@ -724,12 +1124,97 @@ const Game = (() => {
       if (ce.flavorText) addLog(ce.flavorText, '#88b878', false);
     });
 
+    // 🆕 Phase 1-F: NPC 注意系統掃描
+    _scanNpcNotice(act);
+
+    // 🆕 Phase 1-H: 切磋邀請（訓練後隊友可能主動邀請）
+    _checkSparringInvite(act);
+
     // Post-action events
     _postActionEvents(act);
 
     // 🆕 D.1.8: 依設定自動存檔（寫到 auto slot，不影響手動槽）
     autoSave('action');
     renderAll();
+  }
+
+  // ══════════════════════════════════════════════════
+  // 🆕 Phase 1-F: NPC 注意系統
+  // ══════════════════════════════════════════════════
+
+  /**
+   * NPC 注意規則定義表。
+   * condition(p, act, npcsPresent) → boolean
+   */
+  const _NPC_NOTICE_RULES = [
+    {
+      npcId:     'blacksmithGra',
+      threshold: 3,
+      eventId:   'gra_notice_invite',
+      condition: (p, act, npcs) => {
+        const inScene = [...(npcs.teammates||[]), ...(npcs.audience||[])].includes('blacksmithGra');
+        const isStr   = (act.effects||[]).some(e => e.type === 'attr' && e.key === 'STR');
+        return inScene && isStr;
+      },
+    },
+    {
+      npcId:     'melaKook',
+      threshold: 2,
+      eventId:   'mela_notice_food',
+      condition: (p, act, npcs) => {
+        const inScene  = [...(npcs.teammates||[]), ...(npcs.audience||[])].includes('melaKook');
+        const isHungry = p.food <= 30;
+        const hasAff   = teammates.getAffection('melaKook') >= 30;
+        return inScene && isHungry && hasAff;
+      },
+    },
+    {
+      npcId:     'overseer',
+      threshold: 4,
+      eventId:   'overseer_notice_task',
+      condition: (p, act, npcs) => {
+        const inScene    = [...(npcs.teammates||[]), ...(npcs.audience||[])].includes('overseer');
+        const isTraining = (act.effects||[]).some(e => e.type === 'attr');
+        return inScene && isTraining;
+      },
+    },
+  ];
+
+  /**
+   * 每次訓練動作完成後呼叫。
+   * 掃描在場 NPC，符合條件 → 累積 notice_count；達門檻 → 觸發注意事件。
+   */
+  function _scanNpcNotice(act) {
+    const p    = Stats.player;
+    const npcs = currentNPCs;
+
+    for (const rule of _NPC_NOTICE_RULES) {
+      const todayKey  = `notice_today_${rule.npcId}`;
+      const countKey  = `notice_count_${rule.npcId}`;
+
+      // 今天已觀察過這個 NPC → 跳過
+      if (Flags.has(todayKey)) continue;
+
+      // 條件不符 → 跳過
+      if (!rule.condition(p, act, npcs)) continue;
+
+      // 累積計數 + 鎖定今日
+      const newCount = Flags.increment(countKey);
+      Flags.set(todayKey, true);
+
+      // 達門檻 → 觸發保證事件
+      if (newCount >= rule.threshold) {
+        Flags.set(countKey, 0);   // 計數歸零，重新觀察
+        const ev = Events.getNoticeEvent(rule.eventId);
+        if (ev) {
+          addLog(ev.text, ev.color || '#aaaaaa', false);
+          if (ev.effects) {
+            Effects.apply(ev.effects, { source: 'notice:' + ev.id });
+          }
+          if (ev.flagSet) Flags.set(ev.flagSet, true);
+        }
+      }
+    }
   }
 
   // ── Post-action events ─────────────────────────────────
@@ -768,10 +1253,11 @@ const Game = (() => {
     // 🆕 D.1.11: Fire "day end" hooks (p.day 仍是舊的)
     DayCycle.fireDayEnd(p.day);
 
-    // Overnight effects
-    Stats.modVital('stamina', 40);
-    Stats.modVital('mood',    5);
-    Stats.modVital('food',  -12);  // overnight hunger
+    // 🆕 Phase 1-D: 就寢事件（決定 normal/insomnia/nightmare + 失眠症邏輯）
+    _triggerSleepEvent();
+
+    // Overnight food cost（與就寢體力恢復分開）
+    Stats.modVital('food', Config.DAILY.SLEEP_FOOD_COST);
 
     // Advance to next day
     p.day  = Math.min(100, p.day + 1);
@@ -786,7 +1272,7 @@ const Game = (() => {
     _syncLastRollDay(-1);
     rollDailyNPCs();
 
-    // 🆕 Phase 1-B: 06:00 是早餐時段，自動解決（Phase 1-D 會改為事件觸發）
+    // 🆕 Phase 1-D: 06:00 是早餐時段，觸發早餐事件
     _resolveNonTrainingSlots();
 
     // 🆕 D.1.8: 每日結束自動存檔（即使 autoSave 設為 'day' 也會寫入）
@@ -1167,6 +1653,45 @@ const Game = (() => {
         `).join('');
       }
     }
+
+    // ── 🆕 Phase 1-D: Traits ──
+    const traitsList = document.getElementById('cs-traits-list');
+    if (traitsList) {
+      const traits = p.traits || [];
+      if (traits.length === 0) {
+        traitsList.innerHTML = '<div class="cs-traits-empty">尚無特性</div>';
+      } else {
+        traitsList.innerHTML = '<div class="cs-traits-list">' + traits.map(id => {
+          const def = Config.TRAIT_DEFS[id];
+          const name = def ? def.name : id;
+          const desc = def ? def.desc : '';
+          const cat  = def ? def.category : 'positive';
+          const prefix = cat === 'positive' ? '★' : '▼';
+          const cls    = cat === 'positive' ? 'trait-positive' : 'trait-negative';
+          return `<span class="trait-tag ${cls}" title="${desc}">
+            <span class="trait-prefix">${prefix}</span>${name}
+          </span>`;
+        }).join('') + '</div>';
+      }
+    }
+
+    // ── 🆕 Phase 1-D: Ailments ──
+    const ailmentsList = document.getElementById('cs-ailments-list');
+    if (ailmentsList) {
+      const ailments = p.ailments || [];
+      if (ailments.length === 0) {
+        ailmentsList.innerHTML = '<div class="cs-traits-empty" style="color:var(--text-dim)">無病痛</div>';
+      } else {
+        ailmentsList.innerHTML = '<div class="cs-traits-list">' + ailments.map(id => {
+          const def  = Config.AILMENT_DEFS[id];
+          const name = def ? def.name : id;
+          const desc = def ? def.desc : '';
+          return `<span class="trait-tag trait-ailment" title="${desc}">
+            <span class="trait-prefix">⚕</span>${name}
+          </span>`;
+        }).join('') + '</div>';
+      }
+    }
   }
 
   function _playerKnowsSkill(skill) {
@@ -1265,6 +1790,7 @@ const Game = (() => {
                       combatStats:   { ...p.combatStats },
                       achievements:  [...(p.achievements || [])],
                       traits:        [...(p.traits       || [])],
+                      ailments:      [...(p.ailments     || [])],   // 🆕 Phase 1-D
                       exp:           { ...(p.exp || {}) },
                       personalItems: [...(p.personalItems || [])],
                       pets:          { ...(p.pets || {}) },
@@ -1290,10 +1816,13 @@ const Game = (() => {
     Object.assign(p, data.player);
 
     // 向下相容：舊存檔沒有這些欄位時補上預設值
-    if (!Array.isArray(p.achievements)) p.achievements = [];
-    if (!Array.isArray(p.traits))       p.traits       = [];
-    if (p.title    === undefined)       p.title        = null;
-    if (p.fameBase === undefined)       p.fameBase     = 0;
+    if (!Array.isArray(p.achievements))  p.achievements  = [];
+    if (!Array.isArray(p.traits))        p.traits        = [];
+    if (!Array.isArray(p.ailments))      p.ailments      = [];   // 🆕 Phase 1-D
+    if (p.title              === undefined) p.title              = null;
+    if (p.fameBase           === undefined) p.fameBase           = 0;
+    if (p.insomniaStreak     === undefined) p.insomniaStreak     = 0;  // 🆕 Phase 1-D
+    if (p.normalSleepStreak  === undefined) p.normalSleepStreak  = 0;  // 🆕 Phase 1-D
     p.combatStats.winStreak = p.combatStats.winStreak ?? 0;
 
     // v3→v4 遷移：equippedShield → equippedOffhand
@@ -1546,6 +2075,121 @@ const Game = (() => {
   }
 
   // ── Init ──────────────────────────────────────────────
+
+  // 🆕 Phase 1-F: 每天開始清除 notice_today_* flags（防止同天重複計數）
+  DayCycle.onDayStart('clearNoticeToday', (newDay) => {
+    const todayFlags = Object.keys(Flags.getByPrefix('notice_today_'));
+    todayFlags.forEach(k => Flags.unset(k));
+  }, 20);
+
+  // ══════════════════════════════════════════════════
+  // 🆕 Phase 1-G: 傳喚系統
+  // ══════════════════════════════════════════════════
+
+  /**
+   * 觸發一個傳喚事件：輸出敘事 log 並套用效果。
+   */
+  function _triggerSummonEvent(ev) {
+    if (!ev) return;
+    addLog(ev.text, ev.color || '#b8960c', true);
+    if (ev.effects) Effects.apply(ev.effects, { source: 'summon:' + ev.id });
+    if (ev.doneFlag) Flags.set(ev.doneFlag, true);
+    if (ev.flagSet)  Flags.set(ev.flagSet,  true);
+  }
+
+  // 每天開始：掃描傳喚條件（priority 30，在早餐之後）
+  DayCycle.onDayStart('checkSummons', (newDay) => {
+    const p = Stats.player;
+
+    // 只在奇數天做隨機傳喚，減少頻率
+    // 主人第一次傳喚
+    {
+      const ev = Events.getSummonEvent('master_first_eval');
+      if (ev && !Flags.has(ev.doneFlag) && p.fame >= 15) {
+        _triggerSummonEvent(ev);
+        return;
+      }
+    }
+
+    // 主人贈禮（好感 ≥ 30）
+    {
+      const ev = Events.getSummonEvent('master_gift');
+      if (ev && !Flags.has(ev.doneFlag) &&
+          teammates.getAffection('masterArtus') >= 30) {
+        _triggerSummonEvent(ev);
+        return;
+      }
+    }
+
+    // 長官任務派遣（名聲 ≥ 25）
+    {
+      const ev = Events.getSummonEvent('officer_mission');
+      if (ev && !Flags.has(ev.doneFlag) && p.fame >= 25) {
+        _triggerSummonEvent(ev);
+        return;
+      }
+    }
+
+    // 長官定期點名（每 12 天，用 day flag 防重複）
+    if (newDay % 12 === 0 && !Flags.has(`officer_check_day_${newDay}`)) {
+      const ev = Events.getSummonEvent('officer_check');
+      if (ev) {
+        _triggerSummonEvent(ev);
+        Flags.set(`officer_check_day_${newDay}`, true);
+      }
+    }
+  }, 30);
+
+  // ══════════════════════════════════════════════════
+  // 🆕 Phase 1-H: 切磋邀請系統
+  // ══════════════════════════════════════════════════
+
+  /**
+   * 訓練動作完成後呼叫。
+   * 在場隊友好感 ≥ 50，20% 機率主動邀請切磋。
+   * 每個 NPC 每天最多邀請一次。
+   */
+  function _checkSparringInvite(act) {
+    if (!act || !(act.effects||[]).some(e => e.type === 'attr')) return;
+    const npcs = currentNPCs.teammates || [];
+    for (const npcId of npcs) {
+      const todayKey = `sparring_invite_today_${npcId}`;
+      if (Flags.has(todayKey)) continue;
+      if (teammates.getAffection(npcId) < 50) continue;
+      if (Math.random() >= 0.20) continue;
+
+      Flags.set(todayKey, true);
+      const ev = Events.getSparringEvent(npcId);
+      const npc = teammates.getNPC(npcId);
+      addLog(ev.text, ev.color || '#6699cc', false);
+      Effects.apply(ev.effects, { source: 'sparring:' + npcId });
+      break; // 一次只發生一個切磋
+    }
+  }
+
+  // 每天清除切磋今日鎖
+  DayCycle.onDayStart('clearSparringToday', (newDay) => {
+    Object.keys(Flags.getByPrefix('sparring_invite_today_')).forEach(k => Flags.unset(k));
+  }, 21);
+
+  // ══════════════════════════════════════════════════
+  // 🆕 Phase 1-I: 主人採購派遣
+  // ══════════════════════════════════════════════════
+
+  // 每 7 天派一次跑腿（偏移 3，避開第 1 天）
+  DayCycle.onDayStart('checkMasterErrand', (newDay) => {
+    if (newDay < 4) return;
+    if ((newDay - 3) % 7 !== 0) return;
+    if (Flags.has(`errand_done_day_${newDay}`)) return;
+
+    Flags.set(`errand_done_day_${newDay}`, true);
+    const ev = Events.getErrandEvent();
+    if (!ev) return;
+    addLog(ev.text, ev.color || '#9dbf80', true);
+    Effects.apply(ev.effects, { source: 'errand:' + ev.id });
+    if (ev.flagSet) Flags.set(ev.flagSet, true);
+  }, 35);
+
   function init() {
     // Try to restore save first
     const loaded = loadGame();

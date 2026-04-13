@@ -197,6 +197,21 @@ const teammates = (() => {
       baseAffection: 5,
       personality: 'cautious',
     },
+
+    // ⚠️ TEST_ONLY — 協力系統測試用，正式版刪除 ────────────
+    test1: { id:'test1', name:'路人甲一', role:'teammate', title:'測試角色', baseAffection:65,
+      schedule:[{ fields:['stdTraining','oldTraining'], hours:[6,8,10,12,14,16,18,20] }] },
+    test2: { id:'test2', name:'路人甲二', role:'teammate', title:'測試角色', baseAffection:65,
+      schedule:[{ fields:['stdTraining','oldTraining'], hours:[6,8,10,12,14,16,18,20] }] },
+    test3: { id:'test3', name:'路人甲三', role:'teammate', title:'測試角色', baseAffection:65,
+      schedule:[{ fields:['stdTraining','oldTraining'], hours:[6,8,10,12,14,16,18,20] }] },
+    test4: { id:'test4', name:'路人甲四', role:'teammate', title:'測試角色', baseAffection:65,
+      schedule:[{ fields:['stdTraining','oldTraining'], hours:[6,8,10,12,14,16,18,20] }] },
+    test5: { id:'test5', name:'路人甲五', role:'teammate', title:'測試角色', baseAffection:65,
+      schedule:[{ fields:['stdTraining','oldTraining'], hours:[6,8,10,12,14,16,18,20] }] },
+    test6: { id:'test6', name:'路人甲六', role:'teammate', title:'測試角色', baseAffection:65,
+      schedule:[{ fields:['stdTraining','oldTraining'], hours:[6,8,10,12,14,16,18,20] }] },
+    // ⚠️ TEST_ONLY END ─────────────────────────────────────
   };
 
   // ══════════════════════════════════════════════════

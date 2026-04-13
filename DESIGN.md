@@ -2551,6 +2551,212 @@ function switchField(id) {
 
 ---
 
+## D.8b 主畫面舞台設計（訓練場中心化）
+
+> 2026-04-13 討論確認。主畫面從「功能選單」改為「場景舞台」，
+> 白天預設定場在訓練場，夜晚/競技場/外出任務才切換背景。
+>
+> **實作狀態（2026-04-13）**
+> - ✅ `training_ground.png` 背景鋪上 `bg-old-training` / `bg-std-training`（`!important` 蓋過 ID 選擇器）
+> - ✅ `#npc-area` 改為 `space-between`：隊友頂部、觀眾底部
+> - ✅ `#teammate-zone` / `#stage-center` / `#audience-zone` 三區 HTML 結構
+> - ✅ `#synergy-bubbles` 協力泡泡列（JS 動態填入）
+> - ✅ `#audience-speech` 觀眾評語列（JS 動態填入）
+> - ✅ `#action-fx-layer` 特效覆蓋層（絕對定位 z-index:3）
+> - ✅ `rest` 動作從訓練場隱藏（避免與 `meditation` 重複顯示）
+> - ⬜ 未做：隊友頭像圖（目前用 shortName 圓框，D.7 階段再換圖）
+> - ⬜ 未做：觀眾冷卻 flag（同 NPC 同動作當天首次完整加成，之後 1/3）
+
+### 版面結構（由上至下）
+
+```
+┌──────────────────────────────────────────┐
+│ 隊友列（頭像 + 狀態小圖示）               │
+│ [張三] [李四] [王五]                      │
+├──────────────────────────────────────────┤
+│ 協力對話泡泡列                            │
+│ 💬一起來吧  💬團結力量大  💬無三不成禮   │
+│ （泡泡依協力人數/好感放大 + 發光）         │
+├──────────────────────────────────────────┤
+│                                          │
+│   中央舞台                               │
+│   背景：training_ground.png             │
+│   動作特效文字浮現（純文字 + CSS 動畫）  │
+│   1人：小字白色                          │
+│   2人：中字綠光                          │
+│   3人：大字藍光                          │
+│                                          │
+├──────────────────────────────────────────┤
+│ 觀眾/旁觀者欄（底部）                    │
+│ 主人：💬「...（依好感度台詞）」          │
+│ 梅拉：💬「這小子挺俊俏的...」            │
+│ （每次行動有機率出現；同NPC同動作當天首次│
+│  給完整好感加成，之後只給 1/3）           │
+├──────────────────────────────────────────┤
+│ 日誌欄（最底部獨立一排）                 │
+│ > STR +0.5                              │
+│ > ⚡ 協力爆擊！STR EXP ×2.2  （紫色放大）│
+└──────────────────────────────────────────┘
+```
+
+### 背景切換規則
+
+| 場景 | 背景圖 |
+|------|--------|
+| 白天（訓練/休息/用餐） | `asset/training_ground.png` |
+| 夜晚 | 牢房/宿舍（待補圖） |
+| 競技場戰鬥 | 競技場（待補圖） |
+| 外出任務 | 視任務定義 |
+
+### NPC 頭像識別
+
+每個 NPC 有 `shortName` 欄位（最具識別性的一個字），
+無頭像圖時用彩色圓框＋shortName 顯示：
+
+| NPC | shortName |
+|-----|-----------|
+| 阿圖斯 | 圖 |
+| 阿克斯 | 克 |
+| 阿基里斯 | 基 |
+| 達吉 | 達 |
+| 梅拉 | 梅 |
+| 卡西烏斯 | 卡 |
+| 老篤 | 篤 |
+
+### 觀眾欄冷卻規則
+
+- **台詞**：每次行動都可能出現（畫面保持活力）
+- **好感數值**：同一 NPC 對同一動作，當天第一次給完整加成，之後給 1/3
+- 用 daily flag 記錄：`npc_watch_{npcId}_{actionId}_today`，DayCycle 每日清除
+
+---
+
+## D.8c 協力訓練系統（Synergy Training）
+
+> **實作狀態（2026-04-13）**
+> - ✅ `effect_dispatcher.js`：`attr` 效果套用 `ctx.synergyMult`
+> - ✅ `main.js doAction`：計算在場隊友倍率（認識 ×1.3、夥伴 ×1.6，連乘）
+> - ✅ 日誌四級顯示（綠 / 藍 ⚡ / 藍 💥 / 紫 🌟）
+> - ✅ `_showActionEffect()`：動作名稱浮現特效，5 種等級 CSS 動畫
+> - ✅ `_showSynergyBubbles()`：隊友台詞泡泡，cascade 延遲，夥伴藍光
+> - ✅ `_showAudienceComments()`：觀眾評語依好感度隨機出現（55% 機率）
+> - ✅ TEST NPCs（test1~test6）加入 `npc.js`，強制出現訓練場用於測試
+> - ⬜ 未做：觀眾冷卻（好感加成第一次完整，之後 1/3）
+> - ⬜ 未做：自訂 NPC 台詞（現在用通用台詞池）
+
+> 2026-04-13 討論確認。參考實況野球的乘法係數概念，加入更激進的爆炸倍率。
+
+### 協力倍率公式
+
+在場隊友中，好感度達門檻者會加入協力計算：
+
+```js
+let mult = 1;
+partners_in_field.forEach(partner => {
+  const aff = teammates.getAffection(partner.id);
+  if      (aff >= 60) mult *= 1.6;  // 夥伴
+  else if (aff >= 30) mult *= 1.3;  // 認識
+  // < 30：不參與協力
+});
+// mult 即最終倍率，套用在 EXP 獲得量上
+```
+
+### 倍率對照表
+
+| 在場人數 | 全認識(30+) | 全夥伴(60+) |
+|:--------:|:-----------:|:-----------:|
+| 0 | 1× | 1× |
+| 1 | 1.3× | 1.6× |
+| 2 | 1.7× | 2.6× |
+| 3 | 2.2× | 4.1× |
+| 4 | 2.9× | 6.6× |
+| 5 | 3.7× | **10.5×** |
+
+### 視覺分級
+
+| 倍率 | 動作特效 | 日誌文字顏色/大小 |
+|------|----------|-----------------|
+| 1× | 無 | 白色小字 |
+| < 2× | 1–2人綠光 | 綠色 |
+| 2×–4× | 藍光 + 閃爍 | 藍色放大 `⚡ 協力爆擊！` |
+| 4×–10× | 大藍 + 畫面震動 | 藍色大字 `💥 超協力爆擊！` |
+| 10×+ | 爆框 + 全畫面閃 | 紫色超大字 `🌟 傳說爆擊！` |
+
+### 協力台詞觸發
+
+- 認識(30+)：出現普通協力台詞（1–2句）
+- 夥伴(60+)：出現熱情台詞 + 泡泡放大發光
+- 3人協力達藍光：每人都說一句，泡泡依序出現（cascade 動畫）
+
+### 影響的訓練項目
+
+協力倍率套用在 **EXP 增益**上，不影響基礎屬性 delta：
+```
+baseExp = action.effects[].delta × expMultiplier（裝備/特性加成）
+finalExp = baseExp × synergyMult
+```
+
+---
+
+## D.8d 訓練受傷系統（輕量版 v1）
+
+> 2026-04-13 設計確認並實作。
+> v1 只做輕量版（體力/心情扣除 + 日誌訊息），不需要 D.2 多部位系統。
+> D.2 完成後升級為 v2（部位屬性臨時降低）。
+
+### 受傷部位對應（injuryPart 欄位）
+
+| 訓練 | 主屬性 | injuryPart |
+|------|--------|-----------|
+| 基礎揮砍 | STR | 手臂 |
+| 重量訓練 | STR | 手臂 |
+| 步法練習 | AGI | 腿部 |
+| 耐力訓練 | CON | 軀幹 |
+| 冥想調息 | WIL | 無（staminaCost: 0，不計受傷） |
+| 切磋對練 | STR+DEX | 手部 |
+
+### 協力體力消耗倍率
+
+```
+在場夥伴數 → 體力消耗倍率（上限 70）
+0人 → ×1.0
+1人 → ×1.2
+2人 → ×1.5
+3人 → ×1.8
+4人 → ×2.1
+5人 → ×2.5
+```
+
+範例（endurance 基礎 30）：
+- 3人：30 × 1.8 = 54
+- 5人：30 × 2.5 = 75 → 上限 **70**
+
+### 受傷機率公式
+
+```
+injuryChance = 8%（基礎）
+  + 體力扣除前 ≤ 30 → +15%
+  + 體力扣除前 ≤ 15 → +40%（取代 +15%）
+  + 心情 ≤ 40 → +10%
+  + 心情 ≤ 20 → +25%（取代 +10%）
+  + 透支每點 → +2%（effectiveStaminaCost > staminaBefore）
+  上限 85%
+```
+
+### 受傷結果（v1）
+
+- 體力 −20，心情 −15
+- 日誌紅字：`⚠️ {部位}受傷！過度訓練的代價。`
+- 協力消耗增加時額外顯示消耗提示（橙色）
+
+### v2 計劃（D.2 後）
+
+- 記入 `scars[]` / 部位狀態
+- 對應屬性臨時降低（如手臂受傷 → STR −2，3 天）
+- 戰鬥中影響數值
+
+---
+
 ## D.9 其他忽略項目補遺
 
 > 這些是討論到但還沒整合的散落項目，依優先度分類。
@@ -4918,63 +5124,90 @@ priority 6:          風味環境事件（天氣、季節）
 
 ### 需要改的系統
 
-#### 🔴 Phase 1-A：左欄極簡化（2~3 小時）
-- [ ] 移除所有 chat_* 動態動作
-- [ ] 移除 sparring, visitOfficer, visitMaster 動作
-- [ ] 移除 helpCook, watchSmith, stealFood 等主動動作
-- [ ] 移除 browseMarket, buyFood, outdoorTrain 等主動動作
-- [ ] 保留：6 個訓練動作 + rest + sleep
-- [ ] 移除場地切換 UI（但保留場景顯示）
+#### ✅ Phase 1-A：左欄極簡化（2~3 小時）
+- [x] 移除所有 chat_* 動態動作
+- [x] 移除 sparring, visitOfficer, visitMaster 動作（hiddenFromList）
+- [x] 移除 helpCook, watchSmith, stealFood 等主動動作（hiddenFromList）
+- [x] 移除 browseMarket, buyFood, outdoorTrain 等主動動作（hiddenFromList）
+- [x] 保留：6 個訓練動作 + rest + sleep
+- [x] 場景 UI 重構（隊友頂部 / 舞台中央 / 觀眾底部）
 
-#### 🔴 Phase 1-B：時段系統重分類（3~4 小時）
-- [ ] `main.js` 時段分類：training / meal / rest / sleep
-- [ ] 計算 training 格時排除其他類別
-- [ ] 自動在 meal 時段觸發事件
-- [ ] 自動在 sleep 時段觸發事件
+#### ✅ Phase 1-B：時段系統重分類（3~4 小時）
+- [x] `main.js` 時段分類：training / meal / rest / sleep
+- [x] 計算 training 格時排除其他類別
+- [x] 自動在 meal 時段觸發事件（基本版）
+- [x] sleepEndDay() 就寢流程
 
-#### 🔴 Phase 1-C：閾值常數 + 事件監測（2 小時）
-- [ ] 新檔案 `config.js` 存 THRESHOLDS 常數
-- [ ] `stats.js` 加 state monitor（監測閾值變化）
-- [ ] DayCycle 整合：每次行動後檢查閾值
+#### ✅ Phase 1-C：閾值常數 + 事件監測（2 小時）
+- [x] 新檔案 `config.js` 存 THRESHOLDS 常數
+- [x] DAILY/MONEY/NPC_NOTICE/EXP 常數集中管理
+- [x] getTier() 輔助函式
 
-#### 🔴 Phase 1-D：強制用餐/就寢事件池（4~6 小時）
-- [ ] `meal_breakfast/lunch/dinner` 基本事件
-- [ ] 各好感度階段的變體事件
-- [ ] `sleep_normal` / `insomnia_hyper` / `nightmare` 事件
-- [ ] 強制觸發機制（無選擇情況下自動推進）
+#### ✅ Phase 1-D：強制用餐/就寢事件池 + 病痛系統（4~6 小時）
+- [x] `_triggerMealEvent()` — 早/午/晚三段，梅拉好感分 3 階（基本/30/60）
+- [x] `_triggerSleepEvent()` — normal/insomnia/nightmare 加權隨機
+- [x] 強制觸發機制（_resolveNonTrainingSlots 呼叫，無玩家選擇）
+- [x] 連續失眠 2 天 → 自動獲得【失眠症】ailment
+- [x] 連續正常睡 3 天 → 自動解除【失眠症】
+- [x] `Config.TRAIT_DEFS` — 積極/負面特性定義（金色/琥珀色標籤）
+- [x] `Config.AILMENT_DEFS` — 病痛定義（失眠症/手傷/腿傷/軀幹傷/佔位：腦震盪/阿基里斯腱/憂鬱症）
+- [x] `Stats.player.ailments[]` + `insomniaStreak` + `normalSleepStreak`
+- [x] 角色頁「特性」+「病痛」欄位（三色標籤：金色★/琥珀▼/暗紅脈動⚕）
 
-#### 🟠 Phase 1-E：飢餓/疲勞/心情事件（6~8 小時）
-- [ ] `hunger_steal_critical` + 偷竊子事件
-- [ ] `training_slacker` 擺爛事件
-- [ ] `mood_flow` 爆發事件
-- [ ] `fatigue_force` 力竭事件
-- [ ] `mood_despair` 自暴自棄事件
-- [ ] 所有事件套入 Effects.apply 框架
+**Phase 1-D 傷病 v1 注意：**
+- 傷部 ailment（arm/leg/torso）目前只定義不套效果，Phase 2+ 補完整戰鬥懲罰
+- 腦震盪/阿基里斯腱/憂鬱症 為佔位定義，Phase 2+ 完整實作
+- 失眠症 passiveOnRest（每 rest slot −3 stamina/mood）已實作
 
-#### 🟠 Phase 1-F：NPC 注意系統（4~6 小時）
-- [ ] 每次 doAction 後掃描在場 NPC
-- [ ] flag 累積規則（依 NPC × 屬性 × 在場）
-- [ ] 勞動請求事件池（gra/mela/officer/master）
-- [ ] 事件條件查 flag 計數
+#### ✅ Phase 1-E：飢餓/疲勞/心情事件（2~3 小時，精簡版）
+- [x] `fatigue_force`：stamina ≤ 10 → 100% 強制取消訓練，消耗 slot，stamina +5
+- [x] `mood_despair`：mood ≤ 9 → 100% 強制取消訓練，消耗 slot，mood −5（螺旋）
+- [x] `mood_flow`：mood ≥ 80 → 40% 心流，訓練效率 ×1.5
+- [x] `training_slacker`：stamina ≤ 25 → 25% 擺爛，訓練效率 ×0.4
+- [x] `hunger_minor`：food ≤ 30 → 25% 輕度飢餓，訓練效率 ×0.75
+- [x] `thresholdMult` 折入 `finalSynergyMult` 傳入 Effects.apply
+- [x] gain summary log 同步顯示閾值修正說明
 
-#### 🟡 Phase 1-G：主人/長官傳喚制度（4~5 小時）
-- [ ] fields.js officerRoom/masterRoom 加 requireFlag
-- [ ] 傳喚事件池（3~5 種觸發來源）
-- [ ] 對話事件 + 選擇系統
-- [ ] 事件結束清 flag
+**Phase 1-E.2（待辦）：**
+- [ ] `hunger_critical`（food ≤ 14）選擇 modal（忍著 / 乞討 / 偷竊三選一）
+  → 需要 Choice Modal UI 系統，留待 Phase 1-E.2
 
-#### 🟡 Phase 1-H：切磋事件化（3 小時）
-- [ ] 刪除 sparring 動作
-- [ ] `sparring_invitation` 事件
-- [ ] `sparring_match` 子事件（mini battle）
-- [ ] 高好感 NPC 主動接近事件
+#### ✅ Phase 1-F：NPC 注意系統（2 小時）
+- [x] `_NPC_NOTICE_RULES[]` — 每個 NPC 的觀察條件與觸發門檻
+- [x] `_scanNpcNotice(act)` — 每次訓練動作後呼叫，掃描在場 NPC
+- [x] 兩層 flag：`notice_today_{npcId}`（每日清空）+ `notice_count_{npcId}`（跨天累積）
+- [x] `DayCycle.onDayStart('clearNoticeToday')` — 每天早上清除今日觀察鎖
+- [x] 達門檻 → 保證觸發事件 + 計數歸零
+- [x] `Events.NPC_NOTICE_EVENTS`：gra_notice_invite / mela_notice_food / overseer_notice_task
+- [x] 梅拉偷塞食物需 food ≤ 30 + 好感 ≥ 30
 
-#### 🟢 Phase 1-I：金錢事件化（3 小時）
-- [ ] 移除 buyFood 等主動消費
-- [ ] `master_errand` 採購事件範本
-- [ ] `black_market` 黑市事件範本
-- [ ] `bribery` 賄賂事件範本
-- [ ] 事件中的 money effect 接入 Effects.apply
+**規則：**
+- 葛拉：在場 + STR 訓練，累積 3 次 → 邀觀摩打鐵（+5 好感）
+- 梅拉：在場 + food ≤ 30 + 好感 ≥ 30，累積 2 次 → 偷塞食物（food +20）
+- 監督官：在場 + 任意訓練，累積 4 次 → 派勞動任務（stamina -10）
+
+#### ✅ Phase 1-G：主人/長官傳喚制度
+- [x] `SUMMON_EVENTS[]` — 4 種傳喚事件（master_first_eval / master_gift / officer_check / officer_mission）
+- [x] `_triggerSummonEvent(ev)` — 統一輸出 log + 套用效果 + 設 flag
+- [x] `DayCycle.onDayStart('checkSummons', priority 30)` — 條件掃描
+  - 主人初見：fame ≥ 15，一次性
+  - 主人贈禮：masterArtus 好感 ≥ 30，一次性
+  - 長官任務：fame ≥ 25，一次性
+  - 長官點名：每 12 天定期，day flag 防重複
+- [x] 對話系統 v1：純敘事（選擇系統留 Phase 2 UI 擴展）
+
+#### ✅ Phase 1-H：切磋事件化
+- [x] `sparring` 動作已是 hiddenFromList（Phase 1-A）
+- [x] `SPARRING_INVITE_EVENTS` — 卡西烏斯/達吉/烏爾薩各有專屬文字與效果
+- [x] `_checkSparringInvite(act)` — 訓練後掃描，好感 ≥ 50 → 20% 邀請
+- [x] 每天每 NPC 最多一次（sparring_invite_today_ flag）
+- [x] `DayCycle.onDayStart('clearSparringToday')` — 每日清除鎖
+
+#### ✅ Phase 1-I：金錢事件化
+- [x] `ERRAND_EVENTS[]` — 3 種市集跑腿事件（普通採購 / 聽到謠言 / 扶小孩）
+- [x] `DayCycle.onDayStart('checkMasterErrand', priority 35)` — 每 7 天派一次
+- [x] money effect 透過既有 `Effects.apply({ type:'money', delta })` 處理
+- [x] 第 4 天後開始，偏移避開第 1 天
 
 ### 總工時估計
 

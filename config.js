@@ -222,6 +222,112 @@ const Config = (() => {
   };
 
   // ══════════════════════════════════════════════════
+  // 特性定義（Phase 1-D 視覺系統）
+  // ══════════════════════════════════════════════════
+  /**
+   * 特性 ID → { name, category, desc }
+   * category: 'positive' | 'negative'
+   * 病痛獨立存放在 AILMENT_DEFS，不在這裡。
+   */
+  const TRAIT_DEFS = {
+    // ── 積極特性 ─────────────────────────────────
+    kindness: {
+      id: 'kindness', name: '寬厚', category: 'positive',
+      desc: '對他人的善意讓你更容易獲得好感。隊友好感成長速度 +20%。',
+    },
+    iron_will: {
+      id: 'iron_will', name: '鐵意志', category: 'positive',
+      desc: '意志力超乎常人，在極端壓力下仍能保持冷靜。WIL 訓練效率 +15%。',
+    },
+    survivor: {
+      id: 'survivor', name: '戰場老兵', category: 'positive',
+      desc: '見過太多生死，稍微能看穿對手的意圖。競技場 ACC +3。',
+    },
+    unbreakable: {
+      id: 'unbreakable', name: '不屈之身', category: 'positive',
+      desc: 'HP 跌至 20% 以下時，攻擊力 +15%。',
+    },
+    // ── 負面特性 ─────────────────────────────────
+    reckless: {
+      id: 'reckless', name: '急躁', category: 'negative',
+      desc: '容易衝動行事，訓練時受傷機率 +5%。',
+    },
+    shaken: {
+      id: 'shaken', name: '信心崩潰', category: 'negative',
+      desc: '近期的失敗打擊了你的自信。所有屬性訓練效率 −10%。',
+    },
+  };
+
+  // ══════════════════════════════════════════════════
+  // 病痛定義（Phase 1-D）
+  // ══════════════════════════════════════════════════
+  /**
+   * 病痛 ID → 定義物件。
+   * category 永遠是 'ailment'，與 traits 的 'positive'/'negative' 區分。
+   *
+   * passiveOnRest   : 每個 'rest' 時段自動扣除（type: vital）
+   * sleepStaminaMax : 就寢體力恢復上限（覆蓋 DAILY.SLEEP_STAMINA_GAIN）
+   * injuryPartBonus : { parts:[...], bonus: 0.xx } 訓練受傷機率加成
+   */
+  const AILMENT_DEFS = {
+    insomnia_disorder: {
+      id:       'insomnia_disorder',
+      name:     '失眠症',
+      category: 'ailment',
+      desc:     '長期失眠傷及神經。夜晚無法充分休息，體力持續流失，心情難以穩定。',
+      // 每個 rest 時段被動消耗
+      passiveOnRest: { stamina: -3, mood: -3 },
+      // 就寢體力恢復上限（正常為 DAILY.SLEEP_STAMINA_GAIN = 40）
+      sleepStaminaMax: 15,
+      // 解除條件：連續 3 天正常睡眠
+      cureCondition: 'sleep_normal_streak_3',
+    },
+    arm_injury: {
+      id:       'arm_injury',
+      name:     '手臂受傷',
+      category: 'ailment',
+      desc:     '傷口未癒，手臂相關訓練受傷機率 +15%。',
+      injuryPartBonus: { parts: ['手臂', '手部'], bonus: 0.15 },
+    },
+    leg_injury: {
+      id:       'leg_injury',
+      name:     '腿部受傷',
+      category: 'ailment',
+      desc:     '腿傷未癒，腿部相關訓練受傷機率 +15%，敏捷訓練效率 −20%。',
+      injuryPartBonus: { parts: ['腿部'], bonus: 0.15 },
+    },
+    torso_injury: {
+      id:       'torso_injury',
+      name:     '軀幹挫傷',
+      category: 'ailment',
+      desc:     '肋骨與腹部的瘀傷讓每次呼吸都很痛。體力訓練效率 −20%。',
+      injuryPartBonus: { parts: ['軀幹'], bonus: 0.10 },
+    },
+    // 以下為占位定義，Phase 2+ 補充完整效果
+    concussion: {
+      id:       'concussion',
+      name:     '腦震盪',
+      category: 'ailment',
+      desc:     '頭部受到重擊，視野模糊，命中率與反應下降。',
+      // Phase 2 補：combatPenalty
+    },
+    achilles_tear: {
+      id:       'achilles_tear',
+      name:     '阿基里斯腱撕裂',
+      category: 'ailment',
+      desc:     '腳跟的傷讓你舉步維艱。速度大幅下降，腿部訓練幾乎不可能。',
+      // Phase 2 補
+    },
+    depression: {
+      id:       'depression',
+      name:     '憂鬱症',
+      category: 'ailment',
+      desc:     '深層的黑暗蔓延整個精神。心情上限降低，訓練效率全面下降。',
+      // Phase 2 補：moodCapReduction
+    },
+  };
+
+  // ══════════════════════════════════════════════════
   // Debug
   // ══════════════════════════════════════════════════
   function dump() {
@@ -233,6 +339,8 @@ const Config = (() => {
     console.log('MONEY:',               MONEY);
     console.log('DAILY:',               DAILY);
     console.log('NPC_NOTICE:',          NPC_NOTICE);
+    console.log('TRAIT_DEFS:',          TRAIT_DEFS);
+    console.log('AILMENT_DEFS:',        AILMENT_DEFS);
     console.groupEnd();
   }
 
@@ -247,6 +355,8 @@ const Config = (() => {
     MONEY,
     DAILY,
     NPC_NOTICE,
+    TRAIT_DEFS,
+    AILMENT_DEFS,
     // Helpers
     getTier,
     expToNext,

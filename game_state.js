@@ -21,7 +21,7 @@ const GameState = (() => {
   // ── 內部狀態 ─────────────────────────────────────
   const _state = {
     // ── 場景 ───────────────────────────────────────
-    fieldId:        'dirtyCell',              // 當前所在場地 ID
+    fieldId:        'stdTraining',            // 當前所在場地 ID（白天預設訓練場）
     currentNPCs:    { teammates: [], audience: [] },  // 當前場地的 runtime NPC 列表
 
     // ── 每日 NPC 快取 ──────────────────────────────

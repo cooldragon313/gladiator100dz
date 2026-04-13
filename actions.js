@@ -26,23 +26,13 @@ const ACTIONS = {
     id: 'rest', name: '休息',
     desc: '靜靜待著，讓身體稍作恢復。',
     slots: 1, staminaCost: 0, foodCost: 0,
-    fields: 'any',
+    fields: ['dirtyCell','basicRoom','luxuryRoom','officerRoom','forge','kitchen','masterRoom','market','cityExit'],
     effects: [
       { type: 'vital', key: 'stamina', delta: 15 },
     ],
   },
 
-  nap: {
-    id: 'nap', name: '小睡',
-    desc: '躺下休息，快速恢復體力。',
-    slots: 1, staminaCost: 0, foodCost: 0,
-    fields: ['dirtyCell', 'basicRoom', 'luxuryRoom'],
-    effects: [
-      { type: 'vital', key: 'stamina', delta: 22 },
-      { type: 'vital', key: 'mood',    delta: 5  },
-    ],
-    eventPool: ['nightmares', 'goodDream'],
-  },
+  // nap 已移除（Phase 1-D）：改由 sleep_normal / nightmare 等強制事件取代
   soloThink: {
     id: 'soloThink', name: '獨自沉思',
     desc: '面壁沉思，磨礪意志與心性。',
@@ -66,6 +56,7 @@ const ACTIONS = {
   },
 
   // ── 訓練場 ───────────────────────────────────────────────
+  // injuryPart：受傷部位（輕量版 v1）。staminaCost: 0 的動作不計受傷。
   basicSwing: {
     id: 'basicSwing', name: '基礎揮砍',
     desc: '反覆揮動武器，磨礪攻擊動作。',
@@ -73,6 +64,7 @@ const ACTIONS = {
     fields: ['oldTraining', 'stdTraining'],
     effects: [{ type: 'attr', key: 'STR', delta: 0.5 }],
     eventPool: ['overseerWatch', 'trainingInjury'],
+    injuryPart: '手臂',
   },
   footwork: {
     id: 'footwork', name: '步法練習',
@@ -81,6 +73,7 @@ const ACTIONS = {
     fields: ['oldTraining', 'stdTraining'],
     effects: [{ type: 'attr', key: 'AGI', delta: 0.5 }],
     eventPool: ['overseerWatch', 'trainingInjury'],
+    injuryPart: '腿部',
   },
   endurance: {
     id: 'endurance', name: '耐力訓練',
@@ -89,6 +82,7 @@ const ACTIONS = {
     fields: ['oldTraining', 'stdTraining'],
     effects: [{ type: 'attr', key: 'CON', delta: 0.5 }],
     eventPool: ['overseerWatch', 'trainingInjury'],
+    injuryPart: '軀幹',
   },
   heavyLift: {
     id: 'heavyLift', name: '重量訓練',
@@ -96,7 +90,8 @@ const ACTIONS = {
     slots: 1, staminaCost: 20, foodCost: 10,
     fields: ['stdTraining'],
     effects: [{ type: 'attr', key: 'STR', delta: 0.8 }],
-    eventPool: ['overseerWatch'],
+    eventPool: ['overseerWatch', 'trainingInjury'],
+    injuryPart: '手臂',
   },
   sparring: {
     id: 'sparring', name: '切磋對練',
@@ -110,6 +105,7 @@ const ACTIONS = {
       { type: 'attr', key: 'DEX', delta: 0.3 },
     ],
     eventPool: ['sparringBond', 'overseerWatch'],
+    injuryPart: '手部',
   },
   meditation: {
     id: 'meditation', name: '冥想調息',
@@ -120,6 +116,7 @@ const ACTIONS = {
       { type: 'attr',  key: 'WIL',  delta: 0.4 },
       { type: 'vital', key: 'mood', delta: 10  },
     ],
+    // staminaCost: 0 → 不計受傷，精神訓練另行處理
   },
 
   // ── 廚房 ─────────────────────────────────────────────────

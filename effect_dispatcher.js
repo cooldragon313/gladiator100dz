@@ -87,8 +87,18 @@ const Effects = (() => {
     const moodMult = ctx.moodMult || 1.0;
     let delta = eff.delta;
     if (typeof delta === 'number' && delta > 0 && moodMult !== 1.0) {
-      delta = Math.round(delta * moodMult);
+      delta = delta * moodMult;
     }
+
+    // ── 協力倍率（只作用於 attr 正向 delta） ────────
+    // synergyMult 由 doAction 計算後傳入 ctx
+    if (eff.type === 'attr' && typeof delta === 'number' && delta > 0) {
+      const synergyMult = ctx.synergyMult || 1.0;
+      delta = delta * synergyMult;
+    }
+
+    // 最終 delta 四捨五入
+    if (typeof delta === 'number') delta = Math.round(delta * 100) / 100;
 
     // ── 分派到對應的處理器 ──────────────────────────
     switch (eff.type) {
