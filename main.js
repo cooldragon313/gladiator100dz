@@ -6,7 +6,13 @@ const Game = (() => {
   // ── Session state（同步至 GameState 模組）─────────────
   // 這些 local 變數是 main.js 內部快取，每個 mutation 都會同步到 GameState。
   // 外部模組請透過 GameState.getXxx() 存取，不要直接讀這裡。
-  let currentFieldId = GameState.getFieldId();          // D.1.12: synced with GameState
+  //
+  // 🆕 Phase 1 重構：訓練場是唯一場景（stdTraining）
+  // 不再有場地切換概念，玩家永遠停留在訓練場
+  // 房間品質（dirty/basic/luxury）改為休息事件的敘事描述
+  const FIXED_FIELD = 'stdTraining';
+  let currentFieldId = FIXED_FIELD;
+  GameState.setFieldId(FIXED_FIELD);
   let currentNPCs    = GameState.getCurrentNPCs();
   const logHistory   = [];
   const MAX_LOG      = 80;
@@ -76,10 +82,7 @@ const Game = (() => {
   let _lastNPCRollDay = -1;
 
   // ── 內部：同步 local state 到 GameState ───────────────
-  function _syncField(id) {
-    currentFieldId = id;
-    GameState.setFieldId(id);
-  }
+  // 🆕 Phase 1 重構：_syncField 已移除（訓練場是唯一場景，不再切換）
   function _syncCurrentNPCs(data) {
     currentNPCs = data;
     GameState.setCurrentNPCs(data);
@@ -407,7 +410,8 @@ const Game = (() => {
 
     // Force scene + NPCs
     if (ev.forced) {
-      _syncField(ev.forcedField);
+      // 🆕 Phase 1 重構：不再切換場地（永遠在訓練場），但保留 NPC 強制設定
+      // 大型考驗的特定觀眾與隊友仍會被強制顯示
       _syncCurrentNPCs(ev.forcedNPCs);
       renderAll();
 
@@ -786,25 +790,12 @@ const Game = (() => {
   }
 
   // ── Render: location tabs ──────────────────────────────
+  // 🆕 Phase 1 重構：訓練場是唯一場景，不再顯示場地切換 UI
+  // 場景品質（豪華房間/破舊牢房）改為休息事件的敘事描述
   function renderLocationTabs() {
-    const p   = Stats.player;
     const con = document.getElementById('location-tabs');
     if (!con) return;
-    let html = '';
-    FIELD_SLOTS.forEach(slot => {
-      const f        = getSlotField(slot.slot, p);
-      const isActive = f && f.id === currentFieldId;
-      const isLocked = !f;
-      const icon     = f ? (FIELDS[f.id]?.icon || slot.label[0]) : slot.label[0];
-      const name     = f ? f.name : slot.label;
-      html += `<button class="loc-tab${isActive ? ' active' : ''}${isLocked ? ' locked' : ''}"
-        ${isLocked ? '' : `onclick="Game.switchField('${f.id}')"`}
-        title="${name}">
-        <span class="loc-tab-icon">${icon}</span>
-        <span class="loc-tab-name">${name.slice(0, 3)}</span>
-      </button>`;
-    });
-    con.innerHTML = html;
+    con.innerHTML = '';      // 完全清空，CSS 會將容器隱藏
   }
 
   // ── Render: action list ────────────────────────────────
@@ -1285,22 +1276,12 @@ const Game = (() => {
   }
 
   // ── Switch scene ──────────────────────────────────────
-  function switchField(fieldId) {
-    if (fieldId === currentFieldId) return;
-    _syncField(fieldId);
-    // Pull from today's NPC roll (no re-rolling on move)
-    _syncCurrentNPCs(dailyNPCMap[fieldId] || rollFieldNPCs(fieldId));
-
-    const f = FIELDS[fieldId];
-    if (f) addLog(f.logText, '#ddd', true);
-
-    // D.1.13: 切換 BGM（未來 FIELDS.assets.bgm 填入路徑即可生效）
-    SoundManager.playSfx('menu_open');
-    if (f?.assets?.bgm) SoundManager.playBgm(f.assets.bgm);
-    // No time cost for moving — time advances only via actions
-    const allNPCs = [...(currentNPCs.teammates || []), ...(currentNPCs.audience || [])];
-    //現場所有的NPC都會有機率觸發事件
-    renderAll();
+  // 🆕 Phase 1 重構：場景切換已停用
+  // 訓練場是唯一場景，所有 NPC 互動透過事件觸發
+  // 此函式保留簽名以維持向下相容（被外部呼叫時不會 throw），但不會切換場地
+  function switchField(_fieldId) {
+    // no-op：訓練場是唯一場景
+    return;
   }
 
   // ══════════════════════════════════════════════════════
@@ -1862,9 +1843,11 @@ const Game = (() => {
     if (data.gameState) {
       GameState.loadFrom(data.gameState);
     } else {
-      GameState.loadFrom({ fieldId: data.fieldId || 'dirtyCell' });
+      GameState.loadFrom({ fieldId: data.fieldId || FIXED_FIELD });
     }
-    currentFieldId = GameState.getFieldId();
+    // 🆕 Phase 1 重構：強制鎖定到訓練場（無論存檔記錄哪個場地）
+    GameState.setFieldId(FIXED_FIELD);
+    currentFieldId = FIXED_FIELD;
     currentNPCs    = GameState.getCurrentNPCs();
 
     // NPC affection
@@ -2042,7 +2025,9 @@ const Game = (() => {
       });
       Flags.clear();          // 清空所有故事旗標
       GameState.reset();       // 🆕 D.1.12: 清空 session state
-      currentFieldId = GameState.getFieldId();
+      // 🆕 Phase 1 重構：強制鎖定到訓練場
+      GameState.setFieldId(FIXED_FIELD);
+      currentFieldId = FIXED_FIELD;
       currentNPCs    = GameState.getCurrentNPCs();
       // Restore original name-entry form
       box.innerHTML = `

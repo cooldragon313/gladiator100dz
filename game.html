@@ -1356,13 +1356,9 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 .slot-box.slot-sleep    { border-left: 2px solid #6633aa; }
 
 /* ── Location tabs ── */
+/* 🆕 Phase 1 重構：訓練場是唯一場景，場地切換 UI 隱藏 */
 #location-tabs {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1px;
-  background: var(--border);
-  border-bottom: 2px solid var(--border);
-  flex-shrink: 0;
+  display: none !important;
 }
 .loc-tab {
   background: var(--panel);

@@ -22,11 +22,13 @@
 
 const ACTIONS = {
 
+  // 🆕 Phase 1 重構：訓練場是唯一場景，所有玩家可主動執行的動作都改為 'any'
+  // 房間品質（豪華/破舊）改為休息事件的敘事描述，由名聲決定
   rest: {
     id: 'rest', name: '休息',
     desc: '靜靜待著，讓身體稍作恢復。',
     slots: 1, staminaCost: 0, foodCost: 0,
-    fields: ['dirtyCell','basicRoom','luxuryRoom','officerRoom','forge','kitchen','masterRoom','market','cityExit'],
+    fields: 'any',
     effects: [
       { type: 'vital', key: 'stamina', delta: 15 },
     ],
@@ -37,7 +39,7 @@ const ACTIONS = {
     id: 'soloThink', name: '獨自沉思',
     desc: '面壁沉思，磨礪意志與心性。',
     slots: 1, staminaCost: 5, foodCost: 0,
-    fields: ['dirtyCell', 'basicRoom', 'luxuryRoom'],
+    fields: 'any',
     effects: [
       { type: 'attr',  key: 'WIL',  delta: 0.25 },
       { type: 'vital', key: 'mood', delta: 5    },
@@ -47,7 +49,7 @@ const ACTIONS = {
     id: 'writeMemory', name: '記錄心得',
     desc: '在沙地上刻字，整理技術與心理狀態。',
     slots: 1, staminaCost: 3, foodCost: 0,
-    fields: ['basicRoom', 'luxuryRoom'],
+    fields: 'any',
     effects: [
       { type: 'attr',  key: 'WIL', delta: 0.15 },
       { type: 'attr',  key: 'DEX', delta: 0.15 },
@@ -56,12 +58,13 @@ const ACTIONS = {
   },
 
   // ── 訓練場 ───────────────────────────────────────────────
+  // 🆕 Phase 1 重構：訓練場是唯一場景（stdTraining）
   // injuryPart：受傷部位（輕量版 v1）。staminaCost: 0 的動作不計受傷。
   basicSwing: {
     id: 'basicSwing', name: '基礎揮砍',
     desc: '反覆揮動武器，磨礪攻擊動作。',
     slots: 1, staminaCost: 15, foodCost: 5,
-    fields: ['oldTraining', 'stdTraining'],
+    fields: ['stdTraining'],
     effects: [{ type: 'attr', key: 'STR', delta: 0.5 }],
     eventPool: ['overseerWatch', 'trainingInjury'],
     injuryPart: '手臂',
@@ -70,7 +73,7 @@ const ACTIONS = {
     id: 'footwork', name: '步法練習',
     desc: '反覆移動步伐，提高靈敏與閃躲能力。',
     slots: 1, staminaCost: 20, foodCost: 5,
-    fields: ['oldTraining', 'stdTraining'],
+    fields: ['stdTraining'],
     effects: [{ type: 'attr', key: 'AGI', delta: 0.5 }],
     eventPool: ['overseerWatch', 'trainingInjury'],
     injuryPart: '腿部',
@@ -79,7 +82,7 @@ const ACTIONS = {
     id: 'endurance', name: '耐力訓練',
     desc: '全副武裝奔跑，強化體質與持久力。',
     slots: 1, staminaCost: 30, foodCost: 10,
-    fields: ['oldTraining', 'stdTraining'],
+    fields: ['stdTraining'],
     effects: [{ type: 'attr', key: 'CON', delta: 0.5 }],
     eventPool: ['overseerWatch', 'trainingInjury'],
     injuryPart: '軀幹',
@@ -111,7 +114,7 @@ const ACTIONS = {
     id: 'meditation', name: '冥想調息',
     desc: '靜坐調整呼吸，強化意志，恢復心情。',
     slots: 1, staminaCost: 0, foodCost: 0,
-    fields: ['oldTraining', 'stdTraining'],
+    fields: ['stdTraining'],
     effects: [
       { type: 'attr',  key: 'WIL',  delta: 0.4 },
       { type: 'vital', key: 'mood', delta: 10  },
