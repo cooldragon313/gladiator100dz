@@ -13,6 +13,11 @@
  *   effects     : [{ type:'vital'|'attr'|'affection'|'fame', key, delta }]
  *   eventPool   : [eventId, ...] — IDs that may fire post-action (40% chance)
  *   risk        : true = flavour flag for risky actions
+ *
+ *   hiddenFromList : 🆕 Phase 1-A (奴隸循環設計)
+ *                    true = 不顯示在玩家主動行動列表上。
+ *                    定義保留，未來由事件系統觸發（勞動請求/傳喚/切磋邀請等）。
+ *                    對應 Part E.2：玩家無法主動找 NPC、拜訪權威、申請勞動。
  */
 
 const ACTIONS = {
@@ -99,6 +104,7 @@ const ACTIONS = {
     slots: 1, staminaCost: 25, foodCost: 8,
     fields: ['stdTraining'],
     requireNPC: 'teammate',
+    hiddenFromList: true,    // 🆕 Phase 1-A: 改為隊友主動邀請事件（Phase 1-H）
     effects: [
       { type: 'attr', key: 'STR', delta: 0.3 },
       { type: 'attr', key: 'DEX', delta: 0.3 },
@@ -144,6 +150,7 @@ const ACTIONS = {
     slots: 1, staminaCost: 10, foodCost: 0,
     fields: ['kitchen'],
     requireNPC: 'melaKook',
+    hiddenFromList: true,    // 🆕 Phase 1-A: 改為梅拉透過主人派遣（Phase 1-F）
     effects: [
       { type: 'vital',     key: 'food',     delta: 15 },
       { type: 'affection', key: 'melaKook', delta: 5  },
@@ -155,6 +162,7 @@ const ACTIONS = {
     desc: '趁人不注意順手帶走一些。風險不小。',
     slots: 1, staminaCost: 0, foodCost: 0,
     fields: ['kitchen'],
+    hiddenFromList: true,    // 🆕 Phase 1-A: 改為飢餓閾值觸發事件（Phase 1-E）
     effects: [{ type: 'vital', key: 'food', delta: 20 }],
     // 2/3 chance of stealSuccess event (benign), 1/3 stealCaught (punishes)
     eventPool: ['stealSuccess', 'stealSuccess', 'stealCaught'],
@@ -167,6 +175,7 @@ const ACTIONS = {
     desc: '沉默地看葛拉鍛打，感受技藝的重量。',
     slots: 1, staminaCost: 5, foodCost: 0,
     fields: ['forge'],
+    hiddenFromList: true,    // 🆕 Phase 1-A: 改為葛拉主動邀請（Phase 1-F）
     effects: [
       { type: 'attr',      key: 'DEX',          delta: 0.2 },
       { type: 'affection', key: 'blacksmithGra', delta: 2  },
@@ -179,6 +188,7 @@ const ACTIONS = {
     slots: 1, staminaCost: 0, foodCost: 0,
     fields: ['forge'],
     requireNPC: 'blacksmithGra',
+    hiddenFromList: true,    // 🆕 Phase 1-A: 改為裝備耐久度觸發事件（Phase 2）
     effects: [
       { type: 'affection', key: 'blacksmithGra', delta: 5 },
     ],
@@ -192,6 +202,7 @@ const ACTIONS = {
     slots: 1, staminaCost: 0, foodCost: 0,
     fields: ['officerRoom'],
     requireNPC: 'officer',
+    hiddenFromList: true,    // 🆕 Phase 1-A: 改為長官傳喚制度（Phase 1-G）
     effects: [],
     eventPool: ['officerMission', 'officerCold', 'officerPraise'],
   },
@@ -203,16 +214,19 @@ const ACTIONS = {
     slots: 1, staminaCost: 0, foodCost: 0,
     fields: ['masterRoom'],
     requireNPC: 'masterArtus',
+    hiddenFromList: true,    // 🆕 Phase 1-A: 改為主人傳喚制度（Phase 1-G）
     effects: [],
     eventPool: ['masterEval', 'masterGift', 'masterWarning'],
   },
 
   // ── 市集 ─────────────────────────────────────────────────
+  // 🆕 Phase 1-A: 市集動作全部隱藏，改為「主人派你去採購」事件（Phase 1-I）
   browseMarket: {
     id: 'browseMarket', name: '閒逛市集',
     desc: '在人群中走動，感受外面的世界。',
     slots: 1, staminaCost: 5, foodCost: 0,
     fields: ['market'],
+    hiddenFromList: true,    // 🆕 Phase 1-I 事件化
     effects: [{ type: 'vital', key: 'mood', delta: 12 }],
     eventPool: ['marketThief', 'marketRumor', 'marketFan'],
   },
@@ -221,16 +235,19 @@ const ACTIONS = {
     desc: '花點錢買些乾糧備用。',
     slots: 1, staminaCost: 0, foodCost: 0,
     fields: ['market'],
+    hiddenFromList: true,    // 🆕 Phase 1-I 事件化（採購任務）
     effects: [{ type: 'vital', key: 'food', delta: 30 }],
     eventPool: ['marketThief'],
   },
 
   // ── 出城 ─────────────────────────────────────────────────
+  // 🆕 Phase 1-A: 出城動作改為劇情觸發（押運/戰爭徵召等），非玩家主動
   outdoorTrain: {
     id: 'outdoorTrain', name: '野外自主訓練',
     desc: '在護衛視線下，享受難得的自由訓練。',
     slots: 1, staminaCost: 25, foodCost: 8,
     fields: ['cityExit'],
+    hiddenFromList: true,    // 🆕 劇情觸發
     effects: [
       { type: 'attr',  key: 'STR',  delta: 0.4 },
       { type: 'attr',  key: 'AGI',  delta: 0.4 },
@@ -242,6 +259,7 @@ const ACTIONS = {
     desc: '在荒野邊緣尋找可用的植物與食材。',
     slots: 1, staminaCost: 10, foodCost: 0,
     fields: ['cityExit'],
+    hiddenFromList: true,    // 🆕 劇情觸發
     effects: [
       { type: 'vital', key: 'food', delta: 15 },
       { type: 'vital', key: 'mood', delta: 5  },
@@ -253,6 +271,7 @@ const ACTIONS = {
     desc: '城牆外的天空很寬闊。讓自己暫時忘記身分。',
     slots: 1, staminaCost: 0, foodCost: 0,
     fields: ['cityExit'],
+    hiddenFromList: true,    // 🆕 劇情觸發
     effects: [
       { type: 'vital', key: 'mood', delta: 15 },
       { type: 'attr',  key: 'WIL', delta: 0.1 },

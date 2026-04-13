@@ -455,7 +455,6 @@ const Game = (() => {
     const p       = Stats.player;
     const npcs    = currentNPCs;
     const sLeft   = slotsRemaining();
-    const allNPCs = [...(npcs.teammates || []), ...(npcs.audience || [])];
 
     // Day exhausted → only show sleep button
     if (sLeft <= 0) {
@@ -468,25 +467,14 @@ const Game = (() => {
     let html = '<div class="action-list-header">可用動作</div>';
 
     // Field-specific actions
-    const fieldActs = getFieldActions(currentFieldId, p, npcs);
+    // 🆕 Phase 1-A: 移除動態聊天（chat_XXX）
+    // 「你是奴隸，你不能主動找 NPC 聊天」— 所有 NPC 互動改為事件驅動
+    // 同時過濾掉 hiddenFromList 動作（visitOfficer/visitMaster/sparring 等）
+    // 這些動作定義仍然保留，未來會由事件系統觸發（Phase 1-F~H）
+    const fieldActs = getFieldActions(currentFieldId, p, npcs)
+      .filter(act => !act.hiddenFromList);
 
-    // Dynamic NPC-chat actions (one per NPC present)
-    const chatActs = allNPCs.map(npcId => {
-      const npc = teammates.getNPC(npcId);
-      if (!npc) return null;
-      return {
-        id: 'chat_' + npcId,
-        name: `與${npc.name}交談`,
-        desc: npc.title,
-        slots: 1, staminaCost: 5, foodCost: 0,
-        effects: [
-          { type: 'affection', key: npcId, delta: 3 },
-          { type: 'vital',     key: 'mood', delta: 5 },
-        ],
-      };
-    }).filter(Boolean);
-
-    const allActs = [...fieldActs, ...chatActs, ACTIONS.rest];
+    const allActs = [...fieldActs, ACTIONS.rest];
 
     allActs.forEach(act => {
       const noStamina = p.stamina < act.staminaCost;
