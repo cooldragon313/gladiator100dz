@@ -41,8 +41,8 @@ const ACTIONS = {
     slots: 1, staminaCost: 5, foodCost: 0,
     fields: 'any',
     effects: [
-      { type: 'attr',  key: 'WIL',  delta: 0.25 },
-      { type: 'vital', key: 'mood', delta: 5    },
+      { type: 'exp',   key: 'WIL',  delta: 4 },
+      { type: 'vital', key: 'mood', delta: 5 },
     ],
   },
   writeMemory: {
@@ -51,100 +51,82 @@ const ACTIONS = {
     slots: 1, staminaCost: 3, foodCost: 0,
     fields: 'any',
     effects: [
-      { type: 'attr',  key: 'WIL', delta: 0.15 },
-      { type: 'attr',  key: 'DEX', delta: 0.15 },
-      { type: 'vital', key: 'mood', delta: 8   },
+      { type: 'exp',   key: 'WIL',  delta: 3 },
+      { type: 'exp',   key: 'DEX',  delta: 3 },
+      { type: 'vital', key: 'mood', delta: 8 },
     ],
   },
 
   // ── 訓練場 ───────────────────────────────────────────────
   // 🆕 Phase 1 重構：訓練場是唯一場景（stdTraining）
-  // injuryPart：受傷部位（輕量版 v1）。staminaCost: 0 的動作不計受傷。
+  // 🆕 Phase 1-J.2：五個主動訓練動作對應 STR / DEX / CON / AGI / WIL，
+  //                 全部 staminaCost 20、1 slot、每項 +0.5 對應屬性。
+  //                 （LUK 不可練，留給事件/運氣系統；sparring 仍為隊友邀請事件）
+  // injuryPart：受傷部位（輕量版 v1）。
   basicSwing: {
     id: 'basicSwing', name: '基礎揮砍',
     desc: '反覆揮動武器，磨礪攻擊動作。',
-    slots: 1, staminaCost: 15, foodCost: 5,
+    slots: 1, staminaCost: 20, foodCost: 8,
     fields: ['stdTraining'],
-    effects: [{ type: 'attr', key: 'STR', delta: 0.5 }],
+    effects: [{ type: 'exp', key: 'STR', delta: 8 }],
     eventPool: ['overseerWatch', 'trainingInjury'],
     injuryPart: '手臂',
   },
-  footwork: {
-    id: 'footwork', name: '步法練習',
-    desc: '反覆移動步伐，提高靈敏與閃躲能力。',
-    slots: 1, staminaCost: 20, foodCost: 5,
+  preciseStab: {
+    id: 'preciseStab', name: '精準刺擊',
+    desc: '對木樁反覆刺擊，鍛鍊手眼協調與出手精度。',
+    slots: 1, staminaCost: 20, foodCost: 8,
     fields: ['stdTraining'],
-    effects: [{ type: 'attr', key: 'AGI', delta: 0.5 }],
+    effects: [{ type: 'exp', key: 'DEX', delta: 8 }],
     eventPool: ['overseerWatch', 'trainingInjury'],
-    injuryPart: '腿部',
+    injuryPart: '手部',
   },
   endurance: {
     id: 'endurance', name: '耐力訓練',
     desc: '全副武裝奔跑，強化體質與持久力。',
-    slots: 1, staminaCost: 30, foodCost: 10,
+    slots: 1, staminaCost: 20, foodCost: 10,
     fields: ['stdTraining'],
-    effects: [{ type: 'attr', key: 'CON', delta: 0.5 }],
+    effects: [{ type: 'exp', key: 'CON', delta: 8 }],
     eventPool: ['overseerWatch', 'trainingInjury'],
     injuryPart: '軀幹',
   },
-  heavyLift: {
-    id: 'heavyLift', name: '重量訓練',
-    desc: '舉起重石，增強蠻力。',
-    slots: 1, staminaCost: 20, foodCost: 10,
+  footwork: {
+    id: 'footwork', name: '步法練習',
+    desc: '反覆移動步伐，提高靈敏與閃躲能力。',
+    slots: 1, staminaCost: 20, foodCost: 8,
     fields: ['stdTraining'],
-    effects: [{ type: 'attr', key: 'STR', delta: 0.8 }],
+    effects: [{ type: 'exp', key: 'AGI', delta: 8 }],
     eventPool: ['overseerWatch', 'trainingInjury'],
-    injuryPart: '手臂',
-  },
-  sparring: {
-    id: 'sparring', name: '切磋對練',
-    desc: '與在場隊友切磋，提升攻擊與反應速度。',
-    slots: 1, staminaCost: 25, foodCost: 8,
-    fields: ['stdTraining'],
-    requireNPC: 'teammate',
-    hiddenFromList: true,    // 🆕 Phase 1-A: 改為隊友主動邀請事件（Phase 1-H）
-    effects: [
-      { type: 'attr', key: 'STR', delta: 0.3 },
-      { type: 'attr', key: 'DEX', delta: 0.3 },
-    ],
-    eventPool: ['sparringBond', 'overseerWatch'],
-    injuryPart: '手部',
+    injuryPart: '腿部',
   },
   meditation: {
     id: 'meditation', name: '冥想調息',
     desc: '靜坐調整呼吸，強化意志，恢復心情。',
-    slots: 1, staminaCost: 0, foodCost: 0,
+    slots: 1, staminaCost: 20, foodCost: 0,
     fields: ['stdTraining'],
     effects: [
-      { type: 'attr',  key: 'WIL',  delta: 0.4 },
-      { type: 'vital', key: 'mood', delta: 10  },
+      { type: 'exp',   key: 'WIL',  delta: 8  },
+      { type: 'vital', key: 'mood', delta: 10 },
     ],
-    // staminaCost: 0 → 不計受傷，精神訓練另行處理
+    // 精神訓練：不設 eventPool（不會有身體受傷事件）
+  },
+  sparring: {
+    id: 'sparring', name: '切磋對練',
+    desc: '與在場隊友切磋，提升攻擊與反應速度。',
+    slots: 1, staminaCost: 20, foodCost: 8,
+    fields: ['stdTraining'],
+    requireNPC: 'teammate',
+    hiddenFromList: true,    // Phase 1-A: 改為隊友主動邀請事件（Phase 1-H）
+    effects: [
+      { type: 'exp', key: 'STR', delta: 5 },
+      { type: 'exp', key: 'DEX', delta: 5 },
+    ],
+    eventPool: ['sparringBond', 'overseerWatch'],
+    injuryPart: '手部',
   },
 
   // ── 廚房 ─────────────────────────────────────────────────
-  eatMeal: {
-    id: 'eatMeal', name: '用正餐',
-    desc: '吃一頓正經的飯，填飽肚子，改善心情。',
-    slots: 1, staminaCost: 0, foodCost: 0,
-    fields: ['kitchen'],
-    timeHours: [6, 10, 18],   // 06:00-08:00、10:00-12:00、18:00-20:00 才出現
-    flavorText: '時間到就該吃飯，吃飽了才好辦事！',
-    effects: [
-      { type: 'vital', key: 'food', delta: 40 },
-      { type: 'vital', key: 'mood', delta: 8  },
-      { type: 'affection', key: 'melaKook', delta: 5  },
-    ],
-    conditionalEffects: [
-      {
-        condition: { type: 'affection', npcId: 'melaKook', min: 60 },
-        effects: [{ type: 'vital', key: 'food', delta: 10 }],
-        flavorText: '米拉偷偷多塞了一塊麵包給你。',
-      },
-    ],
-    eventPool: ['melaChat', 'blackCooking'],
-  },
-  helpCook: {
+    helpCook: {
     id: 'helpCook', name: '幫廚娘打雜',
     desc: '搭把手，說不定能混到額外食物和好感。',
     slots: 1, staminaCost: 10, foodCost: 0,

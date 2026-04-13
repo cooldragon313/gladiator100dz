@@ -518,27 +518,6 @@ const Game = (() => {
     }
   }
 
-  // ── Scene buttons (left panel) ────────────────────────
-  function renderSceneButtons() {
-    const p = Stats.player;
-    FIELD_SLOTS.forEach(slot => {
-      const btn = document.getElementById('sbtn-' + slot.slot);
-      if (!btn) return;
-      const accessible = getSlotField(slot.slot, p);
-      if (accessible) {
-        btn.classList.remove('locked');
-        btn.classList.toggle('active', accessible.id === currentFieldId);
-        btn.querySelector('.sbtn-name').textContent = accessible.name;
-        btn.onclick = () => switchField(accessible.id);
-      } else {
-        btn.classList.add('locked');
-        btn.classList.remove('active');
-        btn.querySelector('.sbtn-name').textContent = slot.label;
-        btn.onclick = null;
-      }
-    });
-  }
-
   // ── Daily NPC roll (once per day) ─────────────────────
   function rollDailyNPCs() {
     const p = Stats.player;
@@ -821,10 +800,10 @@ const Game = (() => {
     // 「你是奴隸，你不能主動找 NPC 聊天」— 所有 NPC 互動改為事件驅動
     // 同時過濾掉 hiddenFromList 動作（visitOfficer/visitMaster/sparring 等）
     // 這些動作定義仍然保留，未來會由事件系統觸發（Phase 1-F~H）
-    const fieldActs = getFieldActions(currentFieldId, p, npcs)
+    // 🆕 Phase 1-J.2: rest 的 fields 已是 'any'，會被 getFieldActions 自動包進列表，
+    //                 不再需要手動 append ACTIONS.rest（修正雙重顯示）。
+    const allActs = getFieldActions(currentFieldId, p, npcs)
       .filter(act => !act.hiddenFromList);
-
-    const allActs = [...fieldActs, ACTIONS.rest];
 
     allActs.forEach(act => {
       const noStamina = p.stamina < act.staminaCost;
@@ -903,7 +882,8 @@ const Game = (() => {
     SoundManager.playSfx(act.assets?.sfx?.activate || 'action_confirm');
 
     // ── 是否含屬性效果（Phase 1-E 需要提前判斷）──────
-    const hasAttrEffect = (act.effects || []).some(e => e.type === 'attr');
+    // 🆕 D.6: 訓練動作現在用 type:'exp'；舊 type:'attr' 仍相容（soloThink/writeMemory 等個人動作）
+    const hasAttrEffect = (act.effects || []).some(e => e.type === 'attr' || e.type === 'exp');
     const isTraining    = hasAttrEffect && act.staminaCost > 0;
 
     // ══════════════════════════════════════════════════
@@ -999,12 +979,14 @@ const Game = (() => {
     // 🆕 D.1.9: 統一效果處理器
     // 🆕 Phase 1-E: thresholdMult（心流/擺爛/飢餓）折入 synergyMult 一起傳入
     const finalSynergyMult = synergyMult * thresholdMult;
+
     Effects.apply(act.effects || [], {
       moodMult,
       synergyMult: finalSynergyMult,
       currentNPCs,
       source: 'action:' + actionId,
     });
+    // 🆕 D.6 v2：訓練只累積 EXP，不自動升級。升級請到角色頁手動花 EXP。
 
     // Advance time by slot(s)
     Stats.advanceTime(act.slots * SLOT_DUR);
@@ -1018,6 +1000,10 @@ const Game = (() => {
       if (eff.type === 'attr') {
         const actual = Math.round(eff.delta * finalSynergyMult * moodMult * 100) / 100;
         return `${eff.key}+${actual}`;
+      }
+      if (eff.type === 'exp') {
+        const actual = Math.round(eff.delta * finalSynergyMult * moodMult);
+        return `${eff.key} EXP+${actual}`;
       }
       if (eff.type === 'vital')     return `${eff.key}${eff.delta > 0 ? '+' : ''}${eff.delta}`;
       if (eff.type === 'affection') return `${eff.key}好感${eff.delta > 0 ? '+' : ''}${eff.delta}`;
@@ -1147,7 +1133,7 @@ const Game = (() => {
       eventId:   'gra_notice_invite',
       condition: (p, act, npcs) => {
         const inScene = [...(npcs.teammates||[]), ...(npcs.audience||[])].includes('blacksmithGra');
-        const isStr   = (act.effects||[]).some(e => e.type === 'attr' && e.key === 'STR');
+        const isStr   = (act.effects||[]).some(e => (e.type === 'attr' || e.type === 'exp') && e.key === 'STR');
         return inScene && isStr;
       },
     },
@@ -1168,7 +1154,7 @@ const Game = (() => {
       eventId:   'overseer_notice_task',
       condition: (p, act, npcs) => {
         const inScene    = [...(npcs.teammates||[]), ...(npcs.audience||[])].includes('overseer');
-        const isTraining = (act.effects||[]).some(e => e.type === 'attr');
+        const isTraining = (act.effects||[]).some(e => e.type === 'attr' || e.type === 'exp');
         return inScene && isTraining;
       },
     },
@@ -1484,21 +1470,25 @@ const Game = (() => {
   function openDetailModal() {
     const modal = document.getElementById('modal-detail');
     if (!modal) return;
+    _closeEquipmentPicker();     // 每次打開重置 picker
     _fillCharSheet();
-    // 🆕 D.1.15: 每次打開都回到「角色」tab
+    // 每次打開都回到「角色」tab
     _switchCharSheetTab('character');
     modal.classList.add('open');
   }
 
   function closeDetailModal() {
+    _closeEquipmentPicker();
     document.getElementById('modal-detail')?.classList.remove('open');
   }
 
   /**
-   * 🆕 D.1.15: 切換角色頁的 tab。
+   * 切換角色頁的 tab。
    * @param {string} tabId 'character' | 'people' | 'achievements' | 'codex' | 'quests'
    */
   function _switchCharSheetTab(tabId) {
+    // 換 tab 時關閉 picker（避免殘留）
+    _closeEquipmentPicker();
     // 切換按鈕的 active 狀態
     document.querySelectorAll('.cs-tab').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.tab === tabId);
@@ -1509,30 +1499,89 @@ const Game = (() => {
       panel.classList.toggle('active', isActive);
       panel.classList.toggle('hidden',  !isActive);
     });
+    // 切到眾生 tab 時重新渲染（資料可能變了）
+    if (tabId === 'people') _renderPeopleTab();
+    // 🆕 切到技能 tab 時重新渲染
+    if (tabId === 'skills') _renderSkillsTab();
   }
 
-  function _fillCharSheet() {
-    const p = Stats.player;
-    const d = Stats.calcDerived();
+  // ══════════════════════════════════════════════════
+  // 🆕 D.7 階段 B：角色頁渲染（拆成 14 個小函式）
+  // ══════════════════════════════════════════════════
 
-    // Header
+  // 裝備 6 槽定義
+  const _EQUIP_SLOTS = [
+    { id: 'weapon',  label: '主手', field: 'equippedWeapon',  source: 'weapons' },
+    { id: 'offhand', label: '副手', field: 'equippedOffhand', source: 'offhand' },
+    { id: 'helmet',  label: '頭盔', field: 'equippedHelmet',  source: 'helmet'  },
+    { id: 'chest',   label: '胸甲', field: 'equippedArmor',   source: 'chest'   },
+    { id: 'arms',    label: '護臂', field: 'equippedArms',    source: 'arms'    },
+    { id: 'legs',    label: '護腿', field: 'equippedLegs',    source: 'legs'    },
+  ];
+  let _pickerOpenSlot = null;
+
+  function _fillCharSheet() {
+    // 🆕 D.6: 清掉舊存檔的小數屬性（Phase 1 以前訓練動作用 attr delta:0.5 可能留下小數）
+    if (typeof Stats.sanitizeAttrsToInt === 'function') Stats.sanitizeAttrsToInt();
+    _renderHeader();
+    _renderVitals();
+    _renderEquipmentSlots();
+    _renderAmulets();
+    _renderPets();
+    _renderResources();
+    _ensureHexSvg();        // 確保 SVG 靜態元素已建立
+    _renderHexagon();       // 🆕 六角形玩家數值
+    _renderDerivedGrid();   // 🆕 派生 10 項格子
+    _renderAttrSpend();     // 🆕 D.6 屬性升級區
+    _renderCurrentState();
+    _renderTraits();
+    _renderScars();
+    _renderAilments();
+    _renderSkills();
+    _renderPeopleTab();
+  }
+
+  // ── R0: Header ────────────────────────────────────
+  function _renderHeader() {
+    const p = Stats.player;
     const nameEl = document.getElementById('cs-name');
     if (nameEl) nameEl.textContent = p.name || '無名';
+
+    // Fallback 立繪：姓名前兩字
+    const portraitEl = document.getElementById('cs-portrait-fallback');
+    if (portraitEl) portraitEl.textContent = (p.name || '無名').slice(0, 2);
+
+    // Origin × Facility（Phase 2 S1/S2 之前 fallback）
+    const originEl = document.getElementById('cs-origin');
+    if (originEl) originEl.textContent = p.origin || '流浪者';
+    const facilityEl = document.getElementById('cs-facility');
+    if (facilityEl) facilityEl.textContent = p.facility || '無名訓練所';
+
+    // World state（Phase 2 S4 之前 fallback）
+    const wsEl = document.getElementById('cs-world-state');
+    if (wsEl) {
+      const ws = (typeof GameState !== 'undefined' && GameState.get && GameState.get('worldState')) || 'peace';
+      wsEl.textContent = { peace:'和平', war:'戰亂期', plague:'瘟疫' }[ws] || '和平';
+    }
+
     const dayEl = document.getElementById('cs-day');
     if (dayEl) dayEl.textContent = p.day;
     const fameVal = document.getElementById('cs-fame-val');
     if (fameVal) fameVal.textContent = p.fame;
     const fameFill = document.getElementById('cs-fame-bar-fill');
     if (fameFill) fameFill.style.width = Math.min(100, p.fame) + '%';
+  }
 
-    // ── Vital bars ──
+  // ── L1: 狀態條 ────────────────────────────────────
+  function _renderVitals() {
+    const p = Stats.player;
     p.hpMax = p.hpBase + Math.round(2 * Stats.eff('CON'));
     p.hp = Math.min(p.hp, p.hpMax);
     [
       { id:'cs-bar-hp',      val:p.hp,      max:p.hpMax },
-      { id:'cs-bar-stamina', val:p.stamina,  max:p.staminaMax },
-      { id:'cs-bar-food',    val:p.food,     max:p.foodMax },
-      { id:'cs-bar-mood',    val:p.mood,     max:p.moodMax },
+      { id:'cs-bar-stamina', val:p.stamina, max:p.staminaMax },
+      { id:'cs-bar-food',    val:p.food,    max:p.foodMax },
+      { id:'cs-bar-mood',    val:p.mood,    max:p.moodMax },
     ].forEach(b => {
       const row = document.getElementById(b.id);
       if (!row) return;
@@ -1540,142 +1589,592 @@ const Game = (() => {
       row.querySelector('.cs-bar-fill').style.width = pct + '%';
       row.querySelector('.cs-vital-num').textContent = b.val + '/' + b.max;
     });
+  }
 
-    // ── Equipment ──
-    const eqW = document.getElementById('cs-eq-weapon');
-    const eqA = document.getElementById('cs-eq-armor');
-    const eqS = document.getElementById('cs-eq-shield');
-    if (eqW) eqW.textContent = p.equippedWeapon ? (Weapons[p.equippedWeapon]?.name || p.equippedWeapon) : '— 空手 —';
-    if (eqA) eqA.textContent = p.equippedArmor  ? (Armors[p.equippedArmor]?.name  || p.equippedArmor)  : '— 破布 —';
-    if (eqS) {
-      const off = p.equippedOffhand;
-      if (!off) {
-        eqS.textContent = '— 無 —';
-      } else if (Armors[off]) {
-        eqS.textContent = Armors[off].name;          // 盾牌
-      } else if (Weapons[off]) {
-        eqS.textContent = Weapons[off].name + '（副）'; // 雙持
-      } else {
-        eqS.textContent = off;
-      }
+  // ── L2: 裝備 6 槽（動態生成） ─────────────────────
+  function _renderEquipmentSlots() {
+    const container = document.getElementById('cs-equip-slots');
+    if (!container) return;
+    const p = Stats.player;
+    container.innerHTML = _EQUIP_SLOTS.map(slot => {
+      const itemId = p[slot.field];
+      const label  = _getEquipmentName(slot.source, itemId);
+      const isEmpty = !itemId;
+      const isActive = _pickerOpenSlot === slot.id;
+      return `
+        <button class="cs-equip-slot-btn ${isEmpty ? 'empty' : ''} ${isActive ? 'active' : ''}" data-slot="${slot.id}">
+          <span class="cs-eqslot-label">${slot.label}</span>
+          <span class="cs-eqslot-val">${label}</span>
+          <span class="cs-eqslot-arrow">▸</span>
+        </button>`;
+    }).join('');
+    // Bind clicks
+    container.querySelectorAll('.cs-equip-slot-btn').forEach(btn => {
+      btn.addEventListener('click', () => _openEquipmentPicker(btn.dataset.slot));
+    });
+  }
+
+  /** 取得裝備顯示名稱 */
+  function _getEquipmentName(source, itemId) {
+    if (!itemId) return '—';
+    if (source === 'weapons') return Weapons[itemId]?.name || itemId;
+    if (source === 'offhand') {
+      if (Armors[itemId])  return Armors[itemId].name;         // 盾牌
+      if (Weapons[itemId]) return Weapons[itemId].name + '（副）'; // 雙持
+      return itemId;
+    }
+    if (source === 'chest') return Armors[itemId]?.name || itemId;
+    // helmet/arms/legs 尚無對應 item table（Phase 3 E10 D.2）
+    return '—';
+  }
+
+  // ── 🆕 Equipment picker inline ─────────────────────
+  function _openEquipmentPicker(slotId) {
+    // 同槽再點 = 關閉
+    if (_pickerOpenSlot === slotId) {
+      _closeEquipmentPicker();
+      return;
+    }
+    _pickerOpenSlot = slotId;
+    const slot = _EQUIP_SLOTS.find(s => s.id === slotId);
+    if (!slot) return;
+
+    const panel = document.getElementById('cs-picker-panel');
+    const title = document.getElementById('cs-picker-title');
+    const list  = document.getElementById('cs-picker-list');
+    if (!panel || !title || !list) return;
+
+    title.textContent = '更換' + slot.label;
+
+    const p = Stats.player;
+    const currentId = p[slot.field];
+    const options = _getPickerOptions(slot.source);
+
+    if (options.length === 0) {
+      list.innerHTML = '<div class="cs-picker-empty">目前沒有可用於此槽的裝備<br>（Phase 3 加入多部位裝備後可選擇）</div>';
+    } else {
+      // 「空手/解除」選項
+      const unequipLabel = slot.source === 'weapons' ? '空手' :
+                           slot.source === 'chest'   ? '破布' :
+                           '—';
+      const unequipItem = `
+        <div class="cs-picker-item ${!currentId ? 'equipped' : ''}" data-item="">
+          <div class="cs-picker-name">${unequipLabel}${!currentId ? '<span class="eq-tag">裝備中</span>' : ''}</div>
+          <div class="cs-picker-desc">不裝備任何物品</div>
+        </div>`;
+      const itemHtml = options.map(it => {
+        const equipped = (it.id === currentId);
+        return `
+          <div class="cs-picker-item ${equipped ? 'equipped' : ''}" data-item="${it.id}">
+            <div class="cs-picker-name">${it.name}${equipped ? '<span class="eq-tag">裝備中</span>' : ''}</div>
+            <div class="cs-picker-desc">${it.desc || ''}</div>
+          </div>`;
+      }).join('');
+      list.innerHTML = unequipItem + itemHtml;
     }
 
-    // ── 🆕 Resources（金錢 + SP） ──
+    panel.classList.remove('hidden');
+    list.querySelectorAll('.cs-picker-item').forEach(el => {
+      el.addEventListener('click', () => _equipItem(slot, el.dataset.item));
+    });
+
+    // Refresh slot highlights
+    _renderEquipmentSlots();
+  }
+
+  function _closeEquipmentPicker() {
+    _pickerOpenSlot = null;
+    const panel = document.getElementById('cs-picker-panel');
+    if (panel) panel.classList.add('hidden');
+    _renderEquipmentSlots();
+  }
+
+  /** 列出此 source 可選擇的裝備 */
+  function _getPickerOptions(source) {
+    if (source === 'weapons') {
+      return Object.values(Weapons).filter(w => w.id !== 'fists');
+    }
+    if (source === 'offhand') {
+      // 盾牌（Armors type='shield'）+ 單手武器（可雙持）
+      const shields = Object.values(Armors).filter(a => a.type === 'shield');
+      const oneHanders = Object.values(Weapons).filter(w => w.id !== 'fists' && w.hands === 1);
+      return [...shields, ...oneHanders];
+    }
+    if (source === 'chest') {
+      return Object.values(Armors).filter(a => a.type !== 'shield' && a.id !== 'rags');
+    }
+    // helmet / arms / legs — 尚無資料表
+    return [];
+  }
+
+  function _equipItem(slot, itemId) {
+    const p = Stats.player;
+    p[slot.field] = itemId || null;
+
+    // 雙手武器時副手強制為空
+    if (slot.id === 'weapon' && itemId && Weapons[itemId]?.hands === 2) {
+      p.equippedOffhand = null;
+    }
+    // 副手裝單手武器時，如果主手是雙手武器，警告（就讓它裝不了）
+    if (slot.id === 'offhand' && itemId && p.equippedWeapon && Weapons[p.equippedWeapon]?.hands === 2) {
+      p[slot.field] = null;
+    }
+
+    // Re-render 整個 sheet（屬性會立即反映）
+    _fillCharSheet();
+    // 屬性條也會變，同步主 UI
+    if (typeof Stats.renderAll === 'function') Stats.renderAll();
+  }
+
+  // ── L3: 護符 6 格（空狀態） ─────────────────────
+  function _renderAmulets() {
+    const el = document.getElementById('cs-amulets-grid');
+    if (!el) return;
+    // Phase 3 D.3 才會有資料，先全部空格
+    el.innerHTML = Array.from({ length: 6 }, () => '<div class="cs-amulet-cell">空</div>').join('');
+  }
+
+  // ── L4: 寵物 3 槽 ────────────────────────────────
+  function _renderPets() {
+    const el = document.getElementById('cs-pets-list');
+    if (!el) return;
+    const p = Stats.player;
+    const slots = [
+      { key: 'companion', label: '同伴' },
+      { key: 'cell',      label: '牢房' },
+      { key: 'outside',   label: '戶外' },
+    ];
+    el.innerHTML = slots.map(s => {
+      const pet = p.pets?.[s.key];
+      const name = pet?.name || '—';
+      return `<div class="cs-equip-row"><span class="cs-equip-slot">${s.label}</span><span class="cs-equip-val">${name}</span></div>`;
+    }).join('');
+  }
+
+  // ── L5: 資源 ────────────────────────────────────
+  function _renderResources() {
+    const p = Stats.player;
     const moneyEl = document.getElementById('cs-money');
     if (moneyEl) moneyEl.textContent = p.money || 0;
-    const spEl = document.getElementById('cs-sp');
-    if (spEl) spEl.textContent = p.sp || 0;
+    // 🆕 D.6 v2：SP 欄位已移除（改為 EXP 單一資源）
+  }
 
-    // ── Affection bars ──
-    // 🆕 D.1.15: 動態生成好感度列表（不再硬編碼 5 個 NPC）
-    // 只顯示「有資料」的 NPC（未見過的 NPC 不顯示，留給 Phase 1 的 NPC 百科）
-    const affList = document.getElementById('cs-aff-list');
-    if (affList) {
-      const allAff = teammates.getAllAffection();
-      // 過濾：只顯示好感度 != 0 或有基礎好感的 NPC
-      const visible = Object.entries(allAff)
-        .filter(([npcId, val]) => val !== 0 || (teammates.getNPC(npcId)?.baseAffection || 0) !== 0)
-        // 依好感度絕對值降序（重要的在前）
-        .sort(([, a], [, b]) => Math.abs(b) - Math.abs(a));
+  // ── R1: 六角形屬性圖 ─────────────────────────
+  const _HEX_AXES = ['STR','DEX','CON','AGI','WIL','LUK'];
+  // 六個軸角度：從頂點開始順時針（STR 頂、DEX 右上、CON 右下、AGI 底、WIL 左下、LUK 左上）
+  const _HEX_ANGLES = [
+    -Math.PI/2,                  // STR  top      (0,-1)
+    -Math.PI/2 + Math.PI/3,      // DEX  top-right
+    -Math.PI/2 + 2*Math.PI/3,    // CON  bottom-right
+     Math.PI/2,                  // AGI  bottom   (0,+1)
+     Math.PI/2 + Math.PI/3,      // WIL  bottom-left
+     Math.PI/2 + 2*Math.PI/3,    // LUK  top-left
+  ];
+  const _HEX_CENTER = 150;
+  const _HEX_MAX_R  = 85;   // 對應數值 100
+  const _HEX_LABEL_R = 108;
+  const _HEX_VAL_R   = 132;
 
-      if (visible.length === 0) {
-        affList.innerHTML = '<div class="cs-aff-empty" style="color:var(--text-dim);font-size:16px;padding:8px 4px;font-style:italic;">尚未與任何人建立連結</div>';
-      } else {
-        affList.innerHTML = visible.map(([npcId, val]) => {
-          const npc = teammates.getNPC(npcId);
-          const name = npc ? npc.name : npcId;
-          const pct  = Math.max(0, val);  // 負值顯示為 0 寬度（D.4 完整 UI 之前）
-          const isHate = val < 0;
-          const barStyle = isHate
-            ? 'background: linear-gradient(90deg, #8b0000, #c02020);'
-            : '';
-          return `
-            <div class="cs-aff-row">
-              <span class="cs-aff-name">${name}</span>
-              <div class="cs-aff-bar-track">
-                <div class="cs-aff-bar-fill" style="width:${pct}%; ${barStyle}"></div>
-              </div>
-              <span class="cs-aff-num" style="${isHate ? 'color:#c02020;' : ''}">${val}</span>
-            </div>`;
-        }).join('');
-      }
-    }
+  let _hexSvgReady = false;
 
-    // ── Six attribute cards ──
-    ['STR','DEX','CON','AGI','WIL','LUK'].forEach(key => {
-      const card = document.getElementById('cs-attr-' + key);
-      if (!card) return;
-      card.querySelector('.cs-attr-val').textContent = Math.round(Stats.eff(key));
+  /** 初始化 SVG 靜態元素（只做一次：參考環、軸線、玩家多邊形、軸名/值文字） */
+  function _ensureHexSvg() {
+    const svg = document.getElementById('cs-hex-svg');
+    if (!svg || _hexSvgReady) return;
+
+    const ns = 'http://www.w3.org/2000/svg';
+    const c  = _HEX_CENTER;
+    svg.innerHTML = '';
+
+    // 參考環：20 / 40 / 60 / 80 / 100（以玩家值對應）
+    const ringVals = [20, 40, 60, 80, 100];
+    ringVals.forEach((rv, idx) => {
+      const r = (rv / 100) * _HEX_MAX_R;
+      const pts = _HEX_ANGLES.map(a => {
+        const x = c + r * Math.cos(a);
+        const y = c + r * Math.sin(a);
+        return x.toFixed(1) + ',' + y.toFixed(1);
+      }).join(' ');
+      const poly = document.createElementNS(ns, 'polygon');
+      poly.setAttribute('points', pts);
+      poly.setAttribute('class', 'cs-hex-ring' + (idx === ringVals.length - 1 ? ' ring-outer' : ''));
+      svg.appendChild(poly);
     });
 
-    // ── Derived stats (bar max = 200 for visual scaling) ──
-    const DRV_MAX = { ACC:95, PEN:75, BLK:75, BpWr:85, SPD:100, CRT:75, CDMG:300, EVA:95 };
+    // 從中心到各頂點的軸線
+    _HEX_ANGLES.forEach(a => {
+      const x2 = c + _HEX_MAX_R * Math.cos(a);
+      const y2 = c + _HEX_MAX_R * Math.sin(a);
+      const line = document.createElementNS(ns, 'line');
+      line.setAttribute('x1', c);
+      line.setAttribute('y1', c);
+      line.setAttribute('x2', x2.toFixed(1));
+      line.setAttribute('y2', y2.toFixed(1));
+      line.setAttribute('class', 'cs-hex-axis');
+      svg.appendChild(line);
+    });
+
+    // 玩家多邊形（數值由 _renderHexagon 填入）
+    const player = document.createElementNS(ns, 'polygon');
+    player.setAttribute('id', 'cs-hex-player');
+    player.setAttribute('points', '');
+    svg.appendChild(player);
+
+    // 軸名（STR/DEX/...）+ 數值文字
+    _HEX_AXES.forEach((key, i) => {
+      const a = _HEX_ANGLES[i];
+      const lx = c + _HEX_LABEL_R * Math.cos(a);
+      const ly = c + _HEX_LABEL_R * Math.sin(a);
+      const vx = c + _HEX_VAL_R   * Math.cos(a);
+      const vy = c + _HEX_VAL_R   * Math.sin(a);
+
+      const label = document.createElementNS(ns, 'text');
+      label.setAttribute('x', lx.toFixed(1));
+      label.setAttribute('y', ly.toFixed(1));
+      label.setAttribute('class', 'cs-hex-label');
+      label.setAttribute('dominant-baseline', 'middle');
+      label.textContent = key;
+      svg.appendChild(label);
+
+      const val = document.createElementNS(ns, 'text');
+      val.setAttribute('x', vx.toFixed(1));
+      val.setAttribute('y', vy.toFixed(1));
+      val.setAttribute('class', 'cs-hex-val');
+      val.setAttribute('id', 'cs-hex-val-' + key);
+      val.setAttribute('dominant-baseline', 'middle');
+      val.textContent = '—';
+      svg.appendChild(val);
+    });
+
+    _hexSvgReady = true;
+  }
+
+  /** 以玩家當前六維重繪多邊形與數值文字。允許超過 100（超出六角形外框）。 */
+  function _renderHexagon() {
+    const c = _HEX_CENTER;
+    const vals = _HEX_AXES.map(k => Stats.eff(k));
+    const pts = vals.map((v, i) => {
+      // 允許 > 100：直接放大半徑不夾值
+      const r = Math.max(0, v) / 100 * _HEX_MAX_R;
+      const a = _HEX_ANGLES[i];
+      const x = c + r * Math.cos(a);
+      const y = c + r * Math.sin(a);
+      return x.toFixed(1) + ',' + y.toFixed(1);
+    }).join(' ');
+    const poly = document.getElementById('cs-hex-player');
+    if (poly) poly.setAttribute('points', pts);
+    _HEX_AXES.forEach((k, i) => {
+      const el = document.getElementById('cs-hex-val-' + k);
+      if (el) el.textContent = Math.round(vals[i]);
+    });
+  }
+
+  // ── R2: 派生屬性（5×2 格子，無 bar，純字） ─────
+  function _renderDerivedGrid() {
+    const d = Stats.calcDerived();
     const PCT_KEYS = new Set(['ACC','CRT','CDMG','BLK','BpWr','EVA']);
     Object.entries(d).forEach(([key, val]) => {
-      const numEl  = document.getElementById('cs-drv-' + key);
-      const barEl  = document.getElementById('cs-drv-bar-' + key);
-      const maxV   = DRV_MAX[key] || 100;
-      const pct    = Math.min(100, Math.round(val / maxV * 100));
+      const el = document.getElementById('cs-drv-' + key);
+      if (!el) return;
       const rounded = Math.round(val);
-      if (numEl) numEl.textContent = PCT_KEYS.has(key) ? rounded + '%' : rounded;
-      if (barEl) barEl.style.width = pct + '%';
+      el.textContent = PCT_KEYS.has(key) ? rounded + '%' : rounded;
     });
+  }
 
-    // ── Skills ──
-    const skillList = document.getElementById('cs-skill-list');
-    if (skillList) {
-      const known = Object.values(Skills).filter(sk => _playerKnowsSkill(sk));
-      if (known.length === 0) {
-        skillList.innerHTML = '<div class="cs-skill-empty">尚未習得任何技能</div>';
-      } else {
-        skillList.innerHTML = known.map(sk => `
-          <div class="cs-skill-item">
-            <div class="cs-skill-name">${sk.name}</div>
-            <div class="cs-skill-type">${sk.type === 'passive' ? '被動' : '主動'}</div>
-            <div class="cs-skill-desc">${sk.desc}</div>
+  // ── 🆕 D.6 v2: 屬性升級區（EXP 條 + 花 EXP 升級） ─────
+  // 訓練累積 EXP → 玩家在這裡手動花 EXP 升級。EXP 不足時按鈕灰掉。
+  function _renderAttrSpend() {
+    const container = document.getElementById('cs-attr-spend');
+    if (!container) return;
+    const p = Stats.player;
+
+    container.innerHTML = _HEX_AXES.map(key => {
+      const lvl  = p[key] || 10;
+      const exp  = p.exp?.[key] || 0;
+      const cost = Stats.expToNext(lvl);
+      const pct  = Math.min(100, Math.round(exp / cost * 100));
+      const canAfford = exp >= cost;
+      const tooltip = canAfford
+        ? `花費 ${cost} EXP 升級 ${key}（${lvl} → ${lvl + 1}）`
+        : `還差 ${cost - exp} EXP`;
+      return `
+        <div class="cs-spend-card">
+          <div class="cs-spend-head">
+            <span class="cs-spend-label">${key}</span>
+            <span class="cs-spend-val">${lvl}</span>
+            <button class="cs-spend-btn" data-spend-attr="${key}" ${canAfford ? '' : 'disabled'}
+                    title="${tooltip}">
+              升級
+            </button>
           </div>
-        `).join('');
-      }
-    }
+          <div class="cs-spend-exp-track"><div class="cs-spend-exp-fill" style="width:${pct}%"></div></div>
+          <div class="cs-spend-exp-num">${exp} / ${cost} EXP</div>
+        </div>`;
+    }).join('');
 
-    // ── 🆕 Phase 1-D: Traits ──
+    // 綁定點擊
+    container.querySelectorAll('.cs-spend-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const attr = btn.dataset.spendAttr;
+        const p = Stats.player;
+        const lvl = p[attr] || 10;
+        const cost = Stats.expToNext(lvl);
+        const ok = Stats.spendExpOnAttr(attr);
+        if (ok) {
+          addLog(`✦ ${attr} 升級！(消耗 ${cost} EXP)  ${attr} → ${Stats.player[attr]}`, '#e8d070', true);
+          _fillCharSheet();
+          if (typeof Stats.renderAll === 'function') Stats.renderAll();
+        } else {
+          showToast('EXP 不足');
+        }
+      });
+    });
+  }
+
+  // ── R3: 當前狀態 ────────────────────────────────
+  function _renderCurrentState() {
+    const p = Stats.player;
+    const rEl = document.getElementById('cs-state-religion');
+    const fEl = document.getElementById('cs-state-faction');
+    const wEl = document.getElementById('cs-state-world');
+    if (rEl) rEl.textContent = p.religion || '—';
+    if (fEl) fEl.textContent = p.faction  || '—';
+    if (wEl) {
+      const ws = (typeof GameState !== 'undefined' && GameState.get && GameState.get('worldState')) || 'peace';
+      wEl.textContent = { peace:'和平', war:'戰亂期', plague:'瘟疫' }[ws] || '和平';
+    }
+  }
+
+  // ── R4: 特性（沿用 Phase 1-D） ─────────────────
+  function _renderTraits() {
+    const p = Stats.player;
     const traitsList = document.getElementById('cs-traits-list');
-    if (traitsList) {
-      const traits = p.traits || [];
-      if (traits.length === 0) {
-        traitsList.innerHTML = '<div class="cs-traits-empty">尚無特性</div>';
-      } else {
-        traitsList.innerHTML = '<div class="cs-traits-list">' + traits.map(id => {
-          const def = Config.TRAIT_DEFS[id];
-          const name = def ? def.name : id;
-          const desc = def ? def.desc : '';
-          const cat  = def ? def.category : 'positive';
-          const prefix = cat === 'positive' ? '★' : '▼';
-          const cls    = cat === 'positive' ? 'trait-positive' : 'trait-negative';
-          return `<span class="trait-tag ${cls}" title="${desc}">
-            <span class="trait-prefix">${prefix}</span>${name}
-          </span>`;
-        }).join('') + '</div>';
-      }
+    if (!traitsList) return;
+    const traits = p.traits || [];
+    if (traits.length === 0) {
+      traitsList.innerHTML = '<div class="cs-traits-empty">尚無特性</div>';
+    } else {
+      traitsList.innerHTML = '<div class="cs-traits-list">' + traits.map(id => {
+        const def = Config.TRAIT_DEFS[id];
+        const name = def ? def.name : id;
+        const desc = def ? def.desc : '';
+        const cat  = def ? def.category : 'positive';
+        const prefix = cat === 'positive' ? '★' : '▼';
+        const cls    = cat === 'positive' ? 'trait-positive' : 'trait-negative';
+        return `<span class="trait-tag ${cls}" title="${desc}">
+          <span class="trait-prefix">${prefix}</span>${name}
+        </span>`;
+      }).join('') + '</div>';
+    }
+  }
+
+  // ── R5: 疤痕（Phase 4 C.1 之前空） ─────────────
+  function _renderScars() {
+    const el = document.getElementById('cs-scars-list');
+    if (!el) return;
+    const scars = Stats.player.scars || [];
+    if (scars.length === 0) {
+      el.innerHTML = '<div class="cs-traits-empty" style="color:var(--text-dim)">尚無疤痕</div>';
+    } else {
+      el.innerHTML = '<div class="cs-traits-list">' + scars.map(s => {
+        const name = s.name || s.id || '?';
+        const desc = s.desc || '';
+        return `<span class="trait-tag trait-negative" title="${desc}">✖ ${name}</span>`;
+      }).join('') + '</div>';
+    }
+  }
+
+  // ── R6: 病痛（沿用 Phase 1-D） ─────────────────
+  function _renderAilments() {
+    const p = Stats.player;
+    const ailmentsList = document.getElementById('cs-ailments-list');
+    if (!ailmentsList) return;
+    const ailments = p.ailments || [];
+    if (ailments.length === 0) {
+      ailmentsList.innerHTML = '<div class="cs-traits-empty" style="color:var(--text-dim)">無病痛</div>';
+    } else {
+      ailmentsList.innerHTML = '<div class="cs-traits-list">' + ailments.map(id => {
+        const def  = Config.AILMENT_DEFS[id];
+        const name = def ? def.name : id;
+        const desc = def ? def.desc : '';
+        return `<span class="trait-tag trait-ailment" title="${desc}">
+          <span class="trait-prefix">⚕</span>${name}
+        </span>`;
+      }).join('') + '</div>';
+    }
+  }
+
+  // ── R7: 技能 ────────────────────────────────────
+  function _renderSkills() {
+    const skillList = document.getElementById('cs-skill-list');
+    if (!skillList) return;
+    const known = Object.values(Skills).filter(sk => _playerKnowsSkill(sk));
+    if (known.length === 0) {
+      skillList.innerHTML = '<div class="cs-skill-empty">尚未習得任何技能</div>';
+    } else {
+      skillList.innerHTML = known.map(sk => `
+        <div class="cs-skill-item">
+          <div class="cs-skill-name">${sk.name}</div>
+          <div class="cs-skill-type">${sk.type === 'passive' ? '被動' : '主動'}</div>
+          <div class="cs-skill-desc">${sk.desc}</div>
+        </div>
+      `).join('');
+    }
+  }
+
+  // ══════════════════════════════════════════════════
+  // 眾生 Tab（原「所有人」，由關係圖按鈕觸發）
+  // ══════════════════════════════════════════════════
+  /** 好感等級 → 文字描述（9 級對應 D.4） */
+  const _AFF_TIER_LABELS = {
+    loyal:      { text: '忠誠',     cls: 'positive' },
+    devoted:    { text: '崇敬',     cls: 'positive' },
+    friendly:   { text: '友好',     cls: 'positive' },
+    acquainted: { text: '認識',     cls: 'positive' },
+    neutral:    { text: '中立',     cls: '' },
+    annoyed:    { text: '不悅',     cls: 'hate' },
+    disliked:   { text: '厭惡',     cls: 'hate' },
+    hated:      { text: '憎恨',     cls: 'hate' },
+    nemesis:    { text: '不共戴天', cls: 'hate' },
+  };
+
+  function _renderPeopleTab() {
+    const grid = document.getElementById('cs-people-grid');
+    const summary = document.getElementById('cs-people-summary');
+    if (!grid) return;
+
+    const allAff = teammates.getAllAffection();
+    // 只顯示好感 != 0 或有 baseAffection 的 NPC（Phase B：簡化版，未來 Phase 3 接 NpcCodex 漸進揭露）
+    const visible = Object.entries(allAff)
+      .filter(([id, val]) => val !== 0 || (teammates.getNPC(id)?.baseAffection || 0) !== 0)
+      .sort(([, a], [, b]) => Math.abs(b) - Math.abs(a));
+
+    if (summary) summary.textContent = `你已與 ${visible.length} 人建立連結`;
+
+    if (visible.length === 0) {
+      grid.innerHTML = '<div class="cs-people-empty">尚未與任何人建立連結。<br>訓練場的每一次互動都可能改變命運。</div>';
+      return;
     }
 
-    // ── 🆕 Phase 1-D: Ailments ──
-    const ailmentsList = document.getElementById('cs-ailments-list');
-    if (ailmentsList) {
-      const ailments = p.ailments || [];
-      if (ailments.length === 0) {
-        ailmentsList.innerHTML = '<div class="cs-traits-empty" style="color:var(--text-dim)">無病痛</div>';
-      } else {
-        ailmentsList.innerHTML = '<div class="cs-traits-list">' + ailments.map(id => {
-          const def  = Config.AILMENT_DEFS[id];
-          const name = def ? def.name : id;
-          const desc = def ? def.desc : '';
-          return `<span class="trait-tag trait-ailment" title="${desc}">
-            <span class="trait-prefix">⚕</span>${name}
-          </span>`;
-        }).join('') + '</div>';
-      }
+    grid.innerHTML = visible.map(([npcId, val]) => {
+      const npc = teammates.getNPC(npcId);
+      const name = npc?.name || npcId;
+      const tier = teammates.getAffectionLevel(npcId);
+      const tierInfo = _AFF_TIER_LABELS[tier] || { text: tier, cls: '' };
+      const isHate = val < 0;
+      const barPct = Math.max(0, Math.abs(val));
+      const fallback = name.slice(0, 2);
+      return `
+        <div class="cs-person-card ${isHate ? 'hate' : ''}">
+          <div class="cs-person-portrait">${fallback}</div>
+          <div class="cs-person-info">
+            <div class="cs-person-name">${name}</div>
+            <div class="cs-person-tier ${tierInfo.cls}">${tierInfo.text}</div>
+            <div class="cs-person-bar-wrap">
+              <div class="cs-person-bar ${isHate ? 'hate' : ''}" style="width:${barPct}%"></div>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // ══════════════════════════════════════════════════
+  // 🆕 D.6 v2：技能 Tab
+  // ══════════════════════════════════════════════════
+  function _renderSkillsTab() {
+    const p = Stats.player;
+
+    // ── 六屬性 EXP 總覽 ───────────────────────
+    const summary = document.getElementById('cs-exp-summary');
+    if (summary) {
+      summary.innerHTML = _HEX_AXES.map(k => `
+        <div class="cs-exp-cell">
+          <div class="cs-exp-cell-k">${k} EXP</div>
+          <div class="cs-exp-cell-v">${p.exp?.[k] || 0}</div>
+        </div>
+      `).join('');
     }
+
+    // ── 技能卡片（目前只顯示被動） ─────────────
+    const grid = document.getElementById('cs-skills-grid');
+    if (!grid) return;
+    const all = Object.values(Skills).filter(s => s.type === 'passive');
+
+    grid.innerHTML = all.map(s => {
+      const learned = Stats.hasSkill(s.id);
+      const costs   = Stats.getSkillCost(s.id) || {};
+      const req     = s.unlockReq || {};
+      const check   = Stats.canLearnSkill(s.id);
+
+      // 硬門檻（名聲）檢查
+      const fameGate = req.fame && p.fame < req.fame;
+
+      // 卡片狀態類別
+      let cls = '';
+      if (learned)      cls = 'learned';
+      else if (check.ok) cls = 'learnable';
+      else              cls = 'locked';
+
+      // 成本顯示：每個屬性一項
+      const costHtml = Object.entries(costs).map(([attr, cost]) => {
+        const have = p.exp?.[attr] || 0;
+        const ok   = have >= cost;
+        // 若玩家屬性低於門檻，標註「含屬性補差」
+        const curLvl = p[attr] || 10;
+        const minLvl = req[attr] || 0;
+        const hasCatchup = minLvl && curLvl < minLvl;
+        const catchupNote = hasCatchup
+          ? ` <span class="cost-extra">（含 ${attr} ${curLvl}→${minLvl} 補差）</span>`
+          : '';
+        return `<span class="cost-attr ${ok ? 'ok' : 'short'}">${attr} ${cost} EXP（有 ${have}）</span>${catchupNote}`;
+      }).join('');
+
+      // 按鈕文字與狀態
+      let btnHtml;
+      if (learned) {
+        btnHtml = `<button class="cs-skill-card-btn learned" disabled>✔ 已習得</button>`;
+      } else if (fameGate) {
+        btnHtml = `<button class="cs-skill-card-btn" disabled title="需名聲 ${req.fame}">需名聲 ${req.fame}</button>`;
+      } else if (check.ok) {
+        btnHtml = `<button class="cs-skill-card-btn" data-learn-skill="${s.id}">習得</button>`;
+      } else {
+        btnHtml = `<button class="cs-skill-card-btn" disabled>${check.reason || 'EXP 不足'}</button>`;
+      }
+
+      // 被動效果敘述
+      const effectHtml = s.passiveBonus
+        ? Object.entries(s.passiveBonus).map(([k, v]) => `${k} ${v >= 0 ? '+' : ''}${v}`).join(' / ')
+        : '';
+
+      return `
+        <div class="cs-skill-card ${cls}">
+          <div class="cs-skill-card-head">
+            <span class="cs-skill-card-name">${s.name}</span>
+            <span class="cs-skill-card-type">${effectHtml || '被動'}</span>
+          </div>
+          <div class="cs-skill-card-desc">${s.desc}</div>
+          <div class="cs-skill-card-cost">${costHtml}</div>
+          ${btnHtml}
+        </div>
+      `;
+    }).join('');
+
+    // 綁定習得按鈕
+    grid.querySelectorAll('[data-learn-skill]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const skillId = btn.dataset.learnSkill;
+        const ok = Stats.learnSkill(skillId);
+        if (ok) {
+          const s = Skills[skillId];
+          addLog(`✦ 你習得了【${s.name}】！${s.desc}`, '#e8d070', true);
+          _fillCharSheet();
+          _renderSkillsTab();
+          if (typeof Stats.renderAll === 'function') Stats.renderAll();
+        } else {
+          showToast('無法習得此技能');
+        }
+      });
+    });
   }
 
   function _playerKnowsSkill(skill) {
@@ -2140,7 +2639,7 @@ const Game = (() => {
    * 每個 NPC 每天最多邀請一次。
    */
   function _checkSparringInvite(act) {
-    if (!act || !(act.effects||[]).some(e => e.type === 'attr')) return;
+    if (!act || !(act.effects||[]).some(e => e.type === 'attr' || e.type === 'exp')) return;
     const npcs = currentNPCs.teammates || [];
     for (const npcId of npcs) {
       const todayKey = `sparring_invite_today_${npcId}`;
@@ -2194,6 +2693,12 @@ const Game = (() => {
     document.querySelectorAll('.cs-tab').forEach(btn => {
       btn.addEventListener('click', () => _switchCharSheetTab(btn.dataset.tab));
     });
+    // 🆕 階段 B: 關係圖按鈕 → 開啟眾生 tab
+    document.getElementById('btn-relations')?.addEventListener('click', () => {
+      _switchCharSheetTab('people');
+    });
+    // 🆕 階段 B: Picker close 按鈕
+    document.getElementById('cs-picker-close')?.addEventListener('click', _closeEquipmentPicker);
     document.getElementById('btn-confirm-name')   ?.addEventListener('click', confirmName);
     document.getElementById('name-input')?.addEventListener('keydown', e => {
       if (e.key === 'Enter') confirmName();

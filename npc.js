@@ -141,7 +141,7 @@ const teammates = (() => {
       title: '訓練監督',
       schedule: [
         // 14:00-16:00 在訓練場出現，其他時間 → 不強制出現（隨機決定）
-        { hours: [14, 16], fields: ['oldTraining', 'stdTraining'] },
+        { hours: [14, 16], fields: ['stdTraining'] },
       ],
       desc: '嚴厲、精確、毫無憐憫。他訓練出來的人，要麼成為最強的鬥士，要麼死在訓練場。',
       baseAffection: 0,
@@ -170,11 +170,7 @@ const teammates = (() => {
       id: 'melaKook', name: '梅拉',
       role: 'audience',
       title: '廚娘',
-      schedule: [
-        // 06:00-08:00、12:00-14:00、18:00-20:00 出現
-        // 其他時段 → 不強制出現（隨機決定）
-        { hours: [6, 12, 18], fields: ['kitchen'] },
-      ],
+      // Phase 1-J：廚房場景已移除，梅拉改為事件觸發出現（用餐事件等）
       desc: '用廚房剩料也能做出讓人流淚的食物。她悄悄多塞給你的那口飯，你永遠記得。',
       baseAffection: 15,
       personality: 'support',

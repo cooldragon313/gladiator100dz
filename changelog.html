@@ -207,6 +207,333 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       D.6 v2  技能購買系統（EXP 單一資源模型 + 技能 tab）
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">FEATURE</span>
+      <span class="version-title">D.6 v2 — 技能購買系統 + EXP 單一資源模型</span>
+      <span class="version-date">2026-04-14</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">EXP 單一資源模型 <span class="file-tag">stats.js</span> <span class="file-tag">actions.js</span>
+          — 廢除 SP 系統，改為純 EXP 池。訓練動作改用 <code>type: 'exp'</code>，
+          每個屬性獨立累積 EXP。升級與技能購買都花 EXP，不再有 SP。
+          <code>modExp</code> 不再自動升級，玩家在角色頁手動花 EXP 升屬性。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><code>Stats.spendExpOnAttr(attr)</code> <span class="file-tag">stats.js</span>
+          — 成本 = <code>expToNext(current_level)</code>，升級曲線
+          <code>ceil(10 × 1.15^(level-10))</code>（10→11:10 · 15→16:20 · 20→21:40 · 25→26:81 · 30→31:163）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">技能購買系統（Skills） <span class="file-tag">skill.js</span> <span class="file-tag">stats.js</span>
+          — <code>Skills</code> 定義新增 <code>expCosts: { [attr]: cost }</code> 欄位（支援多屬性成本）；
+          新增 <code>Stats.hasSkill / getSkillCost / canLearnSkill / learnSkill</code>；
+          <code>player.learnedSkills[]</code> 持久化已習得技能；
+          被動技能的 <code>passiveBonus</code> 由 <code>calcDerived</code> 動態加總，
+          購買後立即反映到派生屬性。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">屬性門檻 EXP 補差機制 <span class="file-tag">stats.js</span>
+          — 若技能需求屬性高於當前值，差額會自動換算為對應屬性的 EXP 成本
+          疊加到總成本中，購買成功時同步把屬性補到門檻值。
+          例：鐵皮需 CON 15，玩家 CON 13 → 真實成本 = 200 基礎 + expToNext(13) + expToNext(14) ≈ 239 CON EXP，
+          購買後 CON 同步變 15。名聲門檻仍為硬卡。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">技能 tab <span class="file-tag">game.html</span> <span class="file-tag">main.js</span>
+          — 新增第二個 tab「技能」，置於「角色」與「眾生」之間。
+          頂部 6 屬性 EXP 總覽格子 + 技能卡片網格（auto-fill minmax 320px）。
+          卡片三態：可購買（金邊）／已習得（金色漸層背景）／鎖定（半透明）。
+          每個成本屬性分別顯示「有 N / 需 X」+ 補差註記。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">起手技能範本 <span class="file-tag">skill.js</span>
+          — <strong>鐵皮</strong>（被動 +5 DEF，需 CON 15，成本 200 CON EXP）、
+          <strong>輕步</strong>（被動 +8 EVA，需 AGI 15，成本 200 AGI EXP）。
+          主動技能（powerStrike / riposte / warCry）資料保留，等戰鬥系統掛鉤後啟用。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">屬性整數化 <span class="file-tag">stats.js</span> <span class="file-tag">main.js</span>
+          — <code>Stats.modAttr</code> 內加 <code>Math.round</code>；新增
+          <code>Stats.sanitizeAttrsToInt()</code>，每次打開角色頁自動清除舊 0.5 delta 留下的小數；
+          <code>soloThink / writeMemory</code> 也改為 <code>type: 'exp'</code>
+          （各 WIL EXP +4 / WIL+DEX EXP +3），徹底杜絕小數產生。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
+       D.7 階段 B+  六角形屬性圖 + 派生格子 + 字體放大
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">REFACTOR</span>
+      <span class="version-title">D.7 階段 B+ — 六角形屬性圖 + 派生格子 + 可讀性放大</span>
+      <span class="version-date">2026-04-14</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">六角形雷達圖取代屬性卡 <span class="file-tag">game.html</span> <span class="file-tag">main.js</span>
+          — 右欄上半區改為 <code>#cs-stats-wrap</code>（<code>300px 1fr</code> 兩欄）：
+          左半 <code>&lt;svg id="cs-hex-svg"&gt;</code> 六角形雷達（STR→DEX→CON→AGI→WIL→LUK 順時針）；
+          參考環 5 圈對應 20/40/60/80/100，玩家多邊形金色描邊 + 半透明填充；
+          軸名（純英文）+ 軸值在六邊外，**數值超過 100 多邊形會凸出最外環**（練過頭視覺反饋）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">派生 10 項改為 5×2 格子 <span class="file-tag">game.html</span> <span class="file-tag">main.js</span>
+          — 全部 10 項派生屬性（ATK/DEF/PEN/SPD/ACC/CRT/CDMG/BLK/BpWr/EVA）
+          移到六角形右側，每格顯示英文代號 + 大字金色數值，
+          不再用 bar 條，百分比型自動加 %。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">字體全面放大與色彩提亮 <span class="file-tag">game.html</span>
+          — 裝備槽 label/val 14/15 → 18/19；六角軸名 16 → 18 fill 從 <code>text</code> → <code>text-hi</code>；
+          派生 label/num 14/16 → 17/19；當前狀態 14/15 → 17/18；
+          特性標籤 14 → 18 + max-height 340 可容 20+ 特性；
+          所有 <code>text-dim</code> label 改為 <code>text</code>；
+          section 標題 14 → 16 + 粗體 + border-hi 分隔線。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">屬性升級區（<code>#cs-attr-spend</code>） <span class="file-tag">game.html</span> <span class="file-tag">main.js</span>
+          — 六角形/派生 grid 下方新增 3×2 卡片：每張顯示屬性代號、當前等級、
+          EXP 進度條（<code>exp / expToNext</code>）、升級按鈕。
+          EXP 足夠時金邊，不足時灰掉。點擊 → <code>Stats.spendExpOnAttr</code>
+          → 即時重繪角色頁 + 金色 log 公告。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
+       Phase 1-J.2  訓練動作整理（五屬性各一 + 體力統一）
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag tweak">TWEAK</span>
+      <span class="version-title">Phase 1-J.2 — 訓練動作整理：五屬性各一 + 體力統一 20</span>
+      <span class="version-date">2026-04-14</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">訓練動作對應表 <span class="file-tag">actions.js</span>
+          — 每個主動訓練對應一個屬性、1 slot、staminaCost 統一 20：
+          基礎揮砍 (STR)、<strong>精準刺擊 (DEX 新增)</strong>、耐力訓練 (CON)、
+          步法練習 (AGI)、冥想調息 (WIL)。
+          刪除 <code>heavyLift</code>（多餘的第二個 STR）；
+          <code>sparring</code> 保持 hidden，體力亦統一為 20。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">FIX</span>
+        <span class="change-text">修正動作列表「休息」重複顯示 <span class="file-tag">main.js</span>
+          — <code>renderActionList</code> 原本把 <code>rest</code> 手動 append，
+          但 <code>rest</code> 的 <code>fields: 'any'</code> 已被 <code>getFieldActions</code>
+          自動包進列表，導致雙重顯示。移除手動 append。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
+       D.7 階段 B  人物面板重構（兩欄 + 裝備 picker + 眾生 tab）
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">REFACTOR</span>
+      <span class="version-title">D.7 階段 B — 人物面板兩欄重構 + 裝備 picker + 眾生 tab</span>
+      <span class="version-date">2026-04-13</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">三欄改兩欄（45/55） <span class="file-tag">game.html</span>
+          — <code>#cs-body</code> 從 <code>grid-template-columns: 260px 1fr 280px</code>
+          改為 <code>45% 55%</code>；中欄（六維卡片）整塊搬到右欄頂部，派生屬性下移。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">Header 擴充 <span class="file-tag">game.html</span> <span class="file-tag">main.js</span>
+          — 新增 <code>#cs-portrait</code> 立繪容器 + <code>#cs-portrait-fallback</code>（姓名前兩字大字）；
+          副標顯示 <code>origin × facility · 第 N 天 · 世界狀態</code>；
+          <code>worldState</code> 缺值時 fallback 為「和平」。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">關係圖按鈕 <span class="file-tag">game.html</span> <span class="file-tag">main.js</span>
+          — 姓名旁新增 <code>[關係圖]</code> 按鈕，點擊直接跳到「眾生」tab。
+          第二 tab 名稱由「所有人」改為「眾生」。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">裝備 6 槽動態化 + inline picker <span class="file-tag">main.js</span>
+          — 裝備列表全面動態生成（主手/副手/頭盔/胸甲/護臂/護腿）；
+          點 slot → 右欄頂部彈出 <code>#cs-picker-panel</code> 可換裝列表；
+          選擇後即時更新左欄所有派生屬性（六維 + 10 項派生 + EXP 條）。
+          支援雙手武器鎖定副手、雙持互斥邏輯。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">眾生 tab 內容 <span class="file-tag">main.js</span>
+          — 取代原 placeholder；以卡片網格呈現所有有連結的 NPC，顯示
+          立繪 fallback（姓名前兩字）、好感等級文字、正負向色系 bar。
+          空狀態：「尚未與任何人建立連結。訓練場的每一次互動都可能改變命運。」</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">右欄六維屬性加 EXP 條 + SP placeholder <span class="file-tag">game.html</span> <span class="file-tag">main.js</span>
+          — 每張屬性卡下方新增 <code>.cs-attr-exp-track</code>，讀 <code>player.exp[attr]</code>（D.6 之前分母固定 100）。
+          卡片右上 <code>[+]</code> SP 升級按鈕現為 disabled placeholder
+          （tooltip：「Phase 3 開放 SP 升級」）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">新增左欄區塊：護符 6 格 / 寵物 3 槽 <span class="file-tag">game.html</span> <span class="file-tag">main.js</span>
+          — 護符 3×2 空格陣列（<code>#cs-amulets-grid</code>），
+          寵物 3 槽（同伴/牢房/戶外，讀 <code>player.pets</code>）；
+          兩者資料層 Phase 3 E13/D.3 填入，現階段全部空狀態。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">新增右欄區塊：當前狀態 / 疤痕 <span class="file-tag">game.html</span> <span class="file-tag">main.js</span>
+          — <code>#cs-state-list</code> 顯示信仰/派系/世界三行；
+          <code>#cs-scars-list</code> 遍歷 <code>player.scars</code>。
+          三者資料層 Phase 2 S4/Phase 4 C1 填入，現階段顯示「—」與「尚無疤痕」。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">renderDetailModal 拆成 14 個小函式 <span class="file-tag">main.js</span>
+          — <code>_renderHeader / _renderVitals / _renderEquipmentSlots / _renderAmulets /
+          _renderPets / _renderResources / _renderAttributes / _renderDerived /
+          _renderCurrentState / _renderTraits / _renderScars / _renderAilments /
+          _renderSkills / _renderPeopleTab</code>。未來修單一區塊不用動整個函式。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-removed">MOVED</span>
+        <span class="change-text">好感度列表搬離角色頁 <span class="file-tag">main.js</span>
+          — 原 <code>#cs-aff-list</code>（階段 A 成果）從角色 tab 移除，
+          邏輯整併入 <code>_renderPeopleTab()</code>。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">特性/病痛/疤痕歸類整理 <span class="file-tag">game.html</span>
+          — 依「永久性標記」概念群把特性、疤痕、病痛都放在右欄，
+          與左欄的「裝備/護符/寵物/資源」分流。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">CSS 新增 <span class="file-tag">game.html</span>
+          — <code>.cs-equip-slot-btn / #cs-picker-panel / .cs-picker-item /
+          .cs-amulet-grid / .cs-state-row / .cs-attr-exp-track / .cs-attr-sp-btn /
+          .cs-person-card / .cs-people-empty / .cs-relations-btn /
+          #cs-portrait / #cs-portrait-fallback</code>。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">TWEAK</span>
+        <span class="change-text">字體整體放大 + 百分比型派生屬性改格式 <span class="file-tag">game.html</span>
+          — 所有區塊字體 11~13px → 14~16px（狀態條/裝備/當前狀態/派生/六維/技能/picker）；
+          派生屬性拆成兩區：數值型（ATK/DEF/PEN/SPD）維持 bar，
+          百分比型（ACC/CRT/CDMG/BLK/BpWr/EVA）改為 2×3 大字格子無 bar；
+          特性區字體 12px → 14px + max-height 280px + 可捲動，容納 20+ 特性。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">設計文件同步 <span class="file-tag">DESIGN.md</span>
+          — D.7 階段 B 章節已於前次討論寫入完整規格；階段 B 進度由
+          「⚠️ 設計完成待實作」推進為「🟡 實作完成待驗收」。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
+       Phase 1-J  場地系統極簡化(訓練場為唯一場景）
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">REFACTOR</span>
+      <span class="version-title">Phase 1-J — 場地系統極簡化：訓練場為唯一場景</span>
+      <span class="version-date">2026-04-13</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-removed">REMOVED</span>
+        <span class="change-text">刪除場景選擇按鈕指令 <span class="file-tag">fields.js</span> <span class="file-tag">main.js</span>
+          — 移除 <code>FIELD_SLOTS</code> 陣列與 <code>getSlotField()</code> 函式；
+          刪除 <code>renderSceneButtons()</code>（dead code）。玩家不再能主動切換場景。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-removed">REMOVED</span>
+        <span class="change-text">刪除除訓練場以外的所有場景定義 <span class="file-tag">fields.js</span>
+          — 移除 <code>dirtyCell / basicRoom / luxuryRoom / oldTraining / officerRoom /
+          forge / kitchen / masterRoom / market / cityExit</code>。
+          保留 <code>stdTraining</code> 作為唯一場景（未來依訓練場升級換背景即可）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">房間品質改由名聲決定 <span class="file-tag">main.js（休息/過夜事件）</span>
+          — 豪華/簡單/骯髒房間不再是場景，改為休息與強制過夜事件的敘事描述
+          （名聲 ≥60 描寫高級房、≥20 描寫簡單鬥士房、否則描寫骯髒牢房）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">訓練場 NPC 名單擴充 <span class="file-tag">fields.js</span>
+          — <code>stdTraining.characters</code> 納入隊友（cassius/ursa/dagiSlave/oldSlave）
+          與觀眾（overseer/blacksmithGra/melaKook/masterServant），
+          訓練場成為唯一「可看到誰在場」的位置，以便後續事件觸發（切磋邀請/派遣/傳喚）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-tweak">TWEAK</span>
+        <span class="change-text">NPC schedule 清理 <span class="file-tag">npc.js</span>
+          — <code>overseer</code> schedule 的 <code>oldTraining</code> 移除；
+          <code>melaKook</code> 的 <code>kitchen</code> schedule 移除（改為事件觸發）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">game.html 左欄清理 <span class="file-tag">game.html</span>
+          — 移除 <code>#location-tabs</code> 容器與 <code>.sbtn</code>/<code>.loc-tab</code>
+          相關 CSS（全屬 dead code）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-tweak">NOTE</span>
+        <span class="change-text">訓練場分級待辦 <span class="file-tag">fields.js</span>
+          — 於 <code>stdTraining</code> 註記「未來需要再製作不同的等級」，
+          供日後依訓練所升級切換背景/器材。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">設計文件同步 <span class="file-tag">DESIGN.md</span>
+          — 場地紀錄章節更新為 Phase 1-J 單場景設計。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
        v1.6  主手/副手雙槽系統
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">

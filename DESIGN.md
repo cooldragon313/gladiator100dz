@@ -4,6 +4,141 @@
 
 ---
 
+## 📊 實作進度總表
+
+> **這是進度的唯一事實源。修改狀態時只改這裡。**
+> 下方各 Part 章節保留設計內容與工時估計，但不再獨立追蹤勾選狀態。
+> D.10 舊表已作廢，請以此表為準。
+
+**圖例**：✅ 完成 · 🟡 進行中 · ⬜ 未開始 · ⚠️ 設計完成待實作 · 🟤 已廢案
+
+### Phase 0：基礎設施修復 — ✅ 完成（15/15）
+
+| ID | 項目 | 狀態 | Commit | 主要檔案 |
+|----|------|------|--------|----------|
+| D.1.1 | Flags 模組 | ✅ | `54e1af8` | flags.js |
+| D.1.2 | 好感度系統整合（廢除 Stats.player.affection） | ✅ | `51b9d01` | npc.js |
+| D.1.3 | modAttr 下限改為 1（允許負值修正） | ✅ | `cd3a6f4` | stats.js |
+| D.1.4 | 存檔 schema v5（預留所有未來欄位） | ✅ | `124f85f` | save_system.js |
+| D.1.5 | NPC 結構重構（ELITE_DEFS + 完整欄位） | ✅ | `aea17e5` | npc.js |
+| D.1.6 | 金錢系統（Stats.player.money + modMoney） | ✅ | `124f85f` | stats.js |
+| D.1.7 | 設定頁面容器（擴展 settings + UI） | ✅ | `229580a` | game.html |
+| D.1.8 | 存檔槽管理（3~5 槽） | ✅ | `9e2b43f` | save_system.js |
+| D.1.9 | EffectDispatcher（統一效果處理） | ✅ | `e881c05` | effect_dispatcher.js |
+| D.1.10 | TIMELINE_EVENTS 條件化 | ✅ | `9019f70` | events.js |
+| D.1.11 | DayCycle 每日結算鉤子 | ✅ | `1abc4cf` | day_cycle.js |
+| D.1.12 | GameState 全局狀態模組 | ✅ | `f390e7d` | game_state.js |
+| D.1.13 | SoundManager 空殼 + 關鍵呼叫點 | ✅ | `9255aa3` | sound.js |
+| D.1.14 | i18n 文字外部化（鋪路） | ✅ | `bd7d768` | i18n.js |
+| D.1.15 | 人物介面階段 A（動態化 + tab 骨架） | ✅ | `7023113` | stats.js, game.html |
+
+### Phase 1：奴隸循環核心（Part E） — 🟡 進行中（10/11）
+
+| Phase | 項目 | 狀態 | Commit | 備註 |
+|-------|------|------|--------|------|
+| 1-A | 左欄極簡化（移除主動 NPC 互動） | ✅ | `4ab00cb` | |
+| 1-B | 時段系統重分類（training/meal/rest/sleep） | ✅ | `970aaa1` | |
+| 1-C | 閾值常數 Config 模組 | ✅ | `012b4ea` | config.js |
+| 1-D | 強制用餐/就寢事件池 + 病痛系統 | ✅ | `1474459` | ailments v1 |
+| 1-E | 飢餓/疲勞/心情事件（精簡版） | ✅ | `1474459` | |
+| 1-E.2 | `hunger_critical` 三選一事件 | ⚠️ 設計完成待實作 | — | 需先做 ChoiceModal UI |
+| 1-F | NPC 注意系統（葛拉/梅拉/監督官） | ✅ | `1474459` | |
+| 1-G | 主人/長官傳喚制度 | ✅ | `1474459` | 敘事版，對話選項待 ChoiceModal |
+| 1-H | 切磋事件化 | ✅ | `1474459` | |
+| 1-I | 金錢事件化（市集跑腿 / 主人派遣） | ✅ | `1474459` | |
+| 1-J | 場地系統極簡化（訓練場為唯一場景） | ✅ | 今日 | 見 Phase 1-J 章節 |
+
+**Phase 1 附屬任務**
+
+| 項目 | 狀態 | 備註 |
+|------|------|------|
+| ChoiceModal UI 系統 | ⚠️ 設計完成待實作 | 設計見 E.10 Phase 1-E.2 / E.11 章節；解鎖 1-E.2 與未來對話分支 |
+| 人物面板階段 A 驗收 | ✅ 完成 22/23 | 驗收清單見 D.7 章節 |
+| 人物面板階段 B | 🟡 實作完成待驗收 | 兩欄重構 + 裝備 picker + 眾生 tab；裝備動態化順便清階段 A 落差 |
+
+### Phase 2：核心系統（Part C + S 系列） — ⬜ 未開始
+
+| ID | 項目 | 狀態 |
+|----|------|------|
+| S1 | 玩家背景系統（4 種 origins） | ⬜ |
+| S2 | 訓練所系統（3 種 facilities） | ⬜ |
+| S3 | NPC 原型與成長 | ⬜ |
+| S4 | 世界狀態系統（6 種） | ⬜ |
+| S5 | 結局判定器 | ⬜ |
+| S6 | 多維度命運抽取 UI | ⬜ |
+
+### Phase 3：擴展系統（Part D + E 系列） — ⬜ 未開始
+
+| ID | 項目 | 狀態 |
+|----|------|------|
+| E1 | 職業 NPC 系統（醫生/鐵匠/廚娘等） | ⬜ |
+| E2 | 等級 × 隱藏天賦 | ⬜ |
+| E3 | 天氣與季節系統 | ⬜ |
+| E4 | 生病系統 + 醫生 NPC | ⬜ |
+| E5 | 關係/羈絆系統 | ⬜ |
+| E6 | 訓練協同加成 | ⬜ |
+| E7 | 派系系統 | ⬜ |
+| E8 | 宗教信仰系統（6 個神） | ⬜ |
+| E9 | 裝備深度（品質等級 + 取得管道） | ⬜ |
+| E10 | 多部位裝備系統（D.2） | ⬜ |
+| E11 | 個人物品 + 訓練所武器庫（D.3） | ⬜ |
+| E12 | 仇恨系統擴展（D.4） | ⬜ |
+| E13 | 寵物系統（D.5） | ⬜ |
+| E14 | 經驗值/SP/Tier 特性系統（D.6） | ⬜ |
+| E15 | 人物介面階段 B + NPC 百科階段 C（D.7） | ⬜ |
+| E16 | 音效內容（D.8，內容層） | ⬜ |
+
+### Phase 4：內容系統（Part C + D） — ⬜ 未開始
+
+| ID | 項目 | 狀態 | 相依 |
+|----|------|------|------|
+| C1 | 疤痕系統 | ⬜ | 需 D.2 多部位 |
+| C2 | 夢境系統 | ⬜ | |
+| C3 | 謠言與情報系統 | ⬜ | |
+| C4 | 婚姻/伴侶系統 | ⬜ | |
+| C5 | 酒/藥物 Vice 系統 | ⬜ | |
+| C6 | 寫信系統 | ⬜ | |
+| C7 | 戰爭徵召事件 | ⬜ | 需整個 E 系統 |
+| C8 | 暗殺系統（含 Nemesis 記憶） | ⬜ | 需 D.4 仇恨 |
+| C9 | 3v3 團戰 | ⬜ | |
+| C10 | 教學系統（D.9.1） | ⬜ | |
+| C11 | 死亡/結局畫面設計（D.9.2） | ⬜ | |
+| C12 | 統計頁面/玩家檔案（D.9.3） | ⬜ | |
+| C13 | Meta-progression 跨局解鎖（D.9.4） | ⬜ | |
+| C14 | 戰鬥手感 Juice（D.9.5） | ⬜ | |
+| C15 | 輔助功能（D.9.6） | ⬜ | |
+| C16 | 日曆/特殊日子（D.9.7） | ⬜ | |
+
+### Phase 5：美術資產 — ⬜ 未開始
+
+| ID | 項目 | 狀態 | 備註 |
+|----|------|------|------|
+| A1 | NPC/場地/事件/物品預留圖片欄位 | ✅ | Phase 0~1 期間已完成 |
+| A2 | AI 生成占位圖驗證風格 | ⬜ | |
+| A3 | 關鍵 NPC 立繪委託（5 人試水） | ⬜ | |
+| A4 | 完整美術包（20 菁英 + 10 場地 + 20 CG） | ⬜ | |
+
+### Phase 6：手機適配 — ⬜ 未開始
+
+| ID | 項目 | 狀態 | 備註 |
+|----|------|------|------|
+| M1 | UI 面板容器化 | 🟡 | Phase 0~1 已埋基礎 |
+| M2 | Responsive CSS | ⬜ | |
+| M3 | 觸控友善 | ⬜ | |
+| M4 | PWA 設定 | ⬜ | |
+| M5 | Capacitor 封裝 | ⬜ | 商業化階段 |
+
+---
+
+## 更新規則
+
+- **完成一個項目時**：改 ✅ + 填入 commit hash + 在對應章節寫入實作摘要
+- **設計完成但尚未實作**：改 ⚠️ + 在備註寫「設計見 XX 章節」
+- **廢案**：改 🟤 + 備註理由與日期
+- **不要**在本表重複寫詳細設計內容（那是各章節的事），本表只管勾選與指向
+
+---
+
 ## 目錄
 
 ### Part A — 已實作系統
@@ -82,7 +217,7 @@
 | 檔案 | 功能 |
 |------|------|
 | `stats.js` | 玩家數值、派生屬性計算、UI 渲染 |
-| `fields.js` | 場地定義、NPC 隨機出現（含排程） |
+| `fields.js` | 場地定義（Phase 1-J：僅 `stdTraining` 訓練場）、NPC 隨機出現（含排程） |
 | `npc.js` | NPC 定義（含 schedule 欄位） |
 | `actions.js` | 行動定義（含 flavorText、conditionalEffects） |
 | `events.js` | 事件池 |
@@ -2344,27 +2479,376 @@ hundred_days_survivor: { tier:5, spCost:80,
 
 > 現有人物介面（`#modal-detail`）漸進改造，不全部重寫。
 
-### 階段 A：結構化改造（現在可做）
+### 階段 A：結構化改造（✅ 完成，commit `7023113`）
 
+#### 原始需求
 - 好感度列表**動態生成**（移除 5 個硬編碼）
 - 裝備列表**動態生成**
 - 加 **tab bar**（角色 / 所有人 / 成就 / Codex / 設定）
 - 只有「角色」頁有內容，其他空殼
 
-**工時**：3~5 小時
+**工時**：3~5 小時 · **實際**：commit `7023113` 一次完成
 
-### 階段 B：三欄 → 兩欄 + 新區塊
+#### 📋 階段 A 驗收清單
+
+驗收方式：下次開啟 game.html → 按 C 鍵打開角色頁 → 逐條對照。
+
+**Tab bar 結構**
+- [x] `#cs-tabs` 容器存在於 `#modal-detail` 內 · [game.html:1950](game.html#L1950)
+- [x] 5 個 tab：角色 / 所有人 / 成就 / 百科 / 任務（原設計寫「設定」，實際改為「任務」—— 設定頁已獨立為 `#modal-settings`，此改動合理）
+- [x] 每個 tab 有 `data-tab` 屬性
+- [x] 預設 `character` tab active
+- [x] `_switchCharSheetTab(tabId)` 統一處理切換 · [main.js:1480](main.js#L1480)
+- [x] 每次 `openDetailModal` 重置回 `character` tab · [main.js:1468](main.js#L1468)
+- [x] Tab 點擊事件綁定於 init · [main.js:2174](main.js#L2174)
+
+**動態好感度列表**
+- [x] `<div id="cs-aff-list">` 容器存在 · [game.html:2016](game.html#L2016)
+- [x] `renderDetailModal` 動態生成（遍歷 `teammates.getAllAffection()`） · [main.js:1551](main.js#L1551)
+- [x] 過濾：只顯示 val ≠ 0 或 baseAffection ≠ 0 的 NPC
+- [x] 按好感度絕對值降序排列
+- [x] 支援負值（仇恨）顯示紅色 bar + 紅色數字
+- [x] 空列表顯示「尚未與任何人建立連結」
+
+**Placeholder 空殼頁**
+- [x] `people` 空殼頁 + 👥 icon + 「Phase 1 NPC 漸進揭露」說明 · [game.html:2129](game.html#L2129)
+- [x] `achievements` 空殼頁 + 🏆 icon · [game.html:2141](game.html#L2141)
+- [x] `codex` 空殼頁 + 📜 icon · [game.html:2152](game.html#L2152)
+- [x] `quests` 空殼頁 + 📋 icon · [game.html:2164](game.html#L2164)
+- [x] 預設 `.hidden`，只有 `character` 顯示
+
+**既有內容保留**
+- [x] 左欄：狀態條（HP/體力/飽食/心情）· [game.html:1968-1987](game.html#L1968)
+- [x] 左欄：裝備 3 槽（武器/護甲/副手）· [game.html:1991-1993](game.html#L1991)
+- [x] 左欄：資源（💰 金錢、✦ 技能點） · [game.html:1997-1998](game.html#L1997)
+- [x] 左欄：特性 `#cs-traits-list`（Phase 1-D 新增） · [game.html:2003](game.html#L2003)
+- [x] 左欄：病痛 `#cs-ailments-list`（Phase 1-D 新增） · [game.html:2009](game.html#L2009)
+- [x] 中欄：六維屬性卡片（STR/DEX/CON/AGI/WIL/LUK） · [game.html:2020-2059](game.html#L2020)
+- [x] 右欄：派生屬性 10 項 bar + 數字（ATK/DEF/ACC/PEN/BLK/SPD/CRT/CDMG/BpWr/EVA）
+- [x] 右欄：技能列表 `#cs-skill-list`
+
+**動態裝備列表**
+- [ ] ⚠️ **原設計要求「裝備列表動態生成」**，目前實際是硬編碼 3 個 slot（武器/護甲/副手）。這是階段 A 規格書裡的一項，但 commit 沒有做到。
+  - **落差說明**：現有程式碼用固定 3 個 `<div class="cs-equip-row">` 直接綁 `id="cs-eq-weapon"` 等
+  - **影響**：Phase 2 之後會加入頭/胸/臂/腿多部位裝備（D.2 E10），現在不是動態的話到時要改 HTML + 渲染邏輯
+  - **建議**：列為階段 A.1 補件，或等階段 B 一起改（反正階段 B 會把 3 欄改為 2 欄）
+
+#### 🎯 驗收結論
+
+- **完成率**：22/23（~95.7%）
+- **唯一落差**：裝備列表未動態化（上面 ⚠️）
+- **額外加分**：Phase 1-D 已補上特性 + 病痛兩個新區塊
+- **tab 命名調整**：設計上原本第 5 個是「設定」，實作改為「任務」。設定頁獨立為 `#modal-settings` 是合理決定，不算落差
+- **下一步**：
+  1. 決定裝備列表動態化要「補階段 A」還是「併入階段 B」
+  2. 階段 B 規劃（三欄 → 兩欄，新增狀態/疤痕/掛件等區塊）
+
+### 階段 B：三欄 → 兩欄 + 新區塊（⚠️ 設計完成待實作）
+
+> **狀態**：規格細化於 2026-04-13，工時 8~12 hr。
+> **依賴**：部分資料欄位已存在（stats.js 已預留），部分系統尚未做。見下方「資料相依性」。
+
+#### B.1 目標
+
+1. 把現在的三欄版面（狀態/六維/派生）改為兩欄，讓右欄空間騰出來放新區塊
+2. 裝備列表完全動態化，一次解決 6 槽裝備顯示（順便清掉階段 A 的落差）
+3. 引入 EXP 條、掛件槽、個人物品、疤痕、當前狀態等「資料層已經有、UI 還沒接」的欄位
+4. 重構後 **不破壞 Phase 1-D 新增的特性/病痛區塊**
+
+#### B.2 最終版面（目標狀態）
 
 ```
-左欄：
-  狀態條 / 裝備（6 槽）/ 掛件（3 槽）/ 個人物品 / 金錢 / SP
-
-右欄：
-  六維屬性（含 EXP 條）/ 派生屬性 / 當前狀態（信仰/派系/世界）
-  / 疤痕清單 / 特性清單
+┌───────────────────────────────────────────────────────────┐
+│ [立繪] 名字                                                │
+│         [背景] × [訓練所] · 第 37 天 · 🌞 晴朗 · ⚔ 戰亂期    │  Header (新)
+│                                                  名聲 [▮▮░] │
+│                                                        [✕]│
+├───────────────────────────────────────────────────────────┤
+│ [角色] [所有人] [成就] [百科] [任務]                        │  Tab bar (既有)
+├─────────────────────────┬─────────────────────────────────┤
+│                         │                                 │
+│  LEFT COLUMN            │  RIGHT COLUMN                   │
+│                         │                                 │
+│  ◆ 狀態                 │  ◆ 六維屬性                     │
+│  HP  [▮▮▮▮░] 80/100     │  STR 18  [▮▮▮░░ 12/40]          │
+│  體力 [▮▮▮░░] 55/100    │  DEX 14  [▮▮▮▮░ 28/40]          │
+│  飽食 [▮▮▮▮▮] 95/100    │  CON 16  [▮░░░░  8/40]          │
+│  心情 [▮▮░░░] 40/100    │  AGI 12  [▮▮░░░ 15/40]          │
+│                         │  WIL 10  [░░░░░  3/40]          │
+│  ◆ 裝備（6 槽）         │  LUK  8  [▮░░░░  5/40]          │
+│  主手  鐵劍             │                                 │
+│  副手  —                │  ◆ 派生屬性（10 項 bar）         │
+│  頭盔  皮帽             │  ATK 45  [▮▮▮░░]                │
+│  胸甲  鎖子甲           │  DEF 38  [▮▮░░░]                │
+│  護臂  —                │  ACC 78% ...                    │
+│  護腿  —                │  (10 項維持現狀)                 │
+│                         │                                 │
+│  ◆ 掛件（3 槽）         │  ◆ 當前狀態                     │
+│  同伴  —                │  🕊 信仰：光明教團               │
+│  牢房  —                │  🏛 派系：無                     │
+│  戶外  —                │  🌍 世界：戰亂期                 │
+│                         │                                 │
+│  ◆ 個人物品（6 格）     │  ◆ 特性                         │
+│  [  ][  ][  ]           │  ★寬厚 ★勤勉                    │
+│  [  ][  ][  ]           │  ▼失眠症                        │
+│                         │                                 │
+│  ◆ 資源                 │  ◆ 病痛                         │
+│  💰 金錢 120            │  ⚕失眠症（每 rest −3 體力）      │
+│  ✦ 技能點 3             │                                 │
+│                         │  ◆ 疤痕                         │
+│                         │  （尚無疤痕）                    │
+│                         │                                 │
+│                         │  ◆ 技能                         │
+│                         │  （沿用現有技能區）              │
+│                         │                                 │
+└─────────────────────────┴─────────────────────────────────┘
 ```
 
-**工時**：8~12 小時
+#### B.3 區塊清單與資料來源
+
+**左欄（7 個區塊）**
+
+| # | 區塊 | 資料來源 | 狀態 | 備註 |
+|---|------|---------|------|------|
+| L1 | 狀態條 | `Stats.player.{hp,stamina,food,mood}` | ✅ 已有 | 沿用現有 `.cs-vital-row` 結構，移到左欄頂部 |
+| L2 | 裝備 6 槽 | `Stats.player.equipped{Weapon,Offhand,Helmet,Chest,Arms,Legs}` | 🟡 資料已有、多部位物品缺 | 見「資料相依性」 |
+| L3 | 掛件 3 槽 | `Stats.player.pets.{companion,cell,outside}` | 🟡 資料已有、pet 系統缺 | Phase 3 E13 才會填內容，先顯示「—」 |
+| L4 | 個人物品 6 格 | `Stats.player.personalItems` | 🟡 資料已有、物品庫缺 | Phase 3 E11 D.3，先顯示空格 |
+| L5 | 資源 | `Stats.player.{money,sp}` | ✅ 已有 | 從現有「資源」區平移 |
+| L6 | 特性 | `Stats.player.traits` | ✅ 已有 | Phase 1-D 已實作，保留 |
+| L7 | 病痛 | `Stats.player.ailments` | ✅ 已有 | Phase 1-D 已實作，保留 |
+
+**右欄（7 個區塊）**
+
+| # | 區塊 | 資料來源 | 狀態 | 備註 |
+|---|------|---------|------|------|
+| R1 | 六維屬性 + EXP 條 | `Stats.eff()` + `Stats.player.exp[attr]` | 🟡 資料已有、EXP 條 UI 缺 | 每項六維屬性下方加 bar，`exp[attr] / next_level_cost` |
+| R2 | 派生屬性（10 項） | `Stats.calcDerived()` | ✅ 已有 | 沿用現有 `#cs-derived-list` |
+| R3 | 當前狀態 | `Stats.player.{religion,faction}` + `GameState.worldState` | 🟡 資料已有、系統缺 | Phase 2 S4 才會填值，先顯示「—」 |
+| R4 | 特性（移到右欄？） | `Stats.player.traits` | — | **設計決策 1**：特性放左還是右？ |
+| R5 | 疤痕 | `Stats.player.scars` | 🟡 資料已有、C.1 疤痕系統缺 | 先顯示「尚無疤痕」 |
+| R6 | 技能 | （既有邏輯） | ✅ 已有 | 從現有中欄最下方平移到右欄最下方 |
+
+**Header 列（新）**
+
+| 元素 | 資料來源 | 狀態 |
+|------|---------|------|
+| 立繪 | `Stats.player.portraitId` 或 origin 預設 | ⬜ 無欄位、無資產 |
+| 名字 | `Stats.player.name` | ✅ |
+| 背景 × 訓練所 | `player.origin` × `player.facility` | 🟡 欄位已有、系統缺（Phase 2 S1/S2） |
+| 第 N 天 | `player.day` | ✅ |
+| 季節/天氣 | `WeatherSystem` | ⬜ 系統不存在（Phase 3 E3） |
+| 世界狀態 | `GameState.worldState` | 🟡 欄位已有、系統缺（Phase 2 S4） |
+| 名聲條 | `player.fame` | ✅ 已有，位置不變 |
+
+#### B.4 資料相依性（什麼必須先做）
+
+**硬相依**（必須先做才能 B 開工）：
+- 無。所有資料欄位都已在 stats.js 預留，UI 可以「先顯示空狀態」。
+
+**軟相依**（B 完成後這些系統逐一接上即可）：
+1. **多部位裝備物品**（Phase 3 E10 / D.2）
+   - 需要 `TB_HELMETS`、`TB_ARMS`、`TB_LEGS` 資料表
+   - B 階段：槽位顯示「—」
+2. **EXP 升級曲線**（Phase 3 E14 / D.6）
+   - 需要 `expToLevel(attr)` 函式與每級成本
+   - B 階段：bar 顯示 `exp[attr] / 100`（暫用固定 100）
+3. **玩家背景/訓練所**（Phase 2 S1/S2）
+   - 需要 `ORIGINS` / `FACILITIES` 定義
+   - B 階段：Header 顯示「流浪者 × 無名訓練所」（fallback）
+4. **世界狀態**（Phase 2 S4）
+   - B 階段：Header + R3 都顯示「和平」（預設）
+5. **天氣系統**（Phase 3 E3）
+   - B 階段：Header 隱藏季節/天氣欄位
+6. **疤痕系統**（Phase 4 C1）
+   - B 階段：R5 顯示「尚無疤痕」
+
+**關鍵原則**：B 不等這些系統做完。**UI 先做，資料缺的地方顯示「—」或空狀態**。
+
+#### B.5 HTML 重構規劃
+
+**保留的現有結構**
+- `#modal-detail`、`#char-sheet`、`#cs-header`、`#cs-tabs`、`.cs-tab-content`
+- 左欄的 vital rows、traits list、ailments list
+- 右欄的 hex grid（六維）、derived list
+
+**要改的**
+- `#cs-body` 從 3 欄 (`.cs-col × 3`) 改為 2 欄 (`.cs-col × 2`)
+- 中欄（六維卡片）整塊搬到右欄頂部
+- 派生屬性從右欄頂部下移到六維屬性之下
+- 技能區從右欄最下方保持，但變成右欄最下區塊
+- 左欄：vital → 裝備 → 掛件 → 個人物品 → 資源 → 特性 → 病痛（垂直順序）
+- 右欄：六維+EXP → 派生 → 當前狀態 → 疤痕 → 技能
+
+**新增的 HTML 區塊**
+- `#cs-equip-slots`（6 槽容器，動態生成）
+- `#cs-pet-slots`（3 槽容器）
+- `#cs-items-grid`（6 格容器）
+- `#cs-state-list`（當前狀態區）
+- `#cs-scars-list`（疤痕區）
+- 六維卡片內加 `.cs-attr-exp-bar`
+
+**要移除的**
+- 中欄 `.cs-col-center`（整欄）
+
+#### B.6 JS 渲染函式拆解
+
+把現有 `renderDetailModal()` 大函式拆成小函式，每區塊一個：
+
+```js
+function renderDetailModal() {
+  _renderHeader();          // 立繪 + 名字 + origin×facility + 天氣 + 名聲
+  _renderVitals();          // HP/stamina/food/mood
+  _renderEquipment();       // 🆕 6 槽動態
+  _renderPets();            // 🆕 3 槽動態
+  _renderPersonalItems();   // 🆕 6 格
+  _renderResources();       // money/sp
+  _renderTraits();          // 現有
+  _renderAilments();        // 現有
+  _renderAffection();       // 現有（動態）
+  _renderAttributes();      // 六維 + 🆕 EXP 條
+  _renderDerived();         // 派生 10 項
+  _renderCurrentState();    // 🆕 信仰/派系/世界
+  _renderScars();           // 🆕 疤痕
+  _renderSkills();          // 現有
+}
+```
+
+這樣未來要改單一區塊不用動整個函式。
+
+#### B.7 設計決策待討論（實作前要決定）
+
+1. **特性顯示位置**：左欄（跟隨病痛）還是右欄（跟隨疤痕/狀態）？
+   - 左：跟病痛相鄰（都是「身體狀態」概念）
+   - 右：跟疤痕相鄰（都是「永久性標記」概念）
+2. **好感度列表要留在角色頁嗎？** 階段 A 留在角色頁左欄是為了可見性，但其實歸屬「所有人」tab。階段 B 是否把它搬走？
+3. **裝備 slot 點擊行為**：顯示 tooltip、還是彈裝備選單？（選單屬 Phase 3）
+4. **個人物品 6 格**：空格顯示「+ 加入」還是空框？未來 Phase 3 加入物品時如何處理超出 6 格的情況（背包/優先級）？
+5. **Header 立繪尺寸**：64px / 96px / 128px？尚無美術資產的 fallback 設計（CJK 字 / SVG 剪影 / origin 專屬圖）？
+6. **EXP 條計算**：在 D.6 做完前先用固定 `/100`，還是完全隱藏 EXP 條？
+7. **兩欄比例**：45/55、50/50 還是 40/60？現在三欄是 28/28/44，內容重分配後需要重新決定。
+
+#### B.8 實作步驟（建議順序）
+
+1. **B.1 骨架**（~1 hr）
+   - 拆 `renderDetailModal` 成多個小函式（先全部都呼叫現有 HTML，純重構）
+   - 目標：不改外觀，只拆函式，確認沒破壞既有功能
+2. **B.2 HTML 重構**（~2 hr）
+   - `#cs-body` 改兩欄、中欄內容搬到右欄、區塊順序調整
+   - 新增 5 個空容器（`#cs-equip-slots` 等）
+   - CSS 調整兩欄比例、間距
+3. **B.3 裝備動態化**（~1 hr）
+   - 寫 `_renderEquipment()` 遍歷 6 槽
+   - 空 slot 顯示「—」、有裝備顯示名字
+   - 順便清階段 A 裝備落差 ✅
+4. **B.4 新區塊空殼**（~1.5 hr）
+   - 掛件 / 個人物品 / 當前狀態 / 疤痕 的 `_render*()` 函式
+   - 全部先顯示空狀態（—、空格、「無」）
+5. **B.5 EXP 條**（~1 hr）
+   - 六維卡片加 bar，用 `exp[attr] / 100`
+6. **B.6 Header 擴充**（~1.5 hr）
+   - 立繪 placeholder（CJK 字）
+   - origin × facility 副標
+   - 季節/天氣/世界狀態 fallback 顯示
+7. **B.7 測試與調色**（~1 hr）
+   - 各種空狀態
+   - 各種滿裝狀態（手動塞資料測）
+   - 深色主題下的對比度
+
+**總計**：~9 hr（與原估 8~12 hr 吻合）
+
+#### B.9 完成驗收清單（2026-04-13 實作完成）
+
+驗收方式：開啟 game.html → 按角色頁按鈕（或 C 鍵）→ 逐條對照。
+
+**Header 列**
+- [ ] 左側立繪容器出現（80×80 深色框）
+- [ ] 立繪顯示姓名**前兩字**大字（例：輸入「卡西烏斯」→ 顯示「卡西」）
+- [ ] 姓名右側有「關係圖」按鈕（深色底 + 邊框）
+- [ ] 副標顯示 `[origin] · [facility] · 第 N 天 · [世界]`（origin/facility 預設「流浪者/無名訓練所」，世界預設「和平」）
+- [ ] 名聲值 + bar 位置不變（在右側）
+- [ ] 右上角 ✕ 關閉鈕
+
+**Tab bar**
+- [ ] 5 個 tab：角色 / **眾生**（原「所有人」）/ 成就 / 百科 / 任務
+- [ ] 預設停在「角色」tab
+- [ ] 點 tab 會切換內容
+- [ ] 點 **關係圖** 按鈕 → 直接跳到「眾生」tab
+
+**左欄（45%）— 7 個區塊，由上到下**
+
+- [ ] **L1 狀態**：HP/體力/飽食/心情 四條 bar（沿用既有樣式）
+- [ ] **L2 裝備 6 槽**：主手 / 副手 / 頭盔 / 胸甲 / 護臂 / 護腿
+  - [ ] 每個 slot 是可點擊按鈕
+  - [ ] 空 slot 顯示「—」（斜體、灰字）
+  - [ ] 有裝備的 slot 顯示物品名
+  - [ ] hover 會變色
+- [ ] **L3 護符 6 格**：3×2 空格網格（虛線邊框、顯示「空」字、淡灰）
+- [ ] **L4 寵物 3 槽**：同伴 / 牢房 / 戶外（全部顯示「—」，淡灰）
+- [ ] **L5 資源**：💰 金錢 / ✦ 技能點
+
+**右欄（55%）— 7 個區塊，由上到下**
+
+- [ ] **R0 Picker 面板**：預設隱藏、不佔空間
+- [ ] **R1 六維屬性**：6 張卡片 2×3 網格
+  - [ ] 每張卡片顯示：名稱（力量）/ 代號（STR）/ 數值（大字金色）
+  - [ ] 卡片右上有 **[+]** 按鈕（灰掉、tooltip「Phase 3 開放 SP 升級」）
+  - [ ] 卡片下方有 EXP 條（紫色漸層，右側小字 `N/100`）
+- [ ] **R2 派生屬性**：10 項 bar + 數字（ATK/DEF/ACC/PEN/BLK/SPD/CRT/CDMG/BpWr/EVA）
+- [ ] **R3 當前狀態**：三行（信仰/派系/世界），icon + 標籤 + 值
+  - [ ] 三行值都是「—」或「和平」（Phase 2 之前的 fallback）
+- [ ] **R4 特性**：跟 Phase 1-D 相同的金色/琥珀標籤
+  - [ ] 預設「尚無特性」
+- [ ] **R5 疤痕**：淡灰「尚無疤痕」
+- [ ] **R6 病痛**：跟 Phase 1-D 相同的暗紅脈動標籤
+  - [ ] 預設「無病痛」
+- [ ] **R7 技能**：沿用既有區（預設「尚未習得任何技能」）
+
+**裝備 Picker 互動**
+
+- [ ] 點「主手」slot → 右欄頂部彈出 picker
+- [ ] Picker 標題顯示「更換主手」
+- [ ] 列表頂部有「空手」選項（目前未裝備時會被標示「裝備中」）
+- [ ] 下方列出所有武器（weapons.js 中的）
+- [ ] 每個選項顯示名稱 + 斜體敘述
+- [ ] 當前裝備的那一項被高亮 + 標「裝備中」金字
+- [ ] 點任一個選項 → picker 不關、**六維/派生 bar 立即更新**
+- [ ] 再點同一個 slot 按鈕 → picker 收回
+- [ ] 點 picker 右上 ✕ → picker 收回
+- [ ] 切 tab → picker 自動收回
+- [ ] 關閉 modal 再開 → picker 回到隱藏狀態
+- [ ] 點「副手」→ 列表含盾牌 + 單手武器（雙持選項）
+- [ ] 點「胸甲」→ 列表含所有非盾牌防具
+- [ ] 點「頭盔/護臂/護腿」→ 顯示「目前沒有可用於此槽的裝備（Phase 3 加入多部位裝備後可選擇）」
+
+**雙持/雙手武器邏輯**
+- [ ] 主手換成雙手武器（例：greatsword）→ 副手自動清空（顯示「—」）
+- [ ] 主手是雙手武器時，點副手選單能列出，但選了不會生效（被 rollback）
+
+**眾生 Tab 內容**
+
+- [ ] 頂部標題「眾生」（金色大字）
+- [ ] 副標「你已與 N 人建立連結」
+- [ ] 卡片網格呈現（每張卡片：立繪 fallback + 姓名 + 等級文字 + bar）
+- [ ] 等級文字：忠誠/崇敬/友好/認識/中立/不悅/厭惡/憎恨/不共戴天 擇一
+- [ ] 正向關係 → 紫色 bar
+- [ ] 負向關係 → 紅色 bar + 紅色邊框（hover 會加深）
+- [ ] 點 tab 或關係圖按鈕開啟時，列表有重新 render
+- [ ] 完全沒有連結時顯示「尚未與任何人建立連結。訓練場的每一次互動都可能改變命運。」
+
+**資料即時反應**
+- [ ] 換武器後**左欄**不變、**右欄** ATK/PEN/SPD 等派生屬性立即更新
+- [ ] 換防具後 DEF/SPD/EVA 立即更新
+- [ ] 主 UI（角色頁外面的屬性條）也同步更新（`Stats.renderAll()` 呼叫驗證）
+
+**與階段 A 既有功能共存**
+- [ ] Tab 切換仍然正常（切到空殼頁也行）
+- [ ] 名聲條、HP 條、特性、病痛與 Phase 1-D 行為一致
+- [ ] 存檔讀檔後裝備狀態能正確顯示
+
+---
+
+### 階段 B 規格結束
 
 ### 階段 C：其他分頁實作
 
@@ -2825,114 +3309,14 @@ injuryChance = 8%（基礎）
 
 ---
 
-## D.10 最終整合優先度（取代 Part C 檢查清單）
+## D.10 最終整合優先度（⚠️ 已廢棄 — 請見文件頂部「📊 實作進度總表」）
 
-> **這是實作時的最新依據。**
-> Part C 的檢查清單已被取代，改以此表為準。
-
-### Phase 0：基礎設施修復（🔴 必須最優先）
-
-> 不做這層，後面 90% 的系統都要重做。
-
-- ⬜ **D.1.1** Flags 模組（flags.js）
-- ⬜ **D.1.2** 好感度系統整合（廢除 Stats.player.affection）
-- ⬜ **D.1.3** modAttr 下限改為 1（允許負值修正）
-- ⬜ **D.1.4** 存檔 schema v5（預留所有未來欄位）
-- ⬜ **D.1.5** NPC 結構重構（ELITE_DEFS + 完整欄位）
-- ⬜ **D.1.6** 金錢系統（Stats.player.money + modMoney）
-- ⬜ **D.1.7** 設定頁面容器（擴展 settings + UI）
-- ⬜ **D.1.8** 存檔槽管理（3~5 槽）
-- ⬜ **D.1.9** EffectDispatcher（統一效果處理）
-- ⬜ **D.1.10** TIMELINE_EVENTS 條件化
-- ⬜ **D.1.11** DayCycle 每日結算鉤子
-- ⬜ **D.1.12** GameState 全局狀態模組
-- ⬜ **D.1.13** SoundManager 空殼 + 關鍵呼叫點
-- ⬜ **D.1.14** i18n 文字外部化（鋪路）
-- ⬜ **D.1.15** 人物介面階段 A（動態化 + tab 骨架）
-
-**Phase 0 總工時：約 30~40 小時**
-
----
-
-### Phase 1：🟥 底層框架（Part C）
-
-- ⬜ **F1** Flag 管理器（已在 D.1.1 完成）
-- ⬜ **F2** NPC 工廠範本（已在 D.1.5 完成）
-- ⬜ **F3** 故事事件卡片系統（資料驅動）
-- ⬜ **F4** 任務系統（QUEST_DEFS）
-- ⬜ **F5** 存檔 schema 擴展（已在 D.1.4 完成）
-
----
-
-### Phase 2：🟧 核心系統（Part C）
-
-- ⬜ **S1** 玩家背景系統（4 種 origins）
-- ⬜ **S2** 訓練所系統（3 種 facilities）
-- ⬜ **S3** NPC 原型與成長
-- ⬜ **S4** 世界狀態系統（6 種）
-- ⬜ **S5** 結局判定器
-- ⬜ **S6** 多維度命運抽取 UI
-
----
-
-### Phase 3：🟨 擴展系統（Part C + D）
-
-- ⬜ **E1** 職業 NPC 系統（醫生/鐵匠/廚娘等）
-- ⬜ **E2** 等級 × 隱藏天賦
-- ⬜ **E3** 天氣與季節系統
-- ⬜ **E4** 生病系統 + 醫生 NPC
-- ⬜ **E5** 關係/羈絆系統
-- ⬜ **E6** 訓練協同加成
-- ⬜ **E7** 派系系統
-- ⬜ **E8** 宗教信仰系統（6 個神）
-- ⬜ **E9** 裝備深度（品質等級 + 取得管道）
-- ⬜ **E10** **多部位裝備系統（D.2）**
-- ⬜ **E11** **個人物品 + 訓練所武器庫（D.3）**
-- ⬜ **E12** **仇恨系統擴展（D.4）**
-- ⬜ **E13** **寵物系統（D.5）**
-- ⬜ **E14** **經驗值/SP/Tier 特性系統（D.6）**
-- ⬜ **E15** **人物介面階段 B + NPC 百科階段 C（D.7）**
-- ⬜ **E16** **音效內容（D.8，內容層）**
-
----
-
-### Phase 4：🟩 內容系統（Part C + D）
-
-- ⬜ **C1** 疤痕系統（需 D.2 多部位完成）
-- ⬜ **C2** 夢境系統
-- ⬜ **C3** 謠言與情報系統
-- ⬜ **C4** 婚姻/伴侶系統
-- ⬜ **C5** 酒/藥物 Vice 系統
-- ⬜ **C6** 寫信系統
-- ⬜ **C7** 戰爭徵召事件
-- ⬜ **C8** 暗殺系統（含 Nemesis 記憶，需 D.4 仇恨完成）
-- ⬜ **C9** 3v3 團戰
-- ⬜ **C10** **教學系統（D.9.1）**
-- ⬜ **C11** **死亡/結局畫面設計（D.9.2）**
-- ⬜ **C12** **統計頁面/玩家檔案（D.9.3）**
-- ⬜ **C13** **Meta-progression 跨局解鎖（D.9.4）**
-- ⬜ **C14** **戰鬥手感 Juice（D.9.5）**
-- ⬜ **C15** **輔助功能（D.9.6）**
-- ⬜ **C16** **日曆/特殊日子（D.9.7）**
-
----
-
-### Phase 5：🎨 美術資產
-
-- ⬜ **A1** NPC/場地/事件/物品預留圖片欄位（Phase 0~1 期間已完成）
-- ⬜ **A2** AI 生成占位圖驗證風格
-- ⬜ **A3** 關鍵 NPC 立繪委託（5 人試水）
-- ⬜ **A4** 完整美術包（20 菁英 + 10 場地 + 20 CG）
-
----
-
-### Phase 6：📱 手機適配
-
-- ⬜ **M1** UI 面板容器化（Phase 0~1 已埋基礎）
-- ⬜ **M2** Responsive CSS
-- ⬜ **M3** 觸控友善
-- ⬜ **M4** PWA 設定
-- ⬜ **M5** Capacitor 封裝（商業化階段）
+> **此章節的 Phase 0~6 勾選清單已全部作廢。**
+> 真正的進度追蹤位於本文件最上方的「📊 實作進度總表」——
+> 那裡有每個項目的狀態、commit hash、主要檔案，且會持續維護。
+>
+> 本節標題保留，純粹因為部分章節仍以「D.10 Phase X」的編號互相引用。
+> 下次重構時可一併清理。
 
 ---
 
@@ -5208,6 +5592,233 @@ priority 6:          風味環境事件（天氣、季節）
 - [x] `DayCycle.onDayStart('checkMasterErrand', priority 35)` — 每 7 天派一次
 - [x] money effect 透過既有 `Effects.apply({ type:'money', delta })` 處理
 - [x] 第 4 天後開始，偏移避開第 1 天
+
+#### ✅ Phase 1-J：場地系統極簡化（2026-04-13）
+遊戲主畫面只保留訓練場這一個場景，玩家不再能主動切換場地。
+
+**動機**
+- 奴隸沒有「要去哪裡」的自由，所有 NPC 互動應由事件觸發，不由玩家主動發起。
+- 房間品質、廚房、鍛造坊、長官房、主人房、市集、出城全部由事件敘事或背景描寫處理。
+- 場景切換 UI 是玩家主動性的殘留，與 Phase 1 整體哲學衝突。
+
+**fields.js 變更**
+- 刪除：`dirtyCell / basicRoom / luxuryRoom / oldTraining / officerRoom / forge / kitchen / masterRoom / market / cityExit`
+- 保留：`stdTraining`（訓練場，唯一場景）
+- 刪除：`FIELD_SLOTS` 陣列、`getSlotField()` 函式
+- `stdTraining.characters` 擴充納入所有重要 NPC（cassius/ursa/dagiSlave/oldSlave/overseer/blacksmithGra/melaKook/masterServant），
+  讓玩家能看到「誰今天在場」，供後續事件系統判斷（切磋邀請、派遣、傳喚）。
+
+**main.js 變更**
+- 刪除：`renderSceneButtons()` dead code。
+- `currentFieldId` 永遠鎖定為 `FIXED_FIELD = 'stdTraining'`，`switchField()` 已為 no-op（Phase 1 前期完成）。
+
+**npc.js 變更**
+- `overseer.schedule` 移除 `oldTraining` 引用。
+- `melaKook.schedule` 整段移除（廚房已不存在，改為事件觸發）。
+
+**game.html 變更**
+- 移除 `#location-tabs` 容器與 `.sbtn` / `.loc-tab` 相關 CSS。
+
+**後續方向**
+- 訓練場背景圖未來可依訓練所「升級」換圖（破訓練場 → 標準 → 高級）。
+- 房間品質描寫已在休息/強制過夜事件中依名聲閾值（≥60 豪華 / ≥20 簡單 / 否則骯髒）呈現。
+
+#### ⬜ Phase 1-E.2 / E.11：ChoiceModal UI 系統（待實作）
+
+**狀態：設計已定案，尚未實作（2026-04-13 討論）**
+
+通用的「玩家需要做決定」modal 元件，一次解鎖 Phase 1-E.2 的 `hunger_critical` 三選一事件，
+同時為未來的對話分支、傳喚選項、道德抉擇鋪路。
+
+##### 目標與適用範圍
+- 單一通用元件，處理「事件需要玩家做決定」的場景
+- **首要使用者**：Phase 1-E.2 `hunger_critical` 三選一（忍著 / 乞討 / 偷竊）
+- **未來重用**：主人贈禮收/拒、長官任務接/拒、分支對話、道德抉擇
+- **不處理**：純資訊對話框（用現有 log 即可）、確認刪檔（用原生 `confirm`）
+
+##### 事件資料結構（events.js 新增 `type: 'choice'`）
+
+```js
+{
+  id: 'hunger_critical',
+  type: 'choice',                  // 🆕 新類型
+  title: '飢餓難耐',
+  body:  '你已經兩天沒好好吃東西，胃在抗議。再這樣下去會撐不住訓練。',
+  npcPortrait: null,               // 可選：左側立繪（未來資產系統）
+  mood: 'dark',                    // 可選：'dark' | 'neutral' | 'warm'（調色）
+  forced: true,                    // true = 禁止關閉，必須選一個
+  choices: [
+    {
+      id: 'endure',
+      label: '忍著',
+      hint: '什麼都不做，繼續熬',     // 可選：按鈕下方小字提示
+      disabled: false,               // 可選：條件不足時灰掉（+ hint 說明原因）
+      effects: [
+        { type: 'vital', key: 'mood', delta: -10 },
+        { type: 'vital', key: 'stamina', delta: -5 },
+      ],
+      resultLog: '你咬牙忍住。胃的抗議漸漸變成麻木。',
+    },
+    {
+      id: 'beg',
+      label: '乞討',
+      hint: '放下尊嚴向人伸手',
+      rolls: [                       // 加權隨機結果（與 effects 擇一）
+        { weight: 40, effects: [{type:'vital',key:'food',delta:25}],   log: '一個老婦人遞給你一塊麵包。' },
+        { weight: 40, effects: [{type:'vital',key:'mood',delta:-15}],  log: '路人啐了你一口，走開了。' },
+        { weight: 20, effects: [{type:'vital',key:'mood',delta:-20},{type:'fame',delta:-2}], log: '衛兵把你踢開，圍觀的人笑了。' },
+      ],
+    },
+    {
+      id: 'steal',
+      label: '偷竊',
+      hint: '風險高，但能吃飽',
+      rolls: [
+        { weight: 60, effects: [{type:'vital',key:'food',delta:40}],  log: '你得手了。' },
+        { weight: 40, effects: [{type:'vital',key:'mood',delta:-10}], log: '被抓。一頓毒打。', onAilment: 'arm' },
+      ],
+    },
+  ],
+  onClose: null,                     // 可選：modal 關閉後的回呼
+}
+```
+
+**要點**
+- `effects` 是確定性結果、`rolls` 是加權隨機結果，兩者擇一不並存
+- 走既有 `Effects.apply()`，不新寫效果管線
+- `disabled` 支援未來擴展（好感不足、缺技能等）
+- `forced: true` → 沒有 ✕ 關閉鈕、按 ESC 無效、點背景無效
+
+##### UI 結構（加入 game.html）
+
+```html
+<div class="modal-overlay" id="modal-choice">
+  <div class="modal-box choice-modal-box">
+    <div class="modal-header">
+      <span class="modal-title" id="choice-title">—</span>
+      <!-- 非強制模式才出現 ✕ -->
+    </div>
+    <div class="modal-body">
+      <div class="choice-portrait" id="choice-portrait"></div>  <!-- 可選立繪 -->
+      <div class="choice-body" id="choice-body">—</div>         <!-- 敘事 -->
+    </div>
+    <div class="choice-buttons" id="choice-buttons">
+      <!-- 動態生成 <button class="choice-btn">label + hint</button> -->
+    </div>
+  </div>
+</div>
+```
+
+**視覺規則**
+- 套用現有 `.modal-overlay / .modal-box` 樣式（設定頁已用），無需重造
+- 按鈕垂直排列、寬度填滿、`hint` 以小字 text-dim 顯示在 label 下方
+- `mood` 欄位控制 modal 外框色調（dark=血紅、neutral=灰、warm=金）
+
+##### JavaScript API（main.js 內 IIFE）
+
+```js
+const ChoiceModal = (() => {
+  let _activeEvent = null;
+
+  function show(ev) {
+    _activeEvent = ev;
+    _render(ev);
+    document.getElementById('modal-choice').classList.add('open');
+    GameState.setPaused(true);      // 選擇時暫停時間推進
+  }
+
+  function _render(ev) { /* 填 title/body/buttons */ }
+
+  function _onChoose(choice) {
+    // 1. 解析 effects（直接）或 rolls（加權隨機）
+    const resolved = choice.rolls ? _rollWeighted(choice.rolls) : choice;
+    // 2. 套效果
+    if (resolved.effects) {
+      Effects.apply(resolved.effects, { source: 'choice:'+_activeEvent.id+':'+choice.id });
+    }
+    // 3. 輸出敘事
+    const log = resolved.log || resolved.resultLog;
+    if (log) Log.write(log);
+    // 4. onAilment 等擴展鉤子處理
+    if (resolved.onAilment) Stats.addAilment(resolved.onAilment);
+    // 5. 關閉
+    _close();
+  }
+
+  function _close() {
+    document.getElementById('modal-choice').classList.remove('open');
+    GameState.setPaused(false);
+    const cb = _activeEvent?.onClose;
+    _activeEvent = null;
+    if (cb) cb();
+  }
+
+  function _rollWeighted(rolls) {
+    const total = rolls.reduce((s, r) => s + r.weight, 0);
+    let n = Math.random() * total;
+    for (const r of rolls) { n -= r.weight; if (n <= 0) return r; }
+    return rolls[rolls.length - 1];
+  }
+
+  return { show };
+})();
+```
+
+##### 與既有事件系統整合
+
+`events.js` 的 `applyEvent(ev)` 分流：
+```js
+function applyEvent(ev) {
+  if (ev.type === 'choice') {
+    ChoiceModal.show(ev);          // 交給 modal，不立即套效果
+    return;
+  }
+  // 原有邏輯
+  Effects.apply(ev.effects, ...);
+}
+```
+
+觸發端範例（`_checkHungerCritical()` in main.js）：
+```js
+if (p.food <= 14) {
+  Events.applyEvent(Events.EVENT_POOL.hunger_critical);
+  return 'blocked';   // 時段不推進，等玩家選完
+}
+```
+
+##### 時間/流程阻塞（關鍵設計）
+
+**問題**：用餐事件是在 `_resolveNonTrainingSlots()` 的 loop 裡強制觸發的。
+跳 modal 後 loop 必須暫停，否則時段會直接推進過去。
+
+**解法**：引入 `GameState.paused` 標記
+- `ChoiceModal.show` 時設 `GameState.setPaused(true)`
+- `_resolveNonTrainingSlots` 每次推進前檢查 paused，為 true 則 `return`（中斷 loop）
+- modal 關閉時 paused=false，由玩家下一次動作（或 sleep 按鈕）重新進入 loop
+
+**為什麼不用 async/Promise**：改動過大，要把整條 action pipeline 改成非同步。
+pause flag 方案改動最小、最易驗證。
+
+##### 待討論的設計決策（標記 TODO）
+
+1. **roll 結果顯示動畫**：玩家看到「試圖偷竊…被抓！」動畫，還是直接顯示結果？
+2. **多階段對話**：是否支援 `choice.nextEvent: 'eventId'`（選完一個自動彈下一個）？
+3. **`GameState.paused` 是否已存在**：若沒有，要新增此 flag + `setPaused/isPaused` API
+4. **modal 關閉動畫**：display:none 還是淡出？
+
+##### 實作步驟
+
+1. 檢查並補上 `GameState.paused` flag（如尚未存在）
+2. 加入 `#modal-choice` HTML 結構與 `.choice-*` CSS（~30 行）
+3. 實作 `ChoiceModal` IIFE 於 main.js
+4. `events.js` `applyEvent` 加入 `type: 'choice'` 分流
+5. 定義 `hunger_critical` 事件於 events.js
+6. 實作 `_checkHungerCritical()` 於 main.js，掛到 `_resolveNonTrainingSlots` loop
+7. 在 `_resolveNonTrainingSlots` 加 paused 檢查
+8. 測試：食物 ≤ 14 時跳 modal → 三個選項各走一次 → 確認效果與 log 正確
+9. 回頭把 Phase 1-G 的傳喚事件（master_gift / officer_mission）升級成 choice 版
+
+**預估工時**：~4~5 小時（含測試）
 
 ### 總工時估計
 

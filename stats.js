@@ -104,6 +104,8 @@ const Stats = (() => {
     // ── Achievements & Traits ──
     achievements: [],      // 已解鎖成就 ID 陣列
     traits:       [],      // 已激活特性 ID 陣列（positive/negative）
+    // 🆕 D.6 v2: 已習得技能 ID 陣列（含被動與主動，被動自動生效）
+    learnedSkills: [],
     ailments:     [],      // 🆕 Phase 1-D: 當前病痛 ID 陣列（見 Config.AILMENT_DEFS）
     title:        null,    // 額外稱號（字串 or null）
     fameBase:     0,       // 每場競技場獲勝的額外固定名聲
@@ -139,17 +141,25 @@ const Stats = (() => {
     const offW = isDualWield    ? TB_WEAPONS[offId] : null;
 
     const eb = player.eqBonus, bb = player.buffBonus;
+    // 🆕 D.6 v2：被動技能加成（動態從 learnedSkills 計算）
+    const sk = {
+      ATK:  _getSkillBonus('ATK'),  DEF:  _getSkillBonus('DEF'),
+      ACC:  _getSkillBonus('ACC'),  CRT:  _getSkillBonus('CRT'),
+      CDMG: _getSkillBonus('CDMG'), PEN:  _getSkillBonus('PEN'),
+      BLK:  _getSkillBonus('BLK'),  BpWr: _getSkillBonus('BpWr'),
+      EVA:  _getSkillBonus('EVA'),  SPD:  _getSkillBonus('SPD'),
+    };
 
-    let ATK  = Math.round(1.5*S  + 0.5*D  + w.ATK            + (eb.ATK ||0) + (bb.ATK ||0));
-    let DEF  = Math.round(1.5*C  + 0.5*S  + ar.DEF + sh.DEF  + (eb.DEF ||0) + (bb.DEF ||0));
-    let ACC  = Math.min(100, Math.round(60 + 0.5*D + 0.25*L + (w.ACC||0)  + (eb.ACC ||0) + (bb.ACC ||0)));
-    let CRT  = Math.min(75,  Math.round(0.25*D + 0.5*L + w.CRT            + (eb.CRT ||0) + (bb.CRT ||0)));
-    let CDMG = Math.min(300, Math.round(150 + 0.5*D + 0.25*L + 0.5*W + (w.CDMG||0) + (eb.CDMG||0) + (bb.CDMG||0)));
-    let PEN  = Math.min(75,  Math.round(0.5*D + 0.5*S + w.PEN  + (eb.PEN||0) + (bb.PEN||0)));
-    let BLK  = Math.min(75,  Math.round(0.5*C + sh.BLK         + (eb.BLK ||0) + (bb.BLK ||0)));
-    let BpWr = Math.min(85,  Math.round(0.5*S + sh.BLK * 1.5   + (eb.BpWr||0) + (bb.BpWr||0)));
-    let EVA  = Math.min(95,  Math.round(2*A   + 0.5*L + ar.EVA  + (eb.EVA ||0) + (bb.EVA ||0)));
-    let SPD  = Math.round(0.75*A + 0.25*D + w.SPD + ar.SPD      + (eb.SPD ||0) + (bb.SPD ||0));
+    let ATK  = Math.round(1.5*S  + 0.5*D  + w.ATK            + (eb.ATK ||0) + (bb.ATK ||0) + sk.ATK);
+    let DEF  = Math.round(1.5*C  + 0.5*S  + ar.DEF + sh.DEF  + (eb.DEF ||0) + (bb.DEF ||0) + sk.DEF);
+    let ACC  = Math.min(100, Math.round(60 + 0.5*D + 0.25*L + (w.ACC||0)  + (eb.ACC ||0) + (bb.ACC ||0) + sk.ACC));
+    let CRT  = Math.min(75,  Math.round(0.25*D + 0.5*L + w.CRT            + (eb.CRT ||0) + (bb.CRT ||0) + sk.CRT));
+    let CDMG = Math.min(300, Math.round(150 + 0.5*D + 0.25*L + 0.5*W + (w.CDMG||0) + (eb.CDMG||0) + (bb.CDMG||0) + sk.CDMG));
+    let PEN  = Math.min(75,  Math.round(0.5*D + 0.5*S + w.PEN  + (eb.PEN||0) + (bb.PEN||0) + sk.PEN));
+    let BLK  = Math.min(75,  Math.round(0.5*C + sh.BLK         + (eb.BLK ||0) + (bb.BLK ||0) + sk.BLK));
+    let BpWr = Math.min(85,  Math.round(0.5*S + sh.BLK * 1.5   + (eb.BpWr||0) + (bb.BpWr||0) + sk.BpWr));
+    let EVA  = Math.min(95,  Math.round(2*A   + 0.5*L + ar.EVA  + (eb.EVA ||0) + (bb.EVA ||0) + sk.EVA));
+    let SPD  = Math.round(0.75*A + 0.25*D + w.SPD + ar.SPD      + (eb.SPD ||0) + (bb.SPD ||0) + sk.SPD);
 
     // ── 雙持修正 ──────────────────────────────────────────
     if (isDualWield && offW) {
@@ -273,10 +283,22 @@ const Stats = (() => {
    */
   function modAttr(key, delta) {
     if (player[key] !== undefined) {
-      player[key] = Math.max(1, player[key] + delta);
+      // 🆕 D.6: 強制整數化（防止舊 0.5 delta 累積產生小數）
+      player[key] = Math.max(1, Math.round(player[key] + delta));
       renderAttributes();
       renderDerivedStats();
     }
+  }
+
+  /**
+   * 🆕 D.6: 強制將六維屬性整數化（讀檔後呼叫一次，清除舊 0.5 delta 留下的小數）。
+   */
+  function sanitizeAttrsToInt() {
+    ['STR','DEX','CON','AGI','WIL','LUK'].forEach(k => {
+      if (typeof player[k] === 'number') {
+        player[k] = Math.max(1, Math.round(player[k]));
+      }
+    });
   }
 
   // ── 🆕 金錢系統（D.1.6） ─────────────────────
@@ -302,23 +324,158 @@ const Stats = (() => {
     if (csEl) csEl.textContent = val;
   }
 
-  // ── 🆕 經驗值系統（D.6） ──────────────────────
+  // ── 🆕 經驗值系統（D.6 Phase 3 實作） ──────────────
   /**
-   * 累加屬性 EXP，自動升級（若達門檻）。
-   * 目前只累加不升級，D.6 實作時補上升級邏輯。
+   * 升級至下一級所需的 EXP。
+   * 公式（DESIGN.md D.6）：ceil(10 * 1.15^(level - 10))
+   *   STR 10→11: 10
+   *   STR 15→16: 20
+   *   STR 20→21: 40
+   *   STR 25→26: 81
+   *   STR 30→31: 163
+   * @param {number} level 當前屬性等級
+   * @returns {number} 所需 EXP 點數
+   */
+  function expToNext(level) {
+    if (level < 10) level = 10;   // 底線
+    return Math.ceil(10 * Math.pow(1.15, level - 10));
+  }
+
+  /**
+   * 累加屬性 EXP（純累加，不自動升級）。
+   * 🆕 D.6 v2：改為 EXP 單一資源模型——訓練只累積 EXP，升級與購買技能都由玩家
+   *            手動花 EXP。EXP 不會自動轉成屬性。
    * @param {string} attr STR/DEX/CON/AGI/WIL/LUK
-   * @param {number} delta
+   * @param {number} delta 要累加的 EXP
    */
   function modExp(attr, delta) {
     if (!player.exp || player.exp[attr] === undefined) return;
     player.exp[attr] = Math.max(0, player.exp[attr] + delta);
-    // D.6 實作時：檢查是否達到 expToNext 門檻 → 自動升級屬性 + 發 SP
   }
 
-  // ── 🆕 技能點（D.6） ──────────────────────────
+  /**
+   * 🆕 D.6 v2：花費屬性 EXP 升級屬性。
+   * 成本 = expToNext(current_level)。
+   * 若 EXP 不足則回傳 false。
+   * @param {string} attr STR/DEX/CON/AGI/WIL/LUK
+   * @returns {boolean} 是否升級成功
+   */
+  function spendExpOnAttr(attr) {
+    if (!player.exp || player.exp[attr] === undefined) return false;
+    const cur  = player[attr] || 10;
+    const cost = expToNext(cur);
+    if ((player.exp[attr] || 0) < cost) return false;
+    player.exp[attr] -= cost;
+    player[attr]      = cur + 1;
+    return true;
+  }
+
+  // ══════════════════════════════════════════════════
+  // 🆕 D.6 v2：技能購買系統
+  // ══════════════════════════════════════════════════
+
+  /** 玩家是否已習得此技能 */
+  function hasSkill(skillId) {
+    return Array.isArray(player.learnedSkills) && player.learnedSkills.includes(skillId);
+  }
+
+  /**
+   * 計算技能的實際 EXP 成本（含屬性門檻差額）。
+   * 若玩家屬性低於 unlockReq，將升級差額 EXP 疊加到對應屬性的成本中。
+   * @param {string} skillId
+   * @returns {object|null} { STR:100, CON:50, ... } 或 null（找不到技能）
+   */
+  function getSkillCost(skillId) {
+    const s = (typeof Skills !== 'undefined') ? Skills[skillId] : null;
+    if (!s) return null;
+    const baseCosts = s.expCosts || {};
+    const req       = s.unlockReq || {};
+    const result    = {};
+    // 先複製基礎成本
+    Object.keys(baseCosts).forEach(k => { result[k] = baseCosts[k]; });
+    // 為每個屬性門檻疊加差額
+    Object.entries(req).forEach(([attr, minLvl]) => {
+      if (attr === 'fame') return;  // 名聲不納入 EXP 補差
+      const cur = player[attr] || 10;
+      if (cur < minLvl) {
+        let catchUp = 0;
+        for (let l = cur; l < minLvl; l++) catchUp += expToNext(l);
+        result[attr] = (result[attr] || 0) + catchUp;
+      }
+    });
+    return result;
+  }
+
+  /**
+   * 檢查玩家是否能習得技能（包含 EXP 足夠、名聲門檻、尚未習得）。
+   * @returns {{ok: boolean, reason?: string}}
+   */
+  function canLearnSkill(skillId) {
+    const s = (typeof Skills !== 'undefined') ? Skills[skillId] : null;
+    if (!s) return { ok: false, reason: '技能不存在' };
+    if (hasSkill(skillId)) return { ok: false, reason: '已習得' };
+    const req = s.unlockReq || {};
+    if (req.fame && player.fame < req.fame) {
+      return { ok: false, reason: `需名聲 ${req.fame}（現 ${player.fame}）` };
+    }
+    const costs = getSkillCost(skillId);
+    for (const [attr, cost] of Object.entries(costs)) {
+      const have = player.exp?.[attr] || 0;
+      if (have < cost) {
+        return { ok: false, reason: `${attr} EXP 不足（需 ${cost}，有 ${have}）` };
+      }
+    }
+    return { ok: true };
+  }
+
+  /**
+   * 習得技能：扣除 EXP、若屬性低於門檻則同步升到門檻、加入 learnedSkills。
+   * @returns {boolean}
+   */
+  function learnSkill(skillId) {
+    const check = canLearnSkill(skillId);
+    if (!check.ok) return false;
+    const s = Skills[skillId];
+    const req = s.unlockReq || {};
+    const costs = getSkillCost(skillId);
+    // 扣 EXP
+    Object.entries(costs).forEach(([attr, cost]) => {
+      player.exp[attr] = Math.max(0, (player.exp[attr] || 0) - cost);
+    });
+    // 補升屬性到門檻
+    Object.entries(req).forEach(([attr, minLvl]) => {
+      if (attr === 'fame') return;
+      if ((player[attr] || 10) < minLvl) player[attr] = minLvl;
+    });
+    if (!Array.isArray(player.learnedSkills)) player.learnedSkills = [];
+    player.learnedSkills.push(skillId);
+    // 被動技能生效靠 calcDerived 動態計算，不用額外 state
+    renderAttributes();
+    renderDerivedStats();
+    return true;
+  }
+
+  /**
+   * 取得所有已習得被動技能的特定派生屬性加總。
+   * 在 calcDerived 中被呼叫，將被動加成融入六維/派生。
+   */
+  function _getSkillBonus(key) {
+    if (!Array.isArray(player.learnedSkills)) return 0;
+    let sum = 0;
+    player.learnedSkills.forEach(id => {
+      const s = (typeof Skills !== 'undefined') ? Skills[id] : null;
+      if (s && s.passiveBonus && typeof s.passiveBonus[key] === 'number') {
+        sum += s.passiveBonus[key];
+      }
+    });
+    return sum;
+  }
+
+  // ── 🆕 技能點（D.6 legacy） ───────────────────
+  // 保留 modSp 做向下相容（舊事件/效果可能仍在用），但 UI 已不再顯示 SP。
   function modSp(delta) {
-    player.sp = Math.max(0, player.sp + delta);
-    if (delta > 0) player.spEarned += delta;
+    player.sp = Math.max(0, (player.sp || 0) + delta);
+    if (delta > 0) player.spEarned = (player.spEarned || 0) + delta;
   }
 
   // ── 🆕 Phase 1-C: 狀態等級查詢 ──────────────────
@@ -390,9 +547,17 @@ const Stats = (() => {
     modVital,
     modFame,
     modAttr,
-    modMoney,   // 🆕 D.1.6
-    modExp,     // 🆕 D.6 預留
-    modSp,      // 🆕 D.6 預留
+    modMoney,      // 🆕 D.1.6
+    modExp,        // 🆕 D.6
+    modSp,         // 🆕 D.6
+    expToNext,          // 🆕 D.6 升級曲線查詢
+    spendExpOnAttr,     // 🆕 D.6 v2 花 EXP 升屬性
+    sanitizeAttrsToInt, // 🆕 D.6 舊存檔小數整數化
+    // 🆕 D.6 v2: 技能購買
+    hasSkill,
+    getSkillCost,
+    canLearnSkill,
+    learnSkill,
     // 🆕 Phase 1-C 狀態等級查詢
     getVitalTier,
     isVitalAtOrBelow,

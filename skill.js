@@ -1,6 +1,13 @@
 /**
  * skill.js — Active and passive skill definitions
  * Skills are unlocked through training, story events, or NPC interactions.
+ *
+ * 🆕 D.6 v2：被動技能透過屬性 EXP 購買（見 Stats.learnSkill）。
+ *   - expCosts: { [attr]: cost }  — 基礎成本（可多屬性）
+ *   - unlockReq: { [attr]: level } — 若玩家屬性低於門檻，自動把差額 EXP 疊加到成本上
+ *                                    且購買成功時把該屬性升到門檻
+ *   - unlockReq.fame               — 名聲門檻為硬卡，無法用 EXP 補
+ *   - 主動技能目前資料保留，等戰鬥系統掛鉤後啟用
  */
 const Skills = {
   // ── Passive skills ──────────────────────────────────
@@ -9,6 +16,7 @@ const Skills = {
     type: 'passive',
     desc: '長年受創讓你的皮膚變得更厚實。永久 +5 DEF。',
     unlockReq: { CON: 15 },
+    expCosts:  { CON: 200 },
     passiveBonus: { DEF: 5 },
   },
   quickStep: {
@@ -16,6 +24,7 @@ const Skills = {
     type: 'passive',
     desc: '腳步比常人更輕盈，難以捕捉。永久 +8 EVA。',
     unlockReq: { AGI: 15 },
+    expCosts:  { AGI: 200 },
     passiveBonus: { EVA: 8 },
   },
   bloodlust: {
