@@ -707,6 +707,9 @@ const Game = (() => {
     }
 
     // ── 失眠症觸發 / 解除 ─────────────────────────
+    // 防禦性：確保 ailments 是陣列（舊存檔可能沒有此欄位）
+    if (!Array.isArray(p.ailments)) p.ailments = [];
+
     if (p.insomniaStreak >= 2 && !p.ailments.includes('insomnia_disorder')) {
       p.ailments.push('insomnia_disorder');
       addLog('⚕ 連續兩夜無法充分休息——你感覺到某種根深蒂固的疲憊在蔓延。【失眠症】發作。', '#ff6868', true);
@@ -2028,6 +2031,8 @@ const Game = (() => {
         // 其他
         affection:{ master:0, officer:0, blacksmith:0, cook:0 },
         achievements:[], traits:[], title:null, fameBase:0,
+        // 🆕 Phase 1-D 病痛/睡眠追蹤
+        ailments:[], insomniaStreak:0, normalSleepStreak:0,
         staminaPenalty:{ STR:0, DEX:0, CON:0, AGI:0, WIL:0, LUK:0 },
         combatStats:{
           executionCount:0, spareCount:0, suppressCount:0,
