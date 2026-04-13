@@ -1,0 +1,137 @@
+Phase 1-D ～ 1-I 完整修改總整理
+Phase 1-D：強制用餐 / 就寢事件池 + 病痛系統
+涉及檔案： config.js / stats.js / game.html / main.js
+
+新增資料結構
+Stats.player.ailments[] — 病痛 ID 陣列
+Stats.player.insomniaStreak — 連續失眠天數
+Stats.player.normalSleepStreak — 連續正常睡眠天數
+Config.TRAIT_DEFS — 特性定義（積極/負面，附 name/desc/category）
+Config.AILMENT_DEFS — 病痛定義（失眠症/手傷/腿傷/軀幹傷 + 佔位：腦震盪/阿基里斯腱/憂鬱症）
+用餐事件（_triggerMealEvent）
+每天早/午/晚各觸發一次，取代原本的靜默 +food/+mood：
+
+基本版：一般粥飯文字
+梅拉好感 ≥ 30：廚娘多給、加鹽的燉豆等
+梅拉好感 ≥ 60：偷塞雞蛋/肉塊，食物與心情加成最高
+飽食度 ≥ 85 時跳過食物效果，心情仍套用
+就寢事件（_triggerSleepEvent）
+點就寢按鈕後觸發，動態加權隨機：
+
+結果	基礎權重	條件修正	效果
+正常睡眠	60%	—	stamina +40, mood +5
+失眠	25%	mood ≤ 40 再+10~20%	stamina +18, mood −5
+噩夢	15%	day ≥ 20 再+8~15%	stamina +22, mood −12
+失眠症觸發 / 解除
+連續 2 夜失眠或噩夢 → 自動獲得 ⚕失眠症
+失眠症期間：就寢 stamina 恢復上限降至 15，每個 rest 時段被動 −3/−3
+連續 3 夜正常睡眠 → 自動解除
+角色頁特性/病痛欄位
+新增「特性」+ 「病痛」兩個區塊於左欄
+★ 金色 = 積極特性
+▼ 琥珀色 = 負面特性
+⚕ 暗紅脈動動畫 = 病痛（有 pulse CSS animation）
+Phase 1-E：飢餓 / 疲勞 / 心情閾值事件
+涉及檔案： main.js（doAction 內）
+
+強制中斷（訓練前 pre-check，100% 機率）
+體力 ≤ 10（力竭）：取消訓練，消耗時段，stamina +5 作為強制休息
+心情 ≤ 9（崩潰）：取消訓練，消耗時段，mood −5（情緒螺旋加深）
+效率軟修正（訓練中，可疊加）
+心情 ≥ 80（40% 機率）：✨ 心流 → 訓練效率 ×1.5
+體力 ≤ 25（25% 機率）：擺爛 → 訓練效率 ×0.4
+飽食 ≤ 30（25% 機率）：輕度飢餓 → 訓練效率 ×0.75
+三個修正可同時發生，最終乘進 finalSynergyMult = synergyMult × thresholdMult。Log 尾端顯示如「（心流 ×1.5）（飢餓 ×0.75）」。
+
+受傷系統 v2（Phase 1-E 同步重構）
+涉及檔案： main.js（doAction 受傷判定區塊）
+
+舊邏輯問題：stamina 低 → 受傷率高，但 Phase 1-E 同時說 stamina 低 → 擺爛（矛盾）。
+
+新邏輯：訓練強度決定受傷，不是體力高低
+
+條件	受傷加成
+超負荷比（消耗/當前體力）≥ 2.0	+50%
+超負荷比 ≥ 1.5	+35%
+超負荷比 ≥ 1.0（剛好耗盡）	+20%
+超負荷比 ≥ 0.7	+8%
+每點絕對透支量	+1.5%
+協力 ×6.0 以上	+30%
+協力 ×3.0 以上	+18%
+體力 ≤ 20（輕微加成）	+5%
+擺爛（thresholdMult < 1）→ 完全跳過受傷判定
+超負荷比 ≥ 1.5 或協力 ≥ ×3 → 重傷（−25 stamina，−20 mood）
+其他 → 輕傷（−12 stamina，−8 mood）
+Phase 1-F：NPC 注意系統
+涉及檔案： main.js / events.js
+
+每次訓練動作完成後 _scanNpcNotice(act) 掃描在場 NPC，符合條件就累積跨天計數，達門檻後保證觸發事件。
+
+NPC	觀察條件	門檻	觸發事件
+葛拉	在場 + STR 訓練	3 次	邀觀摩打鐵，好感 +5
+梅拉	在場 + food ≤ 30 + 好感 ≥ 30	2 次	偷塞食物，food +20
+監督官	在場 + 任意訓練	4 次	派清掃任務，stamina −10
+兩層 flag 設計：
+
+notice_today_{npcId} — 每天清空（DayCycle.onDayStart priority 20），防同天計兩次
+notice_count_{npcId} — 跨天累積，達門檻後歸零重來
+Phase 1-G：主人 / 長官傳喚制度
+涉及檔案： main.js / events.js
+
+DayCycle.onDayStart('checkSummons', priority 30) 每天掃描，按優先順序觸發：
+
+事件	觸發條件	次數	效果
+主人初見	fame ≥ 15	一次性	mood −5, 主人好感 +3
+主人贈禮	主人好感 ≥ 30	一次性	money +10, food +15, mood +12
+長官任務	fame ≥ 25	一次性	fame +3, mood +8, 長官好感 +5
+長官定期點名	每 12 天	重複	mood −3（有壓迫感）
+Phase 1-H：切磋邀請事件化
+涉及檔案： main.js / events.js
+
+訓練動作完成後 _checkSparringInvite(act) 掃描在場隊友：
+
+好感 ≥ 50 → 20% 機率主動邀請切磋
+每天每人最多一次（sparring_invite_today_ flag）
+隊友	專屬文字	效果重點
+卡西烏斯	扔木劍給你，沉默對練	STR+0.3, DEX+0.3
+達吉	滿臉熱情，說學了新招	AGI+0.3, mood+15
+烏爾薩	低頭問你要不要陪練	STR+0.4, CON+0.2
+其他	通用版本	STR+0.2, DEX+0.2
+Phase 1-I：主人採購派遣
+涉及檔案： main.js / events.js
+
+DayCycle.onDayStart('checkMasterErrand', priority 35)：
+
+從第 4 天起，每 7 天派一次（偏移 3 避開第 1 天）
+隨機三種情境：
+情境	效果
+普通採購	food +25, mood +12, money +3（零錢）
+市集謠言（聽說公演資訊）	food +20, mood +8, fame +1
+扶倒地小孩	food +20, mood +18
+整體觸發時序（一天的事件流）
+
+【天亮】DayCycle.onDayStart
+  priority 20 → 清除 notice_today_* / sparring_invite_today_*
+  priority 21 → 清除 sparring_invite_today_*（已合併 20）
+  priority 30 → 傳喚事件掃描（Phase 1-G）
+  priority 35 → 採購派遣掃描（Phase 1-I）
+
+【早餐】_triggerMealEvent('breakfast')  ← 梅拉好感分階
+
+【訓練 1-4 格，玩家選動作】
+  doAction:
+    Pre-check：體力≤10 或心情≤9 → 強制取消（Phase 1-E）
+    Soft-modify：心流/擺爛/飢餓 → thresholdMult（Phase 1-E）
+    執行效果 + 計算受傷（Phase 1-E v2）
+    _scanNpcNotice → 累積/觸發注意事件（Phase 1-F）
+    _checkSparringInvite → 切磋邀請（Phase 1-H）
+    _postActionEvents → 隨機事件池
+
+【午餐】_triggerMealEvent('lunch')
+【晚餐】_triggerMealEvent('dinner')
+【傍晚 rest】被動恢復（失眠症扣除）
+
+【就寢】_triggerSleepEvent → normal/insomnia/nightmare
+  → 失眠症觸發/解除判斷
+  → food overnight cost
+  → 推進天數

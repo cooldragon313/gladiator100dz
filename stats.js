@@ -295,10 +295,11 @@ const Stats = (() => {
   }
 
   function renderMoney() {
+    const val = player.money || 0;
     const el = document.getElementById('stat-money');
-    if (el) el.textContent = player.money;
+    if (el) el.textContent = val + ' 枚';
     const csEl = document.getElementById('cs-money');
-    if (csEl) csEl.textContent = player.money;
+    if (csEl) csEl.textContent = val;
   }
 
   // ── 🆕 經驗值系統（D.6） ──────────────────────
