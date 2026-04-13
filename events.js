@@ -719,16 +719,3 @@ const Events = (() => {
     getTimelineMarkers,
   };
 })();
-    EVENT_POOL,
-    ACTION_EVENTS,
-    NPC_NOTICE_EVENTS,
-    TIMELINE_EVENTS,       // 舊 API（保留，但建議使用 getTimelineEvent / getTimelineMarkers）
-    rollRandom,
-    applyEvent,
-    getActionEvent,
-    getNoticeEvent,        // 🆕 Phase 1-F
-    // 🆕 D.1.10 條件化時間軸事件
-    getTimelineEvent,
-    getTimelineMarkers,
-  };
-})();
