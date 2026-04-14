@@ -702,6 +702,114 @@ const Events = (() => {
     return ERRAND_EVENTS[Math.floor(Math.random() * ERRAND_EVENTS.length)];
   }
 
+  // ══════════════════════════════════════════════════
+  // 🆕 Phase 1-E.2 / E.11: 選擇事件（ChoiceModal）
+  // ══════════════════════════════════════════════════
+  /**
+   * 玩家需要做決定的事件。格式見 choice_modal.js 檔頭。
+   * 由 ChoiceModal.show(ev) 直接顯示。
+   */
+  const CHOICE_EVENTS = {
+    hunger_critical: {
+      id:    'hunger_critical',
+      title: '飢餓難耐',
+      icon:  '🍞',
+      forced: true,
+      body:  '你已經兩天沒好好吃東西。胃在抗議。再這樣下去——連揮劍的力氣都沒有。\n現在是半夜，訓練場寂靜無聲。你該怎麼辦？',
+      choices: [
+        {
+          id: 'endure',
+          label: '忍著',
+          hint: '什麼都不做，咬牙熬過去',
+          effects: [
+            { type: 'vital', key: 'mood',    delta: -12 },
+            { type: 'vital', key: 'stamina', delta: -6  },
+          ],
+          resultLog: '你咬緊牙關。胃的抗議漸漸變成一種麻木。（心情 -12、體力 -6）',
+          logColor: '#a88a6a',
+          flagSet: 'chose_endure_hunger',
+        },
+        {
+          id: 'beg',
+          label: '向巡夜的護衛乞食',
+          hint: '放下尊嚴向人伸手。結果不確定',
+          rolls: [
+            {
+              weight: 40,
+              effects: [
+                { type: 'vital', key: 'food', delta: 30 },
+                { type: 'vital', key: 'mood', delta: -4 },
+              ],
+              log: '護衛冷笑了一下，從懷裡掏出半塊硬麵包扔在你腳邊。你撿起來。（食 +30、心情 -4）',
+              logColor: '#9dbf80',
+            },
+            {
+              weight: 35,
+              effects: [
+                { type: 'vital', key: 'mood', delta: -18 },
+              ],
+              log: '護衛啐了你一口，轉身離開。你在黑暗中蹲了很久。（心情 -18）',
+              logColor: '#cc6666',
+            },
+            {
+              weight: 25,
+              effects: [
+                { type: 'vital', key: 'mood',    delta: -25 },
+                { type: 'vital', key: 'stamina', delta: -10 },
+                { type: 'fame',  delta: -2 },
+              ],
+              log: '護衛把你踹倒在地，還笑著喊來另一個人——你成了他們夜裡的笑話。（心情 -25、體力 -10、名聲 -2）',
+              logColor: '#cc3333',
+              flagSet: 'humiliated_by_guard',
+            },
+          ],
+        },
+        {
+          id: 'steal',
+          label: '溜進廚房偷食物',
+          hint: '風險高，但能吃飽',
+          rolls: [
+            {
+              weight: 55,
+              effects: [
+                { type: 'vital', key: 'food', delta: 45 },
+                { type: 'vital', key: 'mood', delta: +5 },
+              ],
+              log: '你摸進廚房，塞了一個大麵包和半片燻肉。回到床上時天快亮了。（食 +45、心情 +5）',
+              logColor: '#9dbf80',
+              flagSet: 'stole_food_once',
+            },
+            {
+              weight: 45,
+              effects: [
+                { type: 'vital', key: 'mood',    delta: -20 },
+                { type: 'vital', key: 'stamina', delta: -15 },
+                { type: 'affection', key: 'melaKook',    delta: -10 },
+                { type: 'affection', key: 'masterArtus', delta: -5  },
+              ],
+              log: '你被梅拉逮個正著。她沒有喊叫，但那個眼神讓你一輩子不想再回廚房。（心情 -20、體力 -15、梅拉 -10、主人 -5）',
+              logColor: '#cc6666',
+              flagSet: 'caught_stealing_by_mela',
+            },
+          ],
+        },
+        {
+          id: 'endure_strong',
+          label: '用意志壓下飢餓',
+          hint: '鐵意志專屬：靠精神力硬撐',
+          requireTrait: 'iron_will',
+          effects: [
+            { type: 'vital', key: 'mood',    delta: -5 },
+            { type: 'vital', key: 'stamina', delta: -3 },
+            { type: 'exp',   key: 'WIL', delta: 5 },
+          ],
+          resultLog: '你閉上眼睛。鐵意志讓你把飢餓變成另一種感覺——痛苦即磨礪。（心情 -5、體力 -3、WIL EXP +5）',
+          logColor: '#e8d070',
+        },
+      ],
+    },
+  };
+
   return {
     EVENT_POOL,
     ACTION_EVENTS,
@@ -710,6 +818,7 @@ const Events = (() => {
     SPARRING_INVITE_EVENTS,
     ERRAND_EVENTS,
     TIMELINE_EVENTS,
+    CHOICE_EVENTS,          // 🆕 Phase 1-E.2 / E.11
     rollRandom,
     applyEvent,
     getActionEvent,

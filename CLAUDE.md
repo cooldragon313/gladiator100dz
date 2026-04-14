@@ -24,6 +24,8 @@
    - **D.13** 睡前時段互動設計
    - **D.14** 故事道具網路
    - **D.15** ⚠️ **跨系統整合檢查清單**（實作前必讀）
+   - **D.16** 訓練所差異化系統（Phase 2 S2 待實作 — 核心：破訓練所也要藏珍珠）
+   - **D.17** 謠言系統（Phase 2 待實作 — 世界觀網絡的第二把鑰匙）
 2. **`changelog.html`** — 版本記錄與歷次 commit 摘要
 3. **`memory/MEMORY.md`** — 本機 auto-memory（使用者偏好、回饋）
 
@@ -110,11 +112,13 @@ save_system → testbattle → battle → actions → main
 - 玩家只能選：訓練 / 休息 / 冥想 / 等事件發生
 
 ### UI 哲學
-- **重要事件用 `addLog(..., true, true)` flash 提示**（第 4 參數）
-- **重大演出用 `Stage.playEvent()`**，不只是 log
+- **重要事件用 `addLog(..., true, true)` flash 提示**(第 4 參數)
+- **重大演出用 `Stage.playEvent()`**,不只是 log
 - **不加 hover-only 隱藏資訊**（手機不友善）
 - **卡片色系依好感分層**（9 層：loyal → nemesis）
 - **字體不小於 14px**（整個角色頁已調校過，不要再回到小字）
+- **關係圖 storyReveals flavor 文字控制在 25~45 字**（理想），上限 55 字
+  （超過會被 `line-clamp: 2` 截斷）→ 詳見 DESIGN.md D.12「📏 Flavor 文字長度約定」
 
 ---
 

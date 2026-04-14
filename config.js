@@ -197,7 +197,7 @@ const Config = (() => {
   // ══════════════════════════════════════════════════
   const DAILY = {
     // 用餐自動恢復量（Phase 1-B _resolveNonTrainingSlots 用）
-    MEAL_FOOD_GAIN:   25,
+    MEAL_FOOD_GAIN:   18,   // 🆕 2026-04-15 下調：原 25，讓食物變戰略資源而非自動滿血
     MEAL_MOOD_GAIN:    2,
     // 晚間休息自動恢復量
     REST_STAMINA_GAIN: 10,
@@ -205,7 +205,7 @@ const Config = (() => {
     // 夜間睡覺
     SLEEP_STAMINA_GAIN: 40,
     SLEEP_MOOD_GAIN:     5,
-    SLEEP_FOOD_COST:   -12,
+    SLEEP_FOOD_COST:   -15,   // 🆕 2026-04-15 加重：原 -12
   };
 
   // ══════════════════════════════════════════════════

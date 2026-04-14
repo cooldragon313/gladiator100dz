@@ -56,7 +56,7 @@ const ACTIONS = {
   basicSwing: {
     id: 'basicSwing', name: '基礎揮砍',
     desc: '反覆揮動武器，磨礪攻擊動作。',
-    slots: 1, staminaCost: 20, foodCost: 8,
+    slots: 1, staminaCost: 20, foodCost: 10,
     fields: ['stdTraining'],
     effects: [{ type: 'exp', key: 'STR', delta: 8 }],
     eventPool: ['overseerWatch', 'trainingInjury'],
@@ -65,7 +65,7 @@ const ACTIONS = {
   preciseStab: {
     id: 'preciseStab', name: '精準刺擊',
     desc: '對木樁反覆刺擊，鍛鍊手眼協調與出手精度。',
-    slots: 1, staminaCost: 20, foodCost: 8,
+    slots: 1, staminaCost: 20, foodCost: 10,
     fields: ['stdTraining'],
     effects: [{ type: 'exp', key: 'DEX', delta: 8 }],
     eventPool: ['overseerWatch', 'trainingInjury'],
@@ -74,7 +74,7 @@ const ACTIONS = {
   endurance: {
     id: 'endurance', name: '耐力訓練',
     desc: '全副武裝奔跑，強化體質與持久力。',
-    slots: 1, staminaCost: 20, foodCost: 10,
+    slots: 1, staminaCost: 20, foodCost: 12,
     fields: ['stdTraining'],
     effects: [{ type: 'exp', key: 'CON', delta: 8 }],
     eventPool: ['overseerWatch', 'trainingInjury'],
@@ -83,7 +83,7 @@ const ACTIONS = {
   footwork: {
     id: 'footwork', name: '步法練習',
     desc: '反覆移動步伐，提高靈敏與閃躲能力。',
-    slots: 1, staminaCost: 20, foodCost: 8,
+    slots: 1, staminaCost: 20, foodCost: 10,
     fields: ['stdTraining'],
     effects: [{ type: 'exp', key: 'AGI', delta: 8 }],
     eventPool: ['overseerWatch', 'trainingInjury'],

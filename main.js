@@ -593,10 +593,10 @@ const Game = (() => {
     if (mealType === 'breakfast') {
       if (melaAff >= 60) {
         text     = '🍴【早餐】梅拉把一個水煮蛋悄悄塞進你的碗底，目光輕柔地移開。你快速吃掉，心裡暖了一下。';
-        foodGain = 40; moodGain = 12;
+        foodGain = 28; moodGain = 12;
       } else if (melaAff >= 30) {
         text     = '🍴【早餐】廚娘多盛了幾勺豆子，你低頭道了謝。她嗯了一聲，算是回應。';
-        foodGain = 35; moodGain = 8;
+        foodGain = 22; moodGain = 8;
       } else {
         text     = '🍴【早餐】一份稀粥，半塊硬麵包。沒有味道，但填飽了肚子。';
         foodGain = daily.MEAL_FOOD_GAIN; moodGain = daily.MEAL_MOOD_GAIN;
@@ -604,10 +604,10 @@ const Game = (() => {
     } else if (mealType === 'lunch') {
       if (melaAff >= 60) {
         text     = '🍴【午餐】梅拉說了句「吃好點才有力氣打架」，語氣比往常柔和許多。';
-        foodGain = 40; moodGain = 10;
+        foodGain = 28; moodGain = 10;
       } else if (melaAff >= 30) {
         text     = '🍴【午餐】今天的燉豆多加了些鹽，比平常好吃一點。你猜是她故意的。';
-        foodGain = 35; moodGain = 7;
+        foodGain = 22; moodGain = 7;
       } else {
         text     = '🍴【午餐】依舊是那幾樣東西，分量勉強撐到下午。你吃得很快，沒有停下來品嚐。';
         foodGain = daily.MEAL_FOOD_GAIN; moodGain = daily.MEAL_MOOD_GAIN;
@@ -615,13 +615,13 @@ const Game = (() => {
     } else { // dinner
       if (melaAff >= 60) {
         text     = '🍴【晚餐】碗裡有一小塊肉，梅拉什麼都沒說。你也沒問。有些事不需要說出來。';
-        foodGain = 42; moodGain = 14;
+        foodGain = 32; moodGain = 14;
       } else if (melaAff >= 30) {
         text     = '🍴【晚餐】今晚的燉菜有肉味，雖然只是骨頭熬的湯。你喝完了整碗。';
-        foodGain = 38; moodGain = 9;
+        foodGain = 25; moodGain = 9;
       } else {
         text     = '🍴【晚餐】夜幕低垂，你沉默地吃完晚餐。今天又過了一天。';
-        foodGain = daily.MEAL_FOOD_GAIN + 5; moodGain = daily.MEAL_MOOD_GAIN + 3;
+        foodGain = daily.MEAL_FOOD_GAIN + 2; moodGain = daily.MEAL_MOOD_GAIN + 3;
       }
     }
 
@@ -752,6 +752,22 @@ const Game = (() => {
       Stats.advanceTime(SLOT_DUR);
       if (Stats.player.day > p.day) break;
     }
+
+    // 🆕 Phase 1-E.2: 時段解算完後檢查飢餓危機（食物 ≤ 14 觸發選擇 modal）
+    _checkHungerCritical();
+  }
+
+  /** 🆕 Phase 1-E.2: 飢餓臨界觸發 —— 食物 ≤ 14 且當日未觸發過就彈出 ChoiceModal */
+  function _checkHungerCritical() {
+    const p = Stats.player;
+    if (p.food > 14) return;
+    const dayKey = `hunger_critical_day_${p.day}`;
+    if (Flags.has(dayKey)) return;
+    if (typeof ChoiceModal === 'undefined' || typeof Events === 'undefined' || !Events.CHOICE_EVENTS) return;
+    const ev = Events.CHOICE_EVENTS.hunger_critical;
+    if (!ev) return;
+    Flags.set(dayKey, true);
+    ChoiceModal.show(ev);
   }
 
   // ── Render: time slots ─────────────────────────────────
@@ -3023,6 +3039,24 @@ const Game = (() => {
     }
   }
 
+  /** 🆕 Phase 1-E.2: debug 測試——直接開啟指定的 CHOICE_EVENTS 事件 */
+  function testChoice(eventId) {
+    if (typeof Events === 'undefined' || !Events.CHOICE_EVENTS) {
+      console.warn('Events.CHOICE_EVENTS 未載入');
+      return;
+    }
+    const ev = Events.CHOICE_EVENTS[eventId || 'hunger_critical'];
+    if (!ev) {
+      console.warn('找不到事件', eventId);
+      return;
+    }
+    if (typeof ChoiceModal === 'undefined') {
+      console.warn('ChoiceModal 未載入');
+      return;
+    }
+    ChoiceModal.show(ev);
+  }
+
   return {
     init, switchField, doAction,
     addLog, renderAll, showToast,
@@ -3031,6 +3065,8 @@ const Game = (() => {
     // 🆕 D.1.8 存檔槽管理
     autoSave,
     loadGameFromSlot,
+    // 🆕 Phase 1-E.2 debug
+    testChoice,
   };
 })();
 
