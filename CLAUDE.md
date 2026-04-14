@@ -27,7 +27,10 @@
    - **D.16** 訓練所差異化系統（Phase 2 S2 待實作 — 核心：破訓練所也要藏珍珠）
    - **D.17** 謠言系統（Phase 2 待實作 — 世界觀網絡的第二把鑰匙）
 2. **`changelog.html`** — 版本記錄與歷次 commit 摘要
-3. **`memory/MEMORY.md`** — 本機 auto-memory（使用者偏好、回饋）
+3. **`NOTES.md`** — 🆕 手機草稿本。使用者會在手機上寫未整理的想法到底部「待整理」區。
+   **看到使用者叫你「整理 NOTES.md」時**：讀 NOTES.md → 歸類每個項目（屬於哪個 D.x 章節/CLAUDE.md）
+   → 寫進正式文件 → 清空 NOTES.md 的待整理區（保留頂部使用說明）→ commit。
+4. **`memory/MEMORY.md`** — 本機 auto-memory（使用者偏好、回饋）
 
 ---
 
