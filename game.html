@@ -1160,7 +1160,7 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 #cs-body {
   flex: 1;
   display: grid;
-  grid-template-columns: 45% 55%;
+  grid-template-columns: 40% 40% 20%;
   overflow: hidden;
 }
 
@@ -1171,6 +1171,13 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   scrollbar-width: thin; scrollbar-color: var(--border) transparent;
 }
 .cs-col:last-child { border-right: none; }
+
+/* ── 裝備 2 欄 grid ── */
+#cs-equip-slots {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
 
 /* ── 🆕 階段 B: 裝備 6 槽 + inline picker ── */
 .cs-equip-slot-btn {
@@ -1327,12 +1334,12 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 .cs-aff-bar-fill  { height: 100%; width: 0%; background: linear-gradient(90deg, #3a1a5a, #8855cc); transition: width .4s ease; }
 .cs-aff-num { width: 24px; font-size: 11px; color: var(--text-dim); text-align: right; flex-shrink: 0; }
 
-/* ── 🆕 階段 B v2: 六角形屬性圖 + 派生 10 項格子 ── */
+/* ── 🆕 階段 B v2: 六角形屬性圖 ── */
 #cs-stats-wrap {
   display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 18px;
-  margin-top: 4px;
+  grid-template-columns: 320px 1fr;
+  gap: 16px;
+  margin-top: 6px;
   align-items: start;
 }
 
@@ -1371,7 +1378,7 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 }
 .cs-hex-label {
   font-family: var(--font);
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 900;
   letter-spacing: .1em;
   fill: var(--text-hi);
@@ -1379,57 +1386,64 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 }
 .cs-hex-val {
   font-family: var(--font);
-  font-size: 22px;
+  font-size: 16px;
   font-weight: 900;
   fill: var(--gold-lt);
   text-anchor: middle;
 }
 
-/* 🆕 D.6: 屬性升級區（3×2 compact cards） */
+/* 🆕 D.6: 屬性升級區（垂直列表，配合六角圖右側） */
 #cs-attr-spend {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 9px;
-  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 .cs-spend-card {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 1x;
   background: var(--raised);
   border: 1px solid var(--border-hi);
   border-radius: 2px;
-  padding: 10px 12px;
+  padding: 2px 10px;
+}
+.cs-spend-exp-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .cs-spend-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
 }
 .cs-spend-label {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 900;
   color: var(--text-hi);
   letter-spacing: .12em;
+  width: 45px;
+  flex-shrink: 0;
 }
 .cs-spend-val {
   font-size: 20px;
   font-weight: 900;
   color: var(--gold-lt);
+  flex: 1;
 }
 .cs-spend-btn {
   background: #1e0800;
   border: 1px solid var(--border-hi);
   color: var(--gold-lt);
   font-family: var(--font);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   letter-spacing: .05em;
-  padding: 4px 10px;
+  padding: 2px 12px;
   border-radius: 2px;
   cursor: pointer;
   transition: background .12s, border-color .12s, color .12s;
+  flex-shrink: 0;
 }
 .cs-spend-btn:hover:not([disabled]) {
   background: var(--blood);
@@ -1437,17 +1451,18 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   color: var(--text-hi);
 }
 .cs-spend-btn[disabled] {
-  opacity: .35;
+  opacity: .25;
   cursor: not-allowed;
   color: var(--text-dim);
 }
 .cs-spend-exp-track {
   position: relative;
-  height: 8px;
+  height: 10px;
   background: #0a0806;
-  border: 1px solid var(--border-hi);
+  border: 1px solid var(--border);
   border-radius: 2px;
   overflow: hidden;
+  width: 80%;
 }
 .cs-spend-exp-fill {
   height: 100%; width: 0%;
@@ -1455,26 +1470,24 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   transition: width .4s ease;
 }
 .cs-spend-exp-num {
-  font-size: 11px;
-  color: var(--text);
-  text-align: right;
-  letter-spacing: .05em;
-  margin-top: 1px;
-  font-weight: 700;
+  font-size: 12px;
+  color: var(--text-dim);
+  letter-spacing: .03em;
 }
 
-/* 右：派生 10 項格子（5×2） */
+/* 派生 10 項格子（5×2） */
 #cs-derived-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 2px;
   align-content: start;
+  margin-top: 2px;
 }
 .cs-drv-cell {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 11px 14px;
+  padding: 5px 14px;
   background: var(--raised);
   border: 1px solid var(--border-hi);
   border-radius: 2px;
@@ -1492,53 +1505,69 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   color: var(--gold-lt);
 }
 
-/* ── Traits & Ailments (Phase 1-D, 階段 B 放大可容納 20+ 特性) ── */
-.cs-traits-empty { font-size: 17px; color: var(--text); font-style: italic; padding: 8px 0 10px; }
-.cs-traits-list  {
+/* ── 人物特質 sub-label ── */
+.cs-subsection-title {
+  font-size: 15px;
+  letter-spacing: .18em;
+  color: var(--text-dim);
+  border-bottom: 1px dashed var(--border);
+  padding-bottom: 5px;
+  margin: 12px 0 8px;
+  font-weight: 700;
+}
+.cs-subsection-title:first-child { margin-top: 4px; }
+
+/* ── Traits & Ailments ── */
+.cs-traits-empty { font-size: 18px; color: var(--text-dim); font-style: italic; padding: 4px 0 8px; }
+.cs-traits-wrap  {
   display: flex;
   flex-wrap: wrap;
-  gap: 9px;
-  padding: 6px 0 10px;
-  max-height: 340px;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-hi) transparent;
+  gap: 8px;
+  padding: 4px 0 6px;
 }
+#cs-traits-all { gap: 8px; }
+#cs-traits-all > div { display: contents; } /* 讓子容器透明，標籤直接流入父層 */
 
-/* 特性標籤 — 共用底座（大字版） */
+/* 特性標籤 — 共用底座 */
 .trait-tag {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 14px; border-radius: 3px;
-  font-size: 18px; font-weight: 700; letter-spacing: .05em;
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 9px 16px; border-radius: 3px;
+  font-size: 20px; font-weight: 700; letter-spacing: .05em;
   border: 1.5px solid;
   cursor: default;
   line-height: 1.3;
 }
-.trait-tag .trait-prefix { font-size: 15px; opacity: .9; }
+.trait-tag .trait-prefix { font-size: 17px; opacity: .9; }
 
-/* 積極特性 — 金色 */
+/* 積極特性 — 金黃色框 */
 .trait-positive {
   background: rgba(180,140,20,0.15);
   border-color: #c8a030;
   color: #e8d070;
 }
-/* 負面特性 — 琥珀橙 */
+/* 負面特性 — 深紫棕（不祥） */
 .trait-negative {
-  background: rgba(150,70,20,0.12);
-  border-color: #a05020;
-  color: #d08050;
+  background: rgba(100,40,80,0.18);
+  border-color: #7a3060;
+  color: #c878a0;
+}
+/* 疤痕 — 銀灰（戰場印記） */
+.trait-scar {
+  background: rgba(80,88,100,0.18);
+  border-color: #607080;
+  color: #a8b8c8;
 }
 /* 病痛 — 暗紅脈動 */
 .trait-ailment {
   background: #1e0808;
-  border-color: #8b2020;
-  color: #ff6868;
+  border-color: #aa2020;
+  color: #ff5555;
   font-weight: 700;
   animation: ailment-pulse 2.4s ease-in-out infinite;
 }
 @keyframes ailment-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(139,32,32,0); }
-  50%       { box-shadow: 0 0 5px 2px rgba(139,32,32,0.45); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(170,32,32,0); }
+  50%       { box-shadow: 0 0 7px 2px rgba(170,32,32,0.55); }
 }
 
 /* ── 🆕 D.6 v2: 技能 tab ── */
@@ -1567,14 +1596,14 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 #cs-exp-summary {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 10px;
-  margin-bottom: 22px;
+  gap: 5px;
+  margin-bottom: 12px;
 }
 .cs-exp-cell {
   background: var(--raised);
   border: 1px solid var(--border-hi);
   border-radius: 2px;
-  padding: 11px 12px;
+  padding: 8px 12px;
   text-align: center;
 }
 .cs-exp-cell-k {
@@ -2529,63 +2558,42 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
     <!-- Character tab content -->
     <div class="cs-tab-content active" data-tab-content="character">
 
-    <!-- Body: 2 columns (45% / 55%) -->
+    <!-- Body: 3 columns (40% / 40% / 20%) -->
     <div id="cs-body">
 
-      <!-- ══ LEFT COLUMN (45%) ══════════════════════════ -->
+      <!-- ══ LEFT COLUMN (40%): 屬性 + 裝備 ══════════════ -->
       <div class="cs-col cs-col-left">
 
-        <!-- L1: 狀態條 -->
-        <div class="cs-section-title">狀態</div>
-        <div class="cs-vital-row" id="cs-bar-hp">
-          <span class="cs-vital-label">HP</span>
-          <div class="cs-bar-track"><div class="cs-bar-fill" style="background:#cc2200"></div></div>
-          <span class="cs-vital-num"></span>
+        <!-- 屬性：六角圖（左）＋ 升級列表（右） -->
+        <div class="cs-section-title">屬性</div>
+        <div id="cs-stats-wrap">
+          <!-- 六角形雷達圖 -->
+          <div id="cs-hex-container">
+            <svg id="cs-hex-svg" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg"></svg>
+          </div>
+          <!-- 六維升級列表（EXP 條 + 升級按鈕） -->
+          <div id="cs-attr-spend"></div>
         </div>
-        <div class="cs-vital-row" id="cs-bar-stamina">
-          <span class="cs-vital-label">體力</span>
-          <div class="cs-bar-track"><div class="cs-bar-fill" style="background:#cc7700"></div></div>
-          <span class="cs-vital-num"></span>
+        <div class="cs-divider"></div>
+        <!-- 派生屬性：10 項（5×2 格子） -->
+        <div class="cs-section-title" style="margin-top:16px;">派生屬性</div>
+        <div id="cs-derived-grid">
+          <div class="cs-drv-cell"><span class="cs-drv-k">ATK</span>  <span class="cs-drv-v" id="cs-drv-ATK">—</span></div>
+          <div class="cs-drv-cell"><span class="cs-drv-k">DEF</span>  <span class="cs-drv-v" id="cs-drv-DEF">—</span></div>
+          <div class="cs-drv-cell"><span class="cs-drv-k">PEN</span>  <span class="cs-drv-v" id="cs-drv-PEN">—</span></div>
+          <div class="cs-drv-cell"><span class="cs-drv-k">SPD</span>  <span class="cs-drv-v" id="cs-drv-SPD">—</span></div>
+          <div class="cs-drv-cell"><span class="cs-drv-k">ACC</span>  <span class="cs-drv-v" id="cs-drv-ACC">—</span></div>
+          <div class="cs-drv-cell"><span class="cs-drv-k">CRT</span>  <span class="cs-drv-v" id="cs-drv-CRT">—</span></div>
+          <div class="cs-drv-cell"><span class="cs-drv-k">CDMG</span> <span class="cs-drv-v" id="cs-drv-CDMG">—</span></div>
+          <div class="cs-drv-cell"><span class="cs-drv-k">BLK</span>  <span class="cs-drv-v" id="cs-drv-BLK">—</span></div>
+          <div class="cs-drv-cell"><span class="cs-drv-k">BpWr</span> <span class="cs-drv-v" id="cs-drv-BpWr">—</span></div>
+          <div class="cs-drv-cell"><span class="cs-drv-k">EVA</span>  <span class="cs-drv-v" id="cs-drv-EVA">—</span></div>
         </div>
-        <div class="cs-vital-row" id="cs-bar-food">
-          <span class="cs-vital-label">飽食度</span>
-          <div class="cs-bar-track"><div class="cs-bar-fill" style="background:#1e7a3a"></div></div>
-          <span class="cs-vital-num"></span>
-        </div>
-        <div class="cs-vital-row" id="cs-bar-mood">
-          <span class="cs-vital-label">心情</span>
-          <div class="cs-bar-track"><div class="cs-bar-fill" style="background:#2255aa"></div></div>
-          <span class="cs-vital-num"></span>
-        </div>
-
-        <!-- L2: 裝備 6 槽（動態生成） -->
-        <div class="cs-divider"></div>
-        <div class="cs-section-title">裝備</div>
-        <div id="cs-equip-slots"></div>
-
-        <!-- L3: 護符 6 格（Phase 3 內容，先顯示空） -->
-        <div class="cs-divider"></div>
-        <div class="cs-section-title">護符</div>
-        <div id="cs-amulets-grid" class="cs-amulet-grid"></div>
-
-        <!-- L4: 寵物 3 槽（Phase 3 E13，先顯示空） -->
-        <div class="cs-divider"></div>
-        <div class="cs-section-title">寵物</div>
-        <div id="cs-pets-list"></div>
-
-        <!-- L5: 資源 -->
-        <div class="cs-divider"></div>
-        <div class="cs-section-title">資源</div>
-        <div class="cs-equip-row"><span class="cs-equip-slot">💰 金錢</span><span class="cs-equip-val" id="cs-money">0</span></div>
-        <!-- D.6 v2：技能點（SP）已廢除，改為 EXP 單一資源模型 -->
-        <!-- 未來技能購買也用對應屬性 EXP 直接換（見角色頁屬性升級區） -->
 
       </div><!-- /cs-col-left -->
-
-      <!-- ══ RIGHT COLUMN (55%) ═════════════════════════ -->
-      <div class="cs-col cs-col-right">
-
-        <!-- R0: Inline equipment picker（隱藏時不佔空間） -->
+   <!-- ══ MIDDLE COLUMN (40%): 裝備 屬性 技能 ══════════════════ -->
+      <div class="cs-col cs-col-mid">
+        <!-- Inline equipment picker（隱藏時不佔空間） -->
         <div id="cs-picker-panel" class="hidden">
           <div class="cs-picker-header">
             <span id="cs-picker-title">更換裝備</span>
@@ -2594,67 +2602,52 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
           <div id="cs-picker-list"></div>
         </div>
 
-        <!-- R1: 六維（六角形）+ 派生 10 項（格子） -->
-        <div class="cs-section-title">屬性</div>
-        <div id="cs-stats-wrap">
-          <!-- Left: 六角形雷達圖 -->
-          <div id="cs-hex-container">
-            <svg id="cs-hex-svg" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg"></svg>
-          </div>
-          <!-- Right: 派生 10 項格子（5×2，無 bar、純字） -->
-          <div id="cs-derived-grid">
-            <div class="cs-drv-cell"><span class="cs-drv-k">ATK</span>  <span class="cs-drv-v" id="cs-drv-ATK">—</span></div>
-            <div class="cs-drv-cell"><span class="cs-drv-k">DEF</span>  <span class="cs-drv-v" id="cs-drv-DEF">—</span></div>
-            <div class="cs-drv-cell"><span class="cs-drv-k">PEN</span>  <span class="cs-drv-v" id="cs-drv-PEN">—</span></div>
-            <div class="cs-drv-cell"><span class="cs-drv-k">SPD</span>  <span class="cs-drv-v" id="cs-drv-SPD">—</span></div>
-            <div class="cs-drv-cell"><span class="cs-drv-k">ACC</span>  <span class="cs-drv-v" id="cs-drv-ACC">—</span></div>
-            <div class="cs-drv-cell"><span class="cs-drv-k">CRT</span>  <span class="cs-drv-v" id="cs-drv-CRT">—</span></div>
-            <div class="cs-drv-cell"><span class="cs-drv-k">CDMG</span> <span class="cs-drv-v" id="cs-drv-CDMG">—</span></div>
-            <div class="cs-drv-cell"><span class="cs-drv-k">BLK</span>  <span class="cs-drv-v" id="cs-drv-BLK">—</span></div>
-            <div class="cs-drv-cell"><span class="cs-drv-k">BpWr</span> <span class="cs-drv-v" id="cs-drv-BpWr">—</span></div>
-            <div class="cs-drv-cell"><span class="cs-drv-k">EVA</span>  <span class="cs-drv-v" id="cs-drv-EVA">—</span></div>
-          </div>
-        </div>
-
-        <!-- 🆕 D.6: 屬性升級區（EXP 條 + 花 SP 升級按鈕） -->
-        <div id="cs-attr-spend"></div>
-
-        <!-- R3: 當前狀態 -->
+        <div class="cs-section-title">裝備</div>
+        <div id="cs-equip-slots"></div>
+        <!-- 人物特質：特性 + 疤痕 + 病痛 合一 -->
         <div class="cs-divider"></div>
-        <div class="cs-section-title">當前狀態</div>
-        <div id="cs-state-list">
-          <div class="cs-state-row"><span class="cs-state-icon">🕊</span><span class="cs-state-label">信仰</span><span class="cs-state-val" id="cs-state-religion">—</span></div>
-          <div class="cs-state-row"><span class="cs-state-icon">🏛</span><span class="cs-state-label">派系</span><span class="cs-state-val" id="cs-state-faction">—</span></div>
-          <div class="cs-state-row"><span class="cs-state-icon">🌍</span><span class="cs-state-label">世界</span><span class="cs-state-val" id="cs-state-world">和平</span></div>
+        <div class="cs-section-title">人物特質</div>
+
+        <div class="cs-traits-wrap" id="cs-traits-all">
+          <div id="cs-traits-list"></div>
+          <div id="cs-scars-list"></div>
+          <div id="cs-ailments-list"></div>
         </div>
 
-        <!-- R4: 特性 -->
-        <div class="cs-divider"></div>
-        <div class="cs-section-title">特性</div>
-        <div id="cs-traits-list">
-          <div class="cs-traits-empty">尚無特性</div>
-        </div>
-
-        <!-- R5: 疤痕 -->
-        <div class="cs-divider"></div>
-        <div class="cs-section-title">疤痕</div>
-        <div id="cs-scars-list">
-          <div class="cs-traits-empty" style="color:var(--text-dim)">尚無疤痕</div>
-        </div>
-
-        <!-- R6: 病痛 -->
-        <div class="cs-divider"></div>
-        <div class="cs-section-title">病痛</div>
-        <div id="cs-ailments-list">
-          <div class="cs-traits-empty" style="color:var(--text-dim)">無病痛</div>
-        </div>
-
-        <!-- R7: 技能 -->
+        <!-- 技能 -->
         <div class="cs-divider"></div>
         <div class="cs-section-title">技能</div>
         <div id="cs-skill-list">
           <div class="cs-skill-empty">尚未習得任何技能</div>
         </div>
+      </div><!-- /cs-col-mid -->
+
+      <!-- ══ RIGHT COLUMN (20%): 常前 / 人物特質 / 技能 ══ -->
+      <div class="cs-col cs-col-right">
+        
+        <div class="cs-section-title">資源</div>
+        <div class="cs-equip-row">
+          <span class="cs-equip-slot">💰 金錢</span>
+          <span class="cs-equip-val" id="cs-money">0</span>
+        </div>
+        <div class="cs-divider"></div>
+        <!-- 當前狀態：護符 + 寵物 + 信仰/派系/世界 -->
+        <div class="cs-section-title">當前狀態</div>
+
+        <div class="cs-subsection-title">護符</div>
+        <div id="cs-amulets-grid" class="cs-amulet-grid"></div>
+
+        <div class="cs-subsection-title">寵物</div>
+        <div id="cs-pets-list"></div>
+
+        <div id="cs-state-list" style="margin-top:8px;">
+          <div class="cs-state-row"><span class="cs-state-icon">🕊</span><span class="cs-state-label">信仰</span><span class="cs-state-val" id="cs-state-religion">—</span></div>
+          <div class="cs-state-row"><span class="cs-state-icon">🏛</span><span class="cs-state-label">派系</span><span class="cs-state-val" id="cs-state-faction">—</span></div>
+          <div class="cs-state-row"><span class="cs-state-icon">🌍</span><span class="cs-state-label">世界</span><span class="cs-state-val" id="cs-state-world">和平</span></div>
+        </div>
+
+        <!-- 資源 -->
+        
 
       </div><!-- /cs-col-right -->
 

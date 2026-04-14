@@ -1773,7 +1773,7 @@ const Game = (() => {
   const _HEX_CENTER = 150;
   const _HEX_MAX_R  = 85;   // 對應數值 100
   const _HEX_LABEL_R = 108;
-  const _HEX_VAL_R   = 132;
+  const _HEX_VAL_R   = 140;
 
   let _hexSvgReady = false;
 
@@ -1903,12 +1903,12 @@ const Game = (() => {
             <span class="cs-spend-label">${key}</span>
             <span class="cs-spend-val">${lvl}</span>
             <button class="cs-spend-btn" data-spend-attr="${key}" ${canAfford ? '' : 'disabled'}
-                    title="${tooltip}">
-              升級
-            </button>
+                    title="${tooltip}">升級</button>
           </div>
-          <div class="cs-spend-exp-track"><div class="cs-spend-exp-fill" style="width:${pct}%"></div></div>
-          <div class="cs-spend-exp-num">${exp} / ${cost} EXP</div>
+          <div class="cs-spend-exp-row">
+            <div class="cs-spend-exp-track"><div class="cs-spend-exp-fill" style="width:${pct}%"></div></div>
+            <span class="cs-spend-exp-num">${exp}/${cost}</span>
+          </div>
         </div>`;
     }).join('');
 
@@ -1954,7 +1954,7 @@ const Game = (() => {
     if (traits.length === 0) {
       traitsList.innerHTML = '<div class="cs-traits-empty">尚無特性</div>';
     } else {
-      traitsList.innerHTML = '<div class="cs-traits-list">' + traits.map(id => {
+      traitsList.innerHTML = traits.map(id => {
         const def = Config.TRAIT_DEFS[id];
         const name = def ? def.name : id;
         const desc = def ? def.desc : '';
@@ -1964,7 +1964,7 @@ const Game = (() => {
         return `<span class="trait-tag ${cls}" title="${desc}">
           <span class="trait-prefix">${prefix}</span>${name}
         </span>`;
-      }).join('') + '</div>';
+      }).join('');
     }
   }
 
@@ -1974,13 +1974,13 @@ const Game = (() => {
     if (!el) return;
     const scars = Stats.player.scars || [];
     if (scars.length === 0) {
-      el.innerHTML = '<div class="cs-traits-empty" style="color:var(--text-dim)">尚無疤痕</div>';
+      el.innerHTML = '<div class="cs-traits-empty">尚無疤痕</div>';
     } else {
-      el.innerHTML = '<div class="cs-traits-list">' + scars.map(s => {
+      el.innerHTML = scars.map(s => {
         const name = s.name || s.id || '?';
         const desc = s.desc || '';
-        return `<span class="trait-tag trait-negative" title="${desc}">✖ ${name}</span>`;
-      }).join('') + '</div>';
+        return `<span class="trait-tag trait-scar" title="${desc}">✖ ${name}</span>`;
+      }).join('');
     }
   }
 
@@ -1991,16 +1991,16 @@ const Game = (() => {
     if (!ailmentsList) return;
     const ailments = p.ailments || [];
     if (ailments.length === 0) {
-      ailmentsList.innerHTML = '<div class="cs-traits-empty" style="color:var(--text-dim)">無病痛</div>';
+      ailmentsList.innerHTML = '<div class="cs-traits-empty">無病痛</div>';
     } else {
-      ailmentsList.innerHTML = '<div class="cs-traits-list">' + ailments.map(id => {
+      ailmentsList.innerHTML = ailments.map(id => {
         const def  = Config.AILMENT_DEFS[id];
         const name = def ? def.name : id;
         const desc = def ? def.desc : '';
         return `<span class="trait-tag trait-ailment" title="${desc}">
           <span class="trait-prefix">⚕</span>${name}
         </span>`;
-      }).join('') + '</div>';
+      }).join('');
     }
   }
 
@@ -2512,9 +2512,9 @@ const Game = (() => {
         origin:null, facility:null, religion:null, faction:null,
         // 其他
         affection:{ master:0, officer:0, blacksmith:0, cook:0 },
-        achievements:[], traits:[], title:null, fameBase:0,
+        achievements:[], traits:['kindness'], title:null, fameBase:0,
         // 🆕 Phase 1-D 病痛/睡眠追蹤
-        ailments:[], insomniaStreak:0, normalSleepStreak:0,
+        ailments:['insomnia_disorder'], insomniaStreak:0, normalSleepStreak:0,
         staminaPenalty:{ STR:0, DEX:0, CON:0, AGI:0, WIL:0, LUK:0 },
         combatStats:{
           executionCount:0, spareCount:0, suppressCount:0,

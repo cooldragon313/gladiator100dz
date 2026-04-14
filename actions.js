@@ -45,17 +45,7 @@ const ACTIONS = {
       { type: 'vital', key: 'mood', delta: 5 },
     ],
   },
-  writeMemory: {
-    id: 'writeMemory', name: '記錄心得',
-    desc: '在沙地上刻字，整理技術與心理狀態。',
-    slots: 1, staminaCost: 3, foodCost: 0,
-    fields: 'any',
-    effects: [
-      { type: 'exp',   key: 'WIL',  delta: 3 },
-      { type: 'exp',   key: 'DEX',  delta: 3 },
-      { type: 'vital', key: 'mood', delta: 8 },
-    ],
-  },
+
 
   // ── 訓練場 ───────────────────────────────────────────────
   // 🆕 Phase 1 重構：訓練場是唯一場景（stdTraining）

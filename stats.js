@@ -103,10 +103,10 @@ const Stats = (() => {
 
     // ── Achievements & Traits ──
     achievements: [],      // 已解鎖成就 ID 陣列
-    traits:       [],      // 已激活特性 ID 陣列（positive/negative）
+    traits:       ['kindness'],             // 已激活特性 ID 陣列（positive/negative）
     // 🆕 D.6 v2: 已習得技能 ID 陣列（含被動與主動，被動自動生效）
     learnedSkills: [],
-    ailments:     [],      // 🆕 Phase 1-D: 當前病痛 ID 陣列（見 Config.AILMENT_DEFS）
+    ailments:     ['insomnia_disorder'],   // 🆕 Phase 1-D: 當前病痛 ID 陣列（見 Config.AILMENT_DEFS）
     title:        null,    // 額外稱號（字串 or null）
     fameBase:     0,       // 每場競技場獲勝的額外固定名聲
 
