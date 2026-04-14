@@ -106,6 +106,8 @@ const Stats = (() => {
     traits:       ['kindness'],             // 已激活特性 ID 陣列（positive/negative）
     // 🆕 D.6 v2: 已習得技能 ID 陣列（含被動與主動，被動自動生效）
     learnedSkills: [],
+    // 🆕 D.12: 已觸發的 story reveal ID 陣列（防止 onceOnly 事件重複）
+    seenReveals:  [],
     ailments:     ['insomnia_disorder'],   // 🆕 Phase 1-D: 當前病痛 ID 陣列（見 Config.AILMENT_DEFS）
     title:        null,    // 額外稱號（字串 or null）
     fameBase:     0,       // 每場競技場獲勝的額外固定名聲
@@ -116,11 +118,15 @@ const Stats = (() => {
   };
 
   // Effective attr = base + equipment bonus + buff bonus - stamina penalty
+  // 🆕 D.6 v2：最終值強制整數（Math.round），任何小數來源（舊 delta、buff、計算誤差）
+  //            都會在這裡被扁平化。所有下游呼叫者（六角形/升級卡/calcDerived/戰鬥）都拿整數。
   function eff(attr) {
-    return player[attr]
+    return Math.round(
+      player[attr]
       + (player.eqBonus[attr]      || 0)
       + (player.buffBonus[attr]    || 0)
-      - (player.staminaPenalty[attr] || 0);
+      - (player.staminaPenalty[attr] || 0)
+    );
   };
 
   function calcDerived() {
@@ -184,7 +190,7 @@ const Stats = (() => {
 
   function renderVitalBars() {
     player.hpMax = player.hpBase + Math.round(2 * eff('CON'));
-    player.hp = Math.min(player.hp, player.hpMax);
+    player.hp = Math.round(Math.min(player.hp, player.hpMax));
     const defs = [
       { id:'bar-hp',      val: player.hp,      max: player.hpMax,      color:'#cc2200', label:'HP'   },
       { id:'bar-stamina', val: player.stamina,  max: player.staminaMax, color:'#cc7700', label:'體力' },
@@ -202,14 +208,9 @@ const Stats = (() => {
   }
 
   function renderAttributes() {
-    const map = [
-      ['力量', 'STR'], ['反應', 'AGI'],
-      ['靈巧', 'DEX'], ['意志', 'WIL'],
-      ['體質', 'CON'], ['幸運', 'LUK'],
-    ];
-    map.forEach(([label, key]) => {
+    ['STR','DEX','CON','AGI','WIL','LUK'].forEach(key => {
       const el = document.getElementById('attr-' + key);
-      if (el) el.textContent = Math.round(eff(key));
+      if (el) el.textContent = eff(key);   // eff() 已 Math.round
     });
   }
 
@@ -262,7 +263,8 @@ const Stats = (() => {
 
   function modVital(key, delta) {
     const maxKey = key + 'Max';
-    player[key] = Math.max(0, Math.min(player[maxKey] || 100, player[key] + delta));
+    // 🆕 D.6 v2：強制整數化，杜絕倍率（心情/協力 1.25 等）累積出小數
+    player[key] = Math.max(0, Math.min(player[maxKey] || 100, Math.round(player[key] + delta)));
     if (key === 'stamina') updateStaminaPenalty();
     renderVitalBars();
   }
@@ -297,6 +299,78 @@ const Stats = (() => {
     ['STR','DEX','CON','AGI','WIL','LUK'].forEach(k => {
       if (typeof player[k] === 'number') {
         player[k] = Math.max(1, Math.round(player[k]));
+      }
+    });
+  }
+
+  /**
+   * 🆕 Phase 2 S1 前哨：套用玩家背景（origin）。
+   * 會修改玩家屬性、加初始特性/旗標、套初始 NPC 好感等。
+   * 被 confirmName 之後的 openOriginModal 流程呼叫。
+   *
+   * @param {string} originId — Origins 表的 id（farmBoy / nobleman / ...）
+   * @returns {boolean} 是否套用成功
+   */
+  function applyOrigin(originId) {
+    if (typeof Origins === 'undefined' || !Origins[originId]) return false;
+    const o = Origins[originId];
+    if (o.locked) return false;
+
+    // 記錄選擇的背景
+    player.origin = originId;
+
+    // 屬性修正
+    if (o.statMod) {
+      Object.entries(o.statMod).forEach(([attr, delta]) => {
+        if (player[attr] !== undefined) {
+          player[attr] = Math.max(1, Math.round(player[attr] + delta));
+        }
+      });
+    }
+
+    // 初始特性
+    if (Array.isArray(o.startingTraits)) {
+      if (!Array.isArray(player.traits)) player.traits = [];
+      o.startingTraits.forEach(t => {
+        if (!player.traits.includes(t)) player.traits.push(t);
+      });
+    }
+
+    // 初始旗標（D.1.1 Flags 系統）
+    if (Array.isArray(o.startingFlags) && typeof Flags !== 'undefined') {
+      o.startingFlags.forEach(f => Flags.set(f, true));
+    }
+
+    // 初始金錢
+    if (typeof o.startingMoney === 'number') {
+      player.money = o.startingMoney;
+    }
+
+    // 初始 NPC 好感修正
+    if (o.initialNpcAffection && typeof teammates !== 'undefined') {
+      Object.entries(o.initialNpcAffection).forEach(([npcId, delta]) => {
+        teammates.modAffection(npcId, delta);
+      });
+    }
+
+    // 重算屬性上限（CON 改了會影響 hpMax）
+    player.hpMax = player.hpBase + Math.round(2 * eff('CON'));
+    player.hp    = player.hpMax;   // 新遊戲起手滿血
+
+    renderAttributes();
+    renderDerivedStats();
+    renderVitalBars();
+    return true;
+  }
+
+  /**
+   * 🆕 D.6 v2：強制將生命/體力/飽食/心情整數化。
+   * 處理舊存檔（modVital 整數化之前的存檔）+ 任何繞過 modVital 的寫入。
+   */
+  function sanitizeVitalsToInt() {
+    ['hp','stamina','food','mood','hpMax','staminaMax','foodMax','moodMax','hpBase','fame','money','sp'].forEach(k => {
+      if (typeof player[k] === 'number') {
+        player[k] = Math.max(0, Math.round(player[k]));
       }
     });
   }
@@ -550,9 +624,11 @@ const Stats = (() => {
     modMoney,      // 🆕 D.1.6
     modExp,        // 🆕 D.6
     modSp,         // 🆕 D.6
-    expToNext,          // 🆕 D.6 升級曲線查詢
-    spendExpOnAttr,     // 🆕 D.6 v2 花 EXP 升屬性
-    sanitizeAttrsToInt, // 🆕 D.6 舊存檔小數整數化
+    expToNext,           // 🆕 D.6 升級曲線查詢
+    spendExpOnAttr,      // 🆕 D.6 v2 花 EXP 升屬性
+    sanitizeAttrsToInt,  // 🆕 D.6 舊存檔屬性整數化
+    sanitizeVitalsToInt, // 🆕 D.6 v2 舊存檔 vital 整數化
+    applyOrigin,         // 🆕 Phase 2 S1 前哨：套用玩家背景
     // 🆕 D.6 v2: 技能購買
     hasSkill,
     getSkillCost,

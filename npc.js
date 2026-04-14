@@ -4,6 +4,25 @@
  * D.1.5: NPC 結構擴展為完整模板（見 DESIGN.md D.11.7）
  * 加入所有未來系統需要的欄位（成長/人格/漸進揭露/連動/資產）。
  * 每個 NPC 只需填寫該填的欄位，其他由 _applyDefaults() 自動補齊。
+ *
+ * 🆕 D.12 故事揭露系統（見 DESIGN.md D.12）：
+ *   每個 NPC 可以填 storyReveals: [...] 陣列，裡面每個元素是一段 reveal。
+ *
+ *   type: 'flavor'   — 關係圖卡片常駐顯示（依條件顯示最高可見的一段）
+ *   type: 'event'    — 事件型，晚間就寢時隨機 roll 觸發一次
+ *
+ *   條件欄位（都是可選的，除 affection 外）：
+ *     affection:        最低好感門檻（必填）
+ *     requireAnyTrait:  ['insomnia_disorder', 'neurotic']  任一即可
+ *     requireAnyAilment:['insomnia_disorder']              任一即可
+ *     requireMinAttr:   { WIL: 15 }                        屬性最低值
+ *     requireFlag:      'story_lord_is_enemy'              需特定旗標
+ *     requireOrigin:    'farmBoy'                           限背景
+ *     requireItemTag:   'marco_charm'                       身上需有帶此 tag 的物品
+ *     chance:           0.3                                 觸發機率（event 型必填）
+ *     onceOnly:         true                                觸發過就不再（event 預設 true）
+ *     grantItem:        'marcoCharm'                        觸發時贈送道具
+ *     logColor:         '#8899aa'                           事件 log 顏色
  */
 const teammates = (() => {
 
@@ -84,15 +103,73 @@ const teammates = (() => {
       title: '老練劍士',
       desc: '在競技場存活超過五年的老兵。話不多，但每句話都值得記住。',
       baseAffection: 10,
-      // 以下為範例填充（其他 NPC 先留空，逐步補齊）
       personality: 'loner',
       personalityDesc: '沉默寡言，但對新人有隱藏的耐心。重承諾，鄙視欺騙。',
       arriveDay: 1,
-      hiddenQuestHints: {
-        '40': '他凝視西邊的牆壁，像在看什麼不存在的東西。',
-        '60': '他枕下似乎藏著一塊符牌。',
-        '80': '「老兵的遺憾」下次交談將觸發。',
-      },
+      // 🆕 D.12 故事揭露系統：範本 NPC
+      // 故事主幹：卡西烏斯的戰友馬可死在西牆邊的訓練意外。
+      //          他每晚重複做同一個夢——夢到自己沒能及時出手。
+      //          枕頭下的符牌是馬可留的，他每晚摩挲它直到睡著。
+      storyReveals: [
+        // ── Flavor 段：關係圖卡片常駐顯示 ──────────────────────
+        {
+          id:        'cassius_quiet',
+          type:      'flavor',
+          affection: 10,
+          text:      '他很少說話。每天揮劍的時間永遠比別人多一個小時。',
+        },
+        {
+          id:        'cassius_sleep_issue',
+          type:      'flavor',
+          affection: 40,
+          text:      '最近他夜裡睡得不安穩。你看過他凝視西邊的牆——像在看一個不存在的人。',
+        },
+        {
+          id:        'cassius_charm',
+          type:      'flavor',
+          affection: 60,
+          text:      '他枕頭下似乎壓著一塊老舊的符牌。邊角被磨得發亮，像被人反覆摩挲了幾千次。',
+        },
+        {
+          id:        'cassius_two_names',
+          type:      'flavor',
+          affection: 80,
+          text:      '他願意讓你看他的劍。劍柄內側刻著兩個名字——一個是他的，另一個比他的深得多。',
+        },
+
+        // ── Event 段：夜間共鳴觸發（一次性） ────────────────────
+        {
+          id:              'cassius_whisper_night',
+          type:            'event',
+          affection:       40,
+          requireAnyTrait: ['insomnia_disorder', 'neurotic'],  // 失眠或神經質的人才聽得見
+          chance:          0.30,
+          onceOnly:        true,
+          text:            '深夜裡你聽見他低聲念著一個名字——「馬可」。他念得很慢，像怕那個名字散掉。',
+          logColor:        '#8899aa',
+        },
+        {
+          id:              'cassius_shared_silence',
+          type:            'event',
+          affection:       60,
+          requireAnyAilment:['insomnia_disorder'],             // 只給失眠症的人
+          chance:          0.50,
+          onceOnly:        true,
+          text:            '你睜眼時與他對視。兩個失眠者在黑暗中沉默了很久。他先移開眼睛，然後輕輕說：「我也是。」',
+          logColor:        '#aa99cc',
+        },
+        {
+          id:              'cassius_charm_touch',
+          type:            'event',
+          affection:       80,
+          requireMinAttr:  { WIL: 15 },                         // 意志夠強才能承接託付
+          chance:          0.25,
+          onceOnly:        true,
+          text:            '他把那塊符牌塞進你手裡。「如果哪天我撐不下去，」他說，「幫我把它扔到西牆外。別問為什麼。」',
+          logColor:        '#e8d070',
+          grantItem:       'marcoCharm',                        // 下次實作 item 層時會真的給出物品
+        },
+      ],
     },
 
     dagiSlave: {
@@ -313,6 +390,90 @@ const teammates = (() => {
     return NPC_DEFS;
   }
 
+  // ══════════════════════════════════════════════════
+  // 🆕 D.12 故事揭露系統：helper 函式
+  // ══════════════════════════════════════════════════
+
+  /**
+   * 檢查一段 reveal 是否通過所有條件。
+   * @param {object} reveal
+   * @param {object} player — Stats.player
+   * @param {number} currentAff — 當前好感度
+   */
+  function _revealPassesConditions(reveal, player, currentAff) {
+    if (!reveal) return false;
+    if ((reveal.affection || 0) > currentAff) return false;
+
+    if (reveal.requireAnyTrait) {
+      const traits = player.traits || [];
+      if (!reveal.requireAnyTrait.some(t => traits.includes(t))) return false;
+    }
+    if (reveal.requireAnyAilment) {
+      const ailments = player.ailments || [];
+      if (!reveal.requireAnyAilment.some(a => ailments.includes(a))) return false;
+    }
+    if (reveal.requireMinAttr) {
+      for (const [attr, min] of Object.entries(reveal.requireMinAttr)) {
+        const v = (typeof Stats !== 'undefined' && Stats.eff) ? Stats.eff(attr) : (player[attr] || 0);
+        if (v < min) return false;
+      }
+    }
+    if (reveal.requireFlag && typeof Flags !== 'undefined' && !Flags.has(reveal.requireFlag)) return false;
+    if (reveal.requireOrigin && player.origin !== reveal.requireOrigin) return false;
+    // requireItemTag 留待 D.14 實作，先跳過
+    return true;
+  }
+
+  /**
+   * 取得此 NPC 當前可見的最高段 flavor 文字。
+   * 條件都要符合：好感門檻 + requireAnyTrait/Ailment/MinAttr/Flag/Origin。
+   * 會選出 affection 最高的那一段（更深入的描述優先）。
+   *
+   * @param {string} npcId
+   * @param {object} [player] — 預設用 Stats.player
+   * @returns {string|null}
+   */
+  function getVisibleFlavor(npcId, player) {
+    const id  = _resolveId(npcId);
+    const npc = NPC_DEFS[id];
+    if (!npc || !Array.isArray(npc.storyReveals)) return null;
+    const p = player || (typeof Stats !== 'undefined' ? Stats.player : null);
+    if (!p) return null;
+
+    const currentAff = getAffection(id);
+    const flavors = npc.storyReveals
+      .filter(r => (r.type || 'flavor') === 'flavor')
+      .filter(r => _revealPassesConditions(r, p, currentAff))
+      .sort((a, b) => (b.affection || 0) - (a.affection || 0));  // 最高門檻優先
+    return flavors.length > 0 ? flavors[0].text : null;
+  }
+
+  /**
+   * 取得所有符合條件的 event 型 reveal（尚未觸發過的）。
+   * 由事件掃描器呼叫（_scanStoryEvents）。
+   *
+   * @param {object} [player] — 預設用 Stats.player
+   * @returns {Array<{ npcId, reveal }>}
+   */
+  function getPendingStoryEvents(player) {
+    const p = player || (typeof Stats !== 'undefined' ? Stats.player : null);
+    if (!p) return [];
+    const seen = new Set(p.seenReveals || []);
+    const pending = [];
+
+    Object.values(NPC_DEFS).forEach(npc => {
+      if (!Array.isArray(npc.storyReveals)) return;
+      const aff = getAffection(npc.id);
+      npc.storyReveals.forEach(r => {
+        if ((r.type || 'flavor') !== 'event') return;
+        if (seen.has(r.id)) return;
+        if (!_revealPassesConditions(r, p, aff)) return;
+        pending.push({ npcId: npc.id, reveal: r });
+      });
+    });
+    return pending;
+  }
+
   return {
     NPC_DEFS,
     getAffection,
@@ -322,5 +483,8 @@ const teammates = (() => {
     getAllNPCs,          // D.1.5
     getAllAffection,
     setAllAffection,
+    // 🆕 D.12 故事揭露系統
+    getVisibleFlavor,
+    getPendingStoryEvents,
   };
 })();

@@ -235,6 +235,10 @@ const Config = (() => {
       id: 'kindness', name: '寬厚', category: 'positive',
       desc: '對他人的善意讓你更容易獲得好感。隊友好感成長速度 +20%。',
     },
+    diligence: {
+      id: 'diligence', name: '勤勉', category: 'positive',
+      desc: '日復一日的耕作讓你學會耐心與堅持。所有屬性訓練 EXP +10%。',
+    },
     iron_will: {
       id: 'iron_will', name: '鐵意志', category: 'positive',
       desc: '意志力超乎常人，在極端壓力下仍能保持冷靜。WIL 訓練效率 +15%。',
@@ -247,6 +251,15 @@ const Config = (() => {
       id: 'unbreakable', name: '不屈之身', category: 'positive',
       desc: 'HP 跌至 20% 以下時，攻擊力 +15%。',
     },
+    // 🆕 D.12 / D.13 新增：解鎖睡前活動與故事共鳴
+    literate: {
+      id: 'literate', name: '識字', category: 'positive',
+      desc: '奴隸中罕見的能力。睡前可以讀書、寫日記；能讀懂牆上的字、信件、地圖。',
+    },
+    silverTongue: {
+      id: 'silverTongue', name: '巧舌', category: 'positive',
+      desc: '天生的說書人。睡前可以說故事給隊友聽，提升隊友好感。',
+    },
     // ── 負面特性 ─────────────────────────────────
     reckless: {
       id: 'reckless', name: '急躁', category: 'negative',
@@ -255,6 +268,15 @@ const Config = (() => {
     shaken: {
       id: 'shaken', name: '信心崩潰', category: 'negative',
       desc: '近期的失敗打擊了你的自信。所有屬性訓練效率 −10%。',
+    },
+    // 🆕 D.12 / D.13 新增：負面但能觸發共鳴故事
+    neurotic: {
+      id: 'neurotic', name: '神經質', category: 'negative',
+      desc: '夜裡易驚醒，正向好感成長 −20%。但能察覺別人察覺不到的細微事物——夜間故事觸發機率 ×1.5。',
+    },
+    brooding: {
+      id: 'brooding', name: '鬱結', category: 'negative',
+      desc: '容易陷入往事。心情恢復 −20%，但獨自沉思時偶爾會觸發深層記憶。',
     },
   };
 

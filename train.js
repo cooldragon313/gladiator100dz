@@ -30,19 +30,7 @@ const Training = {
     gains: [{ type: 'attr', key: 'CON', delta: 0.5 }, { type: 'vital', key: 'hpMax', delta: 2 }],
     minField: 'oldTraining',
   },
-  sparring: {
-    id: 'sparring', name: '對練',
-    desc: '與隊友切磋，同時提升攻擊與反應速度。',
-    timeRequired: 90,
-    staminaCost: 25,
-    foodCost: 8,
-    gains: [
-      { type: 'attr', key: 'STR', delta: 0.3 },
-      { type: 'attr', key: 'DEX', delta: 0.3 },
-    ],
-    minField: 'stdTraining',
-    requireTeammate: true,
-  },
+  
   heavyLift: {
     id: 'heavyLift', name: '重量訓練',
     desc: '舉起重石，蠻力滾滾而來。',

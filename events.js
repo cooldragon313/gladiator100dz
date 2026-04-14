@@ -664,7 +664,8 @@ const Events = (() => {
       effects: [
         { type: 'vital', key: 'food', delta: 25 },
         { type: 'vital', key: 'mood', delta: 12 },
-        { type: 'money', delta: 3 },   // 剩餘零錢
+        { type: 'money', delta: 3 },                              // 剩餘零錢
+        { type: 'affection', key: 'masterArtus', delta: +3 },     // 🆕 完成跑腿，主人信任 +
       ],
       flagSet: null,
     },
@@ -676,7 +677,8 @@ const Events = (() => {
       effects: [
         { type: 'vital', key: 'food', delta: 20 },
         { type: 'vital', key: 'mood', delta: 8  },
-        { type: 'fame',  delta: 1 },  // 開始被市井聽說
+        { type: 'fame',  delta: 1 },                              // 開始被市井聽說
+        { type: 'affection', key: 'masterArtus', delta: +3 },     // 🆕
       ],
       flagSet: 'heard_arena_rumor',
     },
@@ -688,6 +690,7 @@ const Events = (() => {
       effects: [
         { type: 'vital', key: 'food', delta: 20 },
         { type: 'vital', key: 'mood', delta: 18 },
+        { type: 'affection', key: 'masterArtus', delta: +2 },     // 🆕 扶小孩可能讓護衛不悅，主人好感 +2（比純跑腿少）
       ],
       flagSet: null,
     },

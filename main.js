@@ -294,10 +294,20 @@ const Game = (() => {
   }
 
   // ── Log ───────────────────────────────────────────────
-  function addLog(text, color = '#e0e0e0', italic = true) {
+  function addLog(text, color = '#e0e0e0', italic = true, flash = false) {
     logHistory.unshift({ text, color, italic });
     if (logHistory.length > MAX_LOG) logHistory.pop();
     renderLog();
+    if (flash) _flashLogArea();
+  }
+
+  /** 🆕 D.12 v2: 日誌區金色脈動，提醒玩家有重要事件 */
+  function _flashLogArea() {
+    const el = document.getElementById('log-area');
+    if (!el) return;
+    el.classList.remove('log-flash');
+    void el.offsetHeight;   // force reflow so animation restarts
+    el.classList.add('log-flash');
   }
 
   function renderLog() {
@@ -623,41 +633,44 @@ const Game = (() => {
   /**
    * 🆕 Phase 1-D: 就寢事件 — 加權隨機選 sleep_normal / insomnia / nightmare
    * 在 sleepEndDay() 推進天數之前呼叫。
+   *
+   * 🆕 D.12 v2：接受可選的 forcedType 參數，由 sleepEndDay 預先 roll 後傳入，
+   *              讓 Stage 動畫能提前知道要播哪一種就寢演出。
    */
-  function _triggerSleepEvent() {
+  function _rollSleepType() {
     const p = Stats.player;
-    const daily = Config.DAILY;
     const hasInsomniaDisorder = p.ailments?.includes('insomnia_disorder');
 
-    // ── 動態權重 ──────────────────────────────────
-    // 基礎：normal 60 / insomnia 25 / nightmare 15
     let wNormal    = 60;
     let wInsomnia  = 25;
     let wNightmare = 15;
 
-    // 心情差 → 失眠+
     if (p.mood <= 20)       { wInsomnia += 20; wNormal -= 15; }
     else if (p.mood <= 40)  { wInsomnia += 10; wNormal -= 8;  }
 
-    // 體力過剩 → 失眠+（睡不著）
     if (p.stamina >= Config.THRESHOLDS.stamina.overcharged) { wInsomnia += 10; wNormal -= 8; }
 
-    // 遊戲天數越高 → 噩夢稍多
-    if (p.day >= 20)  { wNightmare += 8; wNormal -= 5;  }
-    if (p.day >= 50)  { wNightmare += 7; wNormal -= 5;  }
+    if (p.day >= 20) { wNightmare += 8; wNormal -= 5; }
+    if (p.day >= 50) { wNightmare += 7; wNormal -= 5; }
 
-    // 已有失眠症 → 正常睡覺很難
     if (hasInsomniaDisorder) { wInsomnia += 25; wNormal -= 20; }
 
-    wNormal = Math.max(10, wNormal);  // 正常睡眠最少保留 10%
+    wNormal = Math.max(10, wNormal);
 
     const total = wNormal + wInsomnia + wNightmare;
     const roll  = Math.random() * total;
 
-    let sleepType;
-    if (roll < wNormal)               sleepType = 'normal';
-    else if (roll < wNormal + wInsomnia) sleepType = 'insomnia';
-    else                               sleepType = 'nightmare';
+    if (roll < wNormal)                  return 'normal';
+    if (roll < wNormal + wInsomnia)      return 'insomnia';
+    return 'nightmare';
+  }
+
+  function _triggerSleepEvent(forcedType) {
+    const p = Stats.player;
+    const daily = Config.DAILY;
+    const hasInsomniaDisorder = p.ailments?.includes('insomnia_disorder');
+
+    const sleepType = forcedType || _rollSleepType();
 
     // ── 就寢效果 ──────────────────────────────────
     const staminaMax = hasInsomniaDisorder
@@ -674,14 +687,14 @@ const Game = (() => {
       p.insomniaStreak   = 0;
       p.normalSleepStreak = (p.normalSleepStreak || 0) + 1;
     } else if (sleepType === 'insomnia') {
-      addLog('🌙【就寢】夜深了，但眼睛怎麼也合不上。腦子裡轉的全是訓練場的聲音。等你終於睡著，天色已開始泛白。', '#c47a6e', true);
+      addLog('🌙【就寢】夜深了，但眼睛怎麼也合不上。腦子裡轉的全是訓練場的聲音。等你終於睡著，天色已開始泛白。', '#c47a6e', true, true);
       Stats.modVital('stamina', Math.round(staminaGain * 0.45));
       Stats.modVital('mood',    -5);
       // 失眠計數 +1
       p.insomniaStreak   = (p.insomniaStreak || 0) + 1;
       p.normalSleepStreak = 0;
     } else { // nightmare
-      addLog('🌙【就寢】夢見鮮血。夢見沙土。夢見一張臉——你說不清楚是誰。驚醒時全身冷汗，天色才剛亮。', '#c47a6e', true);
+      addLog('🌙【就寢】夢見鮮血。夢見沙土。夢見一張臉——你說不清楚是誰。驚醒時全身冷汗，天色才剛亮。', '#c47a6e', true, true);
       Stats.modVital('stamina', Math.round(staminaGain * 0.55));
       Stats.modVital('mood',    -12);
       // 噩夢計入失眠（也算沒睡好）
@@ -695,12 +708,12 @@ const Game = (() => {
 
     if (p.insomniaStreak >= 2 && !p.ailments.includes('insomnia_disorder')) {
       p.ailments.push('insomnia_disorder');
-      addLog('⚕ 連續兩夜無法充分休息——你感覺到某種根深蒂固的疲憊在蔓延。【失眠症】發作。', '#ff6868', true);
+      addLog('⚕ 連續兩夜無法充分休息——你感覺到某種根深蒂固的疲憊在蔓延。【失眠症】發作。', '#ff6868', true, true);
     }
     if (p.normalSleepStreak >= 3 && p.ailments.includes('insomnia_disorder')) {
       p.ailments = p.ailments.filter(a => a !== 'insomnia_disorder');
       p.insomniaStreak = 0;
-      addLog('✦ 連續幾夜好眠，那種深層的疲憊終於消散了。【失眠症】已解除。', '#88d870', true);
+      addLog('✦ 連續幾夜好眠，那種深層的疲憊終於消散了。【失眠症】已解除。', '#88d870', true, true);
     }
   }
 
@@ -1223,18 +1236,100 @@ const Game = (() => {
   }
 
   // ── Sleep / end day ────────────────────────────────────
-  function sleepEndDay() {
+  // ══════════════════════════════════════════════════
+  // 🆕 D.12: NPC 故事事件掃描器（每晚就寢前呼叫）
+  // ══════════════════════════════════════════════════
+  /**
+   * 掃描所有 NPC 的 storyReveals 中 type='event' 的段落，
+   * 符合條件（好感/特性/屬性/旗標/...）且尚未觸發過的，
+   * 依 chance roll 觸發。觸發後記錄到 player.seenReveals。
+   *
+   * 一晚可能觸發多個（但每段只會觸發一次）。
+   */
+  function _scanStoryEvents() {
+    if (typeof teammates === 'undefined' || !teammates.getPendingStoryEvents) return;
+    const p = Stats.player;
+    if (!Array.isArray(p.seenReveals)) p.seenReveals = [];
+
+    const pending = teammates.getPendingStoryEvents(p);
+    pending.forEach(({ reveal }) => {
+      const chance = reveal.chance || 0;
+      if (Math.random() >= chance) return;
+
+      // 觸發：寫 log + flash + 記錄 seen
+      const color = reveal.logColor || '#c8b898';
+      addLog(reveal.text, color, true, true);   // flash=true 確保玩家看到
+      p.seenReveals.push(reveal.id);
+
+      // 未來 D.14 實作：reveal.grantItem → 把道具加到 personalItems
+      // 目前先記錄到 Flags 以便後續系統讀取
+      if (reveal.grantItem && typeof Flags !== 'undefined') {
+        Flags.set('story_granted_' + reveal.grantItem, true);
+      }
+    });
+  }
+
+  // 🆕 D.12 v2: 事件佇列——由 DayCycle 等內部系統在黑幕下 push，
+  //              Stage.playSleep 結束後依序播放為小過場，確保玩家有感。
+  let _pendingStageEvents = [];
+
+  /** 推一個事件到佇列，Stage.playSleep 後會播放 */
+  function queueStageEvent(evt) {
+    if (!evt) return;
+    _pendingStageEvents.push(evt);
+  }
+
+  /** 依序播放佇列中的事件（由 sleepEndDay 在 playSleep 完成後呼叫） */
+  async function _flushStageEvents() {
+    if (typeof Stage === 'undefined' || !Stage.playEvent) {
+      _pendingStageEvents = [];
+      return;
+    }
+    const events = _pendingStageEvents.slice();
+    _pendingStageEvents = [];
+    for (const evt of events) {
+      try { await Stage.playEvent(evt); }
+      catch (e) { console.error('[Stage] playEvent error', e); }
+    }
+  }
+
+  async function sleepEndDay() {
     const p = Stats.player;
     if (p.day >= 100) {
       addLog('一百天到了。萬骸祭的鐘聲即將敲響。', '#8b0000', true);
       return;
     }
 
+    // 🆕 D.12 v2：預先 roll 就寢類型，讓 Stage 動畫能提前決定要播哪一種演出
+    const sleepType = _rollSleepType();
+
+    if (typeof Stage !== 'undefined' && Stage.playSleep) {
+      await Stage.playSleep({
+        sleepType,
+        onBlack: () => _sleepEndDayBody(sleepType),
+      });
+      // 黑幕掀開後，依序播放佇列中的事件（主人傳喚/任務/故事等）
+      await _flushStageEvents();
+    } else {
+      _sleepEndDayBody(sleepType);
+      _flushStageEvents();
+    }
+  }
+
+  /** 就寢實際處理邏輯（天數推進、事件、rollNPCs、autoSave）。
+   *  由 Stage.playSleep 的 onBlack 呼叫，保證在黑幕下執行。
+   *  @param {string} [forcedSleepType] — sleepEndDay 預 roll 的類型，確保 Stage 動畫與 log 一致 */
+  function _sleepEndDayBody(forcedSleepType) {
+    const p = Stats.player;
+
+    // 🆕 D.12: 就寢前先掃描 NPC 故事事件（夜間共鳴）
+    _scanStoryEvents();
+
     // 🆕 D.1.11: Fire "day end" hooks (p.day 仍是舊的)
     DayCycle.fireDayEnd(p.day);
 
     // 🆕 Phase 1-D: 就寢事件（決定 normal/insomnia/nightmare + 失眠症邏輯）
-    _triggerSleepEvent();
+    _triggerSleepEvent(forcedSleepType);
 
     // Overnight food cost（與就寢體力恢復分開）
     Stats.modVital('food', Config.DAILY.SLEEP_FOOD_COST);
@@ -1521,8 +1616,9 @@ const Game = (() => {
   let _pickerOpenSlot = null;
 
   function _fillCharSheet() {
-    // 🆕 D.6: 清掉舊存檔的小數屬性（Phase 1 以前訓練動作用 attr delta:0.5 可能留下小數）
-    if (typeof Stats.sanitizeAttrsToInt === 'function') Stats.sanitizeAttrsToInt();
+    // 🆕 D.6 v2: 開角色頁時整數化全部數值（屬性 + vitals + 名聲/金錢/SP）
+    if (typeof Stats.sanitizeAttrsToInt  === 'function') Stats.sanitizeAttrsToInt();
+    if (typeof Stats.sanitizeVitalsToInt === 'function') Stats.sanitizeVitalsToInt();
     _renderHeader();
     _renderVitals();
     _renderEquipmentSlots();
@@ -1576,7 +1672,7 @@ const Game = (() => {
   function _renderVitals() {
     const p = Stats.player;
     p.hpMax = p.hpBase + Math.round(2 * Stats.eff('CON'));
-    p.hp = Math.min(p.hp, p.hpMax);
+    p.hp = Math.round(Math.min(p.hp, p.hpMax));
     [
       { id:'cs-bar-hp',      val:p.hp,      max:p.hpMax },
       { id:'cs-bar-stamina', val:p.stamina, max:p.staminaMax },
@@ -1814,7 +1910,14 @@ const Game = (() => {
       svg.appendChild(line);
     });
 
-    // 玩家多邊形（數值由 _renderHexagon 填入）
+    // 🆕 Raw ghost 多邊形（虛線外框，代表原始屬性、無懲罰）
+    //    必須在 eff 多邊形之前建立，讓 eff 的實心填充能畫在上面
+    const playerRaw = document.createElementNS(ns, 'polygon');
+    playerRaw.setAttribute('id', 'cs-hex-player-raw');
+    playerRaw.setAttribute('points', '');
+    svg.appendChild(playerRaw);
+
+    // 玩家多邊形（eff 有效值，實心金色；由 _renderHexagon 填入）
     const player = document.createElementNS(ns, 'polygon');
     player.setAttribute('id', 'cs-hex-player');
     player.setAttribute('points', '');
@@ -1849,12 +1952,30 @@ const Game = (() => {
     _hexSvgReady = true;
   }
 
-  /** 以玩家當前六維重繪多邊形與數值文字。允許超過 100（超出六角形外框）。 */
+  /** 以玩家當前六維重繪多邊形與數值文字。允許超過 100（超出六角形外框）。
+   *  繪製兩層多邊形：raw ghost（虛線，原始屬性）+ eff solid（實心，有效值）。
+   *  兩者在有體力懲罰/裝備加成時會錯開，直觀呈現「實際戰鬥發揮」vs「本體等級」。
+   */
   function _renderHexagon() {
     const c = _HEX_CENTER;
-    const vals = _HEX_AXES.map(k => Stats.eff(k));
+    const p = Stats.player;
+
+    // 計算兩組值
+    const rawVals = _HEX_AXES.map(k => p[k] || 0);
+    const effVals = _HEX_AXES.map(k => Stats.eff(k));
+
+    // Raw ghost 多邊形（以原始屬性繪製）
+    const rawPts = rawVals.map((v, i) => {
+      const r = Math.max(0, v) / 100 * _HEX_MAX_R;
+      const a = _HEX_ANGLES[i];
+      return (c + r * Math.cos(a)).toFixed(1) + ',' + (c + r * Math.sin(a)).toFixed(1);
+    }).join(' ');
+    const rawPoly = document.getElementById('cs-hex-player-raw');
+    if (rawPoly) rawPoly.setAttribute('points', rawPts);
+
+    // eff 實心多邊形（有效值，受懲罰影響）
+    const vals = effVals;
     const pts = vals.map((v, i) => {
-      // 允許 > 100：直接放大半徑不夾值
       const r = Math.max(0, v) / 100 * _HEX_MAX_R;
       const a = _HEX_ANGLES[i];
       const x = c + r * Math.cos(a);
@@ -1863,9 +1984,13 @@ const Game = (() => {
     }).join(' ');
     const poly = document.getElementById('cs-hex-player');
     if (poly) poly.setAttribute('points', pts);
+    // 文字顯示 raw 原始屬性；若有體力懲罰則附加 "−N"
     _HEX_AXES.forEach((k, i) => {
       const el = document.getElementById('cs-hex-val-' + k);
-      if (el) el.textContent = Math.round(vals[i]);
+      if (!el) return;
+      const raw = Math.round(rawVals[i]);
+      const pen = Math.round((p.staminaPenalty && p.staminaPenalty[k]) || 0);
+      el.textContent = pen > 0 ? `${raw} (−${pen})` : `${raw}`;
     });
   }
 
@@ -1894,6 +2019,11 @@ const Game = (() => {
       const cost = Stats.expToNext(lvl);
       const pct  = Math.min(100, Math.round(exp / cost * 100));
       const canAfford = exp >= cost;
+      // 🆕 體力懲罰顯示
+      const pen = Math.round((p.staminaPenalty && p.staminaPenalty[key]) || 0);
+      const penTag = pen > 0
+        ? `<span class="cs-spend-pen" title="體力耗盡，當前實力 ${lvl - pen}">⚠ −${pen}</span>`
+        : '';
       const tooltip = canAfford
         ? `花費 ${cost} EXP 升級 ${key}（${lvl} → ${lvl + 1}）`
         : `還差 ${cost - exp} EXP`;
@@ -1901,7 +2031,7 @@ const Game = (() => {
         <div class="cs-spend-card">
           <div class="cs-spend-head">
             <span class="cs-spend-label">${key}</span>
-            <span class="cs-spend-val">${lvl}</span>
+            <span class="cs-spend-val">${lvl}${penTag}</span>
             <button class="cs-spend-btn" data-spend-attr="${key}" ${canAfford ? '' : 'disabled'}
                     title="${tooltip}">升級</button>
           </div>
@@ -2023,20 +2153,37 @@ const Game = (() => {
   }
 
   // ══════════════════════════════════════════════════
-  // 眾生 Tab（原「所有人」，由關係圖按鈕觸發）
+  // 關係圖 Tab（原「所有人」，由關係圖按鈕觸發）
   // ══════════════════════════════════════════════════
-  /** 好感等級 → 文字描述（9 級對應 D.4） */
+  /** 好感等級 → 顯示文字（文字跟 teammates.getAffectionLevel 的 9 層對齊） */
   const _AFF_TIER_LABELS = {
-    loyal:      { text: '忠誠',     cls: 'positive' },
-    devoted:    { text: '崇敬',     cls: 'positive' },
-    friendly:   { text: '友好',     cls: 'positive' },
-    acquainted: { text: '認識',     cls: 'positive' },
-    neutral:    { text: '中立',     cls: '' },
-    annoyed:    { text: '不悅',     cls: 'hate' },
-    disliked:   { text: '厭惡',     cls: 'hate' },
-    hated:      { text: '憎恨',     cls: 'hate' },
-    nemesis:    { text: '不共戴天', cls: 'hate' },
+    loyal:      { text: '忠誠'      },
+    devoted:    { text: '崇敬'      },
+    friendly:   { text: '友好'      },
+    acquainted: { text: '認識'      },
+    neutral:    { text: '中立'      },
+    annoyed:    { text: '不悅'      },
+    disliked:   { text: '厭惡'      },
+    hated:      { text: '憎恨'      },
+    nemesis:    { text: '不共戴天'  },
   };
+
+  /**
+   * 好感數值 → 卡片背景 tier class（9 層，對齊 getAffectionLevel）
+   *   ≥90 loyal / ≥70 devoted / ≥40 friendly / ≥10 acquainted /
+   *   ≥-9 neutral / ≥-29 annoyed / ≥-59 disliked / ≥-89 hated / 其他 nemesis
+   */
+  function _affValueToCardCls(val) {
+    if (val >= 90)  return 'tier-loyal';
+    if (val >= 70)  return 'tier-devoted';
+    if (val >= 40)  return 'tier-friendly';
+    if (val >= 10)  return 'tier-acquainted';
+    if (val >= -9)  return 'tier-neutral';
+    if (val >= -29) return 'tier-annoyed';
+    if (val >= -59) return 'tier-disliked';
+    if (val >= -89) return 'tier-hated';
+    return 'tier-nemesis';
+  }
 
   function _renderPeopleTab() {
     const grid = document.getElementById('cs-people-grid');
@@ -2044,7 +2191,6 @@ const Game = (() => {
     if (!grid) return;
 
     const allAff = teammates.getAllAffection();
-    // 只顯示好感 != 0 或有 baseAffection 的 NPC（Phase B：簡化版，未來 Phase 3 接 NpcCodex 漸進揭露）
     const visible = Object.entries(allAff)
       .filter(([id, val]) => val !== 0 || (teammates.getNPC(id)?.baseAffection || 0) !== 0)
       .sort(([, a], [, b]) => Math.abs(b) - Math.abs(a));
@@ -2060,19 +2206,21 @@ const Game = (() => {
       const npc = teammates.getNPC(npcId);
       const name = npc?.name || npcId;
       const tier = teammates.getAffectionLevel(npcId);
-      const tierInfo = _AFF_TIER_LABELS[tier] || { text: tier, cls: '' };
-      const isHate = val < 0;
-      const barPct = Math.max(0, Math.abs(val));
+      const tierInfo = _AFF_TIER_LABELS[tier] || { text: tier, cardCls: 'tier-neutral' };
+      const cardCls = _affValueToCardCls(val);
       const fallback = name.slice(0, 2);
+      // 🆕 D.12：取當前可見的 flavor 文字（沒有就 fallback）
+      const flavor = (teammates.getVisibleFlavor && teammates.getVisibleFlavor(npcId))
+                     || '你對他知之甚少。';
       return `
-        <div class="cs-person-card ${isHate ? 'hate' : ''}">
+        <div class="cs-person-card ${cardCls}">
           <div class="cs-person-portrait">${fallback}</div>
           <div class="cs-person-info">
-            <div class="cs-person-name">${name}</div>
-            <div class="cs-person-tier ${tierInfo.cls}">${tierInfo.text}</div>
-            <div class="cs-person-bar-wrap">
-              <div class="cs-person-bar ${isHate ? 'hate' : ''}" style="width:${barPct}%"></div>
+            <div class="cs-person-head">
+              <span class="cs-person-name">${name}</span>
+              <span class="cs-person-tier">${tierInfo.text}</span>
             </div>
+            <div class="cs-person-flavor">${flavor}</div>
           </div>
         </div>`;
     }).join('');
@@ -2298,6 +2446,10 @@ const Game = (() => {
     const p = Stats.player;
     Object.assign(p, data.player);
 
+    // 🆕 D.6 v2：讀檔後立刻整數化（屬性 + vitals），清除舊存檔小數
+    if (typeof Stats.sanitizeAttrsToInt  === 'function') Stats.sanitizeAttrsToInt();
+    if (typeof Stats.sanitizeVitalsToInt === 'function') Stats.sanitizeVitalsToInt();
+
     // 向下相容：舊存檔沒有這些欄位時補上預設值
     if (!Array.isArray(p.achievements))  p.achievements  = [];
     if (!Array.isArray(p.traits))        p.traits        = [];
@@ -2515,6 +2667,8 @@ const Game = (() => {
         achievements:[], traits:['kindness'], title:null, fameBase:0,
         // 🆕 Phase 1-D 病痛/睡眠追蹤
         ailments:['insomnia_disorder'], insomniaStreak:0, normalSleepStreak:0,
+        // 🆕 D.12 故事揭露系統：清空已觸發記錄
+        seenReveals: [],
         staminaPenalty:{ STR:0, DEX:0, CON:0, AGI:0, WIL:0, LUK:0 },
         combatStats:{
           executionCount:0, spareCount:0, suppressCount:0,
@@ -2524,6 +2678,14 @@ const Game = (() => {
       });
       Flags.clear();          // 清空所有故事旗標
       GameState.reset();       // 🆕 D.1.12: 清空 session state
+      // 🆕 Phase 2 S1 前哨：把 NPC 好感重置回 baseAffection（不然上一存檔的值會殘留）
+      if (typeof teammates !== 'undefined' && teammates.NPC_DEFS) {
+        const resetMap = {};
+        Object.values(teammates.NPC_DEFS).forEach(npc => {
+          resetMap[npc.id] = npc.baseAffection || 0;
+        });
+        teammates.setAllAffection(resetMap);
+      }
       // 🆕 Phase 1 重構：強制鎖定到訓練場
       GameState.setFieldId(FIXED_FIELD);
       currentFieldId = FIXED_FIELD;
@@ -2554,6 +2716,117 @@ const Game = (() => {
     let name = (input?.value || '').trim().slice(0, 6) || '無名';
     Stats.player.name = name;
     document.getElementById('modal-name')?.classList.remove('open');
+    // 🆕 Phase 2 S1 前哨：接下來選背景
+    openOriginModal();
+  }
+
+  // ══════════════════════════════════════════════════
+  // 🆕 玩家背景選擇 modal
+  // ══════════════════════════════════════════════════
+  let _selectedOrigin = null;
+
+  function openOriginModal() {
+    const modal = document.getElementById('modal-origin');
+    if (!modal || typeof Origins === 'undefined') {
+      // Origins 未載入 → 跳過選擇直接進遊戲
+      _enterNewGame();
+      return;
+    }
+    _selectedOrigin = null;
+    _renderOriginGrid();
+    _renderOriginDetail(null);
+    const btn = document.getElementById('btn-confirm-origin');
+    if (btn) btn.disabled = true;
+    modal.classList.add('open');
+  }
+
+  function _renderOriginGrid() {
+    const grid = document.getElementById('origin-grid');
+    if (!grid) return;
+    const ids = ['farmBoy', 'nobleman', 'vagabond', 'gladiatorSon'];
+    grid.innerHTML = ids.map(id => {
+      const o = Origins[id];
+      if (!o) return '';
+      const fallback = (o.name || '').slice(0, 2);
+      const cls = ['origin-card'];
+      if (o.locked) cls.push('locked');
+      if (_selectedOrigin === id) cls.push('selected');
+      return `
+        <div class="${cls.join(' ')}" data-origin="${id}">
+          <div class="origin-card-portrait">${fallback}</div>
+          <div class="origin-card-info">
+            <div class="origin-card-name">${o.name}</div>
+            <div class="origin-card-title">${o.title || ''}</div>
+          </div>
+        </div>`;
+    }).join('');
+    grid.querySelectorAll('.origin-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const id = card.dataset.origin;
+        const o = Origins[id];
+        if (!o || o.locked) return;
+        _selectedOrigin = id;
+        _renderOriginGrid();                // 更新 selected 樣式
+        _renderOriginDetail(id);
+        const btn = document.getElementById('btn-confirm-origin');
+        if (btn) btn.disabled = false;
+      });
+    });
+  }
+
+  function _renderOriginDetail(id) {
+    const panel = document.getElementById('origin-detail');
+    if (!panel) return;
+    if (!id) {
+      panel.classList.add('origin-detail-empty');
+      panel.innerHTML = '<div class="origin-detail-placeholder">選擇一個背景來查看詳情</div>';
+      return;
+    }
+    const o = Origins[id];
+    if (!o) return;
+    panel.classList.remove('origin-detail-empty');
+
+    // 屬性修正 chips
+    let chips = '';
+    if (o.statMod) {
+      chips = Object.entries(o.statMod).map(([k, v]) => {
+        const cls = v > 0 ? 'positive' : 'negative';
+        const sign = v > 0 ? '+' : '';
+        return `<span class="origin-stat-chip ${cls}">${k} ${sign}${v}</span>`;
+      }).join('');
+    }
+
+    panel.innerHTML = `
+      <div class="origin-detail-name">${o.name}</div>
+      <div class="origin-detail-title">${o.title || ''}</div>
+      <div class="origin-detail-desc">${o.desc || ''}</div>
+      <div class="origin-detail-stats">${chips}</div>
+    `;
+  }
+
+  function confirmOrigin() {
+    if (!_selectedOrigin) return;
+    const modal = document.getElementById('modal-origin');
+    if (modal) modal.classList.remove('open');
+    const originId = _selectedOrigin;
+    const o = Origins[originId];
+
+    // 🆕 Stage 開場敘述：幕後套 origin + 進入遊戲，玩家看到黑幕 + 文字 + 掀幕
+    const narrative = (o && o.openingNarrative) || [];
+    const runOnBlack = () => {
+      Stats.applyOrigin(originId);
+      _enterNewGame();   // 會更新訓練場 log、roll NPC、renderAll
+    };
+
+    if (typeof Stage !== 'undefined' && Stage.playOpening && narrative.length > 0) {
+      Stage.playOpening(narrative, runOnBlack);
+    } else {
+      runOnBlack();
+    }
+  }
+
+  /** 新遊戲真正開始（rollNPCs、resolve meal、save、render） */
+  function _enterNewGame() {
     rollDailyNPCs();
     const f = FIELDS[currentFieldId];
     if (f) addLog('【' + f.name + '】\n' + f.logText, '#ddd', true);
@@ -2674,9 +2947,23 @@ const Game = (() => {
     Flags.set(`errand_done_day_${newDay}`, true);
     const ev = Events.getErrandEvent();
     if (!ev) return;
-    addLog(ev.text, ev.color || '#9dbf80', true);
+
+    // 效果先套（在黑幕下靜默執行）
     Effects.apply(ev.effects, { source: 'errand:' + ev.id });
     if (ev.flagSet) Flags.set(ev.flagSet, true);
+
+    // 🆕 D.12 v2: 排入 Stage 事件佇列，Stage.playSleep 結束後播小過場
+    //              用 log 的第一句當標題，其他行當內文
+    const lines = ev.text.split('\n').filter(Boolean);
+    queueStageEvent({
+      title: '主人傳喚',
+      icon:  '📜',
+      lines,
+      color: '#e8d070',
+      holdMs: 2400,
+    });
+    // 同時也寫進 log（含 flash，給歷史回看）
+    addLog('【主人傳喚】\n' + ev.text, '#e8d070', true, true);
   }, 35);
 
   function init() {
@@ -2703,6 +2990,8 @@ const Game = (() => {
     document.getElementById('name-input')?.addEventListener('keydown', e => {
       if (e.key === 'Enter') confirmName();
     });
+    // 🆕 Phase 2 S1 前哨：背景選擇確認
+    document.getElementById('btn-confirm-origin')?.addEventListener('click', confirmOrigin);
     // 🆕 D.1.7: Settings buttons — 所有 .vol-btn 透過父容器的 data-setting 路徑設定
     document.querySelectorAll('.vol-group[data-setting]').forEach(group => {
       const path = group.dataset.setting;

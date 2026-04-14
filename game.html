@@ -43,7 +43,7 @@ html, body {
 /* ── Main layout: 3 columns ────────────────────────────────── */
 #game-root {
   display: grid;
-  grid-template-columns: 290px 1fr 340px;
+  grid-template-columns: 250px 1fr 250px;
   grid-template-rows: 100vh;
   width: 100%; height: 100%;
   gap: 0;
@@ -74,16 +74,7 @@ html, body {
   margin-top: 2px;
 }
 
-#scene-buttons {
-  flex: 1;
-  overflow-y: auto;
-  padding: 8px 0;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
-}
-
-/* Phase 1-J：場景選擇按鈕 (.sbtn) 全部移除，訓練場為唯一場景 */
-
+/* Phase 1-J：場景選擇按鈕 (.sbtn / #scene-buttons) 全部移除，訓練場為唯一場景 */
 /* ═══════════════════════════════════════════════════════════
    CENTER PANEL
 ════════════════════════════════════════════════════════════ */
@@ -294,13 +285,82 @@ html, body {
 }
 #fame-val { font-size:22px; color:#cc5555; min-width:24px; text-align:right; }
 
-/* ── Scene view ── */
+/* ── Scene view (Stage) ── */
 #scene-view {
   flex: 1;
   position: relative;
   overflow: hidden;
   background: #0a0804; /* fallback；bg-* 類別會覆蓋 */
 }
+
+/* ── 🆕 Stage 模組：閉眼黑幕 + zzz 睡覺動畫 ── */
+.stage-curtain {
+  position: absolute;
+  left: 0; right: 0;
+  height: 52%;            /* 略超過一半，確保合攏時不留縫 */
+  background: linear-gradient(to bottom, #000 0%, #000 88%, rgba(0,0,0,0.85) 100%);
+  z-index: 40;
+  pointer-events: none;
+  will-change: transform;
+  transition: transform 700ms cubic-bezier(0.78, 0.02, 0.32, 1);
+  box-shadow: 0 0 40px 8px rgba(0,0,0,0.5);
+}
+.stage-curtain-top {
+  top: 0;
+  transform: translateY(-100%);      /* 預設藏在畫面上方 */
+}
+.stage-curtain-bot {
+  bottom: 0;
+  background: linear-gradient(to top, #000 0%, #000 88%, rgba(0,0,0,0.85) 100%);
+  transform: translateY(100%);       /* 預設藏在畫面下方 */
+}
+.stage-curtain-top.closed  { transform: translateY(0); }
+.stage-curtain-bot.closed  { transform: translateY(0); }
+
+/* zzz 飄浮字 */
+.stage-zzz {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  z-index: 45;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 400ms ease;
+}
+.stage-zzz.hidden { opacity: 0; }
+
+.zzz-char {
+  font-family: var(--font);
+  font-weight: 900;
+  color: rgba(232, 216, 176, 0.85);
+  text-shadow:
+    0 0 12px rgba(232, 216, 176, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.9);
+  animation: zzz-float 1.8s ease-in-out infinite;
+  letter-spacing: 0;
+  display: inline-block;
+}
+.zzz-char.zzz-1 { font-size: 42px; animation-delay: 0s;    transform: translateY(10px); }
+.zzz-char.zzz-2 { font-size: 58px; animation-delay: 0.25s; transform: translateY(-8px); }
+.zzz-char.zzz-3 { font-size: 74px; animation-delay: 0.5s;  transform: translateY(-26px); }
+
+@keyframes zzz-float {
+  0%, 100% {
+    opacity: 0.35;
+    transform: translateY(var(--y, 0)) rotate(-4deg);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(calc(var(--y, 0) - 14px)) rotate(-2deg);
+  }
+}
+/* 三個 z 的垂直基準位置（錯位階梯） */
+.zzz-char.zzz-1 { --y: 10px;  }
+.zzz-char.zzz-2 { --y: -8px;  }
+.zzz-char.zzz-3 { --y: -26px; }
 
 /* Watermark */
 #scene-watermark {
@@ -545,12 +605,22 @@ html, body {
 
 /* ── Log area ── */
 #log-area {
-  height: 270px;
+  height: 260px;
   flex-shrink: 0;
   border-top: 1px solid var(--border);
   background: rgba(5,3,2,.9);
   display: flex;
   flex-direction: column;
+  position: relative;
+}
+/* 🆕 D.12 v2: 重要事件觸發時的金色脈動 */
+#log-area.log-flash {
+  animation: log-flash-anim 1.6s ease-out;
+}
+@keyframes log-flash-anim {
+  0%   { box-shadow: inset 0 0 0 0 rgba(232, 216, 176, 0);   border-top-color: var(--border); }
+  15%  { box-shadow: inset 0 0 40px 2px rgba(232, 216, 176, 0.28); border-top-color: var(--gold-lt); }
+  100% { box-shadow: inset 0 0 0 0 rgba(232, 216, 176, 0);   border-top-color: var(--border); }
 }
 #log-header {
   padding: 4px 10px 2px;
@@ -564,8 +634,8 @@ html, body {
   flex: 1;
   overflow-y: auto;
   padding: 8px 12px;
-  font-size: 19px;
-  line-height: 1.7;
+  font-size: 16px;
+  line-height: 1.2;
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
 }
@@ -601,29 +671,47 @@ html, body {
   font-size: 17px;
   color: var(--text-dim);
   letter-spacing: .05em;
-  text-align: right;
+  text-align: justify;
   flex-shrink: 0;
   white-space: nowrap;
 }
 .bar-track {
   flex: 1;
-  height: 18px;
+  height: 20px;
   background: #0a0806;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-hi);
   border-radius: 2px;
   overflow: hidden;
+  position: relative;   /* 🆕 讓 .bar-num 能絕對定位覆蓋在上面 */
 }
 .bar-fill {
   height: 100%;
   width: 50%;
   transition: width .4s ease;
 }
+/* 🆕 數字覆蓋在 bar 內部，白字加陰影確保在深/淺背景上都可讀 */
 .bar-num {
-  width: 70px;
-  font-size: 15px;
-  color: var(--text-dim);
-  text-align: right;
-  flex-shrink: 0;
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 0 3px rgba(0,0,0,.85), 0 1px 2px rgba(0,0,0,.9);
+  letter-spacing: .05em;
+  pointer-events: none;
+  z-index: 2;
+}
+/* 金錢列沒有 bar-track 外框，需要把絕對定位改回 inline，避免跑到 stage 正中央 */
+#stat-money.bar-num {
+  position: static;
+  display: inline;
+  inset: auto;
+  color: var(--gold-lt);
+  text-shadow: none;
+  pointer-events: auto;
 }
 
 /* ── Attributes ── */
@@ -651,20 +739,22 @@ html, body {
 }
 #derived-stats-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 4px;
 }
 .derived-item {
   background: var(--raised);
   border: 1px solid var(--border);
   border-radius: 2px;
-  padding: 3px 5px;
+  padding: 4px 10px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
+  justify-content: space-between;   /* 🆕 name 貼左、val 貼右 */
+  gap: 8px;
 }
-.derived-name { font-size: 18px; color:var(--text-dim); letter-spacing:.05em; }
-.derived-val  { font-size: 24px; font-weight:700; color:var(--text-hi); }
+.derived-name { font-size: 16px; color:var(--text-dim); letter-spacing:.05em; }
+.derived-val  { font-size: 16px; font-weight:700; color:var(--text-hi); }
 .route-badge {
   display: inline-block;
   font-size: 18px; font-weight: 700;
@@ -907,6 +997,222 @@ html, body {
 #name-input:focus { border-color: var(--blood-lt); }
 .name-hint { font-size:22px; color:var(--text-dim); text-align:center; }
 
+/* ── 🆕 Origin select modal (Phase 2 S1 前哨) ── */
+.origin-modal-box {
+  max-width: 820px;
+  width: 92vw;
+  max-height: 90vh;
+}
+.origin-intro {
+  font-size: 20px;
+  color: var(--text);
+  text-align: center;
+  margin-bottom: 18px;
+  letter-spacing: .1em;
+  line-height: 1.6;
+}
+#origin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.origin-card {
+  background: var(--raised);
+  border: 2px solid var(--border-hi);
+  border-radius: 3px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, transform .15s;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  min-height: 88px;
+}
+.origin-card:hover:not(.locked) {
+  border-color: var(--gold);
+  background: #1a1208;
+  transform: translateY(-1px);
+}
+.origin-card.selected {
+  border-color: var(--gold-lt);
+  background: linear-gradient(135deg, #1e1408, #140a04);
+  box-shadow: 0 0 16px rgba(232, 216, 176, 0.18);
+}
+.origin-card.locked {
+  cursor: not-allowed;
+  opacity: .4;
+  filter: grayscale(.6);
+}
+.origin-card-portrait {
+  width: 64px; height: 64px;
+  background: linear-gradient(135deg, #1a1208 0%, #0f0a04 100%);
+  border: 1px solid var(--border-hi);
+  border-radius: 3px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 900;
+  color: var(--gold-lt);
+  flex-shrink: 0;
+  text-shadow: 0 2px 4px rgba(0,0,0,.6);
+}
+.origin-card.locked .origin-card-portrait {
+  color: var(--text-dim);
+}
+.origin-card-info { flex: 1; min-width: 0; }
+.origin-card-name {
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--text-hi);
+  letter-spacing: .1em;
+  margin-bottom: 3px;
+}
+.origin-card-title {
+  font-size: 13px;
+  color: var(--text-dim);
+  letter-spacing: .05em;
+}
+.origin-card.locked .origin-card-title::after {
+  content: ' · 即將開放';
+  color: var(--blood-lt);
+}
+
+/* Origin 選中後的詳情區 */
+#origin-detail {
+  background: #0a0806;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 16px 20px;
+  min-height: 120px;
+}
+#origin-detail.origin-detail-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.origin-detail-placeholder {
+  color: var(--text-dim);
+  font-size: 16px;
+  font-style: italic;
+  letter-spacing: .1em;
+}
+.origin-detail-name {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--gold-lt);
+  letter-spacing: .12em;
+  margin-bottom: 4px;
+}
+.origin-detail-title {
+  font-size: 14px;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+  letter-spacing: .05em;
+}
+.origin-detail-desc {
+  font-size: 16px;
+  color: var(--text);
+  line-height: 1.8;
+  margin-bottom: 12px;
+  font-style: italic;
+}
+.origin-detail-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.origin-stat-chip {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border: 1px solid var(--border-hi);
+  border-radius: 2px;
+  background: var(--raised);
+}
+.origin-stat-chip.positive { color: #8dbf70; border-color: #456030; }
+.origin-stat-chip.negative { color: #cc6666; border-color: #603030; }
+
+/* ── 🆕 Stage 開場敘述 overlay ── */
+#stage-opening {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  z-index: 48;
+  padding: 40px 60px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 600ms ease;
+}
+#stage-opening.visible { opacity: 1; }
+.opening-line {
+  font-family: var(--font);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-hi);
+  text-align: center;
+  letter-spacing: .15em;
+  line-height: 1.8;
+  text-shadow:
+    0 0 18px rgba(0, 0, 0, 0.95),
+    0 2px 8px rgba(0, 0, 0, 0.9);
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 900ms ease, transform 900ms ease;
+  max-width: 720px;
+}
+.opening-line.shown {
+  opacity: 1;
+  transform: translateY(0);
+}
+/* 🆕 D.12 v2: 通用事件過場 */
+.event-icon {
+  font-size: 56px;
+  margin-bottom: 6px;
+  text-shadow: 0 0 24px rgba(0,0,0,.95), 0 2px 8px rgba(0,0,0,.9);
+  animation: event-icon-float 2.6s ease-in-out infinite;
+}
+.event-title {
+  font-family: var(--font);
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: .3em;
+  text-shadow:
+    0 0 20px rgba(0, 0, 0, 0.95),
+    0 2px 8px rgba(0, 0, 0, 0.9);
+  margin-bottom: 12px;
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 10px;
+  max-width: 500px;
+  text-align: center;
+}
+.opening-line.event-line {
+  font-size: 24px;
+  line-height: 1.85;
+}
+@keyframes event-icon-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-6px); }
+}
+
+/* 🆕 就寢失眠／噩夢的文字色調 */
+.opening-line.insomnia-line {
+  color: #cc7a6a;
+  font-size: 26px;
+  font-style: italic;
+  letter-spacing: .1em;
+}
+.opening-line.nightmare-line {
+  color: #cc3333;
+  font-size: 24px;
+  letter-spacing: .12em;
+  text-shadow:
+    0 0 20px rgba(139, 0, 0, 0.6),
+    0 2px 8px rgba(0, 0, 0, 0.95);
+}
+
 /* ── Settings modal (D.1.7 重構) ── */
 .settings-modal-box {
   max-width: 700px;
@@ -1025,13 +1331,13 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   display: flex;
   align-items: center;
   gap: 24px;
-  padding: 14px 24px;
+  padding: 2px 24px;
   background: var(--panel);
   border-bottom: 2px solid var(--border);
   flex-shrink: 0;
 }
 #cs-name {
-  font-size: 26px; font-weight: 900;
+  font-size: 24px; font-weight: 900;
   color: var(--gold-lt); letter-spacing: .15em;
 }
 #cs-subtitle { font-size: 13px; color: var(--text-dim); letter-spacing: .15em; margin-top: 2px; }
@@ -1083,6 +1389,8 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 /* 🆕 D.1.15: Tab content */
 .cs-tab-content {
   flex: 1;
+  width: 100%;              /* 🔧 強制全寬，避免 flex column 裡 cross-axis 失靈 */
+  min-width: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -1121,7 +1429,7 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 
 /* ── 🆕 階段 B: Header 立繪 + 眾生按鈕 + 副標擴充 ── */
 #cs-portrait {
-  width: 80px; height: 80px;
+  width: 80px; height: 60px;
   border: 2px solid var(--border-hi);
   background: linear-gradient(135deg, #1a1208 0%, #0f0a04 100%);
   border-radius: 3px;
@@ -1308,7 +1616,7 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   color: var(--text);
   border-bottom: 1px solid var(--border-hi);
   padding-bottom: 7px; margin-bottom: 13px;
-  margin-top: 4px;
+  margin-top: 2px;
   font-weight: 700;
 }
 .cs-divider { height: 1px; background: var(--border); margin: 20px 0 14px; }
@@ -1338,9 +1646,9 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 #cs-stats-wrap {
   display: grid;
   grid-template-columns: 320px 1fr;
-  gap: 16px;
-  margin-top: 6px;
-  align-items: start;
+  gap: 1px;
+  margin-top: 2px;
+  align-items: left;
 }
 
 /* 左：六角形 SVG */
@@ -1376,9 +1684,18 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   stroke-linejoin: round;
   transition: all .4s ease;
 }
+/* 🆕 Raw ghost 多邊形：虛線外框，不填色，代表原始屬性（無體力懲罰） */
+#cs-hex-player-raw {
+  fill: none;
+  stroke: rgba(232, 216, 176, 0.55);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+  stroke-linejoin: round;
+  transition: all .4s ease;
+}
 .cs-hex-label {
   font-family: var(--font);
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 900;
   letter-spacing: .1em;
   fill: var(--text-hi);
@@ -1386,7 +1703,7 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 }
 .cs-hex-val {
   font-family: var(--font);
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 900;
   fill: var(--gold-lt);
   text-anchor: middle;
@@ -1396,7 +1713,7 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 #cs-attr-spend {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
 .cs-spend-card {
   display: flex;
@@ -1405,7 +1722,7 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   background: var(--raised);
   border: 1px solid var(--border-hi);
   border-radius: 2px;
-  padding: 2px 10px;
+  padding: 1px 6px;
 }
 .cs-spend-exp-row {
   display: flex;
@@ -1430,6 +1747,17 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   font-weight: 900;
   color: var(--gold-lt);
   flex: 1;
+}
+/* 🆕 體力懲罰警告標籤 */
+.cs-spend-pen {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ff6868;
+  letter-spacing: .03em;
+  vertical-align: middle;
+  animation: ailment-pulse 2.4s ease-in-out infinite;
 }
 .cs-spend-btn {
   background: #1e0800;
@@ -1494,24 +1822,24 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   min-width: 0;
 }
 .cs-drv-k {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--text);
   letter-spacing: .08em;
 }
 .cs-drv-v {
-  font-size: 22px;
+  font-size: 16px;
   font-weight: 900;
   color: var(--gold-lt);
 }
 
 /* ── 人物特質 sub-label ── */
 .cs-subsection-title {
-  font-size: 15px;
+  font-size: 14px;
   letter-spacing: .18em;
   color: var(--text-dim);
   border-bottom: 1px dashed var(--border);
-  padding-bottom: 5px;
+  padding-bottom: 2px;
   margin: 12px 0 8px;
   font-weight: 700;
 }
@@ -1725,7 +2053,7 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   cursor: default;
 }
 
-/* ── 🆕 階段 B: 眾生 tab ── */
+/* ── 🆕 階段 B: 關係圖 tab ── */
 #cs-people-container {
   padding: 24px 32px;
   overflow-y: auto;
@@ -1746,31 +2074,43 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   color: var(--text-dim);
   letter-spacing: .1em;
 }
+/* 🆕 D.12 v2: 橫長方形卡片 + 好感度背景色分層 */
 #cs-people-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 .cs-person-card {
-  background: var(--raised);
-  border: 1px solid var(--border);
+  background: #1a1a1a;
+  border: 1px solid #3a3a3a;
   border-radius: 3px;
-  padding: 14px;
+  padding: 12px 16px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  transition: border-color .15s, background .15s;
+  gap: 14px;
+  transition: border-color .15s, background .15s, transform .12s;
 }
 .cs-person-card:hover {
-  border-color: var(--border-hi);
-  background: #1a1208;
+  transform: translateX(3px);
+  filter: brightness(1.15);
 }
-.cs-person-card.hate {
-  border-color: rgba(139,0,0,.4);
+/* 好感度分層背景（9 層，對應 D.4 仇恨系統） */
+.cs-person-card.tier-nemesis    { background: #1a0000; border-color: #cc0044; animation: nemesis-pulse 2.8s ease-in-out infinite; }
+.cs-person-card.tier-hated      { background: #350505; border-color: #b02020; }
+.cs-person-card.tier-disliked   { background: #2a0a0a; border-color: #8b0000; }
+.cs-person-card.tier-annoyed    { background: #2a1410; border-color: #6a3020; }
+.cs-person-card.tier-neutral    { background: #1a1a1a; border-color: #3a3a3a; }
+.cs-person-card.tier-acquainted { background: #0f2010; border-color: #3a7030; }
+.cs-person-card.tier-friendly   { background: #0a1828; border-color: #4a7fb0; }
+.cs-person-card.tier-devoted    { background: #1a0f28; border-color: #6a44a8; }
+.cs-person-card.tier-loyal      { background: #2a1e08; border-color: #c8a030; }
+
+/* 不共戴天：紅邊框脈動，強調「最終 boss」感 */
+@keyframes nemesis-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(204, 0, 68, 0); }
+  50%      { box-shadow: 0 0 10px 2px rgba(204, 0, 68, 0.55); }
 }
-.cs-person-card.hate:hover {
-  border-color: var(--blood-lt);
-}
+
 .cs-person-portrait {
   width: 52px; height: 52px;
   background: linear-gradient(135deg, #1a1208 0%, #0f0a04 100%);
@@ -1780,35 +2120,34 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   font-size: 18px; font-weight: 900;
   color: var(--gold-lt);
   flex-shrink: 0;
+  text-shadow: 0 2px 4px rgba(0,0,0,.7);
 }
 .cs-person-info { flex: 1; min-width: 0; }
+.cs-person-head {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-bottom: 5px;
+}
 .cs-person-name {
-  font-size: 15px; font-weight: 700;
+  font-size: 17px; font-weight: 900;
   color: var(--text-hi);
-  margin-bottom: 2px;
+  letter-spacing: .06em;
 }
 .cs-person-tier {
-  font-size: 11px;
-  color: var(--text-dim);
-  letter-spacing: .1em;
+  font-size: 12px;
+  color: var(--text);
+  letter-spacing: .15em;
+  opacity: .85;
 }
-.cs-person-tier.positive { color: #8855cc; }
-.cs-person-tier.hate { color: #c02020; }
-.cs-person-bar-wrap {
-  margin-top: 5px;
-  height: 5px;
-  background: #0a0806;
-  border: 1px solid var(--border);
-  border-radius: 2px;
-  overflow: hidden;
-}
-.cs-person-bar {
-  height: 100%; width: 0%;
-  background: linear-gradient(90deg, #3a1a5a, #8855cc);
-  transition: width .4s ease;
-}
-.cs-person-bar.hate {
-  background: linear-gradient(90deg, #8b0000, #c02020);
+/* 卡片底部的 flavor 文字 */
+.cs-person-flavor {
+  font-size: 13px;
+  color: var(--text);
+  opacity: .78;
+  font-style: italic;
+  line-height: 1.65;
+  letter-spacing: .02em;
 }
 .cs-people-empty {
   grid-column: 1 / -1;
@@ -2420,23 +2759,31 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
     <div class="rpanel-section">
       <div class="vital-bar" id="bar-hp">
         <span class="vital-label">HP</span>
-        <div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--bar-hp)"></div></div>
-        <span class="bar-num">100/100</span>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:100%;background:var(--bar-hp)"></div>
+          <span class="bar-num">100/100</span>
+        </div>
       </div>
       <div class="vital-bar" id="bar-stamina">
         <span class="vital-label">體力</span>
-        <div class="bar-track"><div class="bar-fill" style="width:50%;background:var(--bar-sta)"></div></div>
-        <span class="bar-num">50/100</span>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:50%;background:var(--bar-sta)"></div>
+          <span class="bar-num">50/100</span>
+        </div>
       </div>
       <div class="vital-bar" id="bar-food">
         <span class="vital-label">飽食度</span>
-        <div class="bar-track"><div class="bar-fill" style="width:50%;background:var(--bar-food)"></div></div>
-        <span class="bar-num">50/100</span>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:50%;background:var(--bar-food)"></div>
+          <span class="bar-num">50/100</span>
+        </div>
       </div>
       <div class="vital-bar" id="bar-mood">
         <span class="vital-label">心情</span>
-        <div class="bar-track"><div class="bar-fill" style="width:50%;background:var(--bar-mood)"></div></div>
-        <span class="bar-num">50/100</span>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:50%;background:var(--bar-mood)"></div>
+          <span class="bar-num">50/100</span>
+        </div>
       </div>
       <div class="vital-bar" id="bar-money">
         <span class="vital-label">金錢</span>
@@ -2510,6 +2857,25 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   </div>
 </div>
 
+<!-- ══ 🆕 ORIGIN SELECT MODAL（Phase 2 S1 前哨：選玩家背景） ══ -->
+<div class="modal-overlay" id="modal-origin">
+  <div class="modal-box origin-modal-box">
+    <div class="modal-header">
+      <span class="modal-title">你的過去</span>
+    </div>
+    <div class="modal-body">
+      <p class="origin-intro">你是誰？你為何被賣進這座競技場？</p>
+      <div id="origin-grid"></div>
+      <div id="origin-detail" class="origin-detail-empty">
+        <div class="origin-detail-placeholder">選擇一個背景來查看詳情</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="game-btn primary" id="btn-confirm-origin" disabled>踏入這段命運</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══ DETAIL MODAL (fullscreen character sheet) ════════ -->
 <!-- D.1.15 階段 A: tab bar + dynamic affection list + placeholder tabs -->
 <!-- D.7 階段 B: 2-col layout + inline equipment picker + new sections -->
@@ -2549,7 +2915,7 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
     <div id="cs-tabs">
       <button class="cs-tab active" data-tab="character">角色</button>
       <button class="cs-tab"         data-tab="skills">技能</button>
-      <button class="cs-tab"         data-tab="people">眾生</button>
+      <button class="cs-tab"         data-tab="people">關係圖</button>
       <button class="cs-tab"         data-tab="achievements">成就</button>
       <button class="cs-tab"         data-tab="codex">百科</button>
       <button class="cs-tab"         data-tab="quests">任務</button>
@@ -2574,8 +2940,7 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
           <!-- 六維升級列表（EXP 條 + 升級按鈕） -->
           <div id="cs-attr-spend"></div>
         </div>
-        <div class="cs-divider"></div>
-        <!-- 派生屬性：10 項（5×2 格子） -->
+             <!-- 派生屬性：10 項（5×2 格子） -->
         <div class="cs-section-title" style="margin-top:16px;">派生屬性</div>
         <div id="cs-derived-grid">
           <div class="cs-drv-cell"><span class="cs-drv-k">ATK</span>  <span class="cs-drv-v" id="cs-drv-ATK">—</span></div>
@@ -2604,8 +2969,7 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 
         <div class="cs-section-title">裝備</div>
         <div id="cs-equip-slots"></div>
-        <!-- 人物特質：特性 + 疤痕 + 病痛 合一 -->
-        <div class="cs-divider"></div>
+        
         <div class="cs-section-title">人物特質</div>
 
         <div class="cs-traits-wrap" id="cs-traits-all">
@@ -2622,33 +2986,28 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
         </div>
       </div><!-- /cs-col-mid -->
 
-      <!-- ══ RIGHT COLUMN (20%): 常前 / 人物特質 / 技能 ══ -->
+      <!-- ══ RIGHT COLUMN (20%): 
+      <-- 護符 + 寵物 + 信仰/派系/世界 -->
       <div class="cs-col cs-col-right">
-        
-        <div class="cs-section-title">資源</div>
+        <!-- 資源 -->
         <div class="cs-equip-row">
           <span class="cs-equip-slot">💰 金錢</span>
           <span class="cs-equip-val" id="cs-money">0</span>
         </div>
-        <div class="cs-divider"></div>
-        <!-- 當前狀態：護符 + 寵物 + 信仰/派系/世界 -->
-        <div class="cs-section-title">當前狀態</div>
 
+        <!-- 護符 -->
         <div class="cs-subsection-title">護符</div>
         <div id="cs-amulets-grid" class="cs-amulet-grid"></div>
 
+        <!-- 寵物 -->
         <div class="cs-subsection-title">寵物</div>
         <div id="cs-pets-list"></div>
 
-        <div id="cs-state-list" style="margin-top:8px;">
-          <div class="cs-state-row"><span class="cs-state-icon">🕊</span><span class="cs-state-label">信仰</span><span class="cs-state-val" id="cs-state-religion">—</span></div>
-          <div class="cs-state-row"><span class="cs-state-icon">🏛</span><span class="cs-state-label">派系</span><span class="cs-state-val" id="cs-state-faction">—</span></div>
-          <div class="cs-state-row"><span class="cs-state-icon">🌍</span><span class="cs-state-label">世界</span><span class="cs-state-val" id="cs-state-world">和平</span></div>
-        </div>
-
-        <!-- 資源 -->
-        
-
+        <!-- 當前狀態 -->
+        <div class="cs-subsection-title">當前狀態</div>
+        <div class="cs-state-row"><span class="cs-state-icon">🕊</span><span class="cs-state-label">信仰</span><span class="cs-state-val" id="cs-state-religion">—</span></div>
+        <div class="cs-state-row"><span class="cs-state-icon">🏛</span><span class="cs-state-label">派系</span><span class="cs-state-val" id="cs-state-faction">—</span></div>
+        <div class="cs-state-row"><span class="cs-state-icon">🌍</span><span class="cs-state-label">世界</span><span class="cs-state-val" id="cs-state-world">和平</span></div>
       </div><!-- /cs-col-right -->
 
     </div><!-- /cs-body -->
@@ -2668,11 +3027,11 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
       </div>
     </div>
 
-    <!-- 眾生 tab content (原「所有人」) -->
+    <!-- 關係圖 tab content (原「所有人」) -->
     <div class="cs-tab-content hidden" data-tab-content="people">
       <div id="cs-people-container">
         <div class="cs-people-header">
-          <div class="cs-people-title">眾生</div>
+          <div class="cs-people-title">關係圖</div>
           <div class="cs-people-sub" id="cs-people-summary">你已與 0 人建立連結</div>
         </div>
         <div id="cs-people-grid"></div>
@@ -2885,7 +3244,9 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 
 <!-- ══ Scripts (order matters) ═══════════════════════════ -->
 <script src="config.js"></script>
+<script src="stage.js"></script>
 <script src="flags.js"></script>
+<script src="origins.js"></script>
 <script src="i18n.js"></script>
 <script src="game_state.js"></script>
 <script src="sound.js"></script>

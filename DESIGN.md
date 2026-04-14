@@ -54,7 +54,7 @@
 |------|------|------|
 | ChoiceModal UI 系統 | ⚠️ 設計完成待實作 | 設計見 E.10 Phase 1-E.2 / E.11 章節；解鎖 1-E.2 與未來對話分支 |
 | 人物面板階段 A 驗收 | ✅ 完成 22/23 | 驗收清單見 D.7 章節 |
-| 人物面板階段 B | 🟡 實作完成待驗收 | 兩欄重構 + 裝備 picker + 眾生 tab；裝備動態化順便清階段 A 落差 |
+| 人物面板階段 B | 🟡 實作完成待驗收 | 兩欄重構 + 裝備 picker + 關係圖 tab；裝備動態化順便清階段 A 落差 |
 
 ### Phase 2：核心系統（Part C + S 系列） — ⬜ 未開始
 
@@ -2770,10 +2770,10 @@ function renderDetailModal() {
 - [ ] 右上角 ✕ 關閉鈕
 
 **Tab bar**
-- [ ] 5 個 tab：角色 / **眾生**（原「所有人」）/ 成就 / 百科 / 任務
+- [ ] 5 個 tab：角色 / **關係圖**（原「所有人」）/ 成就 / 百科 / 任務
 - [ ] 預設停在「角色」tab
 - [ ] 點 tab 會切換內容
-- [ ] 點 **關係圖** 按鈕 → 直接跳到「眾生」tab
+- [ ] 點 **關係圖** 按鈕 → 直接跳到「關係圖」tab
 
 **左欄（45%）— 7 個區塊，由上到下**
 
@@ -2825,9 +2825,9 @@ function renderDetailModal() {
 - [ ] 主手換成雙手武器（例：greatsword）→ 副手自動清空（顯示「—」）
 - [ ] 主手是雙手武器時，點副手選單能列出，但選了不會生效（被 rollback）
 
-**眾生 Tab 內容**
+**關係圖 Tab 內容**
 
-- [ ] 頂部標題「眾生」（金色大字）
+- [ ] 頂部標題「關係圖」（金色大字）
 - [ ] 副標「你已與 N 人建立連結」
 - [ ] 卡片網格呈現（每張卡片：立繪 fallback + 姓名 + 等級文字 + bar）
 - [ ] 等級文字：忠誠/崇敬/友好/認識/中立/不悅/厭惡/憎恨/不共戴天 擇一
@@ -2849,6 +2849,243 @@ function renderDetailModal() {
 ---
 
 ### 階段 B 規格結束
+
+---
+
+## 🆕 D.12 NPC 故事揭露系統（Story Reveals）
+
+> **狀態**：2026-04-15 設計定案，第一階段（卡西烏斯範本）實作中。
+> 把 NPC 故事從「好感度數字」轉變為「由玩家角色特性觸發的漸進敘事」。
+> 核心哲學：**不預告未來，但給方向感；每個玩家看到的故事都不一樣**。
+
+### 核心概念
+
+1. **故事 = 碎片陣列**：每個 NPC 有 `storyReveals[]`，包含多段 reveal（flavor + event）
+2. **漸進揭露**：好感門檻逐步解鎖，高好感才看到更深的東西
+3. **特性共鳴**：某些 reveal 只對特定玩家開放——失眠症、神經質、識字等特性作為鑰匙
+4. **內容可漸進補**：NPC 沒填 storyReveals 就用 fallback，允許一次只補一個 NPC
+5. **故事長度自由**：陣列可短可長，每個 NPC 的深度不需要一致
+6. **道具是故事載體**：重要 reveal 可贈送獨特道具（如符牌），物品身上帶 storyTag 可被其他 NPC 的事件檢查到，形成**故事網**（見 D.14）
+
+### 資料結構
+
+```js
+cassius.storyReveals = [
+  // ── Flavor 段：關係圖卡片常駐顯示 ─────────
+  {
+    id:        'cassius_quiet',
+    type:      'flavor',
+    affection: 10,
+    text:      '他很少說話。',
+  },
+
+  // ── Event 段：夜間隨機觸發（一次性） ─────
+  {
+    id:              'cassius_whisper_night',
+    type:            'event',
+    affection:       40,
+    requireAnyTrait: ['insomnia_disorder', 'neurotic'],
+    chance:          0.3,
+    onceOnly:        true,
+    text:            '深夜裡你聽見他低聲念著一個名字...',
+    logColor:        '#8899aa',
+  },
+
+  // ── Event 段：觸發時贈送道具 ─────
+  {
+    id:              'cassius_charm_touch',
+    type:            'event',
+    affection:       80,
+    requireMinAttr:  { WIL: 15 },
+    chance:          0.2,
+    onceOnly:        true,
+    text:            '他把那塊符牌塞進你手裡...',
+    grantItem:       'marcoCharm',
+  },
+];
+```
+
+### 支援的觸發條件
+
+| 欄位 | 意義 |
+|------|------|
+| `affection` | 最低好感門檻（必填） |
+| `requireAnyTrait` | 玩家需擁有其中任一特性 |
+| `requireAnyAilment` | 玩家需擁有其中任一病痛 |
+| `requireMinAttr` | 屬性最低值 `{ STR: 15 }` |
+| `requireFlag` | 需特定故事旗標 |
+| `requireOrigin` | 只對某個背景開放 |
+| `requireItemTag` | 玩家護符/物品上的 storyTag |
+| `chance` | 事件型的觸發機率（0~1） |
+| `onceOnly` | 觸發過寫入 `player.seenReveals[]` 永不再觸發 |
+
+### Fallback
+
+NPC 沒填 `storyReveals` 或沒有符合條件的 reveal → 關係圖卡片顯示「你對他知之甚少」。
+
+### 📋 D.12 實作 Check List
+
+**第一階段：資料結構與範本（卡西烏斯）—— 本輪實作**
+- [ ] `npc.js` 檔頂註解說明 `storyReveals` 格式
+- [ ] `cassius.storyReveals` 填 4 段 flavor + 3 段 event（馬可符牌主線）
+- [ ] `teammates.getVisibleFlavor(npcId)` helper
+- [ ] `main.js _renderPeopleTab` 卡片底部加一行 flavor 小灰字
+- [ ] 空 reveals 時 fallback「你對他知之甚少」
+
+**第二階段：事件掃描器 —— 本輪實作**
+- [ ] `events.js` 或 `main.js` 新增 `_scanStoryEvents()`
+- [ ] `_sleepEndDayBody()` 裡就寢前呼叫
+- [ ] 條件符合 → `Math.random() < chance` → 觸發
+- [ ] `onceOnly` → `player.seenReveals[]` + Flags 記錄
+- [ ] 觸發時 `addLog(text, logColor, true)`
+
+**第三階段：道具層（下次實作）**
+- [ ] `item.js` 定義 `marcoCharm`
+- [ ] 護符格支援顯示道具名
+- [ ] `grantItem` 事件效果
+- [ ] `requireItemTag` 條件檢查
+
+**第四階段：內容擴充（持續）**
+- [ ] dagiSlave / ursa / oldSlave / melaKook / blacksmithGra 故事
+
+**第五階段：新特性**
+- [ ] `literate`（識字）
+- [ ] `silverTongue`（巧舌）
+- [ ] `brooding`（鬱結）
+- [ ] `neurotic`（神經質）
+
+---
+
+## 🆕 D.13 睡前時段（20:00~22:00）互動設計
+
+> **狀態**：2026-04-15 設計定案，尚未實作。
+> 把原本純恢復的 rest slot 改為「內在活動選單」。
+
+### 哲學
+
+- 白天沒自由，夜晚有一點內在空間
+- 特性作為選項解鎖鑰匙
+- 每晚都可能有驚喜，但不保證
+- 特性組合疊加，一晚可能觸發多個事件
+
+### 選項列表
+
+| 選項 | 需要特性 | 效果 | 潛在事件 |
+|------|---------|------|---------|
+| **冥想** | 無（所有人） | WIL +3, mood +5 | 無 |
+| **就寢（提早）** | 無 | 直接跳次日 | 無 |
+| **讀書** | `literate` | mood +5 | 20% 世界觀/新聞片段事件 |
+| **寫日記** | `literate` | mood +3, WIL +2 | 15% origin 共鳴事件 |
+| **說故事給隊友聽** | `silverTongue` | 在場隊友好感 +2~5 | 10% NPC 故事事件 |
+| **獨自沉思往事** | `brooding` or `insomnia_disorder` | mood -3, WIL +3 | 20% origin 深層記憶 |
+| **觀察別人** | `neurotic` | 無直接效果 | 25% 隨機 NPC story event |
+| **禱告** | 有信仰（Phase 3 E8） | 微屬性 buff | 信仰事件 |
+
+### 📋 D.13 Check List
+
+- [ ] 新增特性 `literate` / `silverTongue` / `brooding` / `neurotic` 到 `Config.TRAIT_DEFS`
+- [ ] `main.js` 新增 `_showRestSlotMenu()`
+- [ ] `_resolveNonTrainingSlots` 的 rest 分支改為呼叫 menu
+- [ ] 選項 UI（沿用既有 action-btn 樣式）
+- [ ] 每個選項對應的效果 + 事件 roll
+- [ ] 「提早睡覺」選項跳過後續 rest
+
+---
+
+## 🆕 D.14 故事道具網路（Story Item Network）
+
+> **狀態**：2026-04-15 設計定案，後續實作。
+> 讓獨特道具變成「會旅行的故事觸發器」。
+
+### 原則
+
+1. 獨特道具 = 故事鑰匙，不可交易、不可複製
+2. 其他 NPC 能「看到」身上的道具（用 `requireItemTag` 檢查）
+3. 一個道具觸發多條故事線
+4. 道具不只是 buff，是敘事錨點
+
+### 範例：馬可的符牌 `marcoCharm`
+
+```js
+marcoCharm: {
+  id:        'marcoCharm',
+  name:      '磨損的符牌',
+  type:      'amulet',
+  rarity:    'unique',
+  desc:      '邊角磨得發亮。背面刻著「馬可」兩個字——不是你的名字。',
+  eqBonus:   { WIL: +2, mood: +3 },
+  storyTag:  'marco_charm',
+  acquiredBy:'cassius_charm_touch',
+}
+```
+
+| NPC | 條件 | 反應 |
+|-----|------|------|
+| **梅拉（廚娘）** | 好感 60 + marco_charm | 「那個名字……也愛吃這口粥」 |
+| **葛拉（鐵匠）** | 拿武器來修 + marco_charm | 「這符牌我打過五次」 |
+| **旅行商人**（Phase 3） | 看到 marco_charm | 「這東西在北邊是喪禮信物」→ 開地圖 |
+| **宗教 NPC**（Phase 3 E8） | 看到 marco_charm | 要求歸還或摧毀 |
+
+### 📋 D.14 Check List
+
+- [ ] `item.js` 支援 `storyTag` 欄位
+- [ ] 事件條件支援 `requireItemTag`
+- [ ] `grantItem` 事件效果
+- [ ] `marcoCharm` 第一個範例道具
+- [ ] 至少 1 個其他 NPC 用 `requireItemTag` 檢查符牌
+
+---
+
+---
+
+## 🆕 D.15 跨系統整合檢查清單 (Integration Checklist)
+
+> **為什麼這個章節存在**：2026-04-15 開發過程中發現，每次加新功能常常隔一段時間才意識到「喔，這應該也連到好感/物品/故事/旗標...」。
+> 這不是設計疏失，而是 emergent design 的本質——遊戲意義是湧現的，不是預先列舉的。
+>
+> **這個清單的用途**：實作任何新功能（事件、NPC、動作、物品、特性）之前，跑一遍這 8 問，把該有的橫向連結在**設計階段**就想到，而不是事後補。
+>
+> **誰負責**：AI 在提案階段主動自問一遍，寫進建議中。使用者可隨時說「檢查整合清單」強制重跑。
+>
+> **為什麼不讓 AI 每次讀完整 DESIGN.md**：文件 6000+ 行，讀全文浪費 context 且不精準。精準的辦法是 grep 相關段落 + 跑這份穩定的橫向清單。
+
+### 📋 整合檢查清單（實作前必問 8 題）
+
+當你要加一個新的**事件、動作、NPC、物品、特性、選項**時，依序問：
+
+1. **好感度連動** — 這個功能會不會改變某個 NPC 的好感？如果應該改，是 NPC 主動（他喜歡你這樣做）還是被動（你沒做會扣）？有沒有好感門檻才能觸發？
+2. **特性共鳴** — 有沒有哪個玩家特性應該讓這個功能**觸發不同結果**？（識字解鎖讀書、神經質強化夜間事件、失眠症共鳴等）
+3. **故事揭露連動** — 這個功能會不會解鎖某個 NPC 的 story reveal？或者反過來——某個 story reveal 應該導致這個功能出現新選項？
+4. **資源/物品流動** — 這個功能會不會給/花 EXP、金錢、護符、個人物品、SP？給的東西有沒有 `storyTag` 能觸發其他 NPC 的反應？
+5. **Stage 演出需求** — 這個功能的敘事**有沒有足夠重量**需要 Stage 小過場（`Stage.playEvent`）？還是只寫 log 就夠？重要事件要加 `addLog(..., true)` 的 flash。
+6. **Origin 差異化** — 這個功能可以按玩家背景不同而不同嗎？農家子弟看到跟貴族看到是否應該不同？至少要考慮過，不做也要主動說「這個不分 origin」。
+7. **觸發頻率** — 這功能是 `onceOnly`、每日、每週、機率觸發、還是永久常駐？如果是機率型，有沒有條件能提升機率（共鳴加成）？
+8. **旗標與後續鉤子** — 這個功能需要設一個 `Flags.set(...)` 讓**未來系統**能檢查「玩家做過 X」嗎？常見需要旗標的情境：故事分歧、一次性選擇、跨天記憶。
+
+### 使用範例：errand_market 事件
+
+問這 8 題會得到：
+
+| 題目 | 答 | 行動 |
+|------|---|------|
+| 1. 好感度連動 | **是**——主人派你辦事本身代表信任 | errand 加 `masterArtus +3`；門檻 `master ≥ 20` 才派 |
+| 2. 特性共鳴 | 神經質 → 市集看到更多細節；識字 → 看得懂告示牌 | 特性為選項後續擴充方向 |
+| 3. 故事揭露 | 完成 errand 可能觸發主人的 story reveal | 主人有 storyReveals 後補上 |
+| 4. 資源流動 | 給 food/mood/money（已做） | 已有 |
+| 5. Stage 演出 | **是**——這是罕見的「離開訓練場」事件 | 用 `queueStageEvent + playEvent` 小過場（已做）|
+| 6. Origin 差異化 | 貴族看到老朋友、農家子弟看到舊村莊風景 | 待擴充 |
+| 7. 觸發頻率 | 目前每 7 天一次 | 可改為好感門檻 + 機率 |
+| 8. 旗標 | `heard_arena_rumor`（已設） | 已有 |
+
+**結論**：現在的 errand 漏了 1 和 6。其他都有做或已規劃。
+
+### 這個流程不是官僚主義
+
+8 題跑完 30 秒內。AI 在提案時用這清單做「一次心算橫向掃描」，不用真的寫進每次回覆。  
+**出現問題時就更新清單**——如果哪一次發現某個新維度不在這 8 題裡，就加第 9 題。  
+清單本身會成長，但緩慢、穩定、可控。
+
+---
 
 ### 階段 C：其他分頁實作
 

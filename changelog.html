@@ -207,6 +207,69 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       D.12  NPC 故事揭露系統（第一階段 — 卡西烏斯範本）
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">FEATURE</span>
+      <span class="version-title">D.12 — NPC 故事揭露系統（卡西烏斯範本）</span>
+      <span class="version-date">2026-04-15</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">故事揭露資料結構 <span class="file-tag">npc.js</span>
+          — 每個 NPC 可填 <code>storyReveals: []</code> 陣列，每個元素是一段 reveal
+          （<code>type: 'flavor' | 'event'</code>）。支援 affection、requireAnyTrait、
+          requireAnyAilment、requireMinAttr、requireFlag、requireOrigin、chance、
+          onceOnly、grantItem、logColor 等條件欄位。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">卡西烏斯故事範本 <span class="file-tag">npc.js</span>
+          — 4 段 flavor + 3 段 event 的完整故事線：戰友馬可死於西牆意外、
+          枕下的符牌、西牆的凝視、劍柄內側兩個名字。
+          Event 段由特性共鳴觸發（失眠症/神經質聽到低語、失眠症共鳴沉默、WIL≥15 託付符牌）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">Helper 函式 <span class="file-tag">npc.js</span>
+          — <code>teammates.getVisibleFlavor(npcId)</code> 回傳當前可見的最高段 flavor；
+          <code>teammates.getPendingStoryEvents(player)</code> 回傳所有符合條件且尚未觸發的
+          event 型 reveals；<code>_revealPassesConditions</code> 統一條件檢查。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">夜間事件掃描器 <span class="file-tag">main.js</span>
+          — <code>_scanStoryEvents()</code> 在 <code>_sleepEndDayBody</code> 開頭呼叫；
+          遍歷 pending event，依 <code>chance</code> roll 觸發，寫入
+          <code>player.seenReveals[]</code> 防止重複。觸發時以 <code>addLog</code>
+          用 reveal 指定的顏色輸出文字。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">關係圖卡片顯示 flavor <span class="file-tag">main.js</span> <span class="file-tag">game.html</span>
+          — <code>_renderPeopleTab</code> 卡片底部加 <code>.cs-person-flavor</code>
+          小灰字顯示當前可見的 flavor 段。沒填故事的 NPC fallback「你對他知之甚少」。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text"><code>Stats.player.seenReveals[]</code> 新欄位 <span class="file-tag">stats.js</span>
+          — 紀錄已觸發的 onceOnly reveal ID，存檔保留，新遊戲重置。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">設計文件 <span class="file-tag">DESIGN.md</span>
+          — 新增 D.12（故事揭露系統）、D.13（睡前時段互動設計）、D.14（故事道具網路）
+          三個章節，含完整 check list。D.12 第一、第二階段本次實作，D.13/D.14 待後續。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
        D.6 v2  技能購買系統（EXP 單一資源模型 + 技能 tab）
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">
@@ -250,7 +313,7 @@ html, body {
       <li class="change-item">
         <span class="change-badge badge-ui">UI</span>
         <span class="change-text">技能 tab <span class="file-tag">game.html</span> <span class="file-tag">main.js</span>
-          — 新增第二個 tab「技能」，置於「角色」與「眾生」之間。
+          — 新增第二個 tab「技能」，置於「角色」與「關係圖」之間。
           頂部 6 屬性 EXP 總覽格子 + 技能卡片網格（auto-fill minmax 320px）。
           卡片三態：可購買（金邊）／已習得（金色漸層背景）／鎖定（半透明）。
           每個成本屬性分別顯示「有 N / 需 X」+ 補差註記。</span>
@@ -356,12 +419,12 @@ html, body {
   <div class="section-sep">· · ·</div>
 
   <!-- ══════════════════════════════════════════════════════
-       D.7 階段 B  人物面板重構（兩欄 + 裝備 picker + 眾生 tab）
+       D.7 階段 B  人物面板重構（兩欄 + 裝備 picker + 關係圖 tab）
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">
     <div class="version-header">
       <span class="version-tag feature">REFACTOR</span>
-      <span class="version-title">D.7 階段 B — 人物面板兩欄重構 + 裝備 picker + 眾生 tab</span>
+      <span class="version-title">D.7 階段 B — 人物面板兩欄重構 + 裝備 picker + 關係圖 tab</span>
       <span class="version-date">2026-04-13</span>
     </div>
     <div class="version-line"></div>
@@ -382,8 +445,8 @@ html, body {
       <li class="change-item">
         <span class="change-badge badge-new">NEW</span>
         <span class="change-text">關係圖按鈕 <span class="file-tag">game.html</span> <span class="file-tag">main.js</span>
-          — 姓名旁新增 <code>[關係圖]</code> 按鈕，點擊直接跳到「眾生」tab。
-          第二 tab 名稱由「所有人」改為「眾生」。</span>
+          — 姓名旁新增 <code>[關係圖]</code> 按鈕，點擊直接跳到「關係圖」tab。
+          第二 tab 名稱由「所有人」改為「關係圖」。</span>
       </li>
       <li class="change-item">
         <span class="change-badge badge-new">NEW</span>
@@ -395,7 +458,7 @@ html, body {
       </li>
       <li class="change-item">
         <span class="change-badge badge-new">NEW</span>
-        <span class="change-text">眾生 tab 內容 <span class="file-tag">main.js</span>
+        <span class="change-text">關係圖 tab 內容 <span class="file-tag">main.js</span>
           — 取代原 placeholder；以卡片網格呈現所有有連結的 NPC，顯示
           立繪 fallback（姓名前兩字）、好感等級文字、正負向色系 bar。
           空狀態：「尚未與任何人建立連結。訓練場的每一次互動都可能改變命運。」</span>
