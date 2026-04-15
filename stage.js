@@ -113,11 +113,12 @@ const Stage = (() => {
    * @returns {Promise<void>}
    */
   async function playSleep(arg) {
-    let onBlack, sleepType = 'normal';
+    let onBlack, sleepType = 'normal', skipFinalOpen = false;
     if (typeof arg === 'function') onBlack = arg;
     else if (arg && typeof arg === 'object') {
-      onBlack   = arg.onBlack;
-      sleepType = arg.sleepType || 'normal';
+      onBlack       = arg.onBlack;
+      sleepType     = arg.sleepType || 'normal';
+      skipFinalOpen = !!arg.skipFinalOpen;    // 🆕 D.21：留黑給 playMorning 接手
     }
 
     _ensureElements();
@@ -174,8 +175,8 @@ const Stage = (() => {
       }
     }
 
-    // 4. 掀眼
-    await openEyes();
+    // 4. 掀眼（skipFinalOpen 時保留黑幕給 playMorning 接手）
+    if (!skipFinalOpen) await openEyes();
   }
 
   // ══════════════════════════════════════════════════
@@ -297,10 +298,102 @@ const Stage = (() => {
     overlay.innerHTML = '';
   }
 
+  // ══════════════════════════════════════════════════
+  // 🆕 D.21 晨起過場（playMorning）
+  // ══════════════════════════════════════════════════
+  // 流程：
+  //   0.0s — 黑幕保持
+  //   0.3s — 雞鳴淡入（italic 暗金）
+  //   1.2s — 內心獨白淡入 + 打字機（灰斜體）
+  //   內心獨白播完後 +0.6s → 黑幕掀開（reveal）
+  //   掀完 → onComplete
+  //
+  // 按 Space / 點擊 → 跳過打字機
+  // 按 Ctrl → 快速推進全部
+  const MORNING_ROOSTER_HOLD_MS = 900;
+  const MORNING_THOUGHT_TYPE_MS = 40;     // 打字機慢一點，讀起來更沉靜
+  const MORNING_THOUGHT_HOLD_MS = 800;
+
+  async function playMorning(opts = {}) {
+    _ensureElements();
+    const innerThought = opts.innerThought || '';
+    const onComplete   = opts.onComplete;
+    const assumeBlack  = !!opts.assumeBlack;  // true = 黑幕已經關閉（由 playSleep 接手），不重複閉眼
+
+    // 1) 如果畫面還亮著，先閉眼
+    if (!assumeBlack) await closeEyes();
+
+    // 2) 注入晨起覆蓋層
+    const stage = document.getElementById(STAGE_ID);
+    if (!stage) { if (onComplete) onComplete(); return; }
+
+    let overlay = document.getElementById('stage-morning-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'stage-morning-overlay';
+      overlay.className = 'stage-morning-overlay';
+      overlay.innerHTML = `
+        <div class="morning-rooster" id="morning-rooster">🐓……咯咯咯……</div>
+        <div class="morning-thought" id="morning-thought"></div>
+      `;
+      stage.appendChild(overlay);
+    }
+    overlay.classList.remove('fade-out');
+    const roosterEl  = document.getElementById('morning-rooster');
+    const thoughtEl  = document.getElementById('morning-thought');
+    if (roosterEl) { roosterEl.classList.remove('visible'); roosterEl.textContent = '🐓……咯咯咯……'; }
+    if (thoughtEl) { thoughtEl.classList.remove('visible'); thoughtEl.textContent = ''; }
+
+    // 允許玩家跳過
+    let _skipRequested = false;
+    const _skipHandler = (e) => {
+      if (e.key === ' ' || e.key === 'Enter' || e.key === 'Control') _skipRequested = true;
+    };
+    const _clickHandler = () => { _skipRequested = true; };
+    document.addEventListener('keydown', _skipHandler);
+    overlay.addEventListener('click', _clickHandler);
+
+    // 3) 雞鳴淡入
+    await _wait(300);
+    if (roosterEl) roosterEl.classList.add('visible');
+    await _wait(_skipRequested ? 0 : MORNING_ROOSTER_HOLD_MS);
+
+    // 4) 內心獨白 — 打字機
+    if (innerThought && thoughtEl) {
+      thoughtEl.classList.add('visible');
+      if (_skipRequested) {
+        thoughtEl.textContent = innerThought;
+      } else {
+        for (let i = 0; i < innerThought.length; i++) {
+          if (_skipRequested) { thoughtEl.textContent = innerThought; break; }
+          thoughtEl.textContent += innerThought[i];
+          await _wait(MORNING_THOUGHT_TYPE_MS);
+        }
+      }
+      await _wait(_skipRequested ? 150 : MORNING_THOUGHT_HOLD_MS);
+    }
+
+    // 5) 淡出覆蓋層
+    overlay.classList.add('fade-out');
+    await _wait(400);
+    if (roosterEl) roosterEl.classList.remove('visible');
+    if (thoughtEl) thoughtEl.classList.remove('visible');
+
+    // 移除事件
+    document.removeEventListener('keydown', _skipHandler);
+    overlay.removeEventListener('click', _clickHandler);
+
+    // 6) 掀眼
+    await openEyes();
+
+    if (typeof onComplete === 'function') onComplete();
+  }
+
   return {
     playSleep,
     playOpening,
     playEvent,
+    playMorning,
     closeEyes,
     openEyes,
     showZzz,

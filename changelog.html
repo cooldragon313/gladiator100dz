@@ -207,6 +207,106 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       D.21  對話系統 + 晨思系統 + 雞鳴過場
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">FEATURE</span>
+      <span class="version-title">D.21 — DialogueModal + 晨思系統 + Stage 晨起過場</span>
+      <span class="version-date">2026-04-16</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">DialogueModal 重量級對話系統 <span class="file-tag">dialogue_modal.js</span>
+          — L2 手動制對話（脊椎事件專用）。打字機動畫 28ms/字。
+          Space/Enter/點擊推進、按住 Ctrl 秒過整段。首次開啟右下角淡入按鍵提示
+          「💡 Space 繼續 · 按住 Ctrl 秒過」。支援 <code>speaker + text</code> 物件
+          陣列和純字串陣列。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">MorningThoughts 晨思系統 <span class="file-tag">morning_thoughts.js</span>
+          — 主角「醒來的第一個念頭」系統。同時解決懸念記憶、新手教學、
+          狀態解析、預感伏筆、反思儀式五件事。滑動窗口 + 優先度 + 輪播文字 +
+          衰退機制 + 解決回收佇列。REGISTRY + pickToday + markShown + serialize。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-content">CONTENT</span>
+        <span class="change-text">首發 thought 庫（~30 條） <span class="file-tag">morning_thoughts.js</span>
+          — 10 類分層：預感 80/90 天分段 × 2 條、身體（失眠/手傷/腿傷/軀幹/力竭/飢餓）× 6、
+          社交（10 個道德特性各有反應）× 10、情緒 × 2、反思（day 10/30/50 + STR 破 20 + 弱/慢）× 6、
+          預設（day 1-5/6-20/21-50/51-79）× 4 段。
+          首要特色：把「該找醫生」這種教學偽裝成主角抱怨，完全融入敘事。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">Stage.playMorning 晨起過場 <span class="file-tag">stage.js</span>
+          — 黑幕 → 雞鳴 🐓……咯咯咯…… 淡入 → 內心獨白打字機（40ms/字）→
+          覆蓋層淡出 → 掀眼。支援 <code>assumeBlack</code> 參數避免重複閉眼動畫。
+          播放期間可按鍵/點擊跳過所有動畫階段。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">playSleep 新增 skipFinalOpen 選項 <span class="file-tag">stage.js</span>
+          — 就寢演出結束時不掀眼，保留黑幕交給後續動畫接手。
+          讓 sleepEndDay 可以無縫串接 playSleep → playMorning 兩階段過場。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">storyReveal 升級為支援 dialogueLines <span class="file-tag">main.js</span>
+          — <code>_scanStoryEvents</code> 掃到帶 <code>dialogueLines: [...]</code>
+          的 reveal 時排入新增的 <code>_pendingDialogues</code> 佇列，
+          在 playMorning 之後由 <code>_flushDialogues</code> 用 DialogueModal 播出。
+          未帶 dialogueLines 的 reveal 仍走原本的 addLog 輕量路徑。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-content">CONTENT</span>
+        <span class="change-text">奧蘭 Day 1 初遇升級 <span class="file-tag">npc.js</span>
+          — <code>orlan_first_night_oath</code> reveal 新增 11 句 dialogueLines：
+          「牢房很冷」→「……你叫什麼？」→「我叫奧蘭」→「磨坊裡來的，沒揮過劍」
+          →「伸出手」→「我們一起活下去吧」。每句停頓讓玩家感受那個握手瞬間的重量。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">sleepEndDay 串接流程 <span class="file-tag">main.js</span>
+          — playSleep(skipFinalOpen) → 挑 morning thought → playMorning(assumeBlack)
+          → markShown → flushStageEvents → flushDialogues。晨起整套過場自動化。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">存檔整合 <span class="file-tag">main.js</span>
+          — <code>save.morningThoughts</code> 序列化 shownCounts / lastShownDay /
+          pendingResolve。讀檔後呼叫 <code>MorningThoughts.restore</code>，
+          新遊戲時 <code>reset</code>。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">DialogueModal 樣式 <span class="file-tag">game.html</span>
+          — 底部滑入式對話框（slide-up 動畫）+ 金色邊框 + 內發光。說話者名字
+          頂部小字 + 分隔線。▼ 閃爍提示可繼續。右下角按鍵提示浮字。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">晨起過場樣式 <span class="file-tag">game.html</span>
+          — <code>.stage-morning-overlay</code> 覆蓋層、<code>.morning-rooster</code>
+          italic 暗金雞鳴、<code>.morning-thought</code> 灰斜體內心獨白最大寬度 560px。
+          淡入淡出時序精心調校以製造「醒來」的節奏感。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">FIX</span>
+        <span class="change-text">空區塊不再顯示 <span class="file-tag">main.js</span>
+          — 人物頁「尚無特性 / 尚無疤痕 / 無病痛」改為完全隱藏該 div（display:none）。
+          三區都空時連「人物特質」section title 也一併收起。
+          「你沒有特性你還要寫尚無特性？」的問題終於解決。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
        D.20  奧蘭主線 — 永駐兄弟（完整四幕）
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">

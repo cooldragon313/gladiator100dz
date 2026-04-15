@@ -79,7 +79,8 @@
 | 食物經濟平衡 | `77c50b0` | 餐點 25→18、訓練 8→10、sleep -12→-15 |
 | D.18 屬性偏好協力 | `e06bbb7` | 命名三段 + 背景池 + favorWeight + ×15 總 cap + dispatcher exp 修正 |
 | D.19 道德累積特性 | `0898cd3` | 10 個 earned traits + 滑動窗口 + NPC 愛憎倍率 + 失眠首夜敘述修正 |
-| D.20 奧蘭主線 | *本次* | 永駐兄弟 + 四幕脊椎 + 10 storyReveals + 偷藥/訣別/房間升級 + 生死關頭援手 |
+| D.20 奧蘭主線 | `fba80cf` | 永駐兄弟 + 四幕脊椎 + 10 storyReveals + 偷藥/訣別/房間升級 + 生死關頭援手 |
+| D.21 對話與晨思 | *本次* | DialogueModal（L2 手動）+ MorningThoughts（30 條）+ Stage.playMorning 雞鳴過場 + 奧蘭 Day 1 升級 |
 
 ### Phase 2：核心系統 — ⬜ 未開始
 
@@ -571,6 +572,88 @@ cassius.storyReveals = [
 **病痛**（獨立於 traits）：`config.js` 的 `AILMENT_DEFS`
 - `insomnia_disorder` 失眠症
 - `arm_injury` / `leg_injury` / `torso_injury` 傷
+
+### 3.9 對話系統與晨思（D.21）
+
+**模組**：[dialogue_modal.js](../dialogue_modal.js) + [morning_thoughts.js](../morning_thoughts.js) + [stage.js](../stage.js) `playMorning`
+
+#### 三層對話節奏
+
+| 層級 | 用於 | 節奏 | 實作 |
+|---|---|---|---|
+| **L0 · Log 碎念** | 訓練碎念、戰鬥日誌、系統訊息 | 立即寫入，無暫停 | 現有 addLog |
+| **L1 · 自動過場** | storyReveal flavor、散點敘述 | 打字機 + 自動流 | 現有 addLog（未來會加 Stage.playEvent） |
+| **L2 · 手動對話** | 脊椎事件、ChoiceModal 前置、重量級 reveal | 打字機 + 必須按鍵 | **DialogueModal** |
+
+#### DialogueModal 操作
+
+- `Space` / `Enter` / 點擊 → 跳過打字機 / 進下一句
+- 按住 `Ctrl` → 秒過整段（重複玩家的朋友）
+- 首次開啟時右下角淡入按鍵提示（只顯示一次）
+- 使用格式：
+  ```js
+  DialogueModal.play([
+    { text: '敘述文字。' },
+    { speaker: '奧蘭', text: '對話文字。' },
+    { speaker: '你',   text: '玩家的話。' },
+  ], { onComplete: () => { /* 下一步 */ } });
+  ```
+
+#### storyReveal 升級：dialogueLines
+
+storyReveal 可以選擇性加 `dialogueLines: [...]` 欄位：
+- 若有 → 事件被 `_scanStoryEvents` 掃到時排入 `_pendingDialogues` 佇列，
+  在 `playMorning` 之後自動播出
+- 若無 → fallback 到 `text` 欄位 + `addLog` 輕量顯示
+
+範例：奧蘭 Day 1 誓言（`orlan_first_night_oath`）已升級成 11 句 DialogueModal。
+
+#### 晨思系統（MorningThoughts）
+
+**核心哲學**：主角「醒來的第一個念頭」系統。同時解決：
+1. 懸念記憶（前一天看到的事，隔日在腦中延續）
+2. 新手教學（把按鍵、機制、解法偽裝成主角的自言自語）
+3. 狀態解析（病痛/特性/心情變動 → 主角會抱怨）
+4. 預感伏筆（祭典將近、大事將至）
+5. 反思儀式（屬性破門檻、天數里程碑）
+6. 每天晨起的情緒節拍（哪怕沒條件也有預設念頭）
+
+**機制**：每天晨起從 REGISTRY 中挑一條符合當前狀態的 thought 播出
+- **優先度分層**：mystery(100) > resolution(95) > anticipation(80) > social(70) > foreboding(65) > body(45) > mood(30) > reflection(25) > default(10)
+- **輪播**：同一條 thought 有多句文字，依 `shownCount` 輪播
+- **衰退**：`maxShowCount` 達上限不再播；`decayAfter` 超過 N 天不再觸發
+- **解決回收**：`resolvedBy` 對應 flag 設定後自動靜默；`queueResolution()` 可排入回收 thought
+
+**首發庫**：10 類共 ~30 條
+- 預感（80/90 天分段）
+- 身體（失眠/手傷/腿傷/軀幹/力竭/飢餓）
+- 社交（10 個道德特性各有反應）
+- 情緒（高/低 mood）
+- 反思（day 10/30/50、STR 破 20、慢/弱）
+- 預設（day 1-5 / 6-20 / 21-50 / 51-79 四段）
+
+#### Stage.playMorning 晨起過場
+
+流程：
+```
+黑幕保持
+  ↓ 0.3s
+雞鳴 🐓……咯咯咯…… 淡入（italic 暗金）
+  ↓ 0.9s
+內心獨白淡入 + 打字機動畫（灰斜體）
+  ↓ 播完 0.8s
+覆蓋層淡出 → 黑幕掀開
+  ↓
+進主畫面
+```
+
+**支援 skip**：播放期間按 Space/Enter/Ctrl/點擊 → 立即跳到完整顯示 + 進入下一階段
+
+**串接方式**：`sleepEndDay` 先呼叫 `playSleep({skipFinalOpen:true})` 保留黑幕，再呼叫 `playMorning({assumeBlack:true, innerThought})`，避免雙重閉眼動畫
+
+**存檔**：`MorningThoughts.serialize()` / `restore()` 整合 save.morningThoughts
+
+---
 
 ### 3.8 奧蘭主線 — 永駐兄弟（D.20）
 

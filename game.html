@@ -1132,6 +1132,140 @@ html, body {
 }
 .choice-close:hover { color: var(--text-hi); }
 
+/* ══════════════════════════════════════════════════════
+   🆕 D.21 DialogueModal（重量級對話）
+═════════════════════════════════════════════════════════ */
+.dialogue-overlay {
+  /* 繼承 .modal-overlay，但用自己的背景控制 */
+  align-items: flex-end !important;
+  padding: 0 0 80px 0;
+  background: transparent;   /* 用 dialogue-dim 控制 */
+}
+.dialogue-overlay .dialogue-dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(2px);
+  z-index: 1;
+}
+.dialogue-box {
+  position: relative;
+  z-index: 2;
+  width: min(720px, 92%);
+  min-height: 140px;
+  max-height: 50vh;
+  background: linear-gradient(180deg, rgba(22,14,6,.96) 0%, rgba(14,8,2,.98) 100%);
+  border: 2px solid var(--gold);
+  border-radius: 6px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.8), inset 0 0 60px rgba(200,160,80,0.08);
+  padding: 22px 30px 30px 30px;
+  margin: 0 auto;
+  cursor: pointer;
+  animation: dialogue-slide-up .35s ease-out;
+}
+@keyframes dialogue-slide-up {
+  from { transform: translateY(24px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+.dialogue-speaker {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: .12em;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(200,160,80,0.3);
+}
+.dialogue-text {
+  font-size: 18px;
+  line-height: 1.85;
+  color: #e8e0cc;
+  letter-spacing: .05em;
+  min-height: 60px;
+  white-space: pre-wrap;
+}
+.dialogue-continue {
+  position: absolute;
+  bottom: 10px;
+  right: 20px;
+  font-size: 14px;
+  color: var(--gold);
+  animation: dialogue-blink 1s ease-in-out infinite;
+}
+@keyframes dialogue-blink {
+  0%, 100% { opacity: 0.25; transform: translateY(0); }
+  50%      { opacity: 1;    transform: translateY(3px); }
+}
+
+/* 按鍵提示（右下角浮字，首次顯示一次） */
+.dialogue-key-hint {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 10px 16px;
+  background: rgba(20,14,4,0.92);
+  border: 1px solid var(--border-hi);
+  color: var(--text-dim);
+  font-size: 13px;
+  letter-spacing: .05em;
+  border-radius: 3px;
+  z-index: 200;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity .4s, transform .4s;
+  pointer-events: none;
+}
+.dialogue-key-hint.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+.dialogue-key-hint strong { color: var(--gold); font-weight: 700; }
+
+/* ══════════════════════════════════════════════════════
+   🆕 D.21 Stage 晨起過場（playMorning）
+═════════════════════════════════════════════════════════ */
+.stage-morning-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 45;  /* 蓋在 curtain 之上 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  pointer-events: auto;
+  transition: opacity .4s;
+}
+.stage-morning-overlay.fade-out {
+  opacity: 0;
+}
+.morning-rooster {
+  font-size: 18px;
+  color: #b89a5c;
+  font-style: italic;
+  letter-spacing: .15em;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity .6s, transform .6s;
+}
+.morning-rooster.visible {
+  opacity: 0.9;
+  transform: translateY(0);
+}
+.morning-thought {
+  font-size: 20px;
+  color: #c0b8a0;
+  font-style: italic;
+  letter-spacing: .08em;
+  line-height: 1.8;
+  text-align: center;
+  max-width: 560px;
+  padding: 0 24px;
+  opacity: 0;
+  transition: opacity .8s;
+}
+.morning-thought.visible { opacity: 0.92; }
+
 /* ── 🆕 Origin select modal (Phase 2 S1 前哨) ── */
 .origin-modal-box {
   max-width: 820px;
@@ -3387,6 +3521,7 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 <script src="config.js"></script>
 <script src="stage.js"></script>
 <script src="choice_modal.js"></script>
+<script src="dialogue_modal.js"></script>
 <script src="flags.js"></script>
 <script src="origins.js"></script>
 <script src="i18n.js"></script>
@@ -3396,6 +3531,7 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 <script src="effect_dispatcher.js"></script>
 <script src="stats.js"></script>
 <script src="moral.js"></script>
+<script src="morning_thoughts.js"></script>
 <script src="fields.js"></script>
 <script src="npc.js"></script>
 <script src="background_gladiators.js"></script>

@@ -87,9 +87,11 @@
 載入順序（見 game.html bottom）：
 ```
 config → stage → choice_modal → flags → origins → i18n → game_state → sound →
-day_cycle → effect_dispatcher → stats → moral → fields → npc →
-background_gladiators → orlan_events → events → item → weapons → armors → enemy →
-train → skill → ending → save_system → testbattle → battle → actions → main
+config → stage → choice_modal → dialogue_modal → flags → origins → i18n →
+game_state → sound → day_cycle → effect_dispatcher → stats → moral →
+morning_thoughts → fields → npc → background_gladiators → orlan_events →
+events → item → weapons → armors → enemy → train → skill → ending →
+save_system → testbattle → battle → actions → main
 ```
 新增模組要注意放在依賴它的模組之前。
 
@@ -207,6 +209,7 @@ train → skill → ending → save_system → testbattle → battle → actions
 
 ## 🔄 最近重要變更
 
+- **2026-04-16**：D.21 對話系統 + 晨思系統（DialogueModal L2 + MorningThoughts 30 條 + Stage.playMorning 雞鳴過場 + 奧蘭 Day 1 升級）
 - **2026-04-16**：D.20 奧蘭主線 — 永駐兄弟完整四幕（10 storyReveals + 偷藥/分房/訣別三大事件 + 生死援手）
 - **2026-04-16**：D.19 道德累積特性系統（10 earned traits + 滑動窗口 + NPC 愛憎倍率 + 戰鬥 mercy 軸）
 - **2026-04-16**：D.18 訓練協力 v2（屬性偏好 + 背景角鬥士池 + favorWeight + 碎念/八卦系統）

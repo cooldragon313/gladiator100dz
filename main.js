@@ -1451,9 +1451,17 @@ const Game = (() => {
       const chance = reveal.chance || 0;
       if (Math.random() >= chance) return;
 
-      // 觸發：寫 log + flash + 記錄 seen
-      const color = reveal.logColor || '#c8b898';
-      addLog(reveal.text, color, true, true);   // flash=true 確保玩家看到
+      // 🆕 D.21：重量級 reveal 有 dialogueLines → 排入對話佇列（晨起後播）
+      if (Array.isArray(reveal.dialogueLines) && reveal.dialogueLines.length > 0) {
+        _pendingDialogues.push({
+          id:    reveal.id,
+          lines: reveal.dialogueLines,
+        });
+      } else {
+        // 輕量 reveal：直接 log + flash
+        const color = reveal.logColor || '#c8b898';
+        addLog(reveal.text, color, true, true);
+      }
       p.seenReveals.push(reveal.id);
 
       // 未來 D.14 實作：reveal.grantItem → 把道具加到 personalItems
@@ -1462,6 +1470,20 @@ const Game = (() => {
         Flags.set('story_granted_' + reveal.grantItem, true);
       }
     });
+  }
+
+  // 🆕 D.21：重量級對話佇列（晨起後串接播放）
+  let _pendingDialogues = [];
+
+  async function _flushDialogues() {
+    if (typeof DialogueModal === 'undefined') { _pendingDialogues = []; return; }
+    const list = _pendingDialogues.slice();
+    _pendingDialogues = [];
+    for (const d of list) {
+      await new Promise(resolve => {
+        DialogueModal.play(d.lines, { onComplete: resolve });
+      });
+    }
   }
 
   // 🆕 D.12 v2: 事件佇列——由 DayCycle 等內部系統在黑幕下 push，
@@ -1499,15 +1521,39 @@ const Game = (() => {
     const sleepType = _rollSleepType();
 
     if (typeof Stage !== 'undefined' && Stage.playSleep) {
+      // 🆕 D.21：就寢演出保留黑幕，由 playMorning 接手晨起過場
       await Stage.playSleep({
         sleepType,
         onBlack: () => _sleepEndDayBody(sleepType),
+        skipFinalOpen: true,
       });
+
+      // 挑出今日晨思（可能為 null）
+      let thoughtObj = null, thoughtLine = '';
+      if (typeof MorningThoughts !== 'undefined') {
+        thoughtObj = MorningThoughts.pickToday(Stats.player);
+        if (thoughtObj) thoughtLine = MorningThoughts.getLine(thoughtObj);
+      }
+
+      await Stage.playMorning({
+        assumeBlack: true,
+        innerThought: thoughtLine,
+      });
+
+      // 標記為已顯示（必須在 playMorning 之後，以保留 shownCount 正確的輪播順序）
+      if (thoughtObj && typeof MorningThoughts !== 'undefined') {
+        MorningThoughts.markShown(thoughtObj, Stats.player);
+      }
+
       // 黑幕掀開後，依序播放佇列中的事件（主人傳喚/任務/故事等）
       await _flushStageEvents();
+
+      // 🆕 D.21：最後播放重量級對話（奧蘭初遇誓言等）
+      await _flushDialogues();
     } else {
       _sleepEndDayBody(sleepType);
       _flushStageEvents();
+      _flushDialogues();
     }
   }
 
@@ -2271,14 +2317,17 @@ const Game = (() => {
   }
 
   // ── R4: 特性（沿用 Phase 1-D） ─────────────────
+  // 空的時候整個區塊 display:none — 不顯示「尚無特性」這種廢話
   function _renderTraits() {
     const p = Stats.player;
     const traitsList = document.getElementById('cs-traits-list');
     if (!traitsList) return;
     const traits = p.traits || [];
     if (traits.length === 0) {
-      traitsList.innerHTML = '<div class="cs-traits-empty">尚無特性</div>';
+      traitsList.innerHTML = '';
+      traitsList.style.display = 'none';
     } else {
+      traitsList.style.display = '';
       traitsList.innerHTML = traits.map(id => {
         const def = Config.TRAIT_DEFS[id];
         const name = def ? def.name : id;
@@ -2299,8 +2348,10 @@ const Game = (() => {
     if (!el) return;
     const scars = Stats.player.scars || [];
     if (scars.length === 0) {
-      el.innerHTML = '<div class="cs-traits-empty">尚無疤痕</div>';
+      el.innerHTML = '';
+      el.style.display = 'none';
     } else {
+      el.style.display = '';
       el.innerHTML = scars.map(s => {
         const name = s.name || s.id || '?';
         const desc = s.desc || '';
@@ -2316,8 +2367,10 @@ const Game = (() => {
     if (!ailmentsList) return;
     const ailments = p.ailments || [];
     if (ailments.length === 0) {
-      ailmentsList.innerHTML = '<div class="cs-traits-empty">無病痛</div>';
+      ailmentsList.innerHTML = '';
+      ailmentsList.style.display = 'none';
     } else {
+      ailmentsList.style.display = '';
       ailmentsList.innerHTML = ailments.map(id => {
         const def  = Config.AILMENT_DEFS[id];
         const name = def ? def.name : id;
@@ -2326,6 +2379,21 @@ const Game = (() => {
           <span class="trait-prefix">⚕</span>${name}
         </span>`;
       }).join('');
+    }
+
+    // 三區都空 → 連「人物特質」section title 也隱藏
+    const wrap = document.getElementById('cs-traits-all');
+    if (wrap) {
+      const hasAny = (Stats.player.traits || []).length > 0
+                  || (Stats.player.scars  || []).length > 0
+                  || ailments.length > 0;
+      wrap.style.display = hasAny ? '' : 'none';
+      // 對應的 section title（前一個兄弟節點）也一起藏
+      const prevTitle = wrap.previousElementSibling;
+      if (prevTitle && prevTitle.classList.contains('cs-section-title')
+          && prevTitle.textContent.trim() === '人物特質') {
+        prevTitle.style.display = hasAny ? '' : 'none';
+      }
     }
   }
 
@@ -2633,6 +2701,10 @@ const Game = (() => {
       backgroundGladiators: (typeof BackgroundGladiators !== 'undefined')
                               ? BackgroundGladiators.serialize()
                               : null,
+      // 🆕 D.21 晨思系統狀態
+      morningThoughts: (typeof MorningThoughts !== 'undefined')
+                         ? MorningThoughts.serialize()
+                         : null,
       savedAt:      Date.now(),
     };
   }
@@ -2718,6 +2790,15 @@ const Game = (() => {
         BackgroundGladiators.restore(data.backgroundGladiators);
       } else {
         BackgroundGladiators.reset();
+      }
+    }
+
+    // 🆕 D.21 晨思系統狀態
+    if (typeof MorningThoughts !== 'undefined') {
+      if (data.morningThoughts) {
+        MorningThoughts.restore(data.morningThoughts);
+      } else {
+        MorningThoughts.reset();
       }
     }
 
@@ -2909,6 +2990,10 @@ const Game = (() => {
       // 🆕 D.18：重置背景角鬥士熟悉度
       if (typeof BackgroundGladiators !== 'undefined') {
         BackgroundGladiators.reset();
+      }
+      // 🆕 D.21：重置晨思系統狀態
+      if (typeof MorningThoughts !== 'undefined') {
+        MorningThoughts.reset();
       }
       // 🆕 Phase 1 重構：強制鎖定到訓練場
       GameState.setFieldId(FIXED_FIELD);
