@@ -90,9 +90,11 @@ const Effects = (() => {
       delta = delta * moodMult;
     }
 
-    // ── 協力倍率（只作用於 attr 正向 delta） ────────
-    // synergyMult 由 doAction 計算後傳入 ctx
-    if (eff.type === 'attr' && typeof delta === 'number' && delta > 0) {
+    // ── 協力倍率（作用於 attr / exp 正向 delta） ────
+    // 🆕 D.18 修正：D.6 v2 把訓練改為 type:'exp' 後協力倍率沒跟著遷移，
+    //              導致所有訓練動作實際沒有吃到協力加成（只吃 moodMult）。
+    // synergyMult 由 doAction 計算後傳入 ctx（已包含訓練所/護符/背景/三段等所有乘數）
+    if ((eff.type === 'attr' || eff.type === 'exp') && typeof delta === 'number' && delta > 0) {
       const synergyMult = ctx.synergyMult || 1.0;
       delta = delta * synergyMult;
     }

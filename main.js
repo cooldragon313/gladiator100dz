@@ -499,7 +499,10 @@ const Game = (() => {
         const npc = teammates.getNPC(npcId);
         slot.classList.add('occupied');
         slot.classList.remove('empty');
-        slot.innerHTML = `<span class="npc-role-tag">${npc?.title || '隊友'}</span><span class="npc-name">${npc ? npc.name : npcId}</span>`;
+        const favorBadge = npc?.favoredAttr
+          ? `<span class="npc-favor-badge">${npc.favoredAttr}</span>`
+          : '';
+        slot.innerHTML = `<span class="npc-role-tag">${npc?.title || '隊友'}</span><span class="npc-name">${npc ? npc.name : npcId}</span>${favorBadge}`;
         slot.onclick = () => onNPCClick(npcId);
       } else {
         slot.classList.remove('occupied');
@@ -508,6 +511,9 @@ const Game = (() => {
         slot.onclick = null;
       }
     }
+
+    // 🆕 D.18：背景角鬥士小字條（右側疊著）
+    _renderBackgroundStrip();
     // Audience slots (3 max)
     for (let i = 0; i < 3; i++) {
       const slot = document.getElementById('aud-slot-' + i);
@@ -528,9 +534,51 @@ const Game = (() => {
     }
   }
 
+  // 🆕 D.18 背景角鬥士小字條（右側疊層）
+  function _renderBackgroundStrip() {
+    if (typeof BackgroundGladiators === 'undefined') return;
+    const view = document.getElementById('scene-view');
+    if (!view) return;
+    let strip = document.getElementById('bg-gladiator-strip');
+    if (!strip) {
+      strip = document.createElement('div');
+      strip.id = 'bg-gladiator-strip';
+      view.appendChild(strip);
+    }
+    const active = BackgroundGladiators.getActiveToday();
+    if (!active.length) {
+      strip.innerHTML = '';
+      strip.style.display = 'none';
+      return;
+    }
+    strip.style.display = '';
+    strip.innerHTML = active.map(bg => {
+      const fam    = BackgroundGladiators.getFamiliarity(bg.id);
+      const passed = BackgroundGladiators.isFamiliar(bg.id);
+      const cls    = passed ? 'bg-entry passed' : 'bg-entry';
+      const famMark = passed
+        ? '<span class="bg-check">✓</span>'
+        : `<span class="bg-fam">${fam}/${BackgroundGladiators.FAMILIAR_THRESHOLD}</span>`;
+      return `<div class="${cls}" title="${bg.name}（偏好 ${bg.favoredAttr}）熟悉度 ${fam}">
+        <span class="bg-name">${bg.name}</span>
+        <span class="bg-attr">${bg.favoredAttr}</span>
+        ${famMark}
+      </div>`;
+    }).join('');
+  }
+
   // ── Daily NPC roll (once per day) ─────────────────────
   function rollDailyNPCs() {
     const p = Stats.player;
+
+    // 🆕 D.18：背景角鬥士要在外層 early-return 之前就試著抽
+    // （避免同日讀檔時跳過背景抽取，導致畫面空白）
+    if (typeof BackgroundGladiators !== 'undefined') {
+      const curField = FIELDS[currentFieldId];
+      const weight   = curField && curField.favorWeight;
+      BackgroundGladiators.rollDaily(p.day, weight);
+    }
+
     if (_lastNPCRollDay === p.day) return;
     _syncLastRollDay(p.day);
     _resetDailyMap();
@@ -715,6 +763,48 @@ const Game = (() => {
       p.insomniaStreak = 0;
       addLog('✦ 連續幾夜好眠，那種深層的疲憊終於消散了。【失眠症】已解除。', '#88d870', true, true);
     }
+  }
+
+  // ══════════════════════════════════════════════════
+  // 🆕 D.18 訓練協力公式輔助
+  // ══════════════════════════════════════════════════
+  /**
+   * 取得動作訓練的主要屬性（第一個 exp/attr 正向 delta 的 key）。
+   * 用於判定「命名/背景 NPC 的 favoredAttr 是否匹配」。
+   */
+  function _getTrainedAttrKey(act) {
+    const effs = act && act.effects;
+    if (!Array.isArray(effs)) return null;
+    for (const e of effs) {
+      if ((e.type === 'exp' || e.type === 'attr') && typeof e.delta === 'number' && e.delta > 0) {
+        return e.key;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * 訓練所加成倍率（預留接口，Phase 2 S2 實作）。
+   * 未來會從 FACILITIES[id].trainingBonus 讀取。
+   */
+  function _getFacilityBonusMult(/* fieldId */) {
+    return 1.0;
+  }
+
+  /**
+   * 訓練場裝備等級倍率（預留接口，Phase 2 裝備系統實作）。
+   * 未來會從訓練器械的等級（木樁/沙袋/鐵人）讀取。
+   */
+  function _getTrainingEquipmentMult(/* fieldId */) {
+    return 1.0;
+  }
+
+  /**
+   * 護符 / 特性 / 屬性 / 寵物加成的百分比加總（預留接口）。
+   * 例：護符 +10% + 特性「磨礪」+5% + 寵物陪伴 +5% → return 0.2
+   */
+  function _getItemBonusPct(/* trainedAttr */) {
+    return 0;
   }
 
   /**
@@ -977,16 +1067,69 @@ const Game = (() => {
     const moodMult = getMoodMult();
     const moodDesc = moodMult > 1 ? '（心情佳 ×1.25）' : moodMult < 1 ? '（心情低落 ×0.75）' : '';
 
-    // ── 協力倍率（D.8c）+ 體力消耗倍率 ──────────────
+    // ══════════════════════════════════════════════════
+    // 🆕 D.18 訓練協力總公式（取代 D.8c 簡化版）
+    // ══════════════════════════════════════════════════
+    // 公式：
+    //   base × mood × 裝備 × (1+護符/特性/屬性/寵物加成) × 訓練所
+    //       × ∏(命名協力) × ∏(背景協力) × (1 + 0.08 × 總人數)
+    //   最終 clamp 至 ×15（mood 在 dispatcher 外層另外算，故不納入 cap）
+    //
+    // - 命名 NPC：favoredAttr 匹配才生效，三段 aff≥30/60/90 → ×1.3/1.6/1.8
+    // - 背景 NPC：favoredAttr 匹配且熟悉度 ≥40 → ×1.3（單段）
+    // - 人多熱鬧：無單獨上限，但會被 ×15 總 cap 蓋住
+    // - 裝備/護符/訓練所加成：預留欄位，目前為 1.0
+    const trainedAttr = _getTrainedAttrKey(act);
+    const bgActive    = (typeof BackgroundGladiators !== 'undefined')
+                          ? BackgroundGladiators.getActiveToday()
+                          : [];
     let synergyMult = 1.0;
-    let partnerCount = 0;
+    let partnerCount = 0;       // 命名隊友數（保留給體力消耗/受傷邏輯）
+    let storyNpcMult = 1.0;
+    let bgNpcMult    = 1.0;
+
     if (hasAttrEffect) {
+      // ── 命名隊友協力（三段門檻，需 favoredAttr 匹配） ──
       (currentNPCs.teammates || []).forEach(npcId => {
         if (!npcId) return;
+        const npc = teammates.getNPC(npcId);
+        if (!npc) return;
         const aff = teammates.getAffection(npcId);
-        if      (aff >= 60) { synergyMult *= 1.6; partnerCount++; }
-        else if (aff >= 30) { synergyMult *= 1.3; partnerCount++; }
+        // partnerCount 用舊規則：只要 aff≥30 就算參與一起訓練（影響體力消耗）
+        if (aff >= 30) partnerCount++;
+        // 協力加成：必須 favoredAttr 匹配
+        if (!trainedAttr || npc.favoredAttr !== trainedAttr) return;
+        if      (aff >= 90) storyNpcMult *= 1.8;
+        else if (aff >= 60) storyNpcMult *= 1.6;
+        else if (aff >= 30) storyNpcMult *= 1.3;
       });
+
+      // ── 背景角鬥士協力（單段 pass/no-pass） ──
+      if (trainedAttr && bgActive.length > 0) {
+        bgActive.forEach(bg => {
+          if (bg.favoredAttr !== trainedAttr) return;
+          if (BackgroundGladiators.isFamiliar(bg.id)) {
+            bgNpcMult *= BackgroundGladiators.SYNERGY_MULT;
+          }
+        });
+      }
+
+      // ── 其他加成（預留欄位，接口就位） ──
+      const facilityMult      = _getFacilityBonusMult(currentFieldId);        // 訓練所加成（暫 1.0）
+      const equipmentMult     = _getTrainingEquipmentMult(currentFieldId);    // 訓練場裝備等級（暫 1.0）
+      const itemBonusPct      = _getItemBonusPct(trainedAttr);                // 護符/特性/屬性/寵物加成百分比（暫 0）
+      const itemMult          = 1 + itemBonusPct;
+
+      // ── 人多熱鬧（命名 + 背景 + 觀眾都算）──
+      const audienceCount = (currentNPCs.audience || []).length;
+      const totalCrowd    = (currentNPCs.teammates || []).length + bgActive.length + audienceCount;
+      const crowdMult     = 1 + 0.08 * totalCrowd;   // 無單獨上限
+
+      // ── 乘積（不含 mood，mood 由 dispatcher 另外乘）──
+      synergyMult = equipmentMult * itemMult * facilityMult * storyNpcMult * bgNpcMult * crowdMult;
+
+      // ── ×15 硬上限（D.18）──
+      if (synergyMult > 15) synergyMult = 15;
     }
 
     // 協力體力消耗倍率（訓練動作才套用，上限 70）
@@ -1057,6 +1200,32 @@ const Game = (() => {
 
     // Flavor text
     if (act.flavorText) addLog(act.flavorText, '#a89070', false);
+
+    // 🆕 D.18：訓練時累積背景角鬥士的熟悉度 + 碎念/協力吶喊
+    if (hasAttrEffect && typeof BackgroundGladiators !== 'undefined') {
+      BackgroundGladiators.bumpOnTraining();
+      // 70% 機率有人碎念一句（任何背景人員都可能出聲；15% 會講八卦）
+      if (Math.random() < 0.70) {
+        const m = BackgroundGladiators.getMumble();
+        if (m) {
+          if (m.isSignature) {
+            // 個人簽名八卦：較亮的暖色，有人物印記的味道
+            addLog(`💭 ${m.name}：「${m.line}」`, '#c8a878', false);
+          } else if (m.isGossip) {
+            // 公共八卦：暖褐色 + 💬
+            addLog(`💬 ${m.name}：「${m.line}」`, '#9a8c6a', false);
+          } else {
+            // 屬性碎念：冷藍
+            addLog(`「${m.line}」——${m.name}`, '#88a0b8', false);
+          }
+        }
+      }
+      // 協力觸發時：同屬性通過熟悉度的人員會再多喊 1~2 句
+      if (bgNpcMult > 1.0 && trainedAttr) {
+        const shouts = BackgroundGladiators.getSynergyShouts(trainedAttr, 2);
+        shouts.forEach(s => addLog(`🔥「${s.line}」——${s.name}`, '#d9a84f', false));
+      }
+    }
 
     // ── 受傷判定 v2（Phase 1-E 重構）────────────────
     // 核心邏輯：「訓練強度過高」才受傷，擺爛不受傷。
@@ -2447,6 +2616,10 @@ const Game = (() => {
       gameState:    GameState.getSerializable(),
       npcAffection: teammates.getAllAffection(),
       flags:        Flags.getAll(),
+      // 🆕 D.18 背景角鬥士熟悉度
+      backgroundGladiators: (typeof BackgroundGladiators !== 'undefined')
+                              ? BackgroundGladiators.serialize()
+                              : null,
       savedAt:      Date.now(),
     };
   }
@@ -2519,6 +2692,15 @@ const Game = (() => {
 
     // NPC affection
     teammates.setAllAffection(data.npcAffection);
+
+    // 🆕 D.18 背景角鬥士熟悉度
+    if (typeof BackgroundGladiators !== 'undefined') {
+      if (data.backgroundGladiators) {
+        BackgroundGladiators.restore(data.backgroundGladiators);
+      } else {
+        BackgroundGladiators.reset();
+      }
+    }
 
     // Story flags
     if (data.flags) Flags.loadFrom(data.flags);
@@ -2701,6 +2883,10 @@ const Game = (() => {
           resetMap[npc.id] = npc.baseAffection || 0;
         });
         teammates.setAllAffection(resetMap);
+      }
+      // 🆕 D.18：重置背景角鬥士熟悉度
+      if (typeof BackgroundGladiators !== 'undefined') {
+        BackgroundGladiators.reset();
       }
       // 🆕 Phase 1 重構：強制鎖定到訓練場
       GameState.setFieldId(FIXED_FIELD);

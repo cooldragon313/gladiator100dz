@@ -15,6 +15,8 @@
  *   ambientClass: CSS class for ambient overlay effect
  *   logText     : italic white description text shown on entry
  *   characters  : [ { npcId, role:'teammate'|'audience', chance:0-1 } ]
+ *   favorWeight : { STR, DEX, CON, AGI, WIL } — 🆕 D.18 背景角鬥士抽取權重
+ *                 影響每日在場的背景人員屬性分佈，定義訓練所「風格」
  */
 
 const FIELDS = {
@@ -30,6 +32,9 @@ const FIELDS = {
     bgClass: 'bg-std-training',
     ambientClass: 'ambient-dust',
     logText: '整齊排列的訓練器械，平整的沙地上印滿了腳印與血跡。\n這裡的空氣都充滿了汗水與鐵鏽的氣息。\n磨礪自身——這是唯一讓你在百日祭典上活下去的機會。',
+    // 🆕 D.18：背景角鬥士抽取權重（標準訓練所偏好存活派）
+    // 塔倫長官希望大家都活下去 → CON/WIL 派背景更常見
+    favorWeight: { CON:3, WIL:3, STR:2, DEX:1, AGI:1 },
     characters: [
       // 隊友（可發起切磋/友情練習）
       { npcId: 'cassius',       role: 'teammate', chance: 0.60 },

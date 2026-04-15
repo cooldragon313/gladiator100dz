@@ -52,8 +52,12 @@
 1. 編輯 `npc.js` 的 `NPC_DEFS`
 2. 最小必填：`id / name / title / desc / role / baseAffection`
 3. 其他欄位由 `_applyDefaults()` 自動補齊
-4. 未來擴充：`personality / storyReveals / schedule / hiddenQuestHints`
-5. 參考 `cassius` 看故事揭露（storyReveals）的寫法
+4. ⚠️ **D.18 訓練協力**：請明示 `favoredAttr`（'STR'/'DEX'/'CON'/'AGI'/'WIL' 或 `null`）
+   - 命名 NPC 有匹配 favoredAttr 時提供三段協力：aff≥30 ×1.3 / aff≥60 ×1.6 / aff≥90 ×1.8
+   - 故事主角型 NPC 可以先留 `null`，等角色定位明確再補
+   - null 也要「明示」，不要省略讓它吃預設——提醒未來自己記得補
+5. 未來擴充：`personality / storyReveals / schedule / hiddenQuestHints`
+6. 參考 `cassius` 看故事揭露（storyReveals）的寫法
 
 ### 🆕 新增一個事件
 
@@ -77,6 +81,22 @@
 
 當前所有訓練資料都在 `stdTraining`，未來會建立 `facilities.js`。
 詳細設計規格見 `DESIGN.md § 4.1`。
+
+⚠️ **D.18 背景角鬥士抽取權重**：新增訓練所時記得在 `FIELDS[id]` 定義 `favorWeight`：
+```js
+favorWeight: { STR:3, DEX:2, CON:2, AGI:1, WIL:1 }  // 硬派肉搏向
+```
+這決定了該訓練所每日抽到哪種屬性偏好的背景角鬥士，是訓練所差異化的核心機制之一。
+
+### 🆕 新增一個背景角鬥士（Background Gladiator）
+
+1. 編輯 `background_gladiators.js` 的 `POOL`
+2. 必填：`id / name / favoredAttr / shoutLines`
+3. `id` 統一前綴 `bg_`，避免和命名 NPC 衝突
+4. `favoredAttr`：五屬性之一（STR/DEX/CON/AGI/WIL），不可為 null
+5. `shoutLines`：龍套台詞陣列，訓練時有 30% 機率隨機喊
+6. **不要**加 storyReveals / 專屬事件 / 關係圖卡片 — 這些是命名 NPC 的領域
+7. 熟悉度通過門檻（40）後才提供 ×1.3 協力加成
 
 ### 🆕 新增一個玩家背景（Origin）
 

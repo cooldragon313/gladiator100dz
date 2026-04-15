@@ -43,6 +43,14 @@ const teammates = (() => {
       role:  'teammate',       // teammate | officer | audience
       baseAffection: 0,
 
+      // ── D.18 訓練協力偏好 ──────────────────────
+      // favoredAttr: 'STR' | 'DEX' | 'CON' | 'AGI' | 'WIL' | null
+      //   - 只有當玩家訓練「此屬性」時，該 NPC 才提供協力加成
+      //   - 命名 NPC 三段門檻：aff≥30 ×1.3 / aff≥60 ×1.6 / aff≥90 ×1.8
+      //   - 故事 NPC 可先留 null，待角色定位明確再補
+      //   ⚠️ 新增命名 NPC 時請明示 favoredAttr（null 也要明示）
+      favoredAttr: null,
+
       // ── 成長系統（D.11.5 S3 / S3 NPC 原型） ─────
       archetype:   null,        // power | agile | balanced | tank | berserker
       growthRate:  1.0,         // 每日成長速率倍率
@@ -104,6 +112,8 @@ const teammates = (() => {
       desc: '在競技場存活超過五年的老兵。話不多，但每句話都值得記住。',
       baseAffection: 10,
       personality: 'loner',
+      favoredAttr: 'CON',   // 🆕 D.18：存活 5 年的老兵 — 體質代表
+
       personalityDesc: '沉默寡言，但對新人有隱藏的耐心。重承諾，鄙視欺騙。',
       arriveDay: 1,
       // 🆕 D.12 故事揭露系統：範本 NPC
@@ -179,6 +189,7 @@ const teammates = (() => {
       desc: '和你一樣剛被賣進來的年輕人。眼神裡還有尚未被磨滅的光。',
       baseAffection: 20,
       personality: 'support',
+      favoredAttr: 'DEX',   // 🆕 D.18：標準訓練所唯一的 DEX 協力來源（窮中藏寶）
       arriveDay: 1,
     },
 
@@ -189,6 +200,7 @@ const teammates = (() => {
       desc: '身形如牛，性格卻比你想像的溫和。他的拳頭能把人打進地裡。',
       baseAffection: 5,
       personality: 'cautious',
+      favoredAttr: 'CON',   // 🆕 D.18：重甲鬥士 — 耐打派（從 STR 調整為更貼合訓練所 CON/WIL 定位）
       arriveDay: 1,
     },
 
@@ -199,6 +211,7 @@ const teammates = (() => {
       desc: '也許再過幾天就會死去。他說他曾是將軍，但沒有人相信他。',
       baseAffection: 30,
       personality: 'loner',
+      favoredAttr: 'WIL',   // 🆕 D.18：將軍出身 — 意志代表
       arriveDay: 1,
     },
 

@@ -155,6 +155,8 @@ save_system → testbattle → battle → actions → main
 4. **新的 UI 約定**（例如字體大小、色系分層、動畫節奏）
 5. **新的「不要做」規則**（例如「不要用 hover」）
 6. **跨系統整合發現**（新的整合點應該加進 D.15 清單）
+7. **新增命名 NPC 時，主動提醒使用者「favoredAttr 還沒定嗎？」**
+   （D.18：命名 NPC 需要 `favoredAttr` 決定訓練協力屬性偏好；故事向 NPC 可先填 null，但要明示）
 
 ### 應該問使用者的情況
 

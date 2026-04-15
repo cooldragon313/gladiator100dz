@@ -293,6 +293,40 @@ html, body {
   background: #0a0804; /* fallback；bg-* 類別會覆蓋 */
 }
 
+/* 🆕 D.18 背景角鬥士小字條（疊在 scene-view 右側） */
+#bg-gladiator-strip {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  pointer-events: none;
+  max-width: 160px;
+}
+#bg-gladiator-strip .bg-entry {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  background: rgba(20, 16, 10, 0.65);
+  border: 1px solid rgba(180, 150, 90, 0.25);
+  border-radius: 4px;
+  font-size: 11px;
+  color: #9a8866;
+  white-space: nowrap;
+}
+#bg-gladiator-strip .bg-entry.passed {
+  color: #d9c28f;
+  border-color: rgba(200, 170, 100, 0.55);
+  background: rgba(40, 30, 12, 0.75);
+}
+#bg-gladiator-strip .bg-name  { font-size: 12px; }
+#bg-gladiator-strip .bg-attr  { color:#b88855; font-weight:bold; }
+#bg-gladiator-strip .bg-fam   { color:#776655; font-size:10px; }
+#bg-gladiator-strip .bg-check { color:#77cc55; font-weight:bold; }
+
 /* ── 🆕 Stage 模組：閉眼黑幕 + zzz 睡覺動畫 ── */
 .stage-curtain {
   position: absolute;
@@ -466,6 +500,22 @@ html, body {
 }
 .aud-tag { color:#6688cc; }
 .npc-empty-label { color:var(--border); font-size:28px; }
+
+/* 🆕 D.18：NPC 屬性偏好小角標（右上角） */
+.npc-favor-badge {
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  font-size: 11px;
+  font-weight: bold;
+  color: #d9a84f;
+  background: rgba(0,0,0,.6);
+  padding: 1px 4px;
+  border-radius: 2px;
+  letter-spacing: .05em;
+  pointer-events: none;
+}
+.npc-slot { position: relative; }
 
 .audience-zone-label {
   font-size: 18px;
@@ -3347,6 +3397,7 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 <script src="stats.js"></script>
 <script src="fields.js"></script>
 <script src="npc.js"></script>
+<script src="background_gladiators.js"></script>
 <script src="events.js"></script>
 <script src="item.js"></script>
 <script src="weapons.js"></script>
