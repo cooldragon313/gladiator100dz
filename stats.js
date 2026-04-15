@@ -264,7 +264,22 @@ const Stats = (() => {
   function modVital(key, delta) {
     const maxKey = key + 'Max';
     // 🆕 D.6 v2：強制整數化，杜絕倍率（心情/協力 1.25 等）累積出小數
+    const before = player[key];
     player[key] = Math.max(0, Math.min(player[maxKey] || 100, Math.round(player[key] + delta)));
+
+    // 🆕 D.20：HP 即將歸零時嘗試觸發奧蘭生死關頭援手
+    //   條件由 OrlanEvents.tryDeathSave 內部檢查（aff ≥ 80 + merciful/kindness）
+    //   若成功會把 HP 補回 30 並設 player_was_nearly_dead flag
+    if (key === 'hp' && player[key] <= 0 && before > 0
+        && typeof OrlanEvents !== 'undefined' && OrlanEvents.tryDeathSave) {
+      const saved = OrlanEvents.tryDeathSave();
+      if (saved) {
+        // HP 已被 tryDeathSave 回復，重新渲染並返回
+        renderVitalBars();
+        return;
+      }
+    }
+
     if (key === 'stamina') updateStaminaPenalty();
     renderVitalBars();
   }

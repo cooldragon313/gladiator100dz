@@ -207,6 +207,99 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       D.20  奧蘭主線 — 永駐兄弟（完整四幕）
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag content">STORY</span>
+      <span class="version-title">D.20 — 奧蘭主線：永駐兄弟（完整四幕 + 生死援手）</span>
+      <span class="version-date">2026-04-16</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">永駐 NPC 奧蘭 <span class="file-tag">npc.js</span>
+          — 遊戲唯一的永駐兄弟。磨坊主人獨子，父親為救妹妹把他賣進訓練所。
+          <code>favoredAttr: 'WIL'</code>、<code>baseAffection: 25</code>、
+          <code>personality: 'support'</code>。愛憎分配：最愛 kindness/merciful 各 3 分，
+          最怕玩家變成 cruel（3 分）。coward 只 1 分 — 他太了解恐懼，不忍責怪膽小。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">每日強制出現 <span class="file-tag">fields.js</span>
+          — 在 <code>stdTraining.characters</code> 加入 <code>{ npcId:'orlan', chance:1.00 }</code>。
+          奧蘭每天 100% 出現在訓練場（同命兄弟的設計核心）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">10 段 storyReveals <span class="file-tag">npc.js</span>
+          — 5 flavor（第一夜晚安/爛笑話/磨坊記憶/摸左手腕/半塊麵包）+ 5 event
+          （初遇誓言強制 1.0 / 半夜分食可重複 0.4 / 爛笑話可重複 0.35 /
+          惡夢陪伴 0.4 需失眠症 / 妹妹真相一次性 0.45 需 WIL ≥ 12）。
+          爛笑話刻意重複 — 他每次都先笑，玩家每次都 WTF。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">OrlanEvents 模組 <span class="file-tag">orlan_events.js</span>
+          — 脊椎事件系統。含 Day 30 房間升級、Day 60 偷藥風波、Day 85 最終訣別
+          三大 ChoiceModal 事件，加上生死關頭援手函式 <code>tryDeathSave()</code>。
+          透過 DayCycle.onDayStart 註冊，每日檢查觸發條件。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">Day 30 房間升級 <span class="file-tag">orlan_events.js</span>
+          — 條件 <code>masterArtus_aff ≥ 50 AND fame ≥ 30</code>。
+          兩個基本選項（接受 / 試圖拒絕），<code>prideful</code> 特性多一個傲然選項。
+          無論如何都會被強制分房（flag <code>separated_from_olan</code>），
+          但嘗試拒絕會讓奧蘭 aff +20、主人 aff -10、設 flag <code>olan_tried_to_refuse</code>。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">Day 60 偷藥風波 <span class="file-tag">orlan_events.js</span>
+          — 玩家重傷過後觸發。四選項：
+          ① 替他分擔鞭刑 → reliability weight:3（立即獲得【可靠】）+ HP-40
+          ② 沉默 → reliability negative weight:3（立即獲得【膽小鬼】）+ flag <code>guilt_olan</code>
+          ③ 求情（需主人 aff ≥ 30）→ 輕罰
+          ④ 【鐵意志】告發 → loyalty negative weight:3 + <code>lock:true</code>
+          （永久獲得【投機】，flag <code>betrayed_olan</code> 觸發特殊結局）</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">Day 85 最終訣別 <span class="file-tag">orlan_events.js</span>
+          — 強制觸發。「他跟阿圖斯大人簽了協議，下週的前哨賽代你出場。」
+          三條路線：接受 / <code>【名聲】fame ≥ 60 且救過他</code> 拒絕替代 / prideful 傲然拒絕。
+          拒絕替代路線設 flag <code>orlan_will_fight_beside</code> 解鎖共同出戰結局。
+          告發路線則直接「昨晚被處決」訊息，設 flag <code>orlan_dead</code>。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">生死關頭援手 <span class="file-tag">orlan_events.js</span>
+          <span class="file-tag">stats.js</span>
+          — 掛鉤於 <code>Stats.modVital('hp', ...)</code>，HP 即將歸零時呼叫。
+          條件：奧蘭 aff ≥ 80 + 玩家有 merciful 或 kindness 特性 + 一次性 + 奧蘭活著。
+          效果：HP 補至 30、flag <code>player_was_nearly_dead</code>、奧蘭 aff +10。
+          敘述：「你睜開眼。奧蘭的臉就在你上方——『……終於活了。你這個混蛋，終於活了。』」</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">結局矩陣設計（6 種） <span class="file-tag">DESIGN.md</span>
+          — 悲 A 無名訣別 / 悲 B 殘廢殞命 / 悲 C 無聲消失 / 苦 D 並肩到底 /
+          極 E 奇蹟殘局（奧蘭失去一條腿但兩人都活）/ 極特 F 獨自登頂（告發路線）。
+          結局判定邏輯待後續 Phase 實作。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">設計文件 <span class="file-tag">DESIGN.md</span>
+          — 新增 § 3.8 完整規格。涵蓋人設、四幕主軸、storyReveals 清單、
+          三大脊椎事件規則、生死援手條件、6 種結局矩陣。進度表登錄 D.20。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
        D.19  道德累積特性系統 + 失眠首夜敘述修正
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">

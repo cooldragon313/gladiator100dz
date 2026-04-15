@@ -78,7 +78,8 @@
 | Origins 系統前哨 | `fae2ccc` | farmBoy + nobleman 完整、其他鎖定 |
 | 食物經濟平衡 | `77c50b0` | 餐點 25→18、訓練 8→10、sleep -12→-15 |
 | D.18 屬性偏好協力 | `e06bbb7` | 命名三段 + 背景池 + favorWeight + ×15 總 cap + dispatcher exp 修正 |
-| D.19 道德累積特性 | *本次* | 10 個 earned traits + 滑動窗口 + NPC 愛憎倍率 + 失眠首夜敘述修正 |
+| D.19 道德累積特性 | `0898cd3` | 10 個 earned traits + 滑動窗口 + NPC 愛憎倍率 + 失眠首夜敘述修正 |
+| D.20 奧蘭主線 | *本次* | 永駐兄弟 + 四幕脊椎 + 10 storyReveals + 偷藥/訣別/房間升級 + 生死關頭援手 |
 
 ### Phase 2：核心系統 — ⬜ 未開始
 
@@ -570,6 +571,73 @@ cassius.storyReveals = [
 **病痛**（獨立於 traits）：`config.js` 的 `AILMENT_DEFS`
 - `insomnia_disorder` 失眠症
 - `arm_injury` / `leg_injury` / `torso_injury` 傷
+
+### 3.8 奧蘭主線 — 永駐兄弟（D.20）
+
+**資料**：`npc.js` 的 `orlan` NPC 定義 + [orlan_events.js](../orlan_events.js) + `fields.js` 的 chance:1.0
+
+**角色核心**：遊戲唯一的**永駐兄弟**。跟主角同一天被押進訓練所，磨坊主人獨子。
+表面說法是父親欠債，真相是妹妹得了血咳症、父親為了救她把他賣了。
+他不恨；他認為這是對的。
+
+**定位**：
+- `favoredAttr: 'WIL'`（意志代表）
+- `baseAffection: 25`（比其他 NPC 高，反映「第一天就是朋友」）
+- `personality: 'support'`（主動溫暖型 — 不沉默也不多話）
+- `chance: 1.00`（每天 100% 出現在訓練場）
+
+**愛憎特性**：
+- `likedTraits`: kindness 3 / merciful 3 / reliable 2 / loyal 2 / humble 1
+- `dislikedTraits`: cruel 3 / opportunist 2 / coward 1 / prideful 1
+- 關鍵：`coward` 只 1 分（他太了解恐懼）；`cruel` 3 分（他最怕你變成那種人）
+
+**四幕主線**：
+| 幕 | 天數 | 狀態 | 核心張力 |
+|---|---|---|---|
+| 第一幕 · 同命兄弟 | Day 1–30 | 同房 | 建立羈絆，奧蘭照顧主角 |
+| 第二幕 · 分道揚鑣 | Day 30–60 | 分房 | 主人升級房間強制分開 |
+| 第三幕 · 交會再別 | Day 60–85 | 重逢與危機 | 偷藥事件 + 秘密揭露 |
+| 第四幕 · 最終訣別 | Day 85–100 | 分離定局 | 代你出戰 / 訣別 |
+
+**storyReveals 10 段**（5 flavor + 5 event）：
+- Flavor：第一夜 / 那個爛笑話 / 磨坊記憶 / 摸左手腕 / 半塊麵包（25/35/50/65/80 好感）
+- Event：初遇誓言（強制 1.0）/ 半夜分食（40 aff，可重複 0.40）/ 爛笑話（25 aff，可重複 0.35）/
+  惡夢的安慰（50 aff + 失眠症）/ 妹妹真相（70 aff + WIL ≥ 12）
+
+**脊椎事件（[orlan_events.js](../orlan_events.js)）**：
+1. **房間升級**（Day 30+）觸發條件 `masterArtus_aff ≥ 50 AND fame ≥ 30`
+   - 普通選項：接受 / 試圖拒絕
+   - `prideful` 特性：多一個「這是我應得的」傲然選項
+   - 無論如何都會被強制分房（flag `separated_from_olan`）
+2. **偷藥事件**（Day 60+）觸發條件 `flag player_was_nearly_dead`
+   - 四選項：替他分擔 / 沉默 / 求情 / 告發（iron_will 鎖）
+   - 沉默 → 一次定型【膽小鬼】
+   - 替他分擔 → 一次定型【可靠】
+   - 告發 → 永久鎖【投機】（lock:true）
+3. **最終訣別**（Day 85 強制）
+   - 接受 / 拒絕（fame ≥ 60 + 救過他才解鎖）/ 傲然拒絕（prideful 才有）
+   - 拒絕路線 → flag `orlan_will_fight_beside` 解鎖共同出戰結局
+   - 已告發路線 → 奧蘭不出現，改為「昨晚被處決」訊息
+
+**生死關頭援手**（`OrlanEvents.tryDeathSave()`）：
+- 掛鉤於 `Stats.modVital('hp', ...)` — HP 即將歸零時呼叫
+- 條件：奧蘭 aff ≥ 80 + 玩家有 merciful/kindness 特性 + 一次性 + 奧蘭活著
+- 效果：HP 補至 30、flag `player_was_nearly_dead`、奧蘭 aff +10
+- 敘述：「你睜開眼。奧蘭的臉就在你上方……『終於活了。』」
+
+**結局矩陣**（Day 100 判定，依 flag 組合）：
+| 結局 | 觸發條件 | 敘事重點 |
+|---|---|---|
+| 悲 A · 無名訣別 | 奧蘭 aff < 40 | Day 85 代你出戰，死在沙地 |
+| 悲 B · 殘廢殞命 | `guilt_olan` + `olan_crippled` | Day 90 在牢裡自盡，留紙條「我不怪你」 |
+| 悲 C · 無聲消失 | 一般路線 | 事後才知道他代你死了 |
+| 苦 D · 並肩到底 | `shared_olans_punishment` + 妹妹真相已揭露 | 共同出戰，決賽前他倒下 |
+| 極 E · 奇蹟殘局 | `orlan_will_fight_beside` + 多重高好感條件 | 兩人都活，但奧蘭失去一條腿 |
+| 極特 F · 獨自登頂 | `betrayed_olan` | 你奪冠，一個人走回房間 |
+
+**存活狀態**：奧蘭被害死時 `NPC_DEFS.orlan.alive = false`，後續所有對話改為回憶型 log。
+
+---
 
 ### 3.7 道德累積特性系統（D.19）
 

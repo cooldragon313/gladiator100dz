@@ -113,6 +113,132 @@ const teammates = (() => {
   // ══════════════════════════════════════════════════
   const NPC_DEFS = {
 
+    // ── 永駐兄弟（D.20 奧蘭主線） ──────────────────
+    // 與主角同一天被押進訓練所。磨坊主人獨子，父親為救妹妹把他賣掉。
+    // 永久出現（fields.js chance:1.0），永駐同房（Day 1-30），分房後依舊每日在場。
+    // 故事主軸：同命兄弟 → 分道揚鑣 → 交會再別 → 最終訣別。
+    // 核心張力：他比你弱，卻總想保護你；你越強，他越想替你死。
+    orlan: {
+      id: 'orlan', name: '奧蘭',
+      role: 'teammate',
+      title: '同命兄弟',
+      desc: '跟你同一輛車被押進來的年輕人。磨坊主人獨子，沒揮過劍。第一夜就伸手對你說「我們一起活下去吧」。',
+      baseAffection: 25,
+      personality: 'support',
+      favoredAttr: 'WIL',   // 🆕 D.18：意志代表，補齊五屬性空缺
+      // 🆕 D.19：他最愛善良的人，最怕你變成殘忍的人
+      //   coward 只有 1 分 — 他太了解恐懼，不忍心責怪膽小
+      //   cruel  3 分   — 他最怕你變成那種人
+      likedTraits:    { kindness:3, merciful:3, reliable:2, loyal:2, humble:1 },
+      dislikedTraits: { cruel:3, opportunist:2, coward:1, prideful:1 },
+
+      personalityDesc: '主動溫暖，話不多，但該說的話都會先說。笑的時候眼睛先彎起來。',
+      arriveDay: 1,
+
+      // ── 完整背景（aff ≥ 80 才解鎖） ──
+      background: '磨坊主人獨子。被賣進訓練所前從沒揮過劍。表面說法是「父親欠貴族債務被用他抵押」，真相是妹妹得了血咳症，父親為了籌每月兩次的昂貴藥劑，把他賣了換錢。他不恨，他認為這是對的。他永遠不敢告訴你這件事——怕你覺得他家人狠心。',
+
+      // ── 秘密（aff ≥ 70 才解鎖） ──
+      secrets: [
+        { id:'sister_truth', text:'他父親沒欠債。妹妹得了血咳症，父親賣他換藥錢。' },
+        { id:'mill_smell',   text:'他偶爾還會夢見磨坊的味道。壓碎麥子的陽光味。' },
+      ],
+
+      // ── 故事揭露：10 段（5 flavor + 5 event） ──
+      storyReveals: [
+        // ── Flavor 段：關係圖卡片常駐顯示 ──────────────────
+        {
+          id:        'orlan_first_night_flavor',
+          type:      'flavor',
+          affection: 25,
+          text:      '他每晚睡前都會說一句「晚安」。即使你從來沒回應。',
+        },
+        {
+          id:        'orlan_bad_joke_flavor',
+          type:      'flavor',
+          affection: 35,
+          text:      '他有一個關於葛拉鐵匠鬍子的笑話。他已經講過三次了。每次都是自己先笑出來——而你每次都不懂笑點在哪。',
+        },
+        {
+          id:        'orlan_mill_memory_flavor',
+          type:      'flavor',
+          affection: 50,
+          text:      '他談到磨坊的時候聲音會變輕。「壓碎的麥子會有一種陽光的味道。」他說。「你這輩子大概沒聞過那個味道。」',
+        },
+        {
+          id:        'orlan_wrist_flavor',
+          type:      'flavor',
+          affection: 65,
+          text:      '他講到家人的時候會不自覺摸左手腕。那裡什麼都沒有——但他摸得很習慣，像那裡本來應該有什麼。',
+        },
+        {
+          id:        'orlan_silent_love_flavor',
+          type:      'flavor',
+          affection: 80,
+          text:      '他把自己的半塊麵包塞給你的那個夜晚，你已經記不清有幾次了。他每次都說同一句：「別說話。明天訓練我不用太多力。」',
+        },
+
+        // ── Event 段：事件觸發 / 重複觸發 ──────────────────
+
+        // 1) 第一夜的誓言 — 強制觸發，一次性
+        {
+          id:        'orlan_first_night_oath',
+          type:      'event',
+          affection: 0,
+          chance:    1.0,
+          onceOnly:  true,
+          text:      '「……你叫什麼？」牢房裡的男孩問。你告訴他。「我叫奧蘭。磨坊裡來的，沒揮過劍。」他伸出手——在黑暗裡。「我們一起活下去吧。」',
+          logColor:  '#d9a84f',
+        },
+
+        // 2) 分食麵包 — 低食物時重複觸發
+        {
+          id:        'orlan_share_bread',
+          type:      'event',
+          affection: 30,
+          chance:    0.40,
+          onceOnly:  false,   // 可重複觸發
+          text:      '半夜你餓得睡不著。奧蘭翻了個身，把半塊麵包塞進你手裡。「別說話。」他低聲說。「明天訓練我不用太多力。」',
+          logColor:  '#c8a878',
+        },
+
+        // 3) 那個笑話 — 低心情時重複觸發（重複率刻意高）
+        {
+          id:        'orlan_bad_joke_event',
+          type:      'event',
+          affection: 25,
+          chance:    0.35,
+          onceOnly:  false,
+          text:      '「欸。」奧蘭戳你。「你知道為什麼葛拉鐵匠的鬍子那麼長嗎？因為他沒時間刮，怕一刮下去，手裡打的鐵就涼了。」他自己先笑出來。你面無表情。這是這週第幾次了？',
+          logColor:  '#b09060',
+        },
+
+        // 4) 惡夢的安慰 — 失眠症時觸發
+        {
+          id:              'orlan_nightmare_comfort',
+          type:            'event',
+          affection:       50,
+          requireAnyAilment:['insomnia_disorder'],
+          chance:          0.40,
+          onceOnly:        false,
+          text:            '你在黑暗中驚醒。奧蘭的手輕輕放在你的肩上。「我也睡不著。」他說。「沒事的——沒事的。」他就那樣陪著你，直到你再次睡著。',
+          logColor:        '#8899cc',
+        },
+
+        // 5) 妹妹的真相 — 關鍵揭露，一次性
+        {
+          id:              'orlan_sister_truth_reveal',
+          type:            'event',
+          affection:       70,
+          requireMinAttr:  { WIL: 12 },
+          chance:          0.45,
+          onceOnly:        true,
+          text:            '訓練完奧蘭把你拉到場邊。「我要告訴你一件事。」他開口。「之前跟你講的父親欠債的故事——那是假的。」他停了很久。「妹妹得了血咳症。父親為了救她，把我賣了。」他苦笑。「我不想讓你覺得他家人狠心。」',
+          logColor:        '#d9a84f',
+        },
+      ],
+    },
+
     // ── Fellow gladiators (teammates) ──
     cassius: {
       id: 'cassius', name: '卡西烏斯',

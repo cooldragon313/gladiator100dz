@@ -88,7 +88,7 @@
 ```
 config → stage → choice_modal → flags → origins → i18n → game_state → sound →
 day_cycle → effect_dispatcher → stats → moral → fields → npc →
-background_gladiators → events → item → weapons → armors → enemy →
+background_gladiators → orlan_events → events → item → weapons → armors → enemy →
 train → skill → ending → save_system → testbattle → battle → actions → main
 ```
 新增模組要注意放在依賴它的模組之前。
@@ -207,6 +207,7 @@ train → skill → ending → save_system → testbattle → battle → actions
 
 ## 🔄 最近重要變更
 
+- **2026-04-16**：D.20 奧蘭主線 — 永駐兄弟完整四幕（10 storyReveals + 偷藥/分房/訣別三大事件 + 生死援手）
 - **2026-04-16**：D.19 道德累積特性系統（10 earned traits + 滑動窗口 + NPC 愛憎倍率 + 戰鬥 mercy 軸）
 - **2026-04-16**：D.18 訓練協力 v2（屬性偏好 + 背景角鬥士池 + favorWeight + 碎念/八卦系統）
 - **2026-04-15**：D.12 NPC 故事揭露系統上線（卡西烏斯為範本）

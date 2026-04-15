@@ -37,6 +37,8 @@ const FIELDS = {
     favorWeight: { CON:3, WIL:3, STR:2, DEX:1, AGI:1 },
     characters: [
       // 隊友（可發起切磋/友情練習）
+      // 🆕 D.20：奧蘭永駐出現（同命兄弟，每天 100% 在場）
+      { npcId: 'orlan',         role: 'teammate', chance: 1.00 },
       { npcId: 'cassius',       role: 'teammate', chance: 0.60 },
       { npcId: 'ursa',          role: 'teammate', chance: 0.55 },
       { npcId: 'dagiSlave',     role: 'teammate', chance: 0.50 },
