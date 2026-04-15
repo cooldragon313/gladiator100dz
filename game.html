@@ -450,14 +450,27 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* 中央舞台（留空，背景透出） */
-#stage-center { flex: 1; }
-/* 觀眾區（底部） */
+/* 中央舞台（留空，背景透出） — 🆕 D.21 修正：flex-center + relative 讓戰鬥鈕等內容可靠置中 */
+#stage-center {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;  /* 避免被上下擠扁 */
+}
+@keyframes battle-btn-pulse {
+  0%, 100% { box-shadow: 0 0 24px rgba(192,57,43,.45), inset 0 0 16px rgba(192,57,43,.15); }
+  50%      { box-shadow: 0 0 36px rgba(232,112,96,.75), inset 0 0 24px rgba(232,112,96,.28); }
+}
+/* 觀眾區（底部） — 🆕 D.21：flex-shrink:0 避免被中央戰鬥鈕等 overlay 擠到消失 */
 #audience-zone {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  flex-shrink: 0;
 }
+#teammate-zone { flex-shrink: 0; }
 
 .npc-row {
   display: flex;

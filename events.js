@@ -125,9 +125,11 @@ const Events = (() => {
       iconColor: '#cc7700',
       type: 'forced_battle',
       forced: true,
-      forcedField: 'oldTraining',
+      // 🆕 D.21 修正：oldTraining 已在 Phase 1-J 移除，改用 stdTraining
+      //   加入 orlan 同命兄弟確保奧蘭第一次正式上場也在
+      forcedField: 'stdTraining',
       forcedNPCs: {
-        teammates: ['cassius', 'dagiSlave', 'ursa', 'oldSlave'],
+        teammates: ['orlan', 'cassius', 'dagiSlave', 'ursa', 'oldSlave'],
         audience:  ['officer', 'masterArtus'],
       },
       opponent: 'slaveRookie',

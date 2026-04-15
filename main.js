@@ -433,27 +433,33 @@ const Game = (() => {
   function _showTimelineBattleBtn(ev) {
     // Remove old if exists
     document.getElementById('timeline-battle-btn')?.remove();
-    const npcArea = document.getElementById('npc-area');
-    if (!npcArea) return;
+    // 🆕 D.21 修正：放到 #stage-center 而不是 #npc-area
+    //   原本 append 到 npc-area 會破壞 flex column space-between 結構，
+    //   導致觀眾欄跟場地被擠到異常位置。改 append 到置中的 stage-center。
+    const stageCenter = document.getElementById('stage-center');
+    if (!stageCenter) return;
 
     const btn = document.createElement('button');
     btn.id = 'timeline-battle-btn';
     btn.style.cssText = `
-      margin-top:16px;
-      padding:12px 40px;
+      padding:14px 44px;
       background:#1a0000;
-      border:1px solid var(--blood-lt);
+      border:2px solid var(--blood-lt);
       color:#e87060;
       font-family:var(--font);
-      font-size:22px;
+      font-size:24px;
+      font-weight:700;
       letter-spacing:.2em;
       cursor:pointer;
-      transition:background .2s;
-      box-shadow:0 0 16px rgba(192,57,43,.3);
+      transition:background .2s, transform .15s;
+      box-shadow:0 0 24px rgba(192,57,43,.45), inset 0 0 16px rgba(192,57,43,.15);
+      z-index:30;
+      position:relative;
+      animation: battle-btn-pulse 1.8s ease-in-out infinite;
     `;
     btn.textContent = ev.actionLabel || '進入戰鬥';
-    btn.onmouseover = () => btn.style.background = '#2a0000';
-    btn.onmouseout  = () => btn.style.background = '#1a0000';
+    btn.onmouseover = () => { btn.style.background = '#2a0000'; btn.style.transform = 'scale(1.05)'; };
+    btn.onmouseout  = () => { btn.style.background = '#1a0000'; btn.style.transform = 'scale(1)'; };
     btn.onclick = () => {
       btn.remove();
       Battle.start(
@@ -462,7 +468,7 @@ const Game = (() => {
         () => { /* onLose: trigger death ending */ Endings.deathEnding(Stats.player.name); }
       );
     };
-    npcArea.appendChild(btn);
+    stageCenter.appendChild(btn);
   }
 
   // ── Scene info bar ────────────────────────────────────
