@@ -207,6 +207,313 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       D.19  道德累積特性系統 + 失眠首夜敘述修正
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">FEATURE</span>
+      <span class="version-title">D.19 — 道德累積特性系統（滑動窗口 + NPC 愛憎倍率）</span>
+      <span class="version-date">2026-04-16</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">10 個 earned traits <span class="file-tag">config.js</span>
+          — 5 對相反特性：reliable ↔ coward、merciful ↔ cruel、loyal ↔ opportunist、
+          humble ↔ prideful、patient ↔ impulsive。每個有 <code>moralAxis</code> 與
+          <code>moralSide</code> 欄位，透過滑動窗口機制累積獲得。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">Moral 模組 <span class="file-tag">moral.js</span>
+          — 滑動窗口 N=3。每個道德軸存最近 3 筆行動，全同向即獲得該側特性；
+          一次反向立刻移除現有特性。普通事件 push 1 筆、關鍵事件 push 3 筆（一次定型）、
+          劇情鎖事件可 push 3 筆 + lock 永久定型。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">NPC 愛憎欄位 <span class="file-tag">npc.js</span>
+          — 每個 NPC 新增 <code>likedTraits</code> / <code>dislikedTraits</code>
+          物件（<code>{ traitId: intensity 1~3 }</code>）。10 個命名 NPC 全部填完。
+          阿圖斯愛 cruel+reliable、梅拉愛 kindness+merciful、塔倫愛 reliable+patient，
+          彼此天然衝突。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">愛憎倍率 <span class="file-tag">npc.js</span>
+          — <code>teammates.modAffection</code> 內建愛憎淨分計算：
+          +3 → ×1.5 / +2 → ×1.3 / +1 → ×1.15 / 0 → ×1.0 /
+          −1 → ×0.8 / −2 → ×0.5 / −3 以下 → ×0.3。只對正向好感作用。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">道德效果類型 <span class="file-tag">effect_dispatcher.js</span>
+          — 新增 <code>{ type:'moral', axis, side, weight?, lock? }</code>。
+          任何 event / choice 的 effects 陣列都能驅動道德軸。獲得或失去特性時自動 log 回饋。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">戰鬥道德連動 <span class="file-tag">battle.js</span>
+          — 砍首 → <code>mercy negative</code>、饒恕 → <code>mercy positive</code>。
+          累積 3 次相同方向即獲得「殘忍」或「仁慈」特性，並自動觸發 NPC 好感反應。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">FIX</span>
+        <span class="change-text">失眠首夜敘述 <span class="file-tag">main.js</span>
+          — 第 1/2/3/4+ 夜失眠顯示不同文字。第一夜為「可惡……怎麼會有睡不著的感覺？」，
+          之後逐漸變成「又睡不著了」「第三夜了」等遞進敘述。之前每晚都顯示相同訊息。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">存檔整合 <span class="file-tag">main.js</span>
+          — <code>player.moralHistory</code> 與 <code>player.moralLocks</code>
+          序列化到 save payload。讀檔後自動 <code>Moral.recomputeAll()</code> 重算特性。
+          新遊戲重置為空窗口。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">文件補齊 <span class="file-tag">DESIGN.md</span>
+          <span class="file-tag">CLAUDE.md</span> <span class="file-tag">CONTENT-TEMPLATES.md</span>
+          — DESIGN § 3.7 完整規格；CLAUDE.md 技術區 + 主動提醒 + D.15 清單擴充至 9 題；
+          CONTENT-TEMPLATES NPC 創作指引新增 likedTraits/dislikedTraits 必填規則 +
+          moral 效果格式 + 5 軸快速查表。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
+       D.18  屬性偏好協力系統 + 背景角鬥士池
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">FEATURE</span>
+      <span class="version-title">D.18 — 訓練協力 v2：屬性偏好 + 背景角鬥士 + 碎念/八卦</span>
+      <span class="version-date">2026-04-16</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-fix">FIX</span>
+        <span class="change-text">effect_dispatcher 協力 bug <span class="file-tag">effect_dispatcher.js</span>
+          — D.6 v2 把訓練從 <code>type:'attr'</code> 改為 <code>type:'exp'</code> 後，
+          <code>synergyMult</code> 沒跟著遷移，導致訓練動作實際沒吃到任何協力加成
+          （只吃 moodMult）。現在 attr / exp 都會套用 synergyMult。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">屬性偏好欄位 <span class="file-tag">npc.js</span>
+          — 命名 NPC 新增 <code>favoredAttr</code>（'STR'/'DEX'/'CON'/'AGI'/'WIL'/null）。
+          三段協力門檻：aff≥30 ×1.3、aff≥60 ×1.6、aff≥90 ×1.8。
+          只有匹配玩家訓練屬性時才生效。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">背景角鬥士池 <span class="file-tag">background_gladiators.js</span>
+          — 10 人池（5 屬性各 2 人），每日依訓練所 favorWeight 抽 2-4 人出場。
+          熟悉度累積制：每次同場訓練 +1，到 40 通過門檻後提供 ×1.3 協力
+          （需 favoredAttr 匹配）。有 <code>serialize</code> / <code>restore</code>
+          整合存檔。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">訓練所差異化欄位 <span class="file-tag">fields.js</span>
+          — <code>favorWeight</code> 新欄位決定背景人員抽取分佈。標準訓練所設定
+          <code>{ CON:3, WIL:3, STR:2, DEX:1, AGI:1 }</code> — 塔倫長官的存活派
+          會讓 CON/WIL 背景更常見。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">訓練協力總公式 <span class="file-tag">main.js</span>
+          — 重寫為完整乘積：base × mood × 裝備 × (1 + 護符/特性/屬性/寵物加成)
+          × 訓練所 × ∏(命名協力) × ∏(背景協力) × (1 + 0.08 × 總人數)。
+          最終硬上限 ×15。人多熱鬧無單獨上限，但被總 cap 蓋住。裝備/護符/訓練所加成
+          為預留接口，Phase 2 實作。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-content">CONTENT</span>
+        <span class="change-text">碎念與八卦台詞系統 <span class="file-tag">background_gladiators.js</span>
+          — 五屬性各 23 句（20 正經 + 3 白癡話），合計 115 句共享池。
+          11 句公共八卦 + 10 個背景角鬥士各 1 句個人簽名八卦。
+          每次訓練 70% 機率碎念，其中 15% 改講八卦、30% 抽到個人簽名。
+          為未來 D.17 謠言系統埋下「外面還有世界」的印象伏筆。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">背景角鬥士右側字條 <span class="file-tag">main.js</span>
+          <span class="file-tag">game.html</span>
+          — 訓練場右上角新增 <code>#bg-gladiator-strip</code>，11-12px 小字疊層顯示
+          今日在場的背景人員（名字 + 屬性 + 熟悉度進度）。通過熟悉度後字條變金色 ✓。
+          命名 NPC 槽位右上角新增 <code>.npc-favor-badge</code> 顯示 favoredAttr。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text">Log 三色分類 <span class="file-tag">main.js</span>
+          — 屬性碎念冷藍 <code>「...」——名字</code>、公共八卦暖褐
+          <code>💬 名字：「...」</code>、個人簽名亮金 <code>💭 名字：「...」</code>、
+          協力爆擊訊息 <code>🔥 名字：「...」</code>。玩家可以立刻辨識出「這句話的來源和重量」。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">命名 NPC 屬性分配 <span class="file-tag">npc.js</span>
+          — cassius → CON（存活派老兵）、ursa → CON（重甲耐打，從 STR 調整）、
+          dagiSlave → DEX（標準訓練所唯一的 DEX 珍珠）、oldSlave → WIL（將軍出身）。
+          配合塔倫長官的 CON/WIL 傾向定位，但保留差異化讓每種 build 有入口。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">設計文件 <span class="file-tag">DESIGN.md</span>
+          <span class="file-tag">CLAUDE.md</span> <span class="file-tag">CONTENT-TEMPLATES.md</span>
+          — DESIGN § 3.6 完整規格；CLAUDE.md 技術區 + 主動提醒 favoredAttr；
+          CONTENT-TEMPLATES 新增背景角鬥士創作指引 + 訓練所 favorWeight 提醒。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
+       DESIGN.md 大型重構第一輪
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag content">DOCS</span>
+      <span class="version-title">DESIGN.md 大型重構 — 拆成 DESIGN / HISTORY / CONTENT-TEMPLATES</span>
+      <span class="version-date">2026-04-15</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">DESIGN.md 從 6403 行削到 ~961 行（−85%） <span class="file-tag">DESIGN.md</span>
+          — 按功能模組重組為九章節（§1 技術架構 / §2 遊戲核心系統 / §3 人物系統 /
+          §4 世界觀系統 / §5 UI 規範 / §6 開發規範 / §7 設計哲學 / §8 內容模板 /
+          §9 路線圖）。頂部新增「📊 實作進度總表」作為進度的單一事實源。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">HISTORY.md 骨架 <span class="file-tag">HISTORY.md</span>
+          — 已實作系統的歷史細節、已廢棄設計的考古紀錄。涵蓋戰鬥系統歷史規格、
+          Phase 0 基礎設施修復 15 項、Phase 1 奴隸循環核心實作、D.7 人物面板階段 A/B
+          驗收紀錄、D.10 已廢棄優先度表。一般開發不需要讀這份。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">CONTENT-TEMPLATES.md 骨架 <span class="file-tag">docs/CONTENT-TEMPLATES.md</span>
+          — 內容作者模板指南，原 DESIGN D.11 章節獨立出來。涵蓋新 NPC / 新事件 /
+          新特性 / 新 Origin / 新物品 / 新武器 / 新技能 / 新訓練所的最小必填欄位
+          與快速指引。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">DESIGN-legacy.md 備份 <span class="file-tag">DESIGN-legacy.md</span>
+          — 2026-04-15 重構前的完整舊版 DESIGN.md（6403 行）。未來第二、三輪重構
+          完成後會刪除。遷移期間可 grep 補漏。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">「進度單一事實源」規則
+          — 過去多處 checkbox 狀態漂移（例：Phase 1-E.2 已實作但 E.10/E.11 仍寫「待實作」）
+          造成手機 Claude 回報錯誤。本次重構確立「X 做完了嗎 → 只看頂部進度總表」，
+          其他章節的 checkbox 都只是歷史快照。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
+       手機工作流程 + CLAUDE.md 流程指引
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag content">DOCS</span>
+      <span class="version-title">NOTES.md 手機草稿本 + CLAUDE.md 流程指引</span>
+      <span class="version-date">2026-04-15</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">NOTES.md 手機草稿本 <span class="file-tag">NOTES.md</span>
+          — 跨裝置想法捕捉本。使用者在手機上透過 GitHub 網頁編輯底部「待整理」區，
+          回桌面後 Claude Code 整合進正式文件。包含 3 種手機寫入方法指引。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">CLAUDE.md 流程指引 <span class="file-tag">CLAUDE.md</span>
+          — Claude Code 每個新 session 啟動時自動讀取的專案筆記。涵蓋專案類型、
+          重要文件讀取順序、開發習慣（D.15 整合清單 8 題）、技術核心約定、
+          設計哲學、「不要做」清單、AI 主動提醒職責、commit 與同步規則。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
+       Phase 1-E.2 ChoiceModal + 食物平衡 + D.16/D.17 設計
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">FEATURE</span>
+      <span class="version-title">Phase 1-E.2 — ChoiceModal + 食物經濟平衡 + D.16/D.17 設計</span>
+      <span class="version-date">2026-04-15</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">ChoiceModal 模組 <span class="file-tag">choice_modal.js</span>
+          — 通用的玩家選擇 UI 元件。支援 2-5 個選項、條件鎖（特性/屬性/origin/好感/旗標）、
+          確定性效果 / 加權隨機結果、<code>forced</code> 強制模式（無法關閉）、
+          選完後的 <code>onChoose</code> 回呼。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">hunger_critical 四選項事件 <span class="file-tag">events.js</span>
+          — 連續 2 天飢餓 ≤ 15 觸發。四個選項：忍著 / 乞討 / 偷食物（高風險）/
+          鐵意志忍耐（特性解鎖）。加權隨機結果展示 ChoiceModal 完整能力。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">食物經濟平衡 <span class="file-tag">config.js</span>
+          <span class="file-tag">actions.js</span>
+          — 餐點食物獲得量 25 → 18、就寢食物消耗 −12 → −15、訓練食物消耗 8 → 10
+          （耐力訓練 10 → 12）。以前每天淨 +32 食物太寬裕，現在淨 +1 / +14 / +33
+          依梅拉好感分三階。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">D.16 訓練所差異化設計 <span class="file-tag">DESIGN.md</span>
+          — 四個訓練所草案（標準 / 鐵獄 / 紫瓊 / 北境）+「窮中藏寶」設計哲學。
+          每個訓練所有自己的完整班底、屬性上限偏好、食物豐儉度、專屬 NPC。
+          玩家通關後透過謠言系統漸進解鎖其他訓練所。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">D.17 謠言系統設計 <span class="file-tag">DESIGN.md</span>
+          — 背景人員會在訓練時隨機說出關於其他訓練所的「聽說」，漸進拉開世界觀。
+          為後續訓練所解鎖與玩家跨訓練所賽事預埋伏筆。
+          （本次只有設計文件，系統本體在 D.18 的「八卦池」裡先做了輕量版）</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">D.15 整合檢查清單（方法論） <span class="file-tag">DESIGN.md</span>
+          <span class="file-tag">CLAUDE.md</span>
+          — 在提案任何新事件、動作、NPC、物品、特性之前，必須跑一遍 8 題
+          （好感連動 / 特性共鳴 / 故事揭露 / 資源流動 / Stage 演出 / Origin 差異 /
+          觸發頻率 / 旗標後續鉤子）。為了避免過去「事後補漏」型的設計遺漏。
+          D.19 又加了第 9 題（道德軸驅動）。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
        D.12  NPC 故事揭露系統（第一階段 — 卡西烏斯範本）
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">

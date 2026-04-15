@@ -278,6 +278,63 @@ const Config = (() => {
       id: 'brooding', name: '鬱結', category: 'negative',
       desc: '容易陷入往事。心情恢復 −20%，但獨自沉思時偶爾會觸發深層記憶。',
     },
+
+    // ══════════════════════════════════════════════════
+    // 🆕 D.19 道德累積特性（10 個，5 對相反）— earned 類
+    // ── 透過玩家選擇累積獲得（滑動窗口 N=3），窗口全同向就獲得，
+    //    一次反向就失去。關鍵事件 push 3 筆直接定型。
+    // ── 軸：reliability / mercy / loyalty / pride / patience
+    // ══════════════════════════════════════════════════
+    reliable: {
+      id: 'reliable', name: '可靠', category: 'positive',
+      moralAxis: 'reliability', moralSide: 'positive',
+      desc: '關鍵時刻能扛住重量的人。隊友在你身邊會感到安心。',
+    },
+    coward: {
+      id: 'coward', name: '膽小鬼', category: 'negative',
+      moralAxis: 'reliability', moralSide: 'negative',
+      desc: '關鍵時刻你選擇了逃開。別人看你的眼神不一樣了。',
+    },
+    merciful: {
+      id: 'merciful', name: '仁慈', category: 'positive',
+      moralAxis: 'mercy', moralSide: 'positive',
+      desc: '即使在血腥的競技場，你仍選擇手下留情。',
+    },
+    cruel: {
+      id: 'cruel', name: '殘忍', category: 'negative',
+      moralAxis: 'mercy', moralSide: 'negative',
+      desc: '你學會了把每一刀砍到底。對某些人這是生存，對某些人這是墮落。',
+    },
+    loyal: {
+      id: 'loyal', name: '忠誠', category: 'positive',
+      moralAxis: 'loyalty', moralSide: 'positive',
+      desc: '維護夥伴不離不棄。朋友把背交給你。',
+    },
+    opportunist: {
+      id: 'opportunist', name: '投機', category: 'negative',
+      moralAxis: 'loyalty', moralSide: 'negative',
+      desc: '立場會隨風轉。沒人敢把秘密交給你。',
+    },
+    humble: {
+      id: 'humble', name: '謙卑', category: 'positive',
+      moralAxis: 'pride', moralSide: 'positive',
+      desc: '知道自己的位置。長官喜歡不愛出風頭的鬥士。',
+    },
+    prideful: {
+      id: 'prideful', name: '驕傲', category: 'negative',
+      moralAxis: 'pride', moralSide: 'negative',
+      desc: '你覺得自己與眾不同。別人覺得你討人厭。',
+    },
+    patient: {
+      id: 'patient', name: '耐心', category: 'positive',
+      moralAxis: 'patience', moralSide: 'positive',
+      desc: '懂得等待時機。在競技場，這可能是最強的武器。',
+    },
+    impulsive: {
+      id: 'impulsive', name: '衝動', category: 'negative',
+      moralAxis: 'patience', moralSide: 'negative',
+      desc: '看到就想動手，聽到就想反擊。還沒學會停下來。',
+    },
   };
 
   // ══════════════════════════════════════════════════

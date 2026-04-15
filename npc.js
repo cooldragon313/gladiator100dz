@@ -51,6 +51,15 @@ const teammates = (() => {
       //   ⚠️ 新增命名 NPC 時請明示 favoredAttr（null 也要明示）
       favoredAttr: null,
 
+      // ── D.19 特性愛憎 ────────────────────────────
+      // likedTraits / dislikedTraits: { traitId: intensity(1~3) }
+      //   1 = 小偏好（小加成/小懲罰）
+      //   2 = 中偏好
+      //   3 = 強烈偏好（接近封鎖或大幅加速）
+      // 效果在 teammates.modAffection() 套用（見 npc.js 下方）
+      likedTraits:    {},
+      dislikedTraits: {},
+
       // ── 成長系統（D.11.5 S3 / S3 NPC 原型） ─────
       archetype:   null,        // power | agile | balanced | tank | berserker
       growthRate:  1.0,         // 每日成長速率倍率
@@ -113,6 +122,9 @@ const teammates = (() => {
       baseAffection: 10,
       personality: 'loner',
       favoredAttr: 'CON',   // 🆕 D.18：存活 5 年的老兵 — 體質代表
+      // 🆕 D.19：老兵看重可靠與耐心，最討厭投機和膽小
+      likedTraits:    { reliable:3, patient:2, iron_will:2, humble:1 },
+      dislikedTraits: { coward:3, opportunist:2, prideful:2, impulsive:1 },
 
       personalityDesc: '沉默寡言，但對新人有隱藏的耐心。重承諾，鄙視欺騙。',
       arriveDay: 1,
@@ -190,6 +202,9 @@ const teammates = (() => {
       baseAffection: 20,
       personality: 'support',
       favoredAttr: 'DEX',   // 🆕 D.18：標準訓練所唯一的 DEX 協力來源（窮中藏寶）
+      // 🆕 D.19：年輕人崇拜仁慈與忠誠，害怕殘忍
+      likedTraits:    { merciful:3, kindness:2, loyal:2, reliable:1 },
+      dislikedTraits: { cruel:3, opportunist:2, prideful:1 },
       arriveDay: 1,
     },
 
@@ -201,6 +216,9 @@ const teammates = (() => {
       baseAffection: 5,
       personality: 'cautious',
       favoredAttr: 'CON',   // 🆕 D.18：重甲鬥士 — 耐打派（從 STR 調整為更貼合訓練所 CON/WIL 定位）
+      // 🆕 D.19：溫和巨漢欣賞善意，討厭恃強凌弱
+      likedTraits:    { kindness:2, merciful:2, reliable:2, humble:1 },
+      dislikedTraits: { cruel:3, prideful:2, opportunist:1 },
       arriveDay: 1,
     },
 
@@ -212,6 +230,9 @@ const teammates = (() => {
       baseAffection: 30,
       personality: 'loner',
       favoredAttr: 'WIL',   // 🆕 D.18：將軍出身 — 意志代表
+      // 🆕 D.19：將軍看重紀律，最恨背叛與衝動
+      likedTraits:    { patient:3, iron_will:3, loyal:2, humble:1 },
+      dislikedTraits: { opportunist:3, impulsive:2, coward:2 },
       arriveDay: 1,
     },
 
@@ -223,6 +244,9 @@ const teammates = (() => {
       desc: '表情木然，從不多說一個字。手中的鑰匙決定你是否能呼吸新鮮空氣。',
       baseAffection: 0,
       personality: 'cunning',
+      // 🆕 D.19：獄卒只認聽話的，討厭反骨
+      likedTraits:    { humble:2, patient:1 },
+      dislikedTraits: { prideful:3, impulsive:2, opportunist:1 },
     },
 
     overseer: {
@@ -236,6 +260,9 @@ const teammates = (() => {
       desc: '嚴厲、精確、毫無憐憫。他訓練出來的人，要麼成為最強的鬥士，要麼死在訓練場。',
       baseAffection: 0,
       personality: 'aggressive',
+      // 🆕 D.19：嚴師愛勤勉鐵意志，恨懶散膽小
+      likedTraits:    { iron_will:3, diligence:2, cruel:2, prideful:1 },
+      dislikedTraits: { coward:3, merciful:2, impulsive:1 },
     },
 
     officer: {
@@ -245,6 +272,9 @@ const teammates = (() => {
       desc: '管理整個競技場的實權人物。他的一個眼神能讓你獲得特權，也能讓你消失。',
       baseAffection: 0,
       personality: 'cunning',
+      // 🆕 D.19：存活派的長官 — 最愛耐心可靠，恨衝動投機
+      likedTraits:    { reliable:3, patient:3, loyal:2, iron_will:1 },
+      dislikedTraits: { impulsive:3, opportunist:3, coward:2, prideful:1 },
     },
 
     blacksmithGra: {
@@ -254,6 +284,9 @@ const teammates = (() => {
       desc: '沉默的工匠，打鐵三十年。他打造的武器從未在戰場上折斷——使用者倒是常常折斷。',
       baseAffection: 10,
       personality: 'loner',
+      // 🆕 D.19：匠人尊重專注與謙虛，看不起浮誇
+      likedTraits:    { diligence:3, patient:2, humble:2 },
+      dislikedTraits: { prideful:3, opportunist:2, impulsive:1 },
     },
 
     melaKook: {
@@ -264,6 +297,9 @@ const teammates = (() => {
       desc: '用廚房剩料也能做出讓人流淚的食物。她悄悄多塞給你的那口飯，你永遠記得。',
       baseAffection: 15,
       personality: 'support',
+      // 🆕 D.19：廚娘母親般的溫柔，最愛善良的孩子，最厭殘忍
+      likedTraits:    { kindness:3, merciful:3, humble:2, reliable:1 },
+      dislikedTraits: { cruel:3, prideful:2, opportunist:1 },
     },
 
     masterArtus: {
@@ -273,6 +309,9 @@ const teammates = (() => {
       desc: '你的所有者。冷靜、理性，將每一個角鬥士視為投資。你的生死，是他帳本上的數字。',
       baseAffection: 0,
       personality: 'cunning',
+      // 🆕 D.19：精算的主人 — 最愛能賺錢的殘忍鐵血，最厭軟弱的膽小
+      likedTraits:    { cruel:3, reliable:3, iron_will:2, loyal:1 },
+      dislikedTraits: { coward:3, merciful:2, opportunist:2, impulsive:1 },
     },
 
     masterServant: {
@@ -282,6 +321,9 @@ const teammates = (() => {
       desc: '對主人言聽計從。傳話、監視、記錄——他的眼睛隨時都在。',
       baseAffection: 5,
       personality: 'cautious',
+      // 🆕 D.19：侍從鏡像主人的價值觀，強度稍弱
+      likedTraits:    { reliable:2, loyal:2, humble:1 },
+      dislikedTraits: { coward:2, impulsive:1, opportunist:1 },
     },
 
   };
@@ -350,16 +392,55 @@ const teammates = (() => {
   }
 
   /**
+   * 🆕 D.19：依玩家特性 vs NPC 愛憎清單，計算好感變動倍率。
+   *
+   * 規則（強度 1~3）：
+   *   計算「喜好淨分」 = Σ(liked intensity) − Σ(disliked intensity)
+   *   淨分 →  +3    +2    +1    0     -1    -2    -3(含以下)
+   *   倍率 → ×1.5  ×1.3  ×1.15 ×1.0  ×0.8  ×0.5  ×0.3
+   *
+   * 只對正向 delta（好感成長）作用；負向（仇恨增加）不受影響。
+   */
+  function _computeTraitAffMult(npc) {
+    const player = (typeof Stats !== 'undefined') ? Stats.player : null;
+    if (!player || !Array.isArray(player.traits) || !npc) return 1.0;
+    const liked    = npc.likedTraits    || {};
+    const disliked = npc.dislikedTraits || {};
+    let score = 0;
+    player.traits.forEach(tid => {
+      if (liked[tid])    score += liked[tid];
+      if (disliked[tid]) score -= disliked[tid];
+    });
+    if (score >= 3)  return 1.5;
+    if (score === 2) return 1.3;
+    if (score === 1) return 1.15;
+    if (score === 0) return 1.0;
+    if (score === -1) return 0.8;
+    if (score === -2) return 0.5;
+    return 0.3; // ≤ -3
+  }
+
+  /**
    * 修改 NPC 好感度。
    * D.1.2 更新：允許負值（-100 ~ +100）。
    * 負值 = 仇恨，用於 D.4 仇恨系統。
+   * D.19 更新：正向 delta 會乘上 trait 愛憎倍率。
    */
   function modAffection(npcId, delta) {
-    const id = _resolveId(npcId);
+    const id  = _resolveId(npcId);
+    const npc = NPC_DEFS[id];
     // 寬厚特性：正向好感成長速度 +20%
     if (delta > 0 && typeof Stats !== 'undefined' && Stats.player.traits?.includes('kindness')) {
-      delta = Math.round(delta * 1.2);
+      delta = delta * 1.2;
     }
+    // 🆕 D.19：特性愛憎倍率（只作用於正向）
+    if (delta > 0 && npc) {
+      const mult = _computeTraitAffMult(npc);
+      if (mult !== 1.0) {
+        delta = delta * mult;
+      }
+    }
+    delta = Math.round(delta);
     affectionMap[id] = Math.max(-100, Math.min(100, (affectionMap[id] || 0) + delta));
   }
 

@@ -735,11 +735,21 @@ const Game = (() => {
       p.insomniaStreak   = 0;
       p.normalSleepStreak = (p.normalSleepStreak || 0) + 1;
     } else if (sleepType === 'insomnia') {
-      addLog('🌙【就寢】夜深了，但眼睛怎麼也合不上。腦子裡轉的全是訓練場的聲音。等你終於睡著，天色已開始泛白。', '#c47a6e', true, true);
+      // 第一次睡不著 vs 連續睡不著：不同敘述，避免每晚都看到同一句
+      const prevStreak = p.insomniaStreak || 0;
+      if (prevStreak === 0) {
+        addLog('🌙【就寢】可惡……怎麼會有睡不著的感覺？你閉上眼，卻只看見天花板。腦子裡一刻不停地轉。', '#c47a6e', true, true);
+      } else if (prevStreak === 1) {
+        addLog('🌙【就寢】又睡不著了。第二夜了。你開始懷疑是不是身體哪裡出了問題。', '#c47a6e', true, true);
+      } else if (prevStreak === 2) {
+        addLog('🌙【就寢】第三夜。你已經不奢求好眠，只求撐過黎明。天花板的裂縫你都數熟了。', '#c47a6e', true, true);
+      } else {
+        addLog('🌙【就寢】夜深了，但眼睛怎麼也合不上。腦子裡轉的全是訓練場的聲音。等你終於睡著，天色已開始泛白。', '#c47a6e', true, true);
+      }
       Stats.modVital('stamina', Math.round(staminaGain * 0.45));
       Stats.modVital('mood',    -5);
       // 失眠計數 +1
-      p.insomniaStreak   = (p.insomniaStreak || 0) + 1;
+      p.insomniaStreak   = prevStreak + 1;
       p.normalSleepStreak = 0;
     } else { // nightmare
       addLog('🌙【就寢】夢見鮮血。夢見沙土。夢見一張臉——你說不清楚是誰。驚醒時全身冷汗，天色才剛亮。', '#c47a6e', true, true);
@@ -2611,6 +2621,9 @@ const Game = (() => {
                       personalItems: [...(p.personalItems || [])],
                       pets:          { ...(p.pets || {}) },
                       scars:         [...(p.scars || [])],
+                      // 🆕 D.19 道德累積滑動窗口
+                      moralHistory:  p.moralHistory ? JSON.parse(JSON.stringify(p.moralHistory)) : null,
+                      moralLocks:    p.moralLocks   ? { ...p.moralLocks } : null,
                     },
       fieldId:      currentFieldId,
       gameState:    GameState.getSerializable(),
@@ -2692,6 +2705,12 @@ const Game = (() => {
 
     // NPC affection
     teammates.setAllAffection(data.npcAffection);
+
+    // 🆕 D.19：讀檔後確保道德狀態存在，並用記錄重算 earned traits
+    if (typeof Moral !== 'undefined') {
+      Moral.ensureInit(p);
+      Moral.recomputeAll();
+    }
 
     // 🆕 D.18 背景角鬥士熟悉度
     if (typeof BackgroundGladiators !== 'undefined') {
@@ -2867,6 +2886,9 @@ const Game = (() => {
         ailments:['insomnia_disorder'], insomniaStreak:0, normalSleepStreak:0,
         // 🆕 D.12 故事揭露系統：清空已觸發記錄
         seenReveals: [],
+        // 🆕 D.19 道德累積滑動窗口：重置為空
+        moralHistory: { reliability:[], mercy:[], loyalty:[], pride:[], patience:[] },
+        moralLocks:   {},
         staminaPenalty:{ STR:0, DEX:0, CON:0, AGI:0, WIL:0, LUK:0 },
         combatStats:{
           executionCount:0, spareCount:0, suppressCount:0,

@@ -50,14 +50,24 @@
 ### 🆕 新增一個 NPC
 
 1. 編輯 `npc.js` 的 `NPC_DEFS`
-2. 最小必填：`id / name / title / desc / role / baseAffection`
+2. **最小必填**：`id / name / title / desc / role / baseAffection`
 3. 其他欄位由 `_applyDefaults()` 自動補齊
 4. ⚠️ **D.18 訓練協力**：請明示 `favoredAttr`（'STR'/'DEX'/'CON'/'AGI'/'WIL' 或 `null`）
    - 命名 NPC 有匹配 favoredAttr 時提供三段協力：aff≥30 ×1.3 / aff≥60 ×1.6 / aff≥90 ×1.8
    - 故事主角型 NPC 可以先留 `null`，等角色定位明確再補
    - null 也要「明示」，不要省略讓它吃預設——提醒未來自己記得補
-5. 未來擴充：`personality / storyReveals / schedule / hiddenQuestHints`
-6. 參考 `cassius` 看故事揭露（storyReveals）的寫法
+5. ⚠️ **D.19 特性愛憎**：請明示 `likedTraits` / `dislikedTraits`
+   ```js
+   likedTraits:    { reliable:3, patient:2, kindness:1 },   // { traitId: intensity 1~3 }
+   dislikedTraits: { coward:3, impulsive:2, prideful:1 },
+   ```
+   - 強度 1 = 小偏好、2 = 中、3 = 強烈
+   - 玩家淨分 ±3 → 好感成長 ×1.5 / ×0.3（詳見 DESIGN § 3.7）
+   - **角色設計的靈魂**：這裡決定了 NPC 眼中玩家是什麼樣的人
+   - 沒想好也要寫 `{}` 明示（不是省略），強迫自己記得之後要補
+   - 可用的 traits 見 `config.js` TRAIT_DEFS（earned + 既有）
+6. 未來擴充：`personality / storyReveals / schedule / hiddenQuestHints`
+7. 參考 `cassius` 看故事揭露（storyReveals）的寫法，參考 `officer` 看 likedTraits 的寫法
 
 ### 🆕 新增一個事件
 
@@ -66,6 +76,18 @@
 3. 記得跑 D.15 整合檢查清單 8 題
 4. 如果是玩家選擇事件，用 `CHOICE_EVENTS`，格式見 `choice_modal.js` 檔頭註解
 5. 如果牽涉屬性變動，用 `type: 'exp'`（不是 'attr'）
+6. 🆕 **D.19 道德軸**：有道德意涵的事件或選項要在 `effects` 加 moral 效果：
+   ```js
+   { type:'moral', axis:'reliability', side:'positive', weight:1 }
+   //   axis   : reliability | mercy | loyalty | pride | patience
+   //   side   : positive | negative
+   //   weight : 1=普通事件  3=關鍵事件（一次定型）
+   //   lock   : true=劇情鎖定軸（極少用，留給無法回頭的瞬間）
+   ```
+   - 每個軸對應兩個 earned traits（見下表）
+   - 大部分事件用 weight:1 就好
+   - 只有「主角認定自己是什麼樣的人」的關鍵事件才用 weight:3
+7. 事件檢查整合清單的第 9 題：**有沒有道德軸該觸發？** 不要漏掉
 
 ### 🆕 新增一個特性（Trait）
 
@@ -125,6 +147,30 @@ favorWeight: { STR:3, DEX:2, CON:2, AGI:1, WIL:1 }  // 硬派肉搏向
 2. 必填：`id / name / type / desc / unlockReq / expCosts / passiveBonus`
 3. `type: 'passive'` — 效果自動生效（由 `calcDerived` 讀 `learnedSkills` 加總）
 4. `type: 'active'` — 資料保留，戰鬥系統未掛鉤
+
+---
+
+## 🧭 D.19 道德軸快速查表
+
+5 對相反 earned traits，每一對對應一個「軸」。寫事件時選對應軸 + 方向即可。
+
+| 軸 (axis) | positive | negative | 典型觸發情境 |
+|---|---|---|---|
+| `reliability` | `reliable` 可靠 | `coward` 膽小鬼 | 承擔他人後果 vs 臨陣脫逃 |
+| `mercy`       | `merciful` 仁慈 | `cruel` 殘忍 | 饒命 vs 斬首 / 凌遲 |
+| `loyalty`     | `loyal` 忠誠 | `opportunist` 投機 | 維護夥伴 vs 告密/叛變 |
+| `pride`       | `humble` 謙卑 | `prideful` 驕傲 | 認錯/讓功 vs 拒絕幫助/自吹自擂 |
+| `patience`    | `patient` 耐心 | `impulsive` 衝動 | 等待觀察 vs 立即動手 |
+
+**滑動窗口 N=3**：
+- 最近 3 筆行動**全同向** → 獲得該側特性
+- 任一反向 → 該軸的現有特性立刻被移除
+- 反覆橫跳 = 什麼特性都拿不到
+
+**weight 選擇**：
+- `weight:1`（預設）：一次日常選擇
+- `weight:3`：關鍵事件，直接填滿窗口 → 一次定型
+- `weight:3 + lock:true`：劇情重量級事件，定型後該軸永遠無法改變（極少用）
 
 ---
 

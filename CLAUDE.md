@@ -41,7 +41,7 @@
 
 ### 跨系統整合檢查清單（D.15）
 
-**在提案任何新事件、動作、NPC、物品、特性之前，在回覆中跑一遍這 8 題：**
+**在提案任何新事件、動作、NPC、物品、特性之前，在回覆中跑一遍這 9 題：**
 
 1. **好感度連動** — 會改動哪個 NPC 的好感？有沒有好感門檻才能觸發？
 2. **特性共鳴** — 有沒有哪個玩家特性應該觸發不同結果？
@@ -51,6 +51,7 @@
 6. **Origin 差異化** — 貴族跟農家子弟看到的內容應該不同嗎？
 7. **觸發頻率** — onceOnly / 每日 / 每週 / 機率 / 永久常駐？
 8. **旗標與後續鉤子** — 需要 `Flags.set(...)` 讓未來系統讀嗎？
+9. **🆕 道德軸驅動（D.19）** — 有沒有道德意涵？要觸發哪個軸（reliability/mercy/loyalty/pride/patience）？weight:1 還是 weight:3？
 
 **明確表態原則**：對每一題要主動回答「有 / 沒有 / 先不做」，不要跳過不講。
 
@@ -70,16 +71,25 @@
   - 升屬性手動花 EXP（`Stats.spendExpOnAttr`）
   - 未來技能購買也花 EXP（`requireItemTag` + `expCosts`）
 - **effects 陣列統一格式**：`{ type, key, delta, ... }`
-  - 支援 type: vital / attr / exp / money / fame / affection / sp
+  - 支援 type: vital / attr / exp / money / fame / affection / sp / flag / moral / ...
   - 透過 `Effects.apply(effects, ctx)` 統一派發
+- **D.19 道德軸寫法**（有道德意涵的事件/選項都要接上）：
+  - `{ type:'moral', axis:'reliability', side:'positive', weight:1 }`
+  - 5 軸：reliability / mercy / loyalty / pride / patience
+  - weight:1 一般 / weight:3 關鍵事件一次定型 / lock:true 極少用
+  - 詳見 [docs/CONTENT-TEMPLATES.md](docs/CONTENT-TEMPLATES.md) 的快速查表
+- **D.19 NPC 愛憎**：所有 NPC 都要有 `likedTraits` / `dislikedTraits`（強度 1~3）
+  - 即使空 `{}` 也要明示，不能省略
+  - 好感變動自動乘愛憎倍率（淨分 ±3 → ×1.5~×0.3）
+  - 在 `teammates.modAffection` 內部統一處理
 
 ### 模組相依
 載入順序（見 game.html bottom）：
 ```
-config → stage → flags → origins → i18n → game_state → sound →
-day_cycle → effect_dispatcher → stats → fields → npc → events →
-item → weapons → armors → enemy → train → skill → ending →
-save_system → testbattle → battle → actions → main
+config → stage → choice_modal → flags → origins → i18n → game_state → sound →
+day_cycle → effect_dispatcher → stats → moral → fields → npc →
+background_gladiators → events → item → weapons → armors → enemy →
+train → skill → ending → save_system → testbattle → battle → actions → main
 ```
 新增模組要注意放在依賴它的模組之前。
 
@@ -157,6 +167,9 @@ save_system → testbattle → battle → actions → main
 6. **跨系統整合發現**（新的整合點應該加進 D.15 清單）
 7. **新增命名 NPC 時，主動提醒使用者「favoredAttr 還沒定嗎？」**
    （D.18：命名 NPC 需要 `favoredAttr` 決定訓練協力屬性偏好；故事向 NPC 可先填 null，但要明示）
+8. **新增命名 NPC 時，同時主動提醒「likedTraits / dislikedTraits 要怎麼設？」**
+   （D.19：每個 NPC 都必須有愛憎欄位，即使空 `{}` 也要明示；這是角色設計的靈魂
+   — 沒有愛憎的 NPC 等於沒有個性觀點。參考 `officer` 的寫法。）
 
 ### 應該問使用者的情況
 
@@ -181,13 +194,21 @@ save_system → testbattle → battle → actions → main
 
 - **CLAUDE.md**（本檔）：長期穩定的約定與習慣。更新頻率低，穩定度高。
 - **DESIGN.md**：設計規格與決策。更新頻率中。
-- **changelog.html**：每次功能/修正的歷史紀錄。每次 commit 都要加一條。
+- **changelog.html**：每次功能/修正的歷史紀錄。**每次中型以上改動都要自動補上**
+  （新系統 / 新模組 / 新事件 / UI 重構 / 平衡調整等）。
+  - 格式參考最近的版本區塊（`.version-block` → tag / title / date / change-list）
+  - 徽章：`badge-new` / `badge-fix` / `badge-ui` / `badge-data` / `badge-system`
+  - AI 主動規則：commit 前如果發現有**新模組、新系統、新事件池、或跨多檔案的平衡調整**，
+    不用等使用者說，自己開新 version-block 補上去。只有純注釋 / 文字微調可以省略。
+- **CHANGELOG.md**：keep-a-changelog 格式，目前較少用，主要版本標記用。
 - **memory/MEMORY.md**：auto-memory 索引。不手動編輯。
 
 ---
 
 ## 🔄 最近重要變更
 
+- **2026-04-16**：D.19 道德累積特性系統（10 earned traits + 滑動窗口 + NPC 愛憎倍率 + 戰鬥 mercy 軸）
+- **2026-04-16**：D.18 訓練協力 v2（屬性偏好 + 背景角鬥士池 + favorWeight + 碎念/八卦系統）
 - **2026-04-15**：D.12 NPC 故事揭露系統上線（卡西烏斯為範本）
 - **2026-04-14**：D.6 v2 EXP 單一資源模型、技能購買系統、整數化全部
 - **2026-04-13**：D.7 階段 B 人物面板重構（兩欄、六角形、EXP 條）+ Phase 1-J 場地極簡化

@@ -149,6 +149,37 @@ const Effects = (() => {
         }
         break;
 
+      // ── 🆕 D.19 道德累積（滑動窗口）──────────────
+      // 格式：{ type:'moral', axis:'reliability', side:'positive', weight:1, lock:false }
+      //   axis   : reliability | mercy | loyalty | pride | patience
+      //   side   : positive | negative
+      //   weight : 1 = 普通事件，3 = 關鍵事件一次定型
+      //   lock   : true = 劇情鎖定（後續此軸無效，僅極少用）
+      case 'moral':
+        if (typeof Moral !== 'undefined' && eff.axis && eff.side) {
+          const result = Moral.push(eff.axis, eff.side, {
+            weight: eff.weight || 1,
+            lock:   !!eff.lock,
+          });
+          // 有新獲得的特性時給玩家回饋
+          if (typeof Config !== 'undefined' && Config.TRAIT_DEFS) {
+            result.added.forEach(tid => {
+              const def = Config.TRAIT_DEFS[tid];
+              if (def && typeof addLog === 'function') {
+                const color = def.category === 'negative' ? '#cc7733' : '#88cc77';
+                addLog(`✦ 你獲得了新的特性：【${def.name}】`, color, true, true);
+              }
+            });
+            result.removed.forEach(tid => {
+              const def = Config.TRAIT_DEFS[tid];
+              if (def && typeof addLog === 'function') {
+                addLog(`✧ 你失去了特性：【${def.name}】`, '#8899aa', false);
+              }
+            });
+          }
+        }
+        break;
+
       // ── 旗標 ──────────────────────────────────
       case 'flag':
         Flags.set(eff.key, eff.value !== undefined ? eff.value : true);

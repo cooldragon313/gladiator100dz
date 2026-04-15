@@ -769,6 +769,15 @@ const Battle = (() => {
     if (choice === 'suppress') cs.suppressCount++;
     if (choice === 'spare')    cs.spareCount++;
 
+    // 🆕 D.19：戰鬥結束選擇 → 驅動 mercy 軸
+    //   execute  → negative（殘忍）
+    //   spare    → positive（仁慈）
+    //   suppress → 不影響道德（中性鎮壓）
+    if (typeof Moral !== 'undefined') {
+      if (choice === 'execute') Moral.push('mercy', 'negative');
+      if (choice === 'spare')   Moral.push('mercy', 'positive');
+    }
+
     // 成就檢查（砍首 / 饒恕達標時）
     _checkAchievements();
 

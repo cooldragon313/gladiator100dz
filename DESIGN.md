@@ -77,7 +77,8 @@
 | Stage 模組（轉場） | `532ec9c` | 就寢動畫 + 開場敘述 + 事件小過場 |
 | Origins 系統前哨 | `fae2ccc` | farmBoy + nobleman 完整、其他鎖定 |
 | 食物經濟平衡 | `77c50b0` | 餐點 25→18、訓練 8→10、sleep -12→-15 |
-| D.18 屬性偏好協力 | *本次* | 命名三段 + 背景池 + favorWeight + ×15 總 cap + dispatcher exp 修正 |
+| D.18 屬性偏好協力 | `e06bbb7` | 命名三段 + 背景池 + favorWeight + ×15 總 cap + dispatcher exp 修正 |
+| D.19 道德累積特性 | *本次* | 10 個 earned traits + 滑動窗口 + NPC 愛憎倍率 + 失眠首夜敘述修正 |
 
 ### Phase 2：核心系統 — ⬜ 未開始
 
@@ -569,6 +570,55 @@ cassius.storyReveals = [
 **病痛**（獨立於 traits）：`config.js` 的 `AILMENT_DEFS`
 - `insomnia_disorder` 失眠症
 - `arm_injury` / `leg_injury` / `torso_injury` 傷
+
+### 3.7 道德累積特性系統（D.19）
+
+**資料**：`config.js` 的 earned traits 區塊 + [moral.js](../moral.js) + `npc.js` 的 `likedTraits` / `dislikedTraits`
+
+**核心哲學**：
+- **你的標籤 = 你最近的行為**，不是一輩子的總和
+- 100 天太短，每個選擇都要有機會被下一個覆蓋
+- NPC 看見的不是你過去做了什麼，是你現在是誰
+
+**5 對相反的 earned traits**：
+| 正面 | 反面 | 軸 |
+|---|---|---|
+| reliable 可靠 | coward 膽小鬼 | reliability |
+| merciful 仁慈 | cruel 殘忍 | mercy |
+| loyal 忠誠 | opportunist 投機 | loyalty |
+| humble 謙卑 | prideful 驕傲 | pride |
+| patient 耐心 | impulsive 衝動 | patience |
+
+**滑動窗口機制**（N=3）：
+- 每個軸存最近 3 筆行動記錄
+- 窗口「全部同向」→ 賦予該側特性
+- 窗口「出現反向」→ 移除該軸的現有特性
+- 反覆橫跳 = 永遠沒特性 = 「你什麼都不是」
+
+**關鍵事件**：
+- 普通事件 `Moral.push(axis, side)` → push 1 筆
+- 關鍵事件 `Moral.push(axis, side, { weight: 3 })` → 一口氣 3 筆，立即定型
+- 劇情鎖 `Moral.push(axis, side, { weight: 3, lock: true })` → 定型且不可逆（極少用）
+
+**NPC 愛憎倍率**（`teammates.modAffection` 內建）：
+```
+likedTraits    = { reliable:3, cruel:2, ... }   // 強度 1~3
+dislikedTraits = { coward:3, impulsive:2, ... }
+
+淨分 = Σ(liked) − Σ(disliked)
+倍率：+3→×1.5 / +2→×1.3 / +1→×1.15 / 0→×1.0
+      -1→×0.8 / -2→×0.5 / -3以下→×0.3
+```
+只對正向好感成長作用。
+
+**觸發點（尚待接入）**：
+- ChoiceModal 的選項加 `moral` 欄位，選完自動呼叫 `Moral.push`
+- 事件系統的 effects 陣列加 `{ type:'moral', axis, side, weight? }`
+- 戰鬥結束斬首 / 饒命選項直接驅動 mercy 軸
+
+**存檔**：`player.moralHistory` + `player.moralLocks` 存在 save.player 內
+
+---
 
 ### 3.6 訓練協力與屬性偏好系統（D.18）
 
