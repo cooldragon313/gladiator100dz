@@ -1595,12 +1595,20 @@ const Game = (() => {
       // 黑幕掀開後，依序播放佇列中的事件（主人傳喚/任務/故事等）
       await _flushStageEvents();
 
-      // 🆕 D.21：最後播放重量級對話（奧蘭初遇誓言等）
+      // 🆕 D.21：播放重量級對話（奧蘭初遇誓言等）
       await _flushDialogues();
+
+      // 🆕 D.22：嘗試觸發醫生訪問（條件符合才會開）
+      if (typeof DoctorEvents !== 'undefined' && DoctorEvents.tryVisit) {
+        try { DoctorEvents.tryVisit(); } catch (e) { console.error('[Doctor]', e); }
+      }
     } else {
       _sleepEndDayBody(sleepType);
       _flushStageEvents();
       _flushDialogues();
+      if (typeof DoctorEvents !== 'undefined' && DoctorEvents.tryVisit) {
+        try { DoctorEvents.tryVisit(); } catch (e) { console.error('[Doctor]', e); }
+      }
     }
   }
 
@@ -2830,6 +2838,10 @@ const Game = (() => {
       morningThoughts: (typeof MorningThoughts !== 'undefined')
                          ? MorningThoughts.serialize()
                          : null,
+      // 🆕 D.22 醫生訪問狀態
+      doctorEvents: (typeof DoctorEvents !== 'undefined')
+                      ? DoctorEvents.serialize()
+                      : null,
       savedAt:      Date.now(),
     };
   }
@@ -2924,6 +2936,15 @@ const Game = (() => {
         MorningThoughts.restore(data.morningThoughts);
       } else {
         MorningThoughts.reset();
+      }
+    }
+
+    // 🆕 D.22 醫生訪問狀態
+    if (typeof DoctorEvents !== 'undefined') {
+      if (data.doctorEvents) {
+        DoctorEvents.restore(data.doctorEvents);
+      } else {
+        DoctorEvents.reset();
       }
     }
 
@@ -3119,6 +3140,10 @@ const Game = (() => {
       // 🆕 D.21：重置晨思系統狀態
       if (typeof MorningThoughts !== 'undefined') {
         MorningThoughts.reset();
+      }
+      // 🆕 D.22：重置醫生訪問狀態
+      if (typeof DoctorEvents !== 'undefined') {
+        DoctorEvents.reset();
       }
       // 🆕 Phase 1 重構：強制鎖定到訓練場
       GameState.setFieldId(FIXED_FIELD);

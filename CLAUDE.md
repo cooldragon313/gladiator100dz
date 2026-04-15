@@ -209,6 +209,8 @@ save_system → testbattle → battle → actions → main
 
 ## 🔄 最近重要變更
 
+- **2026-04-16**：D.22 醫生老默 + 治療系統（新 NPC + DialogueModal 18 句 + 四種傷勢差異化治療 + 藥房懸念橋接）
+- **2026-04-16**：D.21b 奧蘭脊椎升級 + 藥房懸念完整鏈 + 道德光譜 UI
 - **2026-04-16**：D.21 對話系統 + 晨思系統（DialogueModal L2 + MorningThoughts 30 條 + Stage.playMorning 雞鳴過場 + 奧蘭 Day 1 升級）
 - **2026-04-16**：D.20 奧蘭主線 — 永駐兄弟完整四幕（10 storyReveals + 偷藥/分房/訣別三大事件 + 生死援手）
 - **2026-04-16**：D.19 道德累積特性系統（10 earned traits + 滑動窗口 + NPC 愛憎倍率 + 戰鬥 mercy 軸）

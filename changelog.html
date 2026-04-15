@@ -207,6 +207,78 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       D.22  醫生老默 + 治療系統
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">FEATURE</span>
+      <span class="version-title">D.22 — 醫生老默 + 治療系統（晨思承諾兌現）</span>
+      <span class="version-date">2026-04-16</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">新 NPC 老默 <span class="file-tag">npc.js</span>
+          — 訓練所醫生。曾是帝國北境軍團主治醫官，違反軍令救治敵軍傷員被剝奪自由。
+          role:'audience'、personality:'cautious'、baseAffection:0。
+          愛憎：liked patient/merciful/humble/reliable，disliked impulsive/cruel/prideful/opportunist。
+          他每天處理衝動者和殘忍者造成的後果，自然討厭這些特性。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">DoctorEvents 治療事件系統 <span class="file-tag">doctor_events.js</span>
+          — 自動觸發（符合 Phase 1 哲學：主人為了保護投資派侍從帶去）。
+          Day ≥ 10 + 有 ailment 時首次保證觸發，之後每日 35% 機率。
+          _lastVisitDay 私有狀態避免重複訪問，不污染 Flags。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-content">CONTENT</span>
+        <span class="change-text">第一次見面 DialogueModal 18 句 <span class="file-tag">doctor_events.js</span>
+          — 侍從帶路 → 烈酒與草藥味 → 老默手很穩 →
+          「我是醫生。沒人叫我老默以外的名字——包括主人。」→
+          「我不會替你隱瞞傷勢。」→「我也不會問你怎麼受傷的。」
+          若有藥房懸念未解 → 額外 4 句：「我這裡偶爾會少一些草藥……
+          有時候是老鼠偷的。有時候不是。」</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-content">CONTENT</span>
+        <span class="change-text">四種 ailment 差異化治療對話 <span class="file-tag">doctor_events.js</span>
+          — 失眠症：給草粉「睡不著是弱點，別跟別人說」；
+          手傷：按壓判斷筋膜 + 包紮「三天別出力」；
+          腿傷：按壓小腿 + 熱藥貼「會痛，但有效」；
+          軀幹傷：聽胸腔 + 綁帶「接下來七天別深呼吸。也別哭。」</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">ChoiceModal 治療選擇 <span class="file-tag">doctor_events.js</span>
+          — 動態列出所有當前 ailment 讓玩家選一個治療，加「不用了」拒絕選項。
+          每次治療消耗 2 slots（4 小時）+ 老默 aff +5。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">整合到 sleepEndDay 流程 <span class="file-tag">main.js</span>
+          — 在 <code>playMorning → flushStageEvents → flushDialogues</code>
+          全部完成之後才呼叫 <code>DoctorEvents.tryVisit()</code>，避免和晨起演出搶同一個畫面。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text">存檔整合 <span class="file-tag">main.js</span>
+          — save.doctorEvents 儲存 _lastVisitDay，讀檔後 restore，新遊戲 reset。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">藥房懸念橋接 <span class="file-tag">doctor_events.js</span>
+          — 老默首次見面時，若玩家還有未解的 saw_olan_at_apothecary flag，
+          老默會暗示「我這裡偶爾會少一些草藥。有時候是老鼠偷的。有時候不是。」
+          這讓兩條獨立的劇情線在玩家腦中自然交會。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
        D.21b  奧蘭脊椎升級 + 藥房懸念 + 道德光譜
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">

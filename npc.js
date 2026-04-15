@@ -496,6 +496,25 @@ const teammates = (() => {
       dislikedTraits: { coward:2, impulsive:1, opportunist:1 },
     },
 
+    // 🆕 D.22：醫生老默（治療系統入口）
+    // 曾是帝國軍隊戰地醫官，某場戰役後被貶為訓練所奴隸醫生。
+    // 看太多年輕人死在他桌上，變得很難露出表情。
+    // 喝酒，但手還是穩的。
+    doctorMo: {
+      id: 'doctorMo', name: '老默',
+      role: 'audience',
+      title: '訓練所醫生',
+      desc: '曾是帝國軍隊的戰地醫官，某場戰役後被貶為訓練所的奴隸醫生。手很穩，嘴很冷——但他從不騙你傷勢的嚴重程度。',
+      baseAffection: 0,
+      personality: 'cautious',
+      favoredAttr: null,  // 非訓練 NPC
+      // 🆕 D.19：醫生的愛憎 — 看重耐心與仁慈，討厭衝動與殘忍
+      //   他每天都在處理衝動者和殘忍者造成的後果
+      likedTraits:    { patient:3, merciful:2, humble:2, reliable:2 },
+      dislikedTraits: { impulsive:3, cruel:3, prideful:2, opportunist:1 },
+      background: '老默曾是帝國北境軍團的主治醫官。某場戰役他違反軍令，試圖救治敵軍的傷員，被軍法判刑剝奪自由身。競技場的主人買下他——因為他技術太好了，不救治可惜。他每天處理鞭傷、斷骨、化膿、失眠、恐懼——看過的死法比活人多。',
+    },
+
   };
 
   // ══════════════════════════════════════════════════

@@ -81,7 +81,8 @@
 | D.19 道德累積特性 | `0898cd3` | 10 個 earned traits + 滑動窗口 + NPC 愛憎倍率 + 失眠首夜敘述修正 |
 | D.20 奧蘭主線 | `fba80cf` | 永駐兄弟 + 四幕脊椎 + 10 storyReveals + 偷藥/訣別/房間升級 + 生死關頭援手 |
 | D.21 對話與晨思 | `4c23393` | DialogueModal（L2 手動）+ MorningThoughts（30 條）+ Stage.playMorning 雞鳴過場 + 奧蘭 Day 1 升級 |
-| D.21b 奧蘭脊椎升級 + 道德光譜 | *本次* | 藥房懸念完整鏈路（埋設→晨思→攤牌→回收）+ Day 30/60/85 三大事件 DialogueModal 演出 + 人物頁道德光譜 UI |
+| D.21b 奧蘭脊椎升級 + 道德光譜 | `204ffdc` | 藥房懸念完整鏈路 + Day 30/60/85 三大事件 DialogueModal 演出 + 人物頁道德光譜 UI |
+| D.22 醫生老默 + 治療系統 | *本次* | 新 NPC 老默 + 首次見面 18 句對話 + 傷勢治療 ChoiceModal + 依 ailment 敘述差異化 |
 
 ### Phase 2：核心系統 — ⬜ 未開始
 
@@ -573,6 +574,52 @@ cassius.storyReveals = [
 **病痛**（獨立於 traits）：`config.js` 的 `AILMENT_DEFS`
 - `insomnia_disorder` 失眠症
 - `arm_injury` / `leg_injury` / `torso_injury` 傷
+
+### 3.10 醫生老默與治療系統（D.22）
+
+**資料**：`npc.js` 的 `doctorMo` + [doctor_events.js](../doctor_events.js)
+
+**角色定位**：
+- 曾是帝國北境軍團的主治醫官
+- 違反軍令試圖救治敵軍傷員 → 被剝奪自由身 → 輾轉賣進訓練所
+- 看過的死法比活人多。喝酒，但手還是穩的
+- `role: 'audience'`, `personality: 'cautious'`, `baseAffection: 0`
+- **愛憎**：`likedTraits: { patient:3, merciful:2, humble:2, reliable:2 }`
+  `dislikedTraits: { impulsive:3, cruel:3, prideful:2, opportunist:1 }`
+- 他每天都在處理衝動者和殘忍者造成的後果，自然討厭這些特性
+
+**觸發機制**（符合 Phase 1「奴隸沒自主權」哲學）：
+- 玩家**不能主動**去找醫生
+- 主人為了保護「投資」，在玩家有傷勢時派侍從帶去
+- 條件：Day ≥ 10 + 有 ailment + 未今日訪問過
+- **第一次保證觸發**（破冰），之後每日 35% 機率
+- 掛鉤於 `sleepEndDay` 在 `flushDialogues` 之後（晨起演出全部完成才能開始新 modal）
+
+**第一次見面**（DialogueModal 18 句）：
+侍從帶你到訓練所後方小房間 → 烈酒與草藥味 → 老默手很穩 →
+「我是醫生。沒人叫我老默以外的名字——包括主人。」→
+「我不會替你隱瞞傷勢」→「我也不會問你怎麼受傷的」→
+**若有藥房懸念未解** → 額外多出 4 句：「我這裡偶爾會少一些草藥……有時候是老鼠偷的。有時候不是。」
+
+**治療流程**：
+1. DialogueModal 開場對話
+2. ChoiceModal 列出所有當前 ailment 讓玩家選一個治療（或拒絕）
+3. 選定後 DialogueModal 依該 ailment 播出差異化敘述：
+   - `insomnia_disorder`：給草粉「睡不著是弱點，別跟別人說」
+   - `arm_injury`：判斷筋膜 + 包紮「三天別出力」
+   - `leg_injury`：按壓小腿 + 熱藥貼「會痛，但有效」
+   - `torso_injury`：聽胸腔 + 綁帶「接下來七天別深呼吸。也別哭。」
+4. 移除該 ailment、老默 aff +5、消耗 2 slots（4 小時）
+
+**拒絕治療**：老默 aff -5，沒其他懲罰。「你搖頭走出房間。老默沒有追問。」
+
+**後續訪問對話差異**（依好感度）：
+- aff < 40：平淡「坐」
+- aff ≥ 40：帶感情「……又是你」「語氣裡有點東西」
+
+**存檔**：`DoctorEvents.serialize()` / `restore()` 儲存 `_lastVisitDay`
+
+---
 
 ### 3.9 對話系統與晨思（D.21）
 
