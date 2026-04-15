@@ -207,6 +207,80 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       D.21b  奧蘭脊椎升級 + 藥房懸念 + 道德光譜
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">FEATURE</span>
+      <span class="version-title">D.21b — 奧蘭脊椎升級 + 藥房懸念 + 道德光譜 UI</span>
+      <span class="version-date">2026-04-16</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">奧蘭藥房懸念完整鏈路 <span class="file-tag">main.js</span>
+          <span class="file-tag">morning_thoughts.js</span> <span class="file-tag">npc.js</span>
+          — 四段式完整示範 MorningThoughts 的 mystery → resolution 機制：
+          ① 埋設（Day ≥ 8 訓練後 8% 機率看見奧蘭在醫療房前閃避，設 flag saw_olan_at_apothecary）
+          ② 懸念（隔日 MorningThoughts 播出「但那個畫面還沒散」，可重複 3 次）
+          ③ 攤牌（aff ≥ 50 時夜間 reveal 觸發，DialogueModal 12 句對話 —
+          奧蘭坦承偷藥是為玩家療傷）
+          ④ 回收（setFlag+queueResolution 自動觸發，隔日早上播「他其實不必那樣冒險的」）</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text">storyReveal 擴充 setFlag / queueResolution <span class="file-tag">main.js</span>
+          — _scanStoryEvents 新增兩個 reveal 欄位處理：<code>setFlag</code> 觸發時寫旗標、
+          <code>queueResolution</code> 排入 MorningThoughts 回收佇列。
+          讓資料驅動的懸念完整閉環成為可能，不需要硬 code 每個事件。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">OrlanEvents._playIntroThenChoice helper <span class="file-tag">orlan_events.js</span>
+          — 先播 DialogueModal 敘述段，完成後自動開啟 ChoiceModal。
+          讓每個脊椎事件都有「演出 → 決定」兩階段節奏。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-content">CONTENT</span>
+        <span class="change-text">Day 30 房間升級升級為 DialogueModal <span class="file-tag">orlan_events.js</span>
+          — 8 句前置敘述：「一個你不太熟悉的侍從走進來」→「阿圖斯大人吩咐」
+          →「你看向奧蘭。他正在整理床鋪。他聽見了。——但他沒有抬頭。」</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-content">CONTENT</span>
+        <span class="change-text">Day 60 偷藥風波升級為 DialogueModal <span class="file-tag">orlan_events.js</span>
+          — 12 句前置敘述展現現場壓力：奧蘭被押倒、嘴角的血、侍從的踢、
+          阿圖斯的淡淡觀看、「你感覺到整個訓練場都在看你」。
+          讓玩家在按下四選項之一之前，先吸到那口空氣。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-content">CONTENT</span>
+        <span class="change-text">Day 85 最終訣別升級為 DialogueModal <span class="file-tag">orlan_events.js</span>
+          — 13 句前置敘述。奧蘭背對落日、慢慢轉身、「我跟阿圖斯大人簽了協議」
+          →「讓我妹妹聽到你的名字」→「我的名字她記不住——但你的，會。」
+          →「他終於笑了。眼睛先彎起來的那種笑。你感覺胸口被人掏空。」</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text">道德光譜 UI <span class="file-tag">main.js</span>
+          <span class="file-tag">game.html</span>
+          — 人物頁新增「道德光譜」區塊，顯示 5 個道德軸的滑動窗口狀態。
+          每行：軸名稱 + 三格窗口（● 綠=正向 / ● 橘=反向 / · 灰=空）+ 目前特性。
+          若 5 軸都沒有行動 → 整區隱藏（配合 D.21 的空區塊隱藏規則）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-content">CONTENT</span>
+        <span class="change-text">懸念型 thought 加入 MorningThoughts 庫 <span class="file-tag">morning_thoughts.js</span>
+          — 最高優先度 100。目前內建 2 條：mystery_olan_apothecary（3 段輪播）+
+          recall_olan_apothecary（1 段回收）。未來任何懸念/預示都可照此格式擴充。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
        D.21  對話系統 + 晨思系統 + 雞鳴過場
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">

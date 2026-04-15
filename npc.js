@@ -239,6 +239,36 @@ const teammates = (() => {
           logColor:        '#8899cc',
         },
 
+        // 🆕 D.21 Option A：藥房懸念解決 — 奧蘭主動攤牌
+        //   觸發條件：玩家已看到奧蘭在醫療房前 + aff ≥ 50
+        //   觸發時自動設 flag olan_apothecary_resolved + 排入 recall 回收
+        {
+          id:        'orlan_apothecary_confession',
+          type:      'event',
+          affection: 50,
+          requireFlag:'saw_olan_at_apothecary',
+          chance:    0.50,
+          onceOnly:  true,
+          setFlag:   'olan_apothecary_resolved',
+          queueResolution:'recall_olan_apothecary',
+          text:      '奧蘭深夜把你拉到一旁：「那天你看見我在醫療房……對吧。我在偷一點止血草。為你。」',
+          dialogueLines: [
+            { text: '深夜，你被輕輕推了推肩膀。' },
+            { speaker: '奧蘭', text: '……你還沒睡吧？' },
+            { speaker: '奧蘭', text: '我得跟你講一件事。' },
+            { text: '他坐到你旁邊。手上捧著一個小布包。' },
+            { speaker: '奧蘭', text: '那天你看見我在醫療房——對吧。' },
+            { speaker: '奧蘭', text: '我在偷一點止血的草藥。為你。' },
+            { speaker: '奧蘭', text: '你上週訓練太拚了。你有個傷口一直沒好，我怕它化膿。' },
+            { text: '他把布包放進你枕頭下。' },
+            { speaker: '奧蘭', text: '別跟別人說。' },
+            { speaker: '奧蘭', text: '尤其——別跟主人說。' },
+            { text: '他拍了拍你的肩，然後悄悄回到自己的鋪位。' },
+            { text: '你摸了摸那個布包。是溫的。' },
+          ],
+          logColor:  '#e8d070',
+        },
+
         // 5) 妹妹的真相 — 關鍵揭露，一次性
         {
           id:              'orlan_sister_truth_reveal',

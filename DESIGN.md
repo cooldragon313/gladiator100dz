@@ -80,7 +80,8 @@
 | D.18 屬性偏好協力 | `e06bbb7` | 命名三段 + 背景池 + favorWeight + ×15 總 cap + dispatcher exp 修正 |
 | D.19 道德累積特性 | `0898cd3` | 10 個 earned traits + 滑動窗口 + NPC 愛憎倍率 + 失眠首夜敘述修正 |
 | D.20 奧蘭主線 | `fba80cf` | 永駐兄弟 + 四幕脊椎 + 10 storyReveals + 偷藥/訣別/房間升級 + 生死關頭援手 |
-| D.21 對話與晨思 | *本次* | DialogueModal（L2 手動）+ MorningThoughts（30 條）+ Stage.playMorning 雞鳴過場 + 奧蘭 Day 1 升級 |
+| D.21 對話與晨思 | `4c23393` | DialogueModal（L2 手動）+ MorningThoughts（30 條）+ Stage.playMorning 雞鳴過場 + 奧蘭 Day 1 升級 |
+| D.21b 奧蘭脊椎升級 + 道德光譜 | *本次* | 藥房懸念完整鏈路（埋設→晨思→攤牌→回收）+ Day 30/60/85 三大事件 DialogueModal 演出 + 人物頁道德光譜 UI |
 
 ### Phase 2：核心系統 — ⬜ 未開始
 

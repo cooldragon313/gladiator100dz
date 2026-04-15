@@ -25,6 +25,22 @@
 const OrlanEvents = (() => {
 
   // ══════════════════════════════════════════════════
+  // 🆕 D.21 helper：先播 DialogueModal 敘述 → 再開啟 ChoiceModal
+  // 如果 DialogueModal 不存在就直接開 ChoiceModal（fallback）
+  // ══════════════════════════════════════════════════
+  function _playIntroThenChoice(introLines, choiceOpts) {
+    if (typeof DialogueModal !== 'undefined' && Array.isArray(introLines) && introLines.length > 0) {
+      DialogueModal.play(introLines, {
+        onComplete: () => {
+          if (typeof ChoiceModal !== 'undefined') ChoiceModal.show(choiceOpts);
+        },
+      });
+    } else {
+      if (typeof ChoiceModal !== 'undefined') ChoiceModal.show(choiceOpts);
+    }
+  }
+
+  // ══════════════════════════════════════════════════
   // 房間升級（Day 30+ 條件觸發）
   // ══════════════════════════════════════════════════
   // 條件：master_aff ≥ 50 AND fame ≥ 30 AND 未觸發過 AND day ≥ 30
@@ -93,11 +109,23 @@ const OrlanEvents = (() => {
       });
     }
 
-    ChoiceModal.show({
+    // 🆕 D.21：用 DialogueModal 先演出，再開 ChoiceModal
+    const introLines = [
+      { text: '一個你不太熟悉的侍從走進來。' },
+      { speaker: '侍從', text: '阿圖斯大人吩咐——' },
+      { speaker: '侍從', text: '為了表現優異的鬥士，特地安排了獨立房間。' },
+      { speaker: '侍從', text: '今晚就遷過去。' },
+      { text: '你看向奧蘭。' },
+      { text: '他正在整理床鋪。' },
+      { text: '他聽見了。' },
+      { text: '——但他沒有抬頭。' },
+    ];
+
+    _playIntroThenChoice(introLines, {
       id:    'orlan_room_upgrade',
       icon:  '🚪',
       title: '房間升級',
-      body:  '侍從走進來。\n\n「阿圖斯大人吩咐，為了表現優異的鬥士，特地安排了獨立房間。今晚就遷過去。」\n\n你看向奧蘭。他正在整理床鋪。\n他聽見了。\n他沒有抬頭。',
+      body:  '你該怎麼回應？',
       forced: true,
       choices,
       logColor: '#d9a84f',
@@ -188,11 +216,27 @@ const OrlanEvents = (() => {
       },
     ];
 
-    ChoiceModal.show({
+    // 🆕 D.21：用 DialogueModal 先演出被抓現場，再開 ChoiceModal
+    const introLines = [
+      { text: '訓練場中央被侍從押了一個人。' },
+      { text: '——是奧蘭。' },
+      { text: '他被按在沙地上，頭髮被揪住。' },
+      { speaker: '侍從', text: '這個東西，昨晚試圖從主人的藥房偷藥。' },
+      { text: '阿圖斯大人從陽台上淡淡地看著。' },
+      { text: '奧蘭抬頭看了你一眼——很快地。' },
+      { text: '你看見他嘴角的血。' },
+      { speaker: '侍從', text: '告訴大家這藥是要給誰的。' },
+      { text: '奧蘭搖頭。' },
+      { text: '侍從踢了他一腳。' },
+      { text: '你感覺到整個訓練場都在看你。' },
+      { text: '——你必須做出選擇。' },
+    ];
+
+    _playIntroThenChoice(introLines, {
       id:    'orlan_stealing_medicine',
       icon:  '💊',
       title: '奧蘭被抓了',
-      body:  '訓練場中央被侍從押了一個人——是奧蘭。\n\n「這個東西，」侍從冷冷地說，「昨晚試圖從主人的藥房偷藥。」\n\n阿圖斯大人從陽台上淡淡地看著。\n奧蘭抬頭看了你一眼。嘴角帶血。\n\n「告訴大家這藥是要給誰的。」侍從笑著說。\n奧蘭搖頭。侍從踢了他一腳。',
+      body:  '你要怎麼做？',
       forced: true,
       choices,
       logColor: '#d9a84f',
@@ -281,11 +325,28 @@ const OrlanEvents = (() => {
       });
     }
 
-    ChoiceModal.show({
+    // 🆕 D.21：用 DialogueModal 演出訣別前置，再開 ChoiceModal
+    const introLines = [
+      { text: '訓練結束後，奧蘭在訓練場等你。' },
+      { text: '他站在沙地的邊緣，背對著落日。' },
+      { speaker: '奧蘭', text: '……我得告訴你一件事。' },
+      { text: '他轉過身。你看不清他的表情。' },
+      { speaker: '奧蘭', text: '我跟阿圖斯大人簽了協議。' },
+      { speaker: '奧蘭', text: '下週的前哨賽——我代你出場。' },
+      { text: '你張了張嘴，一個字都說不出來。' },
+      { speaker: '奧蘭', text: '你不是為了我一個人活下去的。' },
+      { speaker: '奧蘭', text: '你要活過百日祭典。' },
+      { speaker: '奧蘭', text: '讓我妹妹聽到你的名字。' },
+      { speaker: '奧蘭', text: '我的名字她記不住——但你的，會。' },
+      { text: '他終於笑了。眼睛先彎起來的那種笑。' },
+      { text: '你感覺胸口被人掏空。' },
+    ];
+
+    _playIntroThenChoice(introLines, {
       id:    'orlan_final_farewell',
       icon:  '⚔️',
       title: '他簽了協議',
-      body:  '訓練結束後奧蘭在訓練場等你。\n\n「我得告訴你一件事。」他說。\n「我跟阿圖斯大人簽了協議。」\n「下週的前哨賽，我代你出場。」\n\n「你不是為了我一個人活下去的。」\n「你要活過百日祭典，讓我妹妹聽到你的名字。」\n「我的名字她記不住——但你的，會。」',
+      body:  '你要怎麼回應？',
       forced: true,
       choices,
       logColor: '#d9a84f',

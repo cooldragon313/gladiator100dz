@@ -164,6 +164,43 @@ const MorningThoughts = (() => {
   // ══════════════════════════════════════════════════
   // ══════════════════════════════════════════════════
 
+  // ── 🆕 懸念型（mystery）── 最高優先度，前一天的事件延續 ──
+  defineMany([
+    // 奧蘭藥房懸念：看到他在醫療房前 → 隔天開始在腦中延續
+    {
+      id: 'mystery_olan_apothecary',
+      type: 'mystery',
+      priority: 100,
+      condition: p => {
+        if (typeof Flags === 'undefined') return false;
+        if (!Flags.has('saw_olan_at_apothecary')) return false;
+        if (Flags.has('olan_apothecary_resolved')) return false;
+        // 只有看到的隔天開始才播
+        const seenDay = Flags.get('olan_apothecary_seen_day', 0);
+        return p.day > seenDay;
+      },
+      maxShowCount: 3,
+      decayAfter: 7,
+      thoughts: [
+        '奧蘭叫醒你，笑得像什麼都沒發生過。但昨天那個在醫療房前慌張的身影……你還記得。',
+        '你又看著奧蘭。他今天特別勤奮——是在轉移話題嗎？',
+        '奧蘭依然笑著。你沒問過，他也沒提過。但那個畫面還沒散。',
+      ],
+    },
+    // 藥房懸念解決回收（resolvedBy 不設，改由 queueResolution 推入 pendingResolve 佇列）
+    {
+      id: 'recall_olan_apothecary',
+      type: 'mystery',
+      priority: 95,
+      // 從 queueResolution() 觸發，condition 放寬
+      condition: () => true,
+      maxShowCount: 1,
+      thoughts: [
+        '昨夜奧蘭把那包藥草塞進你枕頭下。你睡前摸了摸。他其實不必那樣冒險的。',
+      ],
+    },
+  ]);
+
   // ── 預感型（foreboding）── 末期氛圍 ──
   defineMany([
     {

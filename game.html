@@ -1146,6 +1146,57 @@ html, body {
 .choice-close:hover { color: var(--text-hi); }
 
 /* ══════════════════════════════════════════════════════
+   🆕 D.21 Option C 道德光譜（Moral Spectrum）
+═════════════════════════════════════════════════════════ */
+.cs-moral-spectrum {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 0 8px;
+}
+.moral-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  padding: 4px 8px;
+  background: rgba(0,0,0,0.25);
+  border-left: 2px solid rgba(200,160,80,0.2);
+  border-radius: 2px;
+}
+.moral-axis-name {
+  color: var(--text);
+  min-width: 92px;
+  letter-spacing: .05em;
+}
+.moral-window {
+  display: inline-flex;
+  gap: 4px;
+  min-width: 54px;
+}
+.moral-slot {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  text-align: center;
+  font-size: 16px;
+  line-height: 14px;
+  border-radius: 50%;
+}
+.moral-slot.slot-empty { color: #4a4238; }
+.moral-slot.slot-pos   { color: #88cc77; text-shadow: 0 0 4px rgba(120,200,120,.5); }
+.moral-slot.slot-neg   { color: #cc7733; text-shadow: 0 0 4px rgba(200,100,60,.5); }
+.moral-trait {
+  margin-left: auto;
+  font-size: 13px;
+  letter-spacing: .05em;
+  font-weight: 500;
+}
+.moral-trait.moral-trait-pos  { color: #88cc77; }
+.moral-trait.moral-trait-neg  { color: #cc7733; }
+.moral-trait.moral-trait-none { color: var(--text-dim); font-style: italic; }
+
+/* ══════════════════════════════════════════════════════
    🆕 D.21 DialogueModal（重量級對話）
 ═════════════════════════════════════════════════════════ */
 .dialogue-overlay {
@@ -3265,6 +3316,10 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
           <div id="cs-scars-list"></div>
           <div id="cs-ailments-list"></div>
         </div>
+
+        <!-- 🆕 D.21 Option C：道德光譜（D.19 滑動窗口視覺化） -->
+        <div class="cs-section-title">道德光譜</div>
+        <div class="cs-moral-spectrum" id="cs-moral-spectrum"></div>
 
         <!-- 技能 -->
         <div class="cs-divider"></div>

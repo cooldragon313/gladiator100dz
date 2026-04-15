@@ -824,6 +824,35 @@ const Game = (() => {
   }
 
   /**
+   * 🆕 D.21 Option A：奧蘭藥房懸念觸發
+   * 條件：
+   *   - Day >= 8（給玩家先熟悉角色）
+   *   - 未觸發過
+   *   - 8% 機率
+   *   - 奧蘭還活著
+   * 效果：
+   *   - 設 flag saw_olan_at_apothecary（MorningThoughts 隔日會 pick up）
+   *   - 紀錄看到的那天
+   *   - log 短敘述
+   */
+  function _tryOrlanApothecarySighting() {
+    const p = Stats.player;
+    if (!p || p.day < 8) return;
+    if (typeof Flags === 'undefined') return;
+    if (Flags.has('saw_olan_at_apothecary')) return;
+    if (Flags.has('orlan_dead') || Flags.has('betrayed_olan')) return;
+    if (Math.random() >= 0.08) return;
+
+    Flags.set('saw_olan_at_apothecary');
+    Flags.set('olan_apothecary_seen_day', p.day);
+
+    addLog('—————————————————————', '#444', false);
+    addLog('訓練結束回走廊的路上，你經過醫療房前。', '#9a8c6a', false);
+    addLog('一個熟悉的身影閃了一下——是奧蘭。他看見你，慌張地擺手示意你別過來，然後消失在門後。', '#9a8c6a', true, false);
+    addLog('—————————————————————', '#444', false);
+  }
+
+  /**
    * 🆕 Phase 1-D: 自動解決當前的 meal/rest 時段，直到進入 training 時段或日末。
    * meal 分支→ _triggerMealEvent()，rest 分支→被動恢復（Phase 1-E 再事件化）。
    */
@@ -1243,6 +1272,9 @@ const Game = (() => {
       }
     }
 
+    // 🆕 D.21 Option A：奧蘭藥房懸念事件（隨機觸發）
+    _tryOrlanApothecarySighting();
+
     // ── 受傷判定 v2（Phase 1-E 重構）────────────────
     // 核心邏輯：「訓練強度過高」才受傷，擺爛不受傷。
     // 主要驅動因子：超負荷比例 + 協力倍率；體虛只有輕微加成。
@@ -1474,6 +1506,15 @@ const Game = (() => {
       // 目前先記錄到 Flags 以便後續系統讀取
       if (reveal.grantItem && typeof Flags !== 'undefined') {
         Flags.set('story_granted_' + reveal.grantItem, true);
+      }
+
+      // 🆕 D.21 Option A：reveal 觸發時設定 flag（用於 resolve 懸念）
+      if (reveal.setFlag && typeof Flags !== 'undefined') {
+        Flags.set(reveal.setFlag, true);
+      }
+      // 🆕 D.21 Option A：reveal 觸發時排入 MorningThoughts 回收佇列
+      if (reveal.queueResolution && typeof MorningThoughts !== 'undefined') {
+        MorningThoughts.queueResolution(reveal.queueResolution);
       }
     });
   }
@@ -1880,8 +1921,86 @@ const Game = (() => {
     _renderTraits();
     _renderScars();
     _renderAilments();
+    _renderMoralSpectrum();   // 🆕 D.21 Option C：道德光譜
     _renderSkills();
     _renderPeopleTab();
+  }
+
+  // ── R4.5: 道德光譜（D.21 / 基於 D.19 滑動窗口）──
+  //   顯示 5 個道德軸的目前窗口狀態：● ○ ◐ 等符號呈現最近 3 筆行動
+  //   搭配輕量描述 + 當前特性名稱
+  function _renderMoralSpectrum() {
+    const wrap = document.getElementById('cs-moral-spectrum');
+    if (!wrap) return;
+    if (typeof Moral === 'undefined') {
+      wrap.style.display = 'none';
+      return;
+    }
+    const p = Stats.player;
+    Moral.ensureInit(p);
+
+    const AXES = [
+      { key:'reliability', name:'可靠 / 膽小', posId:'reliable',    negId:'coward'      },
+      { key:'mercy',       name:'仁慈 / 殘忍', posId:'merciful',    negId:'cruel'       },
+      { key:'loyalty',     name:'忠誠 / 投機', posId:'loyal',       negId:'opportunist' },
+      { key:'pride',       name:'謙卑 / 驕傲', posId:'humble',      negId:'prideful'    },
+      { key:'patience',    name:'耐心 / 衝動', posId:'patient',     negId:'impulsive'   },
+    ];
+
+    // 三個窗口格子 — 已填或空
+    function renderWindow(hist) {
+      const slots = [];
+      for (let i = 0; i < 3; i++) {
+        const entry = hist[i];
+        let cls = 'slot-empty', sym = '·';
+        if (entry === 'positive') { cls = 'slot-pos'; sym = '●'; }
+        else if (entry === 'negative') { cls = 'slot-neg'; sym = '●'; }
+        slots.push(`<span class="moral-slot ${cls}">${sym}</span>`);
+      }
+      return slots.join('');
+    }
+
+    const rows = AXES.map(axis => {
+      const hist = Moral.getAxisHistory(axis.key) || [];
+      const traits = p.traits || [];
+      let trait = '', traitCls = 'moral-trait-none';
+      if (traits.includes(axis.posId)) {
+        const def = Config.TRAIT_DEFS[axis.posId];
+        trait = '★ ' + (def ? def.name : axis.posId);
+        traitCls = 'moral-trait-pos';
+      } else if (traits.includes(axis.negId)) {
+        const def = Config.TRAIT_DEFS[axis.negId];
+        trait = '▼ ' + (def ? def.name : axis.negId);
+        traitCls = 'moral-trait-neg';
+      } else {
+        trait = '— 未定 —';
+      }
+      return `
+        <div class="moral-row">
+          <span class="moral-axis-name">${axis.name}</span>
+          <span class="moral-window">${renderWindow(hist)}</span>
+          <span class="moral-trait ${traitCls}">${trait}</span>
+        </div>
+      `;
+    }).join('');
+
+    // 若 5 軸都沒任何行動 → 整區隱藏
+    const hasAnyAction = AXES.some(a => (Moral.getAxisHistory(a.key) || []).length > 0);
+    if (!hasAnyAction) {
+      wrap.style.display = 'none';
+      const title = wrap.previousElementSibling;
+      if (title && title.classList.contains('cs-section-title') && title.textContent.trim() === '道德光譜') {
+        title.style.display = 'none';
+      }
+      wrap.innerHTML = '';
+      return;
+    }
+    wrap.style.display = '';
+    const title = wrap.previousElementSibling;
+    if (title && title.classList.contains('cs-section-title') && title.textContent.trim() === '道德光譜') {
+      title.style.display = '';
+    }
+    wrap.innerHTML = rows;
   }
 
   // ── R0: Header ────────────────────────────────────
