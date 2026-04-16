@@ -1228,6 +1228,31 @@ html, body {
   margin: 0 auto;
   cursor: pointer;
   animation: dialogue-slide-up .35s ease-out;
+  /* 🆕 頭像 + 文字並排 */
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+/* 🆕 頭像佔位（未來接真實立繪） */
+.dialogue-portrait {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid rgba(200,160,80,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 900;
+  color: #e8e0cc;
+  letter-spacing: 0;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+  box-shadow: 0 0 12px rgba(0,0,0,0.4);
+}
+.dialogue-content {
+  flex: 1;
+  min-width: 0;
 }
 @keyframes dialogue-slide-up {
   from { transform: translateY(24px); opacity: 0; }

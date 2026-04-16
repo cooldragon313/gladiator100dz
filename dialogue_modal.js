@@ -25,7 +25,7 @@
  */
 const DialogueModal = (() => {
 
-  const TYPE_SPEED_MS = 28;        // 普通速度 ~35 字/秒
+  const TYPE_SPEED_MS = 38;        // 普通速度 ~26 字/秒（慢一點，讓對話有感情）
   const TYPE_SPEED_FAST_MS = 4;    // 按住 Ctrl 時的速度
 
   let _isOpen     = false;
@@ -50,8 +50,11 @@ const DialogueModal = (() => {
       <div class="modal-overlay dialogue-overlay" id="modal-dialogue">
         <div class="dialogue-dim"></div>
         <div class="dialogue-box" id="dialogue-box">
-          <div class="dialogue-speaker" id="dialogue-speaker"></div>
-          <div class="dialogue-text"    id="dialogue-text"></div>
+          <div class="dialogue-portrait" id="dialogue-portrait"></div>
+          <div class="dialogue-content">
+            <div class="dialogue-speaker" id="dialogue-speaker"></div>
+            <div class="dialogue-text"    id="dialogue-text"></div>
+          </div>
           <div class="dialogue-continue" id="dialogue-continue">▼</div>
         </div>
       </div>
@@ -108,10 +111,23 @@ const DialogueModal = (() => {
     const line = _lines[_lineIdx];
     if (!line) { _close(); return; }
 
-    const speakerEl = document.getElementById('dialogue-speaker');
-    const textEl    = document.getElementById('dialogue-text');
-    const contEl    = document.getElementById('dialogue-continue');
+    const portraitEl = document.getElementById('dialogue-portrait');
+    const speakerEl  = document.getElementById('dialogue-speaker');
+    const textEl     = document.getElementById('dialogue-text');
+    const contEl     = document.getElementById('dialogue-continue');
 
+    // 🆕 頭像：有 speaker 時顯示角色首字 + 色彩，無 speaker 時隱藏
+    if (portraitEl) {
+      if (line.speaker) {
+        const initial = line.speaker.charAt(0);
+        const color   = _getSpeakerColor(line.speaker);
+        portraitEl.textContent = initial;
+        portraitEl.style.background = color;
+        portraitEl.style.display = '';
+      } else {
+        portraitEl.style.display = 'none';
+      }
+    }
     if (speakerEl) {
       speakerEl.textContent = line.speaker || '';
       speakerEl.style.display = line.speaker ? '' : 'none';
@@ -226,6 +242,28 @@ const DialogueModal = (() => {
   document.addEventListener('keyup', (e) => {
     if (e.key === 'Control') _ctrlDown = false;
   });
+
+  // 🆕 角色頭像色彩對照表（未來有真正立繪時用 npc.assets.portrait 替換）
+  const SPEAKER_COLORS = {
+    '奧':  '#2a5a3a',   // 奧蘭 — 深綠（溫暖的森林）
+    '索':  '#4a3a2a',   // 索爾 — 深褐（大地/農夫）
+    '卡':  '#2a3a5a',   // 卡西烏斯 — 深藍（沉穩老兵）
+    '塔':  '#5a2a2a',   // 塔倫長官 — 暗紅（權威）
+    '阿':  '#4a2a4a',   // 阿圖斯 — 深紫（貴族）
+    '梅':  '#5a4a2a',   // 梅拉 — 暖褐（廚房）
+    '葛':  '#3a3a3a',   // 葛拉 — 鐵灰（鍛造）
+    '老':  '#3a4a3a',   // 老默 — 灰綠（醫藥）
+    '監':  '#4a3030',   // 監督官 — 暗棕紅
+    '侍':  '#3a3a40',   // 侍從 — 冷灰
+    '裝':  '#4a4030',   // 裝備庫管理員 — 泥色
+    '?':   '#3a3a4a',   // 未知 — 暗色
+  };
+
+  function _getSpeakerColor(speaker) {
+    if (!speaker) return '#2a2a2a';
+    const initial = speaker.charAt(0);
+    return SPEAKER_COLORS[initial] || '#2a3a3a';
+  }
 
   return {
     play,
