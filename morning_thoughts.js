@@ -513,17 +513,46 @@ const MorningThoughts = (() => {
 
   // ── 期待型（anticipation）── 重大活動暗示 ──
   defineMany([
+    // 暗示「認真訓練有獎勵」
+    {
+      id: 'anticipation_train_hint',
+      type: 'anticipation',
+      priority: 72,
+      condition: p => p.day <= 3 && !Flags.has('chose_starting_weapon')
+                   && Flags.get('training_action_count', 0) < 4,
+      maxShowCount: 2,
+      thoughts: [
+        '或許該認真點……聽說表現好的人，主人都會給獎勵。',
+        '你注意到監督官有時候會多看勤奮訓練的人幾眼。那代表什麼？',
+      ],
+    },
+    // 暗示「快到門檻了」
+    {
+      id: 'anticipation_almost_weapon',
+      type: 'anticipation',
+      priority: 78,
+      condition: p => !Flags.has('chose_starting_weapon')
+                   && Flags.get('training_action_count', 0) >= 4
+                   && Flags.get('training_action_count', 0) < 6,
+      maxShowCount: 2,
+      thoughts: [
+        '監督官今天多看了你幾眼。是好事還是壞事？',
+        '你隱約覺得監督官昨天跟侍從說了什麼——他看你的眼神變了。',
+      ],
+    },
+    // 考驗即將到來
     {
       id: 'anticipation_first_trial',
       type: 'anticipation',
       priority: 80,
-      condition: p => p.day >= 3 && p.day < 5 && !Flags.has('completed_trial'),
+      condition: p => p.day >= 3 && p.day < 5,
       maxShowCount: 2,
       thoughts: [
         '聽說再過幾天就要考驗了。你握了握拳——準備好了嗎？',
         '考驗快到了。訓練場上的眼神都變了。',
       ],
     },
+    // 拿到武器後的感受
     {
       id: 'anticipation_weapon_new',
       type: 'anticipation',

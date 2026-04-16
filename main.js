@@ -1436,6 +1436,13 @@ const Game = (() => {
     // Post-action events
     _postActionEvents(act);
 
+    // 🆕 D.22c：訓練次數追蹤（武器獎勵門檻用）
+    if (hasAttrEffect) {
+      Flags.increment('training_action_count', 1);
+      // 到門檻 → 觸發武器選擇事件
+      _tryWeaponRewardCheck();
+    }
+
     // 🆕 D.1.8: 依設定自動存檔（寫到 auto slot，不影響手動槽）
     autoSave('action');
     renderAll();
@@ -3511,102 +3518,161 @@ const Game = (() => {
   }, 35);
 
   // ══════════════════════════════════════════════════
-  // 🆕 D.22c: Day 3 武器選擇事件
-  //   主人的侍從帶你去武器架，挑一把屬於自己的武器。
-  //   限單手武器 4 選 1（雙手武器和雙持是後期葛拉解鎖）。
+  // 🆕 D.22c（重構）: 武器獎勵 — 訓練次數門檻觸發
+  //
+  //   核心哲學：主人買你來是要你為他賺錢。
+  //   你訓練得夠勤 → 監督官回報 → 主人投資你 → 帶你去領武器。
+  //   沒練夠 → Day 4 保底（考驗前強制給），但語氣是施捨。
+  //
+  //   觸發方式 A（被認可）：訓練次數 ≥ 6 → 即時觸發
+  //   觸發方式 B（Day 4 保底）：DayCycle.onDayStart 檢查
   // ══════════════════════════════════════════════════
-  DayCycle.onDayStart('weaponSelection', (newDay) => {
-    if (newDay !== 3) return;
-    if (Flags.has('chose_starting_weapon')) return;
-    Flags.set('chose_starting_weapon', true);
 
-    // 排入對話佇列（會在晨起後播放）
-    _pendingDialogues.push({
-      id: 'weapon_selection_intro',
-      lines: [
-        { text: '侍從又來了。今天他的臉上有種不一樣的表情。' },
-        { speaker: '侍從', text: '大人說——既然三天都沒死，就給你一把像樣的武器。' },
-        { speaker: '侍從', text: '別高興太早。武器只是讓你死得更體面。' },
-        { text: '他帶你走到訓練場邊的武器架前。四把武器靜靜地掛著。' },
+  const WEAPON_TRAIN_THRESHOLD = 6;   // 6 次訓練 ≈ 1.5 天認真練
+
+  // 訓練完成時即時檢查（路線 A）
+  function _tryWeaponRewardCheck() {
+    if (Flags.has('chose_starting_weapon')) return;
+    const count = Flags.get('training_action_count', 0);
+    if (count < WEAPON_TRAIN_THRESHOLD) return;
+    _fireWeaponEvent('earned');
+  }
+
+  // Day 4 安全網（路線 B）
+  DayCycle.onDayStart('weaponSafetyNet', (newDay) => {
+    if (newDay < 4) return;
+    if (Flags.has('chose_starting_weapon')) return;
+    _fireWeaponEvent('forced');
+  }, 30);
+
+  function _fireWeaponEvent(trigger) {
+    Flags.set('chose_starting_weapon', true);
+    const p = Stats.player;
+    const trainCount = Flags.get('training_action_count', 0);
+    const isFast = trigger === 'earned' && p.day <= 2;   // 兩天內就練到 6 次
+    const isSlow = trigger === 'forced';                  // Day 4 保底
+
+    // ── 根據速度選不同的前置對話 ──
+    let introLines;
+    if (isFast) {
+      // 快速路線：被認可
+      introLines = [
+        { text: '訓練結束後，監督官叫住你。' },
+        { speaker: '監督官', text: '站住。' },
+        { text: '他盯著你看了很久。然後轉頭對走過的侍從說了一句話。' },
+        { text: '侍從離開。幾分鐘後他回來了。' },
+        { speaker: '侍從', text: '大人看了監督官的報告。跟我來。' },
+        { text: '他帶你走到訓練場邊的裝備庫。四把武器靜靜地掛在架上。' },
         { text: '每一把都有刮痕和鏽跡——它們的上一任主人已經不在了。' },
-        { speaker: '侍從', text: '選一把。選了就是你的。丟了、壞了，下次找鐵匠葛拉。' },
+        { speaker: '裝備庫管理員', text: '你看起來面生啊——應該是前幾天那批買進來的。' },
+        { speaker: '裝備庫管理員', text: '這麼快就被帶來領武器了？不錯嘛。' },
+        { text: '他拍了拍你的肩。' },
+        { speaker: '裝備庫管理員', text: '選一把。選了就是你的。壞了找葛拉。' },
+      ];
+      // 快速路線的獎勵：心情 +15、監督官好感 +8、主人好感 +5
+      Stats.modVital('mood', 15);
+      if (typeof teammates !== 'undefined') {
+        teammates.modAffection('overseer', 8);
+        teammates.modAffection('masterArtus', 5);
+      }
+    } else if (isSlow) {
+      // 慢速路線：施捨
+      introLines = [
+        { text: '侍從走進來，臉上沒有表情。' },
+        { speaker: '侍從', text: '明天要考驗了。大人說給你一把武器。' },
+        { speaker: '侍從', text: '別高興太早。武器只是讓你死得更體面。' },
+        { text: '他帶你走到裝備庫。' },
+        { speaker: '裝備庫管理員', text: '……到現在才來領？' },
+        { speaker: '裝備庫管理員', text: '看起來你應該撐不久。最好加點油，轉個念吧。' },
+        { text: '你感覺到一股不舒服的壓力。' },
+        { speaker: '裝備庫管理員', text: '隨便挑一把。快點。' },
+      ];
+      // 慢速路線的懲罰：心情 -10
+      Stats.modVital('mood', -10);
+    } else {
+      // 正常路線：中性
+      introLines = [
+        { text: '訓練結束後侍從來找你。' },
+        { speaker: '侍從', text: '大人看了你最近的表現。跟我來。' },
+        { text: '他帶你走到訓練場邊的裝備庫。' },
+        { text: '四把武器靜靜地掛在架上。' },
+        { speaker: '裝備庫管理員', text: '選一把。選了就是你的。壞了找葛拉。' },
+      ];
+    }
+
+    // ── 用 DialogueModal 播前置 → 接 ChoiceModal 選武器 ──
+    if (typeof DialogueModal !== 'undefined') {
+      DialogueModal.play(introLines, { onComplete: () => _showWeaponChoice() });
+    } else {
+      _showWeaponChoice();
+    }
+  }
+
+  function _showWeaponChoice() {
+    ChoiceModal.show({
+      id: 'starting_weapon',
+      icon: '⚔',
+      title: '選擇你的武器',
+      body: '每把武器都有它的脾氣。選了就是你的夥伴——直到它斷，或你斷。',
+      forced: true,
+      choices: [
+        {
+          id: 'pick_shortSword',
+          label: '短劍',
+          hint: '攻守均衡，沒有弱點也沒有絕對強項。適合還不確定自己的人。（STR 偏向）',
+          effects: [{ type:'flag', key:'weapon_type_blade' }],
+          resultLog: '你拿起短劍，握柄剛好貼合你的手掌。它不算輕，但也不重。像是在說：「我什麼都能做——看你的了。」',
+          logColor: '#c8a060',
+        },
+        {
+          id: 'pick_dagger',
+          label: '匕首',
+          hint: '極快，適合找縫隙刺入要害。代價是每一刀都不夠深。（DEX 偏向）',
+          effects: [{ type:'flag', key:'weapon_type_blade' }],
+          resultLog: '匕首輕得像沒拿東西。但你握著它的時候，手指會不自覺收緊——它在教你什麼是「精準」。',
+          logColor: '#c8a060',
+        },
+        {
+          id: 'pick_hammer',
+          label: '鐵錘',
+          hint: '沉重暴力，一擊碎盾。但你得承受每次揮動的消耗。（STR+CON 偏向）',
+          effects: [{ type:'flag', key:'weapon_type_blunt' }],
+          resultLog: '你把鐵錘提起來。手臂的肌肉在抗議。但你知道——被這玩意打到的人不會有機會抗議。',
+          logColor: '#c8a060',
+        },
+        {
+          id: 'pick_spear',
+          label: '長槍',
+          hint: '距離就是安全。先手刺擊，不讓對手靠近。雙手持用，不能帶盾。（AGI 偏向）',
+          effects: [{ type:'flag', key:'weapon_type_polearm' }],
+          resultLog: '長槍比你想像的還長。你握住中段——它輕微地顫動，像有自己的脈搏。距離，就是你的優勢。',
+          logColor: '#c8a060',
+        },
       ],
-      onComplete: () => {
-        ChoiceModal.show({
-          id: 'starting_weapon',
-          icon: '⚔',
-          title: '選擇你的武器',
-          body: '每把武器都有它的脾氣。選了就是你的夥伴——直到它斷，或你斷。',
-          forced: true,
-          choices: [
-            {
-              id: 'pick_shortSword',
-              label: '短劍',
-              hint: '攻守均衡，沒有弱點也沒有絕對強項。適合還不確定自己的人。（STR 偏向）',
-              effects: [
-                { type:'flag', key:'weapon_type_blade' },
-              ],
-              resultLog: '你拿起短劍，握柄剛好貼合你的手掌。它不算輕，但也不重。像是在說：「我什麼都能做——看你的了。」',
-              logColor: '#c8a060',
-            },
-            {
-              id: 'pick_dagger',
-              label: '匕首',
-              hint: '極快，適合找縫隙刺入要害。代價是每一刀都不夠深。（DEX 偏向）',
-              effects: [
-                { type:'flag', key:'weapon_type_blade' },
-              ],
-              resultLog: '匕首輕得像沒拿東西。但你握著它的時候，手指會不自覺收緊——它在教你什麼是「精準」。',
-              logColor: '#c8a060',
-            },
-            {
-              id: 'pick_hammer',
-              label: '鐵錘',
-              hint: '沉重暴力，一擊碎盾。但你得承受每次揮動的消耗。（STR+CON 偏向）',
-              effects: [
-                { type:'flag', key:'weapon_type_blunt' },
-              ],
-              resultLog: '你把鐵錘提起來。手臂的肌肉在抗議。但你知道——被這玩意打到的人不會有機會抗議。',
-              logColor: '#c8a060',
-            },
-            {
-              id: 'pick_spear',
-              label: '長槍',
-              hint: '距離就是安全。先手刺擊，不讓對手靠近。（AGI 偏向，雙手持用）',
-              effects: [
-                { type:'flag', key:'weapon_type_polearm' },
-              ],
-              resultLog: '長槍比你想像的還長。你握住中段——它輕微地顫動，像有自己的脈搏。距離，就是你的優勢。',
-              logColor: '#c8a060',
-            },
-          ],
-        }, {
-          onChoose: (choiceId) => {
-            const WEAPON_MAP = {
-              pick_shortSword: 'shortSword',
-              pick_dagger:     'dagger',
-              pick_hammer:     'hammer',
-              pick_spear:      'spear',
-            };
-            const weaponId = WEAPON_MAP[choiceId];
-            if (weaponId) {
-              Stats.player.equippedWeapon = weaponId;
-              const w = Weapons[weaponId];
-              if (w && w.eqBonus) {
-                // 套用裝備加成
-                Object.keys(w.eqBonus).forEach(k => {
-                  Stats.player.eqBonus[k] = (Stats.player.eqBonus[k] || 0) + w.eqBonus[k];
-                });
-              }
-              addLog(`⚔ 你選擇了【${w ? w.name : weaponId}】作為你的武器。`, '#e8d070', true, true);
-              if (typeof SoundManager !== 'undefined') SoundManager.playSynth('impact');
-              renderAll();
-            }
-          },
-        });
+    }, {
+      onChoose: (choiceId) => {
+        const WEAPON_MAP = {
+          pick_shortSword: 'shortSword',
+          pick_dagger:     'dagger',
+          pick_hammer:     'hammer',
+          pick_spear:      'spear',
+        };
+        const weaponId = WEAPON_MAP[choiceId];
+        if (weaponId) {
+          Stats.player.equippedWeapon = weaponId;
+          const w = Weapons[weaponId];
+          if (w && w.eqBonus) {
+            Object.keys(w.eqBonus).forEach(k => {
+              Stats.player.eqBonus[k] = (Stats.player.eqBonus[k] || 0) + w.eqBonus[k];
+            });
+          }
+          addLog(`⚔ 你選擇了【${w ? w.name : weaponId}】作為你的武器。`, '#e8d070', true, true);
+          if (typeof SoundManager !== 'undefined') SoundManager.playSynth('impact');
+          renderAll();
+        }
       },
     });
-  }, 30);
+  }
 
   function init() {
     // Try to restore save first
