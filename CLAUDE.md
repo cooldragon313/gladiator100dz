@@ -106,10 +106,11 @@
 ## 🧠 技術核心約定
 
 ### 資料與型別
-- **所有 vital（HP/stamina/food/mood）與屬性（STR/DEX/...）強制整數**
-  - `Stats.modVital` 和 `Stats.modAttr` 內部自動 `Math.round`
+- **所有 vital（HP/stamina/food/mood）、屬性（STR/DEX/...）、EXP 強制整數**
+  - `Stats.modVital` / `Stats.modAttr` / `Stats.modExp` 內部自動 `Math.round`
   - `Stats.eff(attr)` 回傳值也是整數
   - 任何繞過這些函式的直接寫入必須自己 round
+  - **不要出現小數點**：倍率（mood/synergy/crowd）會在計算鏈中累積小數，但存入時一律 round
 - **EXP 單一資源模型**（無 SP 系統）
   - 訓練動作用 `type: 'exp'`，不是 `'attr'`
   - 升屬性手動花 EXP（`Stats.spendExpOnAttr`）

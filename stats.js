@@ -439,7 +439,8 @@ const Stats = (() => {
    */
   function modExp(attr, delta) {
     if (!player.exp || player.exp[attr] === undefined) return;
-    player.exp[attr] = Math.max(0, player.exp[attr] + delta);
+    // 🆕 強制整數（D.6 v2 補漏：mood/synergy/crowd 倍率會產生小數）
+    player.exp[attr] = Math.max(0, Math.round(player.exp[attr] + delta));
   }
 
   /**
