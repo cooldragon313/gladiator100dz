@@ -160,11 +160,11 @@ const TB_ENEMIES = {
     fame:0, intimidation:0,
     desc:'毫無戰鬥經驗，靠本能揮舞武器。',
   },
-  // 🆕 Day 5 三人考驗：索爾（農夫體格，比你稍強，不會閃但很能扛）
+  // 🆕 Day 5 三人考驗：索爾（農夫體格，比你稍強但不壓倒，有緊張感但能贏）
   trialSol: {
     name:'索爾', title:'沉默的大個子',
-    STR:14, DEX:8,  CON:16, AGI:7,  WIL:12, LUK:6,  hpBase:65,
-    weaponId:'hammer', armorId:'rags', shieldId:'none',
+    STR:11, DEX:7,  CON:13, AGI:6,  WIL:10, LUK:5,  hpBase:50,
+    weaponId:'fists', armorId:'rags', shieldId:'none',
     traitId:'none',
     ai:'basic', passive:null, specialCD:99,
     fame:0, intimidation:0,

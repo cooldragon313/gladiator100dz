@@ -4174,16 +4174,33 @@ const Game = (() => {
     ChoiceModal.show(ev);
   }
 
+  // 🆕 Debug：快速跳到指定天數（瀏覽器 console 輸入 Game.skipToDay(5)）
+  //   會跳過中間所有事件，直接設定天數 + rollNPCs + renderAll
+  //   專門用於測試，不用每次從 Day 1 跑起
+  function skipToDay(targetDay) {
+    const p = Stats.player;
+    if (targetDay <= p.day) { console.warn('只能往前跳'); return; }
+    console.log(`[Debug] 跳到 Day ${targetDay}（從 Day ${p.day}）`);
+    p.day  = targetDay;
+    p.time = 360;   // 06:00
+    _syncLastRollDay(-1);
+    rollDailyNPCs();
+    DayCycle.fireDayStart(p.day);
+    _resolveNonTrainingSlots();
+    renderAll();
+    checkTimelineEvent();
+    addLog(`\n[Debug] 已跳到第 ${targetDay} 天`, '#ff6600', true);
+  }
+
   return {
     init, switchField, doAction,
     addLog, renderAll, showToast,
     openDetailModal, openSettingsModal,
     saveGame, clearSave, startArenaBattle,
-    // 🆕 D.1.8 存檔槽管理
     autoSave,
     loadGameFromSlot,
-    // 🆕 Phase 1-E.2 debug
     testChoice,
+    skipToDay,    // 🆕 Debug 用
   };
 })();
 

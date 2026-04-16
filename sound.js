@@ -292,144 +292,129 @@ const SoundManager = (() => {
 
   // ── 合成音效定義 ──────────────────────────────────
 
+  // 所有音效都極簡化：只保留微小的 UI 反饋音。
+  // 不再嘗試模擬真實聲音（雞叫/揮劍等），那些需要真實音檔。
+  // 合成音的定位 = 「按鈕反饋 click」等級，不是「遊戲音效」等級。
   const SYNTH_MAP = {
 
-    // 🐓 雞鳴：三段上升音調（模擬 cock-a-doodle-doo）
+    // 晨鐘：兩聲柔和鈴音（sine，不刺耳）
     rooster: (ctx, vol) => {
       const now = ctx.currentTime;
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(vol * 0.3, now);
-      g.gain.linearRampToValueAtTime(vol * 0.5, now + 0.15);
-      g.gain.linearRampToValueAtTime(vol * 0.4, now + 0.4);
-      g.gain.linearRampToValueAtTime(vol * 0.6, now + 0.5);
-      g.gain.linearRampToValueAtTime(0, now + 1.2);
-      g.connect(ctx.destination);
-
-      // 三段 oscillator 模擬雞叫音型
-      const notes = [
-        { freq: 600,  start: 0,    end: 0.18 },
-        { freq: 800,  start: 0.2,  end: 0.45 },
-        { freq: 1050, start: 0.48, end: 1.1  },
-      ];
-      notes.forEach(n => {
-        const o = ctx.createOscillator();
-        o.type = 'sawtooth';
-        o.frequency.setValueAtTime(n.freq, now + n.start);
-        o.frequency.linearRampToValueAtTime(n.freq * 1.15, now + n.end);
-        o.connect(g);
-        o.start(now + n.start);
-        o.stop(now + n.end + 0.05);
-      });
-    },
-
-    // ⚔️ 揮劍：濾波白噪音
-    sword_swing: (ctx, vol) => {
-      const now = ctx.currentTime;
-      const dur = 0.18;
-      const buf = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
-      const data = buf.getChannelData(0);
-      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1);
-      const src = ctx.createBufferSource();
-      src.buffer = buf;
-      const filt = ctx.createBiquadFilter();
-      filt.type = 'bandpass';
-      filt.frequency.setValueAtTime(2000, now);
-      filt.frequency.linearRampToValueAtTime(800, now + dur);
-      filt.Q.value = 1.5;
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(vol * 0.5, now);
-      g.gain.linearRampToValueAtTime(0, now + dur);
-      src.connect(filt).connect(g).connect(ctx.destination);
-      src.start(now);
-    },
-
-    // 💥 撞擊：低頻砰
-    impact: (ctx, vol) => {
-      const now = ctx.currentTime;
-      const o = ctx.createOscillator();
-      o.type = 'sine';
-      o.frequency.setValueAtTime(150, now);
-      o.frequency.exponentialRampToValueAtTime(40, now + 0.2);
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(vol * 0.6, now);
-      g.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-      o.connect(g).connect(ctx.destination);
-      o.start(now);
-      o.stop(now + 0.35);
-    },
-
-    // 🔔 升級叮：短高音
-    level_up: (ctx, vol) => {
-      const now = ctx.currentTime;
-      [523, 659, 784].forEach((freq, i) => {
+      [523, 659].forEach((freq, i) => {
         const o = ctx.createOscillator();
         o.type = 'sine';
         o.frequency.value = freq;
         const g = ctx.createGain();
-        g.gain.setValueAtTime(vol * 0.35, now + i * 0.12);
-        g.gain.linearRampToValueAtTime(0, now + i * 0.12 + 0.3);
+        g.gain.setValueAtTime(vol * 0.12, now + i * 0.3);
+        g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.3 + 0.6);
         o.connect(g).connect(ctx.destination);
-        o.start(now + i * 0.12);
-        o.stop(now + i * 0.12 + 0.35);
+        o.start(now + i * 0.3);
+        o.stop(now + i * 0.3 + 0.65);
       });
     },
 
-    // 🖱️ UI 點擊：微短 tick
+    // 訓練：極短的兩聲低 click（咖咖）
+    sword_swing: (ctx, vol) => {
+      const now = ctx.currentTime;
+      [0, 0.08].forEach(delay => {
+        const o = ctx.createOscillator();
+        o.type = 'square';
+        o.frequency.value = 200;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(vol * 0.08, now + delay);
+        g.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.04);
+        o.connect(g).connect(ctx.destination);
+        o.start(now + delay);
+        o.stop(now + delay + 0.05);
+      });
+    },
+
+    // 撞擊：一聲短低音
+    impact: (ctx, vol) => {
+      const now = ctx.currentTime;
+      const o = ctx.createOscillator();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(100, now);
+      o.frequency.exponentialRampToValueAtTime(40, now + 0.12);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(vol * 0.15, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+      o.connect(g).connect(ctx.destination);
+      o.start(now);
+      o.stop(now + 0.25);
+    },
+
+    // 升級：柔和兩音
+    level_up: (ctx, vol) => {
+      const now = ctx.currentTime;
+      [523, 784].forEach((freq, i) => {
+        const o = ctx.createOscillator();
+        o.type = 'sine';
+        o.frequency.value = freq;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(vol * 0.1, now + i * 0.15);
+        g.gain.linearRampToValueAtTime(0, now + i * 0.15 + 0.3);
+        o.connect(g).connect(ctx.destination);
+        o.start(now + i * 0.15);
+        o.stop(now + i * 0.15 + 0.35);
+      });
+    },
+
+    // 對話推進：極輕微 tick
+    dialogue_advance: (ctx, vol) => {
+      const now = ctx.currentTime;
+      const o = ctx.createOscillator();
+      o.type = 'sine';
+      o.frequency.value = 600;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(vol * 0.06, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+      o.connect(g).connect(ctx.destination);
+      o.start(now);
+      o.stop(now + 0.04);
+    },
+
+    // UI click
     ui_click: (ctx, vol) => {
       const now = ctx.currentTime;
       const o = ctx.createOscillator();
       o.type = 'sine';
-      o.frequency.value = 1200;
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(vol * 0.15, now);
-      g.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
-      o.connect(g).connect(ctx.destination);
-      o.start(now);
-      o.stop(now + 0.05);
-    },
-
-    // 💬 對話推進：柔 click
-    dialogue_advance: (ctx, vol) => {
-      const now = ctx.currentTime;
-      const o = ctx.createOscillator();
-      o.type = 'triangle';
       o.frequency.value = 800;
       const g = ctx.createGain();
-      g.gain.setValueAtTime(vol * 0.12, now);
-      g.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+      g.gain.setValueAtTime(vol * 0.06, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
       o.connect(g).connect(ctx.destination);
       o.start(now);
-      o.stop(now + 0.07);
+      o.stop(now + 0.04);
     },
 
-    // 🩸 受傷：尖銳低刺
+    // 受傷：短低沉音
     injury: (ctx, vol) => {
       const now = ctx.currentTime;
       const o = ctx.createOscillator();
-      o.type = 'sawtooth';
-      o.frequency.setValueAtTime(400, now);
-      o.frequency.exponentialRampToValueAtTime(80, now + 0.15);
+      o.type = 'sine';
+      o.frequency.setValueAtTime(180, now);
+      o.frequency.exponentialRampToValueAtTime(60, now + 0.1);
       const g = ctx.createGain();
-      g.gain.setValueAtTime(vol * 0.45, now);
-      g.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+      g.gain.setValueAtTime(vol * 0.12, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
       o.connect(g).connect(ctx.destination);
       o.start(now);
-      o.stop(now + 0.3);
+      o.stop(now + 0.2);
     },
 
-    // 😴 就寢：柔和下降音
+    // 就寢：一聲柔和低音
     sleep: (ctx, vol) => {
       const now = ctx.currentTime;
       const o = ctx.createOscillator();
       o.type = 'sine';
-      o.frequency.setValueAtTime(440, now);
-      o.frequency.linearRampToValueAtTime(220, now + 0.8);
+      o.frequency.value = 260;
       const g = ctx.createGain();
-      g.gain.setValueAtTime(vol * 0.2, now);
-      g.gain.linearRampToValueAtTime(0, now + 1.0);
+      g.gain.setValueAtTime(vol * 0.08, now);
+      g.gain.linearRampToValueAtTime(0, now + 0.6);
       o.connect(g).connect(ctx.destination);
       o.start(now);
-      o.stop(now + 1.1);
+      o.stop(now + 0.65);
     },
   };
 
