@@ -2254,7 +2254,18 @@ const Game = (() => {
   /** 列出此 source 可選擇的裝備 */
   function _getPickerOptions(source) {
     if (source === 'weapons') {
-      return Object.values(Weapons).filter(w => w.id !== 'fists');
+      // 🆕 只列出玩家擁有的武器（weaponInventory），不是全部 Weapons 表
+      const p = Stats.player;
+      if (Array.isArray(p.weaponInventory) && p.weaponInventory.length > 0) {
+        return p.weaponInventory.map(entry => {
+          const w = Weapons[entry.id];
+          if (!w) return null;
+          const tierLabel = entry.tier > 0 ? ` +${entry.tier}` : '';
+          return { ...w, name: w.name + tierLabel, _tier: entry.tier };
+        }).filter(Boolean);
+      }
+      // fallback：還沒拿到武器時顯示空
+      return [];
     }
     if (source === 'offhand') {
       // 盾牌（Armors type='shield'）+ 單手武器（可雙持）
