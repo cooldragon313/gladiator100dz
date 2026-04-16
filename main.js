@@ -545,7 +545,7 @@ const Game = (() => {
     Flags.set('trial_completed', true);
 
     if (choiceId === 'fight_sol') {
-      // A：你 vs 索爾 → 正常戰鬥
+      // A：你 vs 索爾 → 索爾是農夫體格，比你稍強
       DialogueModal.play([
         { text: '你握緊武器走上沙地。' },
         { text: '索爾站在你對面。他沒有躲閃的意思。' },
@@ -553,9 +553,9 @@ const Game = (() => {
         { text: '那是他對你說的最後一句話。' },
       ], {
         onComplete: () => {
-          Battle.start('slaveRookie',
-            () => _solDies('你贏了。索爾倒在沙地上。長官示意——結束了。'),
-            () => _solDies('你輸了。但長官叫停了——他看向索爾，搖了搖頭。')
+          Battle.start('trialSol',
+            () => _solDeathScene(),
+            () => _solDeathScene()   // 輸了長官也會處決索爾
           );
         },
       });
@@ -626,7 +626,7 @@ const Game = (() => {
         { text: '場邊走出一個你沒見過的人。身上的傷疤比你的鍛鍊還多。' },
       ], {
         onComplete: () => {
-          Battle.start('gladiatorB',   // 更強的對手
+          Battle.start('trialVeteran',   // 更強的對手（劊子手）
             () => {
               // 贏了：三人都活
               DialogueModal.play([
@@ -673,8 +673,8 @@ const Game = (() => {
           // 受罰上場：HP -20（膝蓋傷） + mood 已扣
           Stats.modVital('hp', -20);
           teammates.modAffection('officer', -10);
-          Battle.start('slaveRookie',
-            () => _solDies('你贏了。但長官連看都沒看你一眼。'),
+          Battle.start('trialSol',
+            () => _solDeathScene(),
             () => {
               // 沉默路線輸了 = 你死
               addLog('你倒在沙地上。長官轉過身。「處理掉。」', '#8b0000', true, true);
@@ -688,10 +688,73 @@ const Game = (() => {
     }
   }
 
-  // ── 索爾死亡共用處理 ──
+  // ── 索爾死亡完整場景 ──
+  function _solDeathScene() {
+    const hasMeat = Flags.has('sol_gave_meat');
+    const hasShield = Flags.has('sol_shielded_you');
+
+    const lines = [
+      { text: '索爾倒在沙地上。' },
+      { text: '他沒有掙扎。甚至沒有閉眼。' },
+      { text: '長官走過來，低頭看了一眼。' },
+      { speaker: '塔倫長官', text: '……結束了。' },
+      { text: '侍從上前把索爾拖走。沙地上留下一條長長的拖痕。' },
+    ];
+
+    // 根據之前的互動，加不同的情感尾段
+    if (hasMeat) {
+      lines.push(
+        { text: '你想起昨晚那塊乾肉。' },
+        { text: '他早就知道自己不會活過今天。' },
+        { text: '那塊乾肉不是分享——是遺物。' },
+      );
+    }
+
+    if (hasShield) {
+      lines.push(
+        { text: '你想起他擋鞭子的那個背影。' },
+        { text: '那麼大的身體，倒下的時候卻那麼安靜。' },
+      );
+    }
+
+    lines.push(
+      { text: '訓練場恢復了安靜。好像什麼都沒發生過。' },
+      { text: '但你知道——索爾有一個女兒。五歲。在某個地方等他回家。' },
+      { text: '她永遠等不到了。' },
+    );
+
+    // 奧蘭的反應
+    lines.push(
+      { text: '你轉頭看奧蘭。他站在場邊，臉色慘白。' },
+      { text: '他沒有哭。但他的手在發抖——從頭到尾。' },
+    );
+
+    DialogueModal.play(lines, {
+      onComplete: () => {
+        // 設 NPC 為已死
+        if (typeof teammates !== 'undefined' && teammates.getNPC('sol')) {
+          teammates.getNPC('sol').alive = false;
+        }
+        Flags.set('sol_dead', true);
+        Flags.set('sol_died_day', Stats.player.day);
+
+        // 情緒衝擊
+        Stats.modVital('mood', -25);
+        if (typeof teammates !== 'undefined') {
+          teammates.modAffection('orlan', -5);   // 奧蘭也被嚇到了
+        }
+
+        addLog('——索爾已死。', '#663344', true, true);
+        if (typeof SoundManager !== 'undefined') SoundManager.playSynth('sleep');  // 沉重的低音
+
+        renderAll();
+      },
+    });
+  }
+
+  // 保留舊 API 以防其他地方呼叫
   function _solDies(narrative) {
     addLog(narrative, '#8899aa', true, true);
-    // 設 NPC 為已死
     if (typeof teammates !== 'undefined' && teammates.getNPC('sol')) {
       teammates.getNPC('sol').alive = false;
     }

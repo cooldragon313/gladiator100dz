@@ -160,6 +160,26 @@ const TB_ENEMIES = {
     fame:0, intimidation:0,
     desc:'毫無戰鬥經驗，靠本能揮舞武器。',
   },
+  // 🆕 Day 5 三人考驗：索爾（農夫體格，比你稍強，不會閃但很能扛）
+  trialSol: {
+    name:'索爾', title:'沉默的大個子',
+    STR:14, DEX:8,  CON:16, AGI:7,  WIL:12, LUK:6,  hpBase:65,
+    weaponId:'hammer', armorId:'rags', shieldId:'none',
+    traitId:'none',
+    ai:'basic', passive:null, specialCD:99,
+    fame:0, intimidation:0,
+    desc:'農夫出身的厚實身體。他不會閃，但每一拳都帶著不想死的重量。',
+  },
+  // 🆕 Day 5 英雄路線（C 選項）：更強的替代對手
+  trialVeteran: {
+    name:'無名老兵', title:'劊子手',
+    STR:18, DEX:14, CON:18, AGI:12, WIL:14, LUK:10, hpBase:75,
+    weaponId:'shortSword', armorId:'leather', shieldId:'none',
+    traitId:'none',
+    ai:'normal', passive:null, specialCD:99,
+    fame:15, intimidation:0.03,
+    desc:'身上的疤比你的歲數還多。他被叫來專門對付「有膽識」的新人。',
+  },
   arenaVet: {
     name:'競技場老手', title:'資深鬥士',
     STR:22, DEX:18, CON:20, AGI:16, WIL:15, LUK:12, hpBase:70,
