@@ -1303,6 +1303,7 @@ html, body {
 }
 .stage-morning-overlay.fade-out {
   opacity: 0;
+  pointer-events: none;  /* 🆕 修正：淡出後不再擋住底下的點擊 */
 }
 .morning-rooster {
   font-size: 18px;

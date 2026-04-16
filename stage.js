@@ -339,6 +339,7 @@ const Stage = (() => {
       stage.appendChild(overlay);
     }
     overlay.classList.remove('fade-out');
+    overlay.style.display = '';       // 🆕 確保上次 hide 後重新顯示
     const roosterEl  = document.getElementById('morning-rooster');
     const thoughtEl  = document.getElementById('morning-thought');
     if (roosterEl) { roosterEl.classList.remove('visible'); roosterEl.textContent = '🐓……咯咯咯……'; }
@@ -379,6 +380,8 @@ const Stage = (() => {
     await _wait(400);
     if (roosterEl) roosterEl.classList.remove('visible');
     if (thoughtEl) thoughtEl.classList.remove('visible');
+    // 🆕 修正：完全隱藏覆蓋層，避免擋住底下的 UI（戰鬥鈕等）
+    overlay.style.display = 'none';
 
     // 移除事件
     document.removeEventListener('keydown', _skipHandler);
