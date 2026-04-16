@@ -91,12 +91,13 @@ const ACTIONS = {
   },
   meditation: {
     id: 'meditation', name: '冥想調息',
-    desc: '靜坐調整呼吸，強化意志，恢復心情。',
-    slots: 1, staminaCost: 20, foodCost: 0,
+    desc: '靜坐調整呼吸，強化意志，恢復心情與體力。',
+    slots: 1, staminaCost: 0, foodCost: 0,   // 靜坐不消耗體力
     fields: ['stdTraining'],
     effects: [
-      { type: 'exp',   key: 'WIL',  delta: 8  },
-      { type: 'vital', key: 'mood', delta: 10 },
+      { type: 'exp',   key: 'WIL',     delta: 8  },
+      { type: 'vital', key: 'mood',    delta: 10 },
+      { type: 'vital', key: 'stamina', delta: 8  },  // 調息本身是一種恢復
     ],
     // 精神訓練：不設 eventPool（不會有身體受傷事件）
   },
