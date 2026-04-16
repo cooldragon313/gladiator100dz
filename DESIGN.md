@@ -82,7 +82,7 @@
 | D.20 奧蘭主線 | `fba80cf` | 永駐兄弟 + 四幕脊椎 + 10 storyReveals + 偷藥/訣別/房間升級 + 生死關頭援手 |
 | D.21 對話與晨思 | `4c23393` | DialogueModal（L2 手動）+ MorningThoughts（30 條）+ Stage.playMorning 雞鳴過場 + 奧蘭 Day 1 升級 |
 | D.21b 奧蘭脊椎升級 + 道德光譜 | `204ffdc` | 藥房懸念完整鏈路 + Day 30/60/85 三大事件 DialogueModal 演出 + 人物頁道德光譜 UI |
-| D.22 醫生老默 + 治療系統 | *本次* | 新 NPC 老默 + 首次見面 18 句對話 + 傷勢治療 ChoiceModal + 依 ailment 敘述差異化 |
+| D.22 醫生老默 + 治療系統 | `2b31205` | 新 NPC 老默 + 首次見面 18 句對話 + 傷勢治療 ChoiceModal + 依 ailment 敘述差異化 |
 
 ### Phase 2：核心系統 — ⬜ 未開始
 

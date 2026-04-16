@@ -10,7 +10,7 @@ const Training = {
     staminaCost: 15,
     foodCost: 5,
     gains: [{ type: 'attr', key: 'STR', delta: 0.5 }],
-    minField: 'oldTraining',
+    minField: 'stdTraining',  // 🆕 Phase 1-J 修正：oldTraining 已移除
   },
   footwork: {
     id: 'footwork', name: '步法練習',
@@ -19,7 +19,7 @@ const Training = {
     staminaCost: 20,
     foodCost: 5,
     gains: [{ type: 'attr', key: 'AGI', delta: 0.5 }],
-    minField: 'oldTraining',
+    minField: 'stdTraining',  // 🆕 Phase 1-J 修正：oldTraining 已移除
   },
   endurance: {
     id: 'endurance', name: '耐力訓練',
@@ -28,7 +28,7 @@ const Training = {
     staminaCost: 30,
     foodCost: 10,
     gains: [{ type: 'attr', key: 'CON', delta: 0.5 }, { type: 'vital', key: 'hpMax', delta: 2 }],
-    minField: 'oldTraining',
+    minField: 'stdTraining',  // 🆕 Phase 1-J 修正：oldTraining 已移除
   },
   
   heavyLift: {
@@ -50,6 +50,6 @@ const Training = {
       { type: 'attr',  key: 'WIL',  delta: 0.4 },
       { type: 'vital', key: 'mood', delta: 10  },
     ],
-    minField: 'oldTraining',
+    minField: 'stdTraining',  // 🆕 Phase 1-J 修正：oldTraining 已移除
   },
 };

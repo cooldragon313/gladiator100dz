@@ -414,7 +414,7 @@ const teammates = (() => {
       desc: '表情木然，從不多說一個字。手中的鑰匙決定你是否能呼吸新鮮空氣。',
       baseAffection: 0,
       personality: 'cunning',
-      // 🆕 D.19：獄卒只認聽話的，討厭反骨
+      favoredAttr: null,  // 非訓練 NPC
       likedTraits:    { humble:2, patient:1 },
       dislikedTraits: { prideful:3, impulsive:2, opportunist:1 },
     },
@@ -430,6 +430,7 @@ const teammates = (() => {
       desc: '嚴厲、精確、毫無憐憫。他訓練出來的人，要麼成為最強的鬥士，要麼死在訓練場。',
       baseAffection: 0,
       personality: 'aggressive',
+      favoredAttr: null,  // 非訓練 NPC（觀眾）
       // 🆕 D.19：嚴師愛勤勉鐵意志，恨懶散膽小
       likedTraits:    { iron_will:3, diligence:2, cruel:2, prideful:1 },
       dislikedTraits: { coward:3, merciful:2, impulsive:1 },
@@ -442,6 +443,7 @@ const teammates = (() => {
       desc: '管理整個競技場的實權人物。他的一個眼神能讓你獲得特權，也能讓你消失。',
       baseAffection: 0,
       personality: 'cunning',
+      favoredAttr: null,  // 非訓練 NPC（觀眾）
       // 🆕 D.19：存活派的長官 — 最愛耐心可靠，恨衝動投機
       likedTraits:    { reliable:3, patient:3, loyal:2, iron_will:1 },
       dislikedTraits: { impulsive:3, opportunist:3, coward:2, prideful:1 },
@@ -454,6 +456,7 @@ const teammates = (() => {
       desc: '沉默的工匠，打鐵三十年。他打造的武器從未在戰場上折斷——使用者倒是常常折斷。',
       baseAffection: 10,
       personality: 'loner',
+      favoredAttr: null,  // 非訓練 NPC（觀眾）
       // 🆕 D.19：匠人尊重專注與謙虛，看不起浮誇
       likedTraits:    { diligence:3, patient:2, humble:2 },
       dislikedTraits: { prideful:3, opportunist:2, impulsive:1 },
@@ -467,6 +470,7 @@ const teammates = (() => {
       desc: '用廚房剩料也能做出讓人流淚的食物。她悄悄多塞給你的那口飯，你永遠記得。',
       baseAffection: 15,
       personality: 'support',
+      favoredAttr: null,  // 非訓練 NPC（觀眾）
       // 🆕 D.19：廚娘母親般的溫柔，最愛善良的孩子，最厭殘忍
       likedTraits:    { kindness:3, merciful:3, humble:2, reliable:1 },
       dislikedTraits: { cruel:3, prideful:2, opportunist:1 },
@@ -479,6 +483,7 @@ const teammates = (() => {
       desc: '你的所有者。冷靜、理性，將每一個角鬥士視為投資。你的生死，是他帳本上的數字。',
       baseAffection: 0,
       personality: 'cunning',
+      favoredAttr: null,  // 非訓練 NPC（觀眾）
       // 🆕 D.19：精算的主人 — 最愛能賺錢的殘忍鐵血，最厭軟弱的膽小
       likedTraits:    { cruel:3, reliable:3, iron_will:2, loyal:1 },
       dislikedTraits: { coward:3, merciful:2, opportunist:2, impulsive:1 },
@@ -491,6 +496,7 @@ const teammates = (() => {
       desc: '對主人言聽計從。傳話、監視、記錄——他的眼睛隨時都在。',
       baseAffection: 5,
       personality: 'cautious',
+      favoredAttr: null,  // 非訓練 NPC（觀眾）
       // 🆕 D.19：侍從鏡像主人的價值觀，強度稍弱
       likedTraits:    { reliable:2, loyal:2, humble:1 },
       dislikedTraits: { coward:2, impulsive:1, opportunist:1 },

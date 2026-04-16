@@ -59,6 +59,50 @@
 
 ---
 
+## 📖 術語字典（命名權威）
+
+> **新增命名前先查這張表**。如果表裡已有對應概念，用表裡的名字。
+> 實作前 `grep` 確認 codebase 中既有的命名。不要自己造新詞。
+
+| 概念（中文） | 程式碼 ID / 欄位名 | 所在檔案 |
+|---|---|---|
+| 屬性偏好 | `favoredAttr` | npc.js, fields.js |
+| 訓練所權重 | `favorWeight` | fields.js |
+| 愛憎特性 | `likedTraits` / `dislikedTraits` | npc.js |
+| 道德軸 | `moralAxis` + `moralSide` | config.js, moral.js |
+| 滑動窗口 | `player.moralHistory` | moral.js |
+| 道德軸推進 | `Moral.push(axis, side, {weight, lock})` | moral.js |
+| 背景角鬥士 | `BackgroundGladiators` | background_gladiators.js |
+| 熟悉度 | `familiarity`（門檻 40） | background_gladiators.js |
+| 碎念 | `getMumble()` | background_gladiators.js |
+| 八卦 | `GOSSIP_POOL` / `signatureGossip` | background_gladiators.js |
+| 晨思 | `MorningThoughts` | morning_thoughts.js |
+| 懸念回收 | `queueResolution(thoughtId)` | morning_thoughts.js |
+| 重量級對話 | `DialogueModal.play(lines, opts)` | dialogue_modal.js |
+| 輕量對話 | `addLog(text, color, flash, important)` | main.js |
+| 故事揭露 | `storyReveals` | npc.js |
+| 對話行 | `dialogueLines` (storyReveal 欄位) | npc.js |
+| 永駐兄弟 | `orlan` | npc.js, orlan_events.js |
+| 醫生 | `doctorMo` | npc.js, doctor_events.js |
+| 協力倍率 | `synergyMult` | main.js, effect_dispatcher.js |
+| 人多熱鬧 | `crowdMult`（1 + 0.08 × 人數）| main.js |
+| 硬上限 | ×15 cap | main.js |
+| 關鍵事件權重 | `weight: 3` | moral.js |
+| 劇情鎖 | `lock: true` | moral.js |
+| 三段協力門檻 | aff ≥ 30/60/90 → ×1.3/1.6/1.8 | main.js |
+| 背景單段門檻 | familiarity ≥ 40 → ×1.3 | background_gladiators.js |
+| 生死關頭援手 | `OrlanEvents.tryDeathSave()` | orlan_events.js, stats.js |
+| 晨起過場 | `Stage.playMorning(opts)` | stage.js |
+| 藥房懸念 flag | `saw_olan_at_apothecary` | main.js, morning_thoughts.js |
+| 藥房解決 flag | `olan_apothecary_resolved` | npc.js (setFlag) |
+| 分房 flag | `separated_from_olan` | orlan_events.js |
+| 偷藥替罪 flag | `shared_olans_punishment` | orlan_events.js |
+| 告發 flag | `betrayed_olan`（不可逆）| orlan_events.js |
+
+**Flag 命名規範**：`{主題}_{事件}_{狀態}` — 例：`olan_apothecary_resolved`、`doctor_visit_today`
+
+---
+
 ## 🧠 技術核心約定
 
 ### 資料與型別

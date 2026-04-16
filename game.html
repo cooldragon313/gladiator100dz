@@ -494,6 +494,7 @@ html, body {
   transition: background .2s, border-color .2s;
   overflow: hidden;
   padding: 4px;
+  position: relative;  /* D.18 合併：原在重複定義的 .npc-slot 裡，現合到主定義 */
 }
 .npc-slot.occupied {
   border-color: var(--border-hi);
@@ -515,6 +516,7 @@ html, body {
 .npc-empty-label { color:var(--border); font-size:28px; }
 
 /* 🆕 D.18：NPC 屬性偏好小角標（右上角） */
+/* 🆕 D.18：NPC 屬性偏好小角標（右上角）— .npc-slot 的 position:relative 已合併到上方主定義 */
 .npc-favor-badge {
   position: absolute;
   top: 2px;
@@ -528,7 +530,6 @@ html, body {
   letter-spacing: .05em;
   pointer-events: none;
 }
-.npc-slot { position: relative; }
 
 .audience-zone-label {
   font-size: 18px;
