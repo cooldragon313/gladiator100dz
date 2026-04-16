@@ -101,6 +101,16 @@
 
 **Flag 命名規範**：`{主題}_{事件}_{狀態}` — 例：`olan_apothecary_resolved`、`doctor_visit_today`
 
+### ⚠️ Debug 工具清單（上線前必須移除或鎖管理員）
+
+> 以下功能僅供開發測試，正式發布前必須全部移除或加 admin flag 門檻。
+
+| 工具 | 位置 | 用途 |
+|---|---|---|
+| `Game.skipToDay(N)` | main.js（return 區塊內） | Console 輸入跳到指定天數 |
+| `Game.testChoice` | main.js | 測試 ChoiceModal |
+| **F5 快存 / F9 快讀** | main.js 底部（IIFE 外） | 按鍵快速存讀檔 |
+
 ---
 
 ## 🏗️ 已實作系統登記（每次 session 開始前查這裡）
