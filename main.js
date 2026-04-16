@@ -506,6 +506,15 @@ const Game = (() => {
         resultLog: '你走到場中央。「讓他們退下——我一個人打。」長官挑起眉毛。「有膽識。」',
         logColor: '#e8d070',
       });
+    } else {
+      // 顯示鎖住的選項 — 讓玩家知道「有這條路但你不夠格」
+      const reason = wil < 15 ? '意志不足' : '名聲不足';
+      choices.push({
+        id: 'heroic_locked',
+        label: `我代替所有人　[${reason}]`,
+        hint: '你想開口——但你的嘴唇在發抖。你知道自己撐不住。',
+        requireMinAttr: { WIL: 999 },   // 永遠不可選（用條件鎖死）
+      });
     }
 
     choices.push({
@@ -3820,6 +3829,12 @@ const Game = (() => {
       });
       Flags.set('sol_shielded_you', true);
       Stats.modVital('mood', 10);
+      // 索爾擋完鞭後的暗示（指向 WIL 的重要性）
+      _pendingDialogues[_pendingDialogues.length - 1].lines.push(
+        { text: '你看著他的背影。他一步都沒退。' },
+        { speaker: '索爾', text: '……在這裡，能活下去的不是最壯的。' },
+        { speaker: '索爾', text: '是最不會倒的。' },
+      );
     }
 
     if (newDay === 3 && !Flags.has('sol_day3')) {
@@ -3833,6 +3848,10 @@ const Game = (() => {
           { speaker: '索爾', text: '五歲。' },
           { text: '他沒有再說下去。你也沒有問。' },
           { text: '牢房裡的沉默，比任何時候都重。' },
+          { text: '過了很久，奧蘭輕聲開口。' },
+          { speaker: '奧蘭', text: '……你有沒有覺得，冥想的人看起來不太一樣？' },
+          { speaker: '奧蘭', text: '好像什麼都打不倒他們似的。' },
+          { text: '你想了想。或許他說得對。' },
         ],
       });
     }

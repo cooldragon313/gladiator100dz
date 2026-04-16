@@ -173,7 +173,7 @@ const MorningThoughts = (() => {
       condition: p => Flags.has('sol_dead') && p.day === (Flags.get('sol_died_day', 5) + 1),
       maxShowCount: 1,
       thoughts: [
-        '你想起索爾把乾肉遞給你時的表情。他知道的。他一直都知道自己不會活過今天。',
+        '你想起索爾把乾肉遞給你時的表情。他知道的。他一直都知道。——如果你的意志再堅定一點，或許三個人都能活著走出來。',
       ],
     },
     {
