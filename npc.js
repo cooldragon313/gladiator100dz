@@ -283,6 +283,25 @@ const teammates = (() => {
       ],
     },
 
+    // ── 索爾（Day 5 犧牲者・短命 NPC）──────────────
+    // Day 1 跟你和奧蘭同一輛車被押進來的第三人。
+    // 高大沉默，農夫出身。外面有一個 5 歲的女兒在等他。
+    // Day 5 三人考驗必定犧牲（極少數情況可存活）。
+    // 他存在的意義：讓玩家第一次真正感受到「這裡會死人」。
+    sol: {
+      id: 'sol', name: '索爾',
+      role: 'teammate',
+      title: '沉默的大個子',
+      desc: '跟你同一天被押進來的人。農夫出身，身體很厚實，但眼神空洞。他幾乎不說話。',
+      baseAffection: 15,
+      personality: 'loner',
+      favoredAttr: 'CON',
+      likedTraits:    { reliable:2, patient:2, humble:1 },
+      dislikedTraits: { cruel:2, prideful:1 },
+      arriveDay: 1,
+      // Day 5 之後不再出現（alive 設為 false）
+    },
+
     // ── Fellow gladiators (teammates) ──
     cassius: {
       id: 'cassius', name: '卡西烏斯',

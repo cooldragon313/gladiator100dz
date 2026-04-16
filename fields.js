@@ -39,6 +39,8 @@ const FIELDS = {
       // 隊友（可發起切磋/友情練習）
       // 🆕 D.20：奧蘭永駐出現（同命兄弟，每天 100% 在場）
       { npcId: 'orlan',         role: 'teammate', chance: 1.00 },
+      // 🆕 索爾（Day 1-4 在場，Day 5 後透過 alive:false 從隊伍消失）
+      { npcId: 'sol',           role: 'teammate', chance: 1.00 },
       { npcId: 'cassius',       role: 'teammate', chance: 0.60 },
       { npcId: 'ursa',          role: 'teammate', chance: 0.55 },
       { npcId: 'dagiSlave',     role: 'teammate', chance: 0.50 },
@@ -85,6 +87,9 @@ function rollFieldNPCs(fieldId) {
   // Step 2: random fill, skip already-forced NPCs
   (f.characters || []).forEach(entry => {
     if (forcedIds.has(entry.npcId)) return;
+    // 🆕 檢查 NPC 是否還活著（索爾 Day 5 後 alive=false 就不再出現）
+    const npcDef = NPC_ALL[entry.npcId];
+    if (npcDef && npcDef.alive === false) return;
     if (Math.random() < entry.chance) {
       (entry.role === 'teammate' ? tmList : audList).push(entry.npcId);
     }

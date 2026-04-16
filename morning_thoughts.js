@@ -164,6 +164,54 @@ const MorningThoughts = (() => {
   // ══════════════════════════════════════════════════
   // ══════════════════════════════════════════════════
 
+  // ── 🆕 索爾的記憶（Day 5 考驗後） ──
+  defineMany([
+    {
+      id: 'sol_memory_day6',
+      type: 'mystery',
+      priority: 100,
+      condition: p => Flags.has('sol_dead') && p.day === (Flags.get('sol_died_day', 5) + 1),
+      maxShowCount: 1,
+      thoughts: [
+        '你想起索爾把乾肉遞給你時的表情。他知道的。他一直都知道自己不會活過今天。',
+      ],
+    },
+    {
+      id: 'sol_memory_day7',
+      type: 'mystery',
+      priority: 95,
+      condition: p => Flags.has('sol_dead') && p.day === (Flags.get('sol_died_day', 5) + 2),
+      maxShowCount: 1,
+      thoughts: [
+        '索爾的鋪位空了。沒有人來收拾。你看著那個位置發了很久的呆。他有個女兒——五歲。',
+      ],
+    },
+    {
+      id: 'sol_memory_lingering',
+      type: 'mystery',
+      priority: 60,
+      condition: p => Flags.has('sol_dead') && p.day >= (Flags.get('sol_died_day', 5) + 5) && p.day <= 20,
+      maxShowCount: 3,
+      decayAfter: 15,
+      thoughts: [
+        '你偶爾還是會想起索爾。他在這裡的時間那麼短——但他留下的重量，你還背著。',
+        '五歲的女孩在等一個永遠不會回家的父親。你沒辦法告訴她。',
+        '你現在比索爾強了。但這個念頭讓你覺得……空。',
+      ],
+    },
+    // 英雄路線（三人都活）的特別晨思
+    {
+      id: 'sol_survived_pride',
+      type: 'reflection',
+      priority: 80,
+      condition: p => Flags.has('sol_survived_trial') && p.day <= 8,
+      maxShowCount: 1,
+      thoughts: [
+        '三個人都活下來了。你做到了。索爾看你的眼神不一樣了——裡面有一種你不太習慣的東西。信任。',
+      ],
+    },
+  ]);
+
   // ── 🆕 懸念型（mystery）── 最高優先度，前一天的事件延續 ──
   defineMany([
     // 奧蘭藥房懸念：看到他在醫療房前 → 隔天開始在腦中延續

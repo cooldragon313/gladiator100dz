@@ -414,20 +414,281 @@ const Game = (() => {
     if (!ev || _lastTriggeredDay === p.day) return;
     _lastTriggeredDay = p.day;
 
+    // 🆕 Day 5 三人考驗 — 特殊處理（索爾震撼教育）
+    if (ev.id === 'trial' && !Flags.has('trial_completed')) {
+      _triggerThreePersonTrial(ev);
+      return;
+    }
+
     // Announcement
     addLog(`\n【第 ${p.day} 天 · ${ev.name}】\n${ev.logText}`, '#e8c870', true);
     showToast(`第 ${p.day} 天 ── ${ev.name}`, 5000);
 
     // Force scene + NPCs
     if (ev.forced) {
-      // 🆕 Phase 1 重構：不再切換場地（永遠在訓練場），但保留 NPC 強制設定
-      // 大型考驗的特定觀眾與隊友仍會被強制顯示
       _syncCurrentNPCs(ev.forcedNPCs);
       renderAll();
-
-      // Show battle trigger button inside scene area
       _showTimelineBattleBtn(ev);
     }
+  }
+
+  // ══════════════════════════════════════════════════
+  // 🆕 Day 5 三人考驗 — 震撼教育
+  // 「三個人進去，只有兩個人出來。」
+  //
+  // 選項 A：你上場打索爾 → 正常戰鬥 → 贏了索爾死
+  // 選項 B：讓奧蘭上場 → 奧蘭一定輸 → 你必須選誰活
+  // 選項 C：代替所有人 [WIL≥15 或 fame≥5] → 難度戰 → 贏了三人都活
+  // 選項 D：沉默 → 長官暴怒 → 你被罰上場 + debuff → 高死亡風險
+  // ══════════════════════════════════════════════════
+  function _triggerThreePersonTrial(ev) {
+    _syncCurrentNPCs(ev.forcedNPCs);
+    renderAll();
+
+    addLog(`\n【第 ${Stats.player.day} 天 · ${ev.name}】`, '#e8c870', true);
+    showToast(`第 ${Stats.player.day} 天 ── ${ev.name}`, 5000);
+
+    const introLines = [
+      { text: '訓練場的沙地今天格外安靜。' },
+      { text: '長官站在場中央。主人坐在觀台上。' },
+      { text: '所有人被叫到場邊排成一列。' },
+      { speaker: '塔倫長官', text: '今天的考驗規則很簡單。' },
+      { text: '他環視一圈。目光冰冷。' },
+      { speaker: '塔倫長官', text: '三個人進去——' },
+      { speaker: '塔倫長官', text: '只有兩個人出來。' },
+      { text: '你感覺到旁邊奧蘭的手在發抖。' },
+      { text: '另一邊，索爾一動不動地站著。' },
+      { text: '他看了你一眼。那個眼神——跟昨晚遞給你乾肉時一模一樣。' },
+      { speaker: '塔倫長官', text: '你們三個。上來。' },
+    ];
+
+    DialogueModal.play(introLines, {
+      onComplete: () => _showTrialChoice(ev),
+    });
+  }
+
+  function _showTrialChoice(ev) {
+    const p = Stats.player;
+    const wil = (typeof Stats.eff === 'function') ? Stats.eff('WIL') : (p.WIL || 10);
+    const canHeroic = wil >= 15 || (p.fame || 0) >= 5;
+
+    const choices = [
+      {
+        id: 'fight_sol',
+        label: '我上場',
+        hint: '你走向沙地中央。索爾站到你對面。',
+        resultLog: '你握緊武器，走上沙地。索爾站在你對面——他的眼神沒有恨意，只有接受。',
+        logColor: '#c8a060',
+      },
+      {
+        id: 'send_orlan',
+        label: '讓奧蘭上場',
+        hint: '你把奧蘭推了出去。',
+        effects: [
+          { type:'moral', axis:'reliability', side:'negative' },
+          { type:'moral', axis:'loyalty', side:'negative' },
+          { type:'affection', key:'orlan', delta:-20 },
+        ],
+        resultLog: '奧蘭看了你一眼。那一眼裡有恐懼——還有一點點不相信。',
+        logColor: '#8899aa',
+      },
+    ];
+
+    if (canHeroic) {
+      choices.push({
+        id: 'heroic',
+        label: '我代替所有人',
+        hint: (wil >= 15 ? '【意志】' : '【名聲】') + '「讓他們退下。我一個人上。」',
+        effects: [
+          { type:'moral', axis:'reliability', side:'positive', weight:2 },
+          { type:'moral', axis:'pride', side:'negative' },
+        ],
+        resultLog: '你走到場中央。「讓他們退下——我一個人打。」長官挑起眉毛。「有膽識。」',
+        logColor: '#e8d070',
+      });
+    }
+
+    choices.push({
+      id: 'silence',
+      label: '沉默',
+      hint: '你什麼都不做。',
+      effects: [
+        { type:'moral', axis:'reliability', side:'negative', weight:2 },
+        { type:'vital', key:'mood', delta:-20 },
+      ],
+      resultLog: '你站在原地。一秒。兩秒。三秒。',
+      logColor: '#666',
+    });
+
+    ChoiceModal.show({
+      id: 'three_person_trial',
+      icon: '⚔',
+      title: '三個人進去，兩個人出來',
+      body: '長官在等你的反應。索爾在等。奧蘭在等。你必須做出選擇。',
+      forced: true,
+      choices,
+    }, {
+      onChoose: (choiceId) => _resolveTrialChoice(choiceId, ev),
+    });
+  }
+
+  function _resolveTrialChoice(choiceId, ev) {
+    Flags.set('trial_completed', true);
+
+    if (choiceId === 'fight_sol') {
+      // A：你 vs 索爾 → 正常戰鬥
+      DialogueModal.play([
+        { text: '你握緊武器走上沙地。' },
+        { text: '索爾站在你對面。他沒有躲閃的意思。' },
+        { speaker: '索爾', text: '……好好打。' },
+        { text: '那是他對你說的最後一句話。' },
+      ], {
+        onComplete: () => {
+          Battle.start('slaveRookie',
+            () => _solDies('你贏了。索爾倒在沙地上。長官示意——結束了。'),
+            () => _solDies('你輸了。但長官叫停了——他看向索爾，搖了搖頭。')
+          );
+        },
+      });
+
+    } else if (choiceId === 'send_orlan') {
+      // B：奧蘭 vs 索爾 → 奧蘭一定輸 → 你選誰活
+      DialogueModal.play([
+        { text: '奧蘭走上沙地。他的腿在抖。' },
+        { text: '索爾看了你一眼。然後看向奧蘭。' },
+        { text: '不到三招。奧蘭倒在地上。' },
+        { text: '長官舉起手——叫停。' },
+        { speaker: '塔倫長官', text: '敗者出局。但——' },
+        { speaker: '塔倫長官', text: '我只問你一次。' },
+        { speaker: '塔倫長官', text: '留哪個？' },
+      ], {
+        onComplete: () => {
+          ChoiceModal.show({
+            id: 'who_survives',
+            icon: '💀',
+            title: '留哪個？',
+            body: '奧蘭躺在地上呻吟。索爾站在旁邊，一動不動。長官在等你的答案。',
+            forced: true,
+            choices: [
+              {
+                id: 'save_orlan',
+                label: '留奧蘭',
+                hint: '你伸手指向奧蘭。索爾閉上了眼。',
+                effects: [
+                  { type:'moral', axis:'loyalty', side:'positive' },
+                ],
+                resultLog: '索爾閉上了眼。他沒有掙扎。你看見他嘴唇動了一下——像是在說一個名字。不是你的。',
+              },
+              {
+                id: 'save_sol',
+                label: '留索爾',
+                hint: '你伸手指向索爾。奧蘭的眼睛瞪大了。',
+                effects: [
+                  { type:'affection', key:'orlan', delta:-80 },
+                  { type:'moral', axis:'loyalty', side:'negative', weight:3, lock:true },
+                  { type:'flag', key:'abandoned_orlan_trial' },
+                ],
+                resultLog: '奧蘭的眼睛瞪大了。他張嘴想說什麼——但侍從已經把他拖走了。你聽見他的聲音在走廊裡迴盪，越來越遠。',
+              },
+            ],
+          }, {
+            onChoose: (subId) => {
+              if (subId === 'save_orlan') {
+                _solDies('索爾被帶走了。你再也沒有見到他。');
+              } else {
+                // 奧蘭被帶走 — 奧蘭重傷但不死（永駐角色），但關係破裂
+                addLog('奧蘭被帶走了。你不知道他去了哪裡。', '#8899aa', true, true);
+                Flags.set('orlan_severely_damaged', true);
+                // 索爾活了 → 但他以後會記得你犧牲奧蘭救他
+                teammates.modAffection('sol', 30);
+                Flags.set('sol_survived_trial', true);
+              }
+            },
+          });
+        },
+      });
+
+    } else if (choiceId === 'heroic') {
+      // C：你 vs 索爾（強化版）→ 贏了三人都活
+      DialogueModal.play([
+        { speaker: '塔倫長官', text: '……有膽識。' },
+        { text: '他揮手讓奧蘭和索爾退到場邊。' },
+        { speaker: '塔倫長官', text: '不過——既然你這麼有自信，我給你個更有意思的對手。' },
+        { text: '場邊走出一個你沒見過的人。身上的傷疤比你的鍛鍊還多。' },
+      ], {
+        onComplete: () => {
+          Battle.start('gladiatorB',   // 更強的對手
+            () => {
+              // 贏了：三人都活
+              DialogueModal.play([
+                { text: '你贏了。全場安靜了一瞬——然後爆發出掌聲。' },
+                { speaker: '塔倫長官', text: '……不錯。三個都留下。' },
+                { text: '索爾看著你。他的嘴角動了一下——可能是笑。' },
+                { text: '奧蘭衝過來抱住你的手臂。他在發抖。' },
+              ], {
+                onComplete: () => {
+                  Flags.set('sol_survived_trial', true);
+                  Flags.set('heroic_trial', true);
+                  teammates.modAffection('orlan', 20);
+                  teammates.modAffection('sol', 20);
+                  teammates.modAffection('officer', 10);
+                  Stats.modFame(5);
+                  addLog('三個人都活了下來。', '#e8d070', true, true);
+                  renderAll();
+                },
+              });
+            },
+            () => {
+              // 輸了：你重傷 + 索爾還是被處決
+              _solDies('你倒在地上。長官搖了搖頭——然後看向索爾。「可惜。」');
+              Stats.modVital('hp', -40);
+            }
+          );
+        },
+      });
+
+    } else {
+      // D：沉默 → 長官暴怒 → 你被罰上場 + 高風險
+      DialogueModal.play([
+        { text: '你什麼都沒做。' },
+        { text: '一秒。兩秒。三秒。' },
+        { speaker: '塔倫長官', text: '……' },
+        { text: '他走到你面前。' },
+        { speaker: '塔倫長官', text: '沒有求生意志的東西，不值得投資。' },
+        { text: '他一腳踢在你膝蓋上——你跪了下去。' },
+        { speaker: '塔倫長官', text: '上場。現在。' },
+        { text: '你被推到沙地中央。索爾站在你對面。' },
+        { text: '你的膝蓋還在痛。你的眼前有些模糊。' },
+      ], {
+        onComplete: () => {
+          // 受罰上場：HP -20（膝蓋傷） + mood 已扣
+          Stats.modVital('hp', -20);
+          teammates.modAffection('officer', -10);
+          Battle.start('slaveRookie',
+            () => _solDies('你贏了。但長官連看都沒看你一眼。'),
+            () => {
+              // 沉默路線輸了 = 你死
+              addLog('你倒在沙地上。長官轉過身。「處理掉。」', '#8b0000', true, true);
+              if (typeof Endings !== 'undefined' && Endings.deathEnding) {
+                Endings.deathEnding(Stats.player.name);
+              }
+            }
+          );
+        },
+      });
+    }
+  }
+
+  // ── 索爾死亡共用處理 ──
+  function _solDies(narrative) {
+    addLog(narrative, '#8899aa', true, true);
+    // 設 NPC 為已死
+    if (typeof teammates !== 'undefined' && teammates.getNPC('sol')) {
+      teammates.getNPC('sol').alive = false;
+    }
+    Flags.set('sol_dead', true);
+    Flags.set('sol_died_day', Stats.player.day);
+    renderAll();
   }
 
   function _showTimelineBattleBtn(ev) {
@@ -3538,6 +3799,62 @@ const Game = (() => {
   //   觸發方式 A（被認可）：訓練次數 ≥ 6 → 即時觸發
   //   觸發方式 B（Day 4 保底）：DayCycle.onDayStart 檢查
   // ══════════════════════════════════════════════════
+
+  // ── 索爾 Day 2-4 小事件（在武器事件之前觸發） ──
+  DayCycle.onDayStart('solEvents', (newDay) => {
+    if (typeof teammates !== 'undefined' && teammates.getNPC('sol')?.alive === false) return;
+    if (Flags.has('sol_dead')) return;
+
+    if (newDay === 2 && !Flags.has('sol_day2')) {
+      Flags.set('sol_day2', true);
+      _pendingDialogues.push({
+        id: 'sol_shield',
+        lines: [
+          { text: '訓練場上，監督官的鞭子毫無預警地落下——' },
+          { text: '你來不及閃。' },
+          { text: '一個巨大的影子擋在你前面。' },
+          { text: '是索爾。鞭子抽在他背上，他沒出聲。' },
+          { text: '監督官冷哼一聲，轉身走了。' },
+          { text: '索爾看了你一眼，沒說話。然後回去繼續訓練。' },
+        ],
+      });
+      Flags.set('sol_shielded_you', true);
+      Stats.modVital('mood', 10);
+    }
+
+    if (newDay === 3 && !Flags.has('sol_day3')) {
+      Flags.set('sol_day3', true);
+      _pendingDialogues.push({
+        id: 'sol_daughter',
+        lines: [
+          { text: '夜裡。你以為索爾睡了。' },
+          { text: '但他突然開口——這是他進來以後第一次主動說話。' },
+          { speaker: '索爾', text: '……我有個女兒。' },
+          { speaker: '索爾', text: '五歲。' },
+          { text: '他沒有再說下去。你也沒有問。' },
+          { text: '牢房裡的沉默，比任何時候都重。' },
+        ],
+      });
+    }
+
+    if (newDay === 4 && !Flags.has('sol_day4')) {
+      Flags.set('sol_day4', true);
+      _pendingDialogues.push({
+        id: 'sol_dried_meat',
+        lines: [
+          { text: '就寢前，索爾把一個小布包推到你面前。' },
+          { text: '裡面是半塊乾肉——不知道他藏了多久，邊角已經發硬。' },
+          { speaker: '索爾', text: '明天考驗。吃了。' },
+          { text: '你看著他。' },
+          { speaker: '索爾', text: '你比我有機會。' },
+          { text: '他的眼神很平靜。太平靜了。' },
+          { text: '你接下那塊乾肉。它比看起來重得多。' },
+        ],
+      });
+      Stats.modVital('food', 15);
+      Flags.set('sol_gave_meat', true);
+    }
+  }, 25);
 
   const WEAPON_TRAIN_THRESHOLD = 6;   // 6 次訓練 ≈ 1.5 天認真練
 
