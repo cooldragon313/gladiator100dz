@@ -103,6 +103,86 @@
 
 ---
 
+## 🏗️ 已實作系統登記（每次 session 開始前查這裡）
+
+> **在做任何 UI 或功能之前先查這張表。如果已經有了，就用現有的，不要重做。**
+> 更新規則：每次做完新系統或 UI，立刻在這裡補一行。
+
+### UI 元件（角色頁）
+
+| 功能 | 位置 | 關鍵函式 / ID | 備註 |
+|---|---|---|---|
+| **裝備欄位 picker** | main.js | `_renderEquipmentSlots()` / `_openEquipmentPicker()` / `#cs-equip-slots` | 已有主手/副手/胸甲三槽，點擊展開 picker，自動處理雙手武器 |
+| **裝備切換** | main.js | `_equipItem(slot, itemId)` | 切換時自動清副手（雙手武器） |
+| **裝備 picker 篩選** | main.js | `_getPickerOptions(source)` | weapons 來源只顯示 weaponInventory 裡有的 |
+| **六角形屬性圖** | main.js | `_renderHexagon()` / `#cs-hex-svg` | SVG 六角形雷達圖 |
+| **派生數值格子** | main.js | `_renderDerivedGrid()` | 10 項派生屬性 |
+| **EXP 屬性升級** | main.js | `_renderAttrSpend()` | 花 EXP 升級，有升級鈕 |
+| **特性顯示** | main.js | `_renderTraits()` | 空時 display:none |
+| **疤痕顯示** | main.js | `_renderScars()` | 空時 display:none |
+| **病痛顯示** | main.js | `_renderAilments()` | 空時 display:none |
+| **道德光譜** | main.js | `_renderMoralSpectrum()` / `#cs-moral-spectrum` | 5 軸滑動窗口視覺化 |
+| **技能列表** | main.js | `_renderSkills()` | passive skills |
+| **關係圖 / NPC 卡片** | main.js | `_renderPeopleTab()` | flavor 文字 + 好感度色分 |
+| **護符 6 格** | main.js | `_renderAmulets()` | Phase 3 預留，目前空格 |
+| **寵物 3 槽** | main.js | `_renderPets()` | Phase 3 預留 |
+
+### UI 元件（主畫面）
+
+| 功能 | 位置 | 關鍵 ID | 備註 |
+|---|---|---|---|
+| **NPC 隊友欄位** | main.js `renderNPCSlots()` | `#tm-slot-0` ~ `#tm-slot-5` | 6 個 slot |
+| **NPC 觀眾欄位** | main.js | `#aud-slot-0` ~ `#aud-slot-2` | 3 個 slot |
+| **背景角鬥士字條** | main.js `_renderBackgroundStrip()` | `#bg-gladiator-strip` | 右上角小字，顯示熟悉度 |
+| **戰鬥鈕** | main.js `_showTimelineBattleBtn()` | `#timeline-battle-btn` → `#stage-center` | 置中 + pulse 動畫 |
+| **Stage 黑幕** | stage.js | `#stage-curtain-top` / `#stage-curtain-bot` | closeEyes / openEyes |
+| **Stage 晨起覆蓋** | stage.js `playMorning()` | `#stage-morning-overlay` | 雞鳴 + 晨思，播完 display:none |
+| **Stage 事件小過場** | stage.js `playEvent()` | `#stage-opening` | 標題 + 多行文字 |
+| **DialogueModal** | dialogue_modal.js | `#modal-dialogue` / `.dialogue-box` | 垂直置中，Space/Ctrl |
+| **ChoiceModal** | choice_modal.js | `#modal-choice` / `.choice-modal-box` | 多選項 + 條件篩選 |
+| **行動列表** | main.js `renderActionList()` | `#action-list` | 動態生成訓練/休息按鈕 |
+| **時段列** | main.js | `#time-slots` | 8 格 2h 時段 |
+| **百日條** | main.js | `#hdb-wrap` | 100 天進度條 |
+| **日誌** | main.js `addLog()` | `#log-content` | 捲動式文字日誌 |
+
+### 遊戲系統模組
+
+| 系統 | 檔案 | 關鍵 API | 備註 |
+|---|---|---|---|
+| **效果派發** | effect_dispatcher.js | `Effects.apply(list, ctx)` | 統一處理所有 vital/attr/exp/moral/flag/affection |
+| **道德滑動窗口** | moral.js | `Moral.push(axis, side, opts)` | N=3 窗口，自動賦予/移除特性 |
+| **晨思系統** | morning_thoughts.js | `MorningThoughts.pickToday(p)` | 每日一條，優先度分層 |
+| **背景角鬥士** | background_gladiators.js | `BackgroundGladiators.rollDaily(day, weight)` | 碎念 + 八卦 + 協力 |
+| **奧蘭事件** | orlan_events.js | `OrlanEvents.tryDeathSave()` | Day 30/60/85 脊椎事件 + 生死援手 |
+| **醫生事件** | doctor_events.js | `DoctorEvents.tryVisit()` | 自動觸發，差異化治療 |
+| **存檔系統** | save_system.js | `SaveSystem.saveToSlot()` / `loadFromSlot()` | 5 手動槽 + auto + backup |
+| **日循環** | day_cycle.js | `DayCycle.onDayStart(name, cb)` / `fireDayStart(day)` | 各系統掛鉤的統一觸發器 |
+| **場景舞台** | stage.js | `Stage.playSleep()` / `playMorning()` / `playEvent()` | 所有轉場動畫 |
+| **音效合成** | sound.js | `SoundManager.playSynth(id)` | 8 種內建音效，Web Audio |
+| **旗標系統** | flags.js | `Flags.set/has/get/increment` | 所有故事/狀態旗標 |
+| **全域狀態** | game_state.js | `GameState.setFieldId()` / `getCurrentNPCs()` | session state |
+| **戰鬥引擎** | battle.js + testbattle.js | `Battle.start(opponentId, onWin, onLose)` | ATB 即時制，兩套武器資料（待統一） |
+| **武器資料** | weapons.js | `Weapons.shortSword` 等 | 給裝備 picker 用 |
+| **護甲資料** | armors.js | `Armors` | 盾牌 + 護甲 |
+| **敵人資料** | testbattle.js | `TB_ENEMIES` | 4 個敵人（rookie/gladB/vet/champion） |
+
+### 玩家資料結構（Stats.player 關鍵欄位）
+
+| 欄位 | 用途 | 更新方式 |
+|---|---|---|
+| `equippedWeapon` | 當前主手武器 ID | 裝備 picker / 武器事件 |
+| `equippedOffhand` | 副手（盾/雙持）| 裝備 picker |
+| `equippedArmor` | 胸甲 ID | 裝備 picker |
+| `weaponInventory` | 擁有的武器陣列 `[{id, tier}]` | 武器獎勵事件 push |
+| `moralHistory` | 5 軸道德滑動窗口 | Moral.push() |
+| `moralLocks` | 鎖定的道德軸 | Moral.push({lock:true}) |
+| `seenReveals` | 已觸發的 storyReveal ID | _scanStoryEvents |
+| `traits` | 特性陣列 | 開場 + Moral 自動賦予 |
+| `ailments` | 病痛陣列 | 失眠/受傷 + 醫生移除 |
+| `exp` | 六維 EXP `{STR:0,...}` | modExp (訓練) |
+
+---
+
 ## 🧠 技術核心約定
 
 ### 資料與型別
@@ -190,8 +270,8 @@ save_system → testbattle → battle → actions → main
 1. **不要自動做主動 NPC 互動**（違反 Phase 1 哲學）
 2. **不要在訓練動作裡用 `type: 'attr'`**（改用 `type: 'exp'`）
 3. **不要加 hover-only 的隱藏資訊**（手機不友善）
-4. **不要創新 UI 元件**，優先使用既有的 class
-5. **不要跳過整合檢查清單**（D.15 的 8 題）
+4. **不要創新 UI 元件**，先查上方「🏗️ 已實作系統登記」是否已有可用的
+5. **不要跳過整合檢查清單**（D.15 的 9 題）
 6. **不要讀全 DESIGN.md**（6000+ 行會塞爆 context，用 grep 精準查）
 7. **不要用 `--no-verify` 跳過 commit hook**
 8. **不要自動 `git push`**（除非使用者明確說要推）
