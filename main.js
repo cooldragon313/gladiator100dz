@@ -709,6 +709,14 @@ const Game = (() => {
 
     if (hasInsomniaDisorder) { wInsomnia += 25; wNormal -= 20; }
 
+    // 🆕 WIL Tier 1：意志力抵抗失眠
+    //   WIL 高 → insomnia 權重降低、normal 權重提高
+    //   WIL 20 = insomnia −10, normal +8
+    const wil = (typeof Stats.eff === 'function') ? Stats.eff('WIL') : (p.WIL || 10);
+    const wilSleepBonus = Math.floor(wil * 0.5);
+    wInsomnia  = Math.max(5, wInsomnia - wilSleepBonus);
+    wNormal   += Math.floor(wilSleepBonus * 0.8);
+
     wNormal = Math.max(10, wNormal);
 
     const total = wNormal + wInsomnia + wNightmare;
@@ -1084,14 +1092,23 @@ const Game = (() => {
     let thresholdDesc = '';
 
     if (isTraining) {
-      // mood_flow：心情 ≥ 80，40% 機率進入心流（×1.5）
-      if (p.mood >= 80 && Math.random() < 0.40) {
+      // 🆕 WIL Tier 1：意志力影響訓練品質
+      //   WIL 高 → 更容易心流、更不容易擺爛
+      //   公式：心流機率 +WIL×0.5%、擺爛機率 −WIL×0.3%
+      const wil = (typeof Stats.eff === 'function') ? Stats.eff('WIL') : (p.WIL || 10);
+      const wilFlowBonus    = wil * 0.005;   // WIL 20 = +10%
+      const wilSlackerReduc = wil * 0.003;   // WIL 20 = -6%
+
+      // mood_flow：心情 ≥ 80，(40% + WIL 加成) 機率進入心流（×1.5）
+      const flowChance = Math.min(0.80, 0.40 + wilFlowBonus);
+      if (p.mood >= 80 && Math.random() < flowChance) {
         thresholdMult *= 1.5;
         addLog('✨ 你的腦子出奇地清醒，每個動作都流暢到讓人不敢置信——你進入了心流。', '#ffe866', false);
         thresholdDesc += '（心流 ×1.5）';
       }
-      // training_slacker：體力 ≤ 25，25% 機率擺爛（×0.4）
-      if (p.stamina <= 25 && Math.random() < 0.25) {
+      // training_slacker：體力 ≤ 25，(25% − WIL 抵抗) 機率擺爛（×0.4）
+      const slackerChance = Math.max(0.05, 0.25 - wilSlackerReduc);
+      if (p.stamina <= 25 && Math.random() < slackerChance) {
         thresholdMult *= 0.4;
         addLog('😮‍💨 你有氣無力地揮著武器，這算訓練嗎？效果大打折扣。', '#aa7733', false);
         thresholdDesc += '（擺爛 ×0.4）';

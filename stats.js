@@ -263,6 +263,16 @@ const Stats = (() => {
 
   function modVital(key, delta) {
     const maxKey = key + 'Max';
+
+    // 🆕 WIL Tier 1：意志力抵抗心情衰減
+    //   mood 負面 delta → 乘以 (1 - WIL×0.01)，WIL 20 = 減 20% 傷害
+    //   只作用於 mood 負面（不影響 HP/stamina/food 的負面）
+    if (key === 'mood' && delta < 0) {
+      const wil = player.WIL || 10;
+      const resist = Math.min(0.40, wil * 0.01);  // 上限 40% 抵抗
+      delta = delta * (1 - resist);
+    }
+
     // 🆕 D.6 v2：強制整數化，杜絕倍率（心情/協力 1.25 等）累積出小數
     const before = player[key];
     player[key] = Math.max(0, Math.min(player[maxKey] || 100, Math.round(player[key] + delta)));
