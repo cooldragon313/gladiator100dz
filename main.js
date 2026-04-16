@@ -3213,7 +3213,7 @@ const Game = (() => {
         affection:{ master:0, officer:0, blacksmith:0, cook:0 },
         achievements:[], traits:['kindness'], title:null, fameBase:0,
         // 🆕 Phase 1-D 病痛/睡眠追蹤
-        ailments:['insomnia_disorder'], insomniaStreak:0, normalSleepStreak:0,
+        ailments:[], insomniaStreak:0, normalSleepStreak:0,  // 不再預設失眠，靠連續壞睡自然觸發
         // 🆕 D.12 故事揭露系統：清空已觸發記錄
         seenReveals: [],
         // 🆕 D.19 道德累積滑動窗口：重置為空
