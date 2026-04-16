@@ -3555,7 +3555,7 @@ const Game = (() => {
     // ── 根據速度選不同的前置對話 ──
     let introLines;
     if (isFast) {
-      // 快速路線：被認可
+      // 快速路線：被認可 + 給高一級武器
       introLines = [
         { text: '訓練結束後，監督官叫住你。' },
         { speaker: '監督官', text: '站住。' },
@@ -3565,11 +3565,14 @@ const Game = (() => {
         { text: '他帶你走到訓練場邊的裝備庫。四把武器靜靜地掛在架上。' },
         { text: '每一把都有刮痕和鏽跡——它們的上一任主人已經不在了。' },
         { speaker: '裝備庫管理員', text: '你看起來面生啊——應該是前幾天那批買進來的。' },
-        { speaker: '裝備庫管理員', text: '這麼快就被帶來領武器了？不錯嘛。' },
-        { text: '他拍了拍你的肩。' },
-        { speaker: '裝備庫管理員', text: '選一把。選了就是你的。壞了找葛拉。' },
+        { speaker: '裝備庫管理員', text: '這麼快就被帶來領武器了？不錯嘛。我看好你。' },
+        { text: '他拍了拍你的肩，然後從架子後方拿出一把稍微不一樣的。' },
+        { speaker: '裝備庫管理員', text: '有前途的傢伙，先給你高一級的。你可別辜負我。' },
+        { speaker: '裝備庫管理員', text: '選一把。壞了找葛拉。' },
       ];
       // 快速路線的獎勵：心情 +15、監督官好感 +8、主人好感 +5
+      // 🆕 武器等級 +1（flag 標記，eqBonus 在選武器時額外加成 20%）
+      Flags.set('weapon_bonus_tier', 1);
       Stats.modVital('mood', 15);
       if (typeof teammates !== 'undefined') {
         teammates.modAffection('overseer', 8);
@@ -3662,12 +3665,24 @@ const Game = (() => {
           Stats.player.equippedWeapon = weaponId;
           const w = Weapons[weaponId];
           if (w && w.eqBonus) {
+            // 🆕 快拿獎勵：武器等級 +1 → eqBonus 各項額外 +20%
+            const tier = Flags.get('weapon_bonus_tier', 0);
+            const mult = 1 + tier * 0.2;   // +1 = ×1.2
             Object.keys(w.eqBonus).forEach(k => {
-              Stats.player.eqBonus[k] = (Stats.player.eqBonus[k] || 0) + w.eqBonus[k];
+              Stats.player.eqBonus[k] = (Stats.player.eqBonus[k] || 0) + Math.round(w.eqBonus[k] * mult);
             });
           }
-          addLog(`⚔ 你選擇了【${w ? w.name : weaponId}】作為你的武器。`, '#e8d070', true, true);
+          const tierLabel = Flags.get('weapon_bonus_tier', 0) > 0 ? ' +1' : '';
+          addLog(`⚔ 你選擇了【${w ? w.name : weaponId}${tierLabel}】作為你的武器。`, '#e8d070', true, true);
           if (typeof SoundManager !== 'undefined') SoundManager.playSynth('impact');
+
+          // 🆕 記入玩家武器庫（未來角色頁裝備切換用）
+          if (!Array.isArray(Stats.player.weaponInventory)) Stats.player.weaponInventory = [];
+          Stats.player.weaponInventory.push({
+            id: weaponId,
+            tier: Flags.get('weapon_bonus_tier', 0),
+          });
+
           renderAll();
         }
       },
