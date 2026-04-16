@@ -1202,8 +1202,9 @@ html, body {
 ═════════════════════════════════════════════════════════ */
 .dialogue-overlay {
   /* 繼承 .modal-overlay，但用自己的背景控制 */
-  align-items: flex-end !important;
-  padding: 0 0 80px 0;
+  align-items: center !important;   /* 垂直置中，閱讀舒服 */
+  justify-content: center !important;
+  padding: 0 24px;
   background: transparent;   /* 用 dialogue-dim 控制 */
 }
 .dialogue-overlay .dialogue-dim {
