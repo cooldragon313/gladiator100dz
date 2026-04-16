@@ -4206,3 +4206,23 @@ const Game = (() => {
 
 // Boot when DOM ready
 document.addEventListener('DOMContentLoaded', Game.init);
+
+// 🆕 Debug 快速存讀（F5 存 / F9 讀）
+// 測試用：在關鍵事件前 F5，測完不同選項後 F9 回到存檔點
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'F5') {
+    e.preventDefault();
+    const ok = Game.saveGame();
+    Game.showToast(ok ? '💾 快存成功（F9 讀取）' : '存檔失敗', 2000);
+  }
+  if (e.key === 'F9') {
+    e.preventDefault();
+    const ok = Game.loadGameFromSlot && Game.loadGameFromSlot('slot_0');
+    if (ok) {
+      Game.showToast('📂 快讀成功', 2000);
+      Game.renderAll();
+    } else {
+      Game.showToast('沒有存檔', 2000);
+    }
+  }
+});
