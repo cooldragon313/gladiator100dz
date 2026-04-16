@@ -511,6 +511,31 @@ const MorningThoughts = (() => {
     },
   ]);
 
+  // ── 期待型（anticipation）── 重大活動暗示 ──
+  defineMany([
+    {
+      id: 'anticipation_first_trial',
+      type: 'anticipation',
+      priority: 80,
+      condition: p => p.day >= 3 && p.day < 5 && !Flags.has('completed_trial'),
+      maxShowCount: 2,
+      thoughts: [
+        '聽說再過幾天就要考驗了。你握了握拳——準備好了嗎？',
+        '考驗快到了。訓練場上的眼神都變了。',
+      ],
+    },
+    {
+      id: 'anticipation_weapon_new',
+      type: 'anticipation',
+      priority: 75,
+      condition: p => Flags.has('chose_starting_weapon') && p.day <= 5,
+      maxShowCount: 1,
+      thoughts: [
+        '手裡多了武器之後，連走路都覺得不一樣。它有它的重量——那重量就是你的命。',
+      ],
+    },
+  ]);
+
   // ── 預設型（default）── 日數分段的預設念頭 ──
   defineMany([
     {

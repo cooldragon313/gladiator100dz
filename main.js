@@ -462,13 +462,66 @@ const Game = (() => {
     btn.onmouseout  = () => { btn.style.background = '#1a0000'; btn.style.transform = 'scale(1)'; };
     btn.onclick = () => {
       btn.remove();
-      Battle.start(
-        ev.opponent,
-        () => { /* onWin: handle survival */ addLog('你贏得了這場戰鬥！', '#d4af37'); },
-        () => { /* onLose: trigger death ending */ Endings.deathEnding(Stats.player.name); }
-      );
+      // 🆕 D.22c：戰前 DialogueModal 演出（情緒鋪墊）
+      const preBattleLines = _buildPreBattleLines(ev);
+      if (preBattleLines.length > 0 && typeof DialogueModal !== 'undefined') {
+        DialogueModal.play(preBattleLines, {
+          onComplete: () => {
+            Battle.start(
+              ev.opponent,
+              () => { addLog('你贏得了這場戰鬥！', '#d4af37'); renderAll(); },
+              () => { Endings.deathEnding(Stats.player.name); }
+            );
+          },
+        });
+      } else {
+        Battle.start(
+          ev.opponent,
+          () => { addLog('你贏得了這場戰鬥！', '#d4af37'); renderAll(); },
+          () => { Endings.deathEnding(Stats.player.name); }
+        );
+      }
     };
     stageCenter.appendChild(btn);
+  }
+
+  // 🆕 D.22c：根據 timeline event 產生戰前對話
+  function _buildPreBattleLines(ev) {
+    const p = Stats.player;
+    const lines = [];
+    const olanAff = (typeof teammates !== 'undefined') ? teammates.getAffection('orlan') : 0;
+
+    if (ev.id === 'trial') {
+      // Day 5 基礎考驗
+      lines.push({ text: '訓練場的沙地今天格外安靜。' });
+      lines.push({ text: '長官站在觀台上，主人也親自到場。' });
+      lines.push({ text: '這不是平常的練習——今天是你第一次真正的考驗。' });
+      if (olanAff >= 30) {
+        lines.push({ speaker: '奧蘭', text: '……別緊張。我看著你。' });
+      }
+      lines.push({ text: '你握緊武器。對面那個人，跟你一樣是奴隸。' });
+      lines.push({ text: '贏，才能繼續走下去。' });
+    } else if (ev.id === 'major_arena') {
+      // Day 50 大型競技
+      lines.push({ text: '整個競技場都動員了起來。' });
+      lines.push({ text: '領主的使者也出現在觀台上。這場不只是娛樂。' });
+      lines.push({ text: '你的名字已經傳出這片沙地——今天，你要讓更多人記住它。' });
+      if (olanAff >= 50) {
+        lines.push({ speaker: '奧蘭', text: '不管發生什麼，我都在這裡。' });
+      }
+    } else if (ev.id === 'rival_battle') {
+      // Day 75 宿敵
+      lines.push({ text: '你知道這一天遲早會來。' });
+      lines.push({ text: '那個一直在暗中觀察你的人——今天終於走上了對面。' });
+      lines.push({ text: '沒有退路，沒有第二次機會。' });
+    } else if (ev.id === 'final_festival') {
+      // Day 100 萬骸祭
+      lines.push({ text: '一百天。你活過了一百天。' });
+      lines.push({ text: '萬骸祭的號角已然吹響，整個城市都在震顫。' });
+      lines.push({ text: '這是最後一場。' });
+      lines.push({ text: '勝者得到一切——敗者化作萬骸祭的祭品。' });
+    }
+    return lines;
   }
 
   // ── Scene info bar ────────────────────────────────────
@@ -1552,7 +1605,15 @@ const Game = (() => {
     _pendingDialogues = [];
     for (const d of list) {
       await new Promise(resolve => {
-        DialogueModal.play(d.lines, { onComplete: resolve });
+        DialogueModal.play(d.lines, {
+          onComplete: () => {
+            // 🆕 D.22c：支援 d.onComplete 自訂回呼（例：武器選擇事件接 ChoiceModal）
+            if (typeof d.onComplete === 'function') {
+              try { d.onComplete(); } catch (e) { console.error('[flushDialogues] onComplete error', e); }
+            }
+            resolve();
+          },
+        });
       });
     }
   }
@@ -3448,6 +3509,104 @@ const Game = (() => {
     // 同時也寫進 log（含 flash，給歷史回看）
     addLog('【主人傳喚】\n' + ev.text, '#e8d070', true, true);
   }, 35);
+
+  // ══════════════════════════════════════════════════
+  // 🆕 D.22c: Day 3 武器選擇事件
+  //   主人的侍從帶你去武器架，挑一把屬於自己的武器。
+  //   限單手武器 4 選 1（雙手武器和雙持是後期葛拉解鎖）。
+  // ══════════════════════════════════════════════════
+  DayCycle.onDayStart('weaponSelection', (newDay) => {
+    if (newDay !== 3) return;
+    if (Flags.has('chose_starting_weapon')) return;
+    Flags.set('chose_starting_weapon', true);
+
+    // 排入對話佇列（會在晨起後播放）
+    _pendingDialogues.push({
+      id: 'weapon_selection_intro',
+      lines: [
+        { text: '侍從又來了。今天他的臉上有種不一樣的表情。' },
+        { speaker: '侍從', text: '大人說——既然三天都沒死，就給你一把像樣的武器。' },
+        { speaker: '侍從', text: '別高興太早。武器只是讓你死得更體面。' },
+        { text: '他帶你走到訓練場邊的武器架前。四把武器靜靜地掛著。' },
+        { text: '每一把都有刮痕和鏽跡——它們的上一任主人已經不在了。' },
+        { speaker: '侍從', text: '選一把。選了就是你的。丟了、壞了，下次找鐵匠葛拉。' },
+      ],
+      onComplete: () => {
+        ChoiceModal.show({
+          id: 'starting_weapon',
+          icon: '⚔',
+          title: '選擇你的武器',
+          body: '每把武器都有它的脾氣。選了就是你的夥伴——直到它斷，或你斷。',
+          forced: true,
+          choices: [
+            {
+              id: 'pick_shortSword',
+              label: '短劍',
+              hint: '攻守均衡，沒有弱點也沒有絕對強項。適合還不確定自己的人。（STR 偏向）',
+              effects: [
+                { type:'flag', key:'weapon_type_blade' },
+              ],
+              resultLog: '你拿起短劍，握柄剛好貼合你的手掌。它不算輕，但也不重。像是在說：「我什麼都能做——看你的了。」',
+              logColor: '#c8a060',
+            },
+            {
+              id: 'pick_dagger',
+              label: '匕首',
+              hint: '極快，適合找縫隙刺入要害。代價是每一刀都不夠深。（DEX 偏向）',
+              effects: [
+                { type:'flag', key:'weapon_type_blade' },
+              ],
+              resultLog: '匕首輕得像沒拿東西。但你握著它的時候，手指會不自覺收緊——它在教你什麼是「精準」。',
+              logColor: '#c8a060',
+            },
+            {
+              id: 'pick_hammer',
+              label: '鐵錘',
+              hint: '沉重暴力，一擊碎盾。但你得承受每次揮動的消耗。（STR+CON 偏向）',
+              effects: [
+                { type:'flag', key:'weapon_type_blunt' },
+              ],
+              resultLog: '你把鐵錘提起來。手臂的肌肉在抗議。但你知道——被這玩意打到的人不會有機會抗議。',
+              logColor: '#c8a060',
+            },
+            {
+              id: 'pick_spear',
+              label: '長槍',
+              hint: '距離就是安全。先手刺擊，不讓對手靠近。（AGI 偏向，雙手持用）',
+              effects: [
+                { type:'flag', key:'weapon_type_polearm' },
+              ],
+              resultLog: '長槍比你想像的還長。你握住中段——它輕微地顫動，像有自己的脈搏。距離，就是你的優勢。',
+              logColor: '#c8a060',
+            },
+          ],
+        }, {
+          onChoose: (choiceId) => {
+            const WEAPON_MAP = {
+              pick_shortSword: 'shortSword',
+              pick_dagger:     'dagger',
+              pick_hammer:     'hammer',
+              pick_spear:      'spear',
+            };
+            const weaponId = WEAPON_MAP[choiceId];
+            if (weaponId) {
+              Stats.player.equippedWeapon = weaponId;
+              const w = Weapons[weaponId];
+              if (w && w.eqBonus) {
+                // 套用裝備加成
+                Object.keys(w.eqBonus).forEach(k => {
+                  Stats.player.eqBonus[k] = (Stats.player.eqBonus[k] || 0) + w.eqBonus[k];
+                });
+              }
+              addLog(`⚔ 你選擇了【${w ? w.name : weaponId}】作為你的武器。`, '#e8d070', true, true);
+              if (typeof SoundManager !== 'undefined') SoundManager.playSynth('impact');
+              renderAll();
+            }
+          },
+        });
+      },
+    });
+  }, 30);
 
   function init() {
     // Try to restore save first

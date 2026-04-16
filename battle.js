@@ -802,12 +802,61 @@ const Battle = (() => {
     );
     Game.addLog(`【${choiceText[choice]}】`, choice === 'execute' ? '#cc3300' : choice === 'spare' ? '#336633' : '#c8a060', false);
 
-    // Done — restore scene and call onWin
+    // 🆕 D.22c：斬首/饒恕氣氛演出（DialogueModal）
+    const atmosphereLines = _buildFinishAtmosphere(choice, mood);
+
+    // Done — restore scene, play atmosphere, then call onWin
     setTimeout(() => {
       _hideOverlay();
       Game.renderAll();
-      _onWin();
+      if (atmosphereLines.length > 0 && typeof DialogueModal !== 'undefined') {
+        DialogueModal.play(atmosphereLines, { onComplete: _onWin });
+      } else {
+        _onWin();
+      }
     }, 600);
+  }
+
+  // 🆕 D.22c：根據選擇 + 群眾氣氛產生氣氛敘述
+  function _buildFinishAtmosphere(choice, moodCfg) {
+    const lines = [];
+    const hint = moodCfg.hint || '';
+
+    if (choice === 'execute') {
+      lines.push({ text: '你舉起武器。' });
+      if (_crowdMood === 'bloodthirsty') {
+        lines.push({ text: '觀眾席爆發出嗜血的歡呼——他們要的就是這個。' });
+        lines.push({ text: '鮮血濺上沙地。聲音震耳。' });
+        lines.push({ text: '你放下武器時，全場還在呼喊你的名字。' });
+      } else if (_crowdMood === 'merciful') {
+        lines.push({ text: '觀眾突然安靜了。' });
+        lines.push({ text: '有人別過臉。有人搖頭。' });
+        lines.push({ text: '你放下武器時，掌聲稀稀落落，像在下一場冷雨。' });
+      } else {
+        lines.push({ text: '觀眾靜靜看著。' });
+        lines.push({ text: '武器落下的那一瞬——有人歡呼，有人沉默。' });
+        lines.push({ text: '你放下武器，轉過身。沒有回頭。' });
+      }
+    } else if (choice === 'spare') {
+      lines.push({ text: '你收回武器。' });
+      if (_crowdMood === 'bloodthirsty') {
+        lines.push({ text: '噓聲鋪天蓋地。他們覺得你搶走了他們的表演。' });
+        lines.push({ text: '你的對手癱在地上，用無法理解的眼神看著你。' });
+        lines.push({ text: '你轉身走開。背後的噓聲比劍更冷。' });
+      } else if (_crowdMood === 'merciful') {
+        lines.push({ text: '觀眾爆發出掌聲——不是為了戰鬥，是為了仁慈。' });
+        lines.push({ text: '你的對手被人扶起來。他看了你一眼，什麼都沒說。' });
+        lines.push({ text: '那一眼比任何感謝都重。' });
+      } else {
+        lines.push({ text: '觀眾的反應參差不齊。有人點頭，有人嘆氣。' });
+        lines.push({ text: '你的對手掙扎著站起來。他不知道自己該恨你還是謝你。' });
+      }
+    } else { // suppress
+      lines.push({ text: '你踩住對手。他掙扎了一下，然後不動了。' });
+      lines.push({ text: '觀眾看夠了，開始散場。這場不算精彩——但你活著。' });
+    }
+
+    return lines;
   }
 
   // ══════════════════════════════════════════════════════
