@@ -507,13 +507,13 @@ const Game = (() => {
         logColor: '#e8d070',
       });
     } else {
-      // 顯示鎖住的選項 — 讓玩家知道「有這條路但你不夠格」
-      const reason = wil < 15 ? '意志不足' : '名聲不足';
+      // 灰色不可選 — 但不說「意志不足」，只用敘事語言暗示
+      // 玩家知道有第四條路但不知道具體條件 → Day 6 晨思才揭曉
       choices.push({
         id: 'heroic_locked',
-        label: `我代替所有人　[${reason}]`,
-        hint: '你想開口——但你的嘴唇在發抖。你知道自己撐不住。',
-        requireMinAttr: { WIL: 999 },   // 永遠不可選（用條件鎖死）
+        label: '我代替所有人',
+        hint: '你想站出來——但雙腿像被釘在地上。你知道自己撐不住。',
+        requireMinAttr: { WIL: 999 },   // 永遠不可選（純敘事鎖）
       });
     }
 
