@@ -146,6 +146,8 @@ const DialogueModal = (() => {
 
   function _advance() {
     if (!_isOpen) return;
+    // 🆕 D.22b：每次推進對話都有柔 click
+    if (typeof SoundManager !== 'undefined') SoundManager.playSynth('dialogue_advance');
     if (!_fullyShown) {
       // 跳過打字機 → 顯示完整當句
       clearInterval(_typeTimer);

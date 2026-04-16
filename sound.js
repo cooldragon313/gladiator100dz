@@ -245,11 +245,201 @@ const SoundManager = (() => {
   }
 
   // ══════════════════════════════════════════════════
+  // 🆕 D.22b：Web Audio 合成音效層（內建，不需外部檔案）
+  // ══════════════════════════════════════════════════
+  // 即使 _isStub = true（檔案音效關閉），合成音效也能獨立運作。
+  // 用途：雞鳴、揮劍、撞擊、UI click 等基礎聲光效果。
+  // 未來如果有真實音檔，可以用 preloadSfx 覆蓋同名 ID，合成自動讓位。
+
+  let _audioCtx = null;
+
+  function _ensureCtx() {
+    if (_audioCtx) return _audioCtx;
+    try {
+      _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch (e) {
+      console.warn('[SoundManager] Web Audio not available');
+    }
+    return _audioCtx;
+  }
+
+  // 使用者互動後才能啟動 AudioContext（瀏覽器政策）
+  function _resumeCtx() {
+    if (_audioCtx && _audioCtx.state === 'suspended') {
+      _audioCtx.resume();
+    }
+  }
+  document.addEventListener('click', _resumeCtx, { once: true });
+  document.addEventListener('keydown', _resumeCtx, { once: true });
+
+  /**
+   * 播放一個合成音效。不受 _isStub 影響（合成音是內建的）。
+   * 如果同名 ID 在 _sfxCache 裡已有真實音檔 → 改播真實音檔。
+   * @param {string} id    音效 ID（見 SYNTH_MAP）
+   * @param {number} [vol] 額外音量乘數
+   */
+  function playSynth(id, vol = 1.0) {
+    if (_muted) return;
+    // 真實音檔優先
+    if (_sfxCache[id]) { playSfx(id, vol); return; }
+    const fn = SYNTH_MAP[id];
+    if (!fn) return;
+    const ctx = _ensureCtx();
+    if (!ctx) return;
+    _resumeCtx();
+    try { fn(ctx, _sfxVol * _masterVol * vol); } catch (e) { /* ignore */ }
+  }
+
+  // ── 合成音效定義 ──────────────────────────────────
+
+  const SYNTH_MAP = {
+
+    // 🐓 雞鳴：三段上升音調（模擬 cock-a-doodle-doo）
+    rooster: (ctx, vol) => {
+      const now = ctx.currentTime;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(vol * 0.3, now);
+      g.gain.linearRampToValueAtTime(vol * 0.5, now + 0.15);
+      g.gain.linearRampToValueAtTime(vol * 0.4, now + 0.4);
+      g.gain.linearRampToValueAtTime(vol * 0.6, now + 0.5);
+      g.gain.linearRampToValueAtTime(0, now + 1.2);
+      g.connect(ctx.destination);
+
+      // 三段 oscillator 模擬雞叫音型
+      const notes = [
+        { freq: 600,  start: 0,    end: 0.18 },
+        { freq: 800,  start: 0.2,  end: 0.45 },
+        { freq: 1050, start: 0.48, end: 1.1  },
+      ];
+      notes.forEach(n => {
+        const o = ctx.createOscillator();
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(n.freq, now + n.start);
+        o.frequency.linearRampToValueAtTime(n.freq * 1.15, now + n.end);
+        o.connect(g);
+        o.start(now + n.start);
+        o.stop(now + n.end + 0.05);
+      });
+    },
+
+    // ⚔️ 揮劍：濾波白噪音
+    sword_swing: (ctx, vol) => {
+      const now = ctx.currentTime;
+      const dur = 0.18;
+      const buf = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1);
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      const filt = ctx.createBiquadFilter();
+      filt.type = 'bandpass';
+      filt.frequency.setValueAtTime(2000, now);
+      filt.frequency.linearRampToValueAtTime(800, now + dur);
+      filt.Q.value = 1.5;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(vol * 0.5, now);
+      g.gain.linearRampToValueAtTime(0, now + dur);
+      src.connect(filt).connect(g).connect(ctx.destination);
+      src.start(now);
+    },
+
+    // 💥 撞擊：低頻砰
+    impact: (ctx, vol) => {
+      const now = ctx.currentTime;
+      const o = ctx.createOscillator();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(150, now);
+      o.frequency.exponentialRampToValueAtTime(40, now + 0.2);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(vol * 0.6, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      o.connect(g).connect(ctx.destination);
+      o.start(now);
+      o.stop(now + 0.35);
+    },
+
+    // 🔔 升級叮：短高音
+    level_up: (ctx, vol) => {
+      const now = ctx.currentTime;
+      [523, 659, 784].forEach((freq, i) => {
+        const o = ctx.createOscillator();
+        o.type = 'sine';
+        o.frequency.value = freq;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(vol * 0.35, now + i * 0.12);
+        g.gain.linearRampToValueAtTime(0, now + i * 0.12 + 0.3);
+        o.connect(g).connect(ctx.destination);
+        o.start(now + i * 0.12);
+        o.stop(now + i * 0.12 + 0.35);
+      });
+    },
+
+    // 🖱️ UI 點擊：微短 tick
+    ui_click: (ctx, vol) => {
+      const now = ctx.currentTime;
+      const o = ctx.createOscillator();
+      o.type = 'sine';
+      o.frequency.value = 1200;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(vol * 0.15, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+      o.connect(g).connect(ctx.destination);
+      o.start(now);
+      o.stop(now + 0.05);
+    },
+
+    // 💬 對話推進：柔 click
+    dialogue_advance: (ctx, vol) => {
+      const now = ctx.currentTime;
+      const o = ctx.createOscillator();
+      o.type = 'triangle';
+      o.frequency.value = 800;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(vol * 0.12, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+      o.connect(g).connect(ctx.destination);
+      o.start(now);
+      o.stop(now + 0.07);
+    },
+
+    // 🩸 受傷：尖銳低刺
+    injury: (ctx, vol) => {
+      const now = ctx.currentTime;
+      const o = ctx.createOscillator();
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(400, now);
+      o.frequency.exponentialRampToValueAtTime(80, now + 0.15);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(vol * 0.45, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+      o.connect(g).connect(ctx.destination);
+      o.start(now);
+      o.stop(now + 0.3);
+    },
+
+    // 😴 就寢：柔和下降音
+    sleep: (ctx, vol) => {
+      const now = ctx.currentTime;
+      const o = ctx.createOscillator();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(440, now);
+      o.frequency.linearRampToValueAtTime(220, now + 0.8);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(vol * 0.2, now);
+      g.gain.linearRampToValueAtTime(0, now + 1.0);
+      o.connect(g).connect(ctx.destination);
+      o.start(now);
+      o.stop(now + 1.1);
+    },
+  };
+
+  // ══════════════════════════════════════════════════
   // 公開介面
   // ══════════════════════════════════════════════════
   return {
     // 播放
     playSfx,
+    playSynth,      // 🆕 合成音效
     playBgm,
     stopBgm,
     getCurrentBgm,

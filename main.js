@@ -734,6 +734,7 @@ const Game = (() => {
     const staminaGain = Math.min(staminaMax, daily.SLEEP_STAMINA_GAIN);
 
     if (sleepType === 'normal') {
+      if (typeof SoundManager !== 'undefined') SoundManager.playSynth('sleep');
       addLog('🌙【就寢】你閉上眼，很快沉入黑暗。沒有夢，只有沉重的疲倦與虛空。', '#8b87b8', true);
       Stats.modVital('stamina', staminaGain);
       Stats.modVital('mood',    daily.SLEEP_MOOD_GAIN);
@@ -1229,6 +1230,11 @@ const Game = (() => {
     const extraDesc = [moodDesc, thresholdDesc].filter(Boolean).join(' ');
     addLog(`【${act.name}】${gainSummary ? '　' + gainSummary : ''}${extraDesc ? '　' + extraDesc : ''}`, '#c8a060', false);
 
+    // 🆕 D.22b：訓練音效
+    if (hasAttrEffect && typeof SoundManager !== 'undefined') {
+      SoundManager.playSynth('sword_swing');
+    }
+
     // ── 協力爆擊日誌（D.8c）─────────────────────────
     if (hasAttrEffect && synergyMult > 1.0) {
       const multStr = synergyMult.toFixed(1);
@@ -1318,6 +1324,7 @@ const Game = (() => {
           Stats.modVital('stamina', -25);
           Stats.modVital('mood',    -20);
           addLog(`🩸 ${part}重傷！極限超載的代價。（體力 -25　心情 -20）`, '#cc3333', false);
+          if (typeof SoundManager !== 'undefined') SoundManager.playSynth('injury');
         } else {
           Stats.modVital('stamina', -12);
           Stats.modVital('mood',    -8);

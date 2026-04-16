@@ -353,8 +353,9 @@ const Stage = (() => {
     document.addEventListener('keydown', _skipHandler);
     overlay.addEventListener('click', _clickHandler);
 
-    // 3) 雞鳴淡入
+    // 3) 雞鳴淡入 + 🆕 音效
     await _wait(300);
+    if (typeof SoundManager !== 'undefined') SoundManager.playSynth('rooster');
     if (roosterEl) roosterEl.classList.add('visible');
     await _wait(_skipRequested ? 0 : MORNING_ROOSTER_HOLD_MS);
 
