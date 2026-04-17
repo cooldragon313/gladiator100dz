@@ -344,7 +344,7 @@ const Endings = (() => {
         }, 800);
       });
 
-      _addButton(box, '讀取存檔（F9）', d + 2200, () => {
+      _addButton(box, '讀取存檔', d + 2200, () => {
         ov.style.opacity = 0;
         setTimeout(() => {
           ov.remove();
