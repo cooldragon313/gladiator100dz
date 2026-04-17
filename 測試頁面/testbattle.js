@@ -180,6 +180,28 @@ const TB_ENEMIES = {
     fame:15, intimidation:0.03,
     desc:'身上的疤比你的歲數還多。他被叫來專門對付「有膽識」的新人。',
   },
+  // 🆕 Day 12 切磋用：背景角鬥士（比你稍弱，練習用不會死）
+  sparringPartner: {
+    name:'訓練場老手', title:'切磋對手',
+    STR:10, DEX:10, CON:10, AGI:10, WIL:8, LUK:8, hpBase:45,
+    weaponId:'shortSword', armorId:'rags', shieldId:'none',
+    traitId:'none',
+    ai:'basic', passive:null, specialCD:99,
+    fame:3, intimidation:0,
+    desc:'比你早來幾個月的傢伙。不算強，但有經驗。',
+  },
+
+  // 🆕 Day 50 大型競技用：中階對手（gladiatorB 改名）
+  gladiatorB: {
+    name:'黑面鬥士', title:'中階角鬥士',
+    STR:16, DEX:14, CON:16, AGI:12, WIL:12, LUK:10, hpBase:60,
+    weaponId:'shortSword', armorId:'leather', shieldId:'none',
+    traitId:'none',
+    ai:'normal', passive:null, specialCD:99,
+    fame:20, intimidation:0.02,
+    desc:'臉上總是塗著黑色的顏料。他說那是戰友的血——你不確定他是認真的。',
+  },
+
   arenaVet: {
     name:'競技場老手', title:'資深鬥士',
     STR:22, DEX:18, CON:20, AGI:16, WIL:15, LUK:12, hpBase:70,

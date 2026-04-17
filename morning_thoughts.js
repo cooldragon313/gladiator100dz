@@ -600,6 +600,30 @@ const MorningThoughts = (() => {
         '考驗快到了。訓練場上的眼神都變了。',
       ],
     },
+    // Day 10 後：淘汰的餘韻
+    {
+      id: 'anticipation_post_elimination',
+      type: 'foreboding',
+      priority: 65,
+      condition: p => Flags.has('day10_done') && p.day === 11,
+      maxShowCount: 1,
+      thoughts: [
+        '昨天被帶走的那三個人——你連他們的名字都不知道。這裡的人消失得太安靜了。',
+      ],
+    },
+    // Day 15 後：大賽倒數壓力
+    {
+      id: 'anticipation_arena_countdown',
+      type: 'anticipation',
+      priority: 70,
+      condition: p => Flags.has('day15_done') && p.day >= 16 && p.day <= 25,
+      maxShowCount: 3,
+      thoughts: [
+        '秋季大賽。第五十天。你算了算——還有時間。但不多了。',
+        '監督官說訓練強度要提高。你的身體準備好了嗎？',
+        '或許該把更多時間花在弱項上。不然到時候……',
+      ],
+    },
     // 拿到武器後的感受
     {
       id: 'anticipation_weapon_new',

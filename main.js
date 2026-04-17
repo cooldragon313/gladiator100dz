@@ -3872,6 +3872,181 @@ const Game = (() => {
   //   觸發方式 B（Day 4 保底）：DayCycle.onDayStart 檢查
   // ══════════════════════════════════════════════════
 
+  // ══════════════════════════════════════════════════
+  // 🆕 D.23 世界事件：Day 6-25（第一幕填充）
+  // ══════════════════════════════════════════════════
+
+  // ── Day 10 新人淘汰日 ──
+  DayCycle.onDayStart('day10Elimination', (newDay) => {
+    if (newDay !== 10) return;
+    if (Flags.has('day10_done')) return;
+    Flags.set('day10_done', true);
+
+    const fame = Stats.player.fame || 0;
+    const lines = [
+      { text: '今天的訓練場比平常安靜。' },
+      { text: '所有人被叫到場邊站好。長官手裡拿著一張名單。' },
+      { speaker: '塔倫長官', text: '以下念到名字的，收拾東西。' },
+      { speaker: '塔倫長官', text: '你們的買主不想再浪費糧食了。' },
+      { text: '他念了三個名字。你不認識的人。' },
+      { text: '他們被侍從帶走。沒有人反抗。' },
+      { text: '走廊的盡頭傳來鐵門關上的聲音。' },
+    ];
+    if (fame >= 10) {
+      lines.push({ text: '長官經過你的時候停了一秒。他看了你一眼——然後走過去了。' });
+      lines.push({ text: '你知道那個眼神是什麼意思。你暫時是安全的。' });
+    } else {
+      lines.push({ text: '長官經過你的時候……你感覺到他的目光停留了比別人更久。' });
+      lines.push({ text: '你不在名單上。但你知道——下一次未必。' });
+      Stats.modVital('mood', -10);
+    }
+    _pendingDialogues.push({ id: 'day10_elimination', lines });
+  }, 28);
+
+  // ── Day 12 被安排切磋（第一次訓練後戰鬥） ──
+  DayCycle.onDayStart('day12Sparring', (newDay) => {
+    if (newDay !== 12) return;
+    if (Flags.has('day12_done')) return;
+    Flags.set('day12_done', true);
+
+    _pendingDialogues.push({
+      id: 'day12_sparring_intro',
+      lines: [
+        { text: '訓練進行到一半，監督官突然吹了哨。' },
+        { speaker: '監督官', text: '你。出來。' },
+        { text: '他指著你。然後指著場邊一個你沒太注意過的人。' },
+        { speaker: '監督官', text: '切磋。讓我看看你這幾天練了什麼。' },
+        { text: '那個人站到你對面。他比你早來幾個月——動作比你流暢。' },
+        { speaker: '監督官', text: '不准殺。打到一方倒地為止。開始。' },
+      ],
+      onComplete: () => {
+        Battle.start('sparringPartner',
+          () => {
+            DialogueModal.play([
+              { text: '你的對手被你打倒在地。他喘著氣，對你點了點頭。' },
+              { speaker: '監督官', text: '……還行。' },
+              { text: '那是你第一次從監督官嘴裡聽到「還行」這兩個字。' },
+            ], {
+              onComplete: () => {
+                teammates.modAffection('overseer', 5);
+                Stats.modFame(3);
+                addLog('切磋獲勝！名聲 +3', '#d4af37', true, true);
+                renderAll();
+              },
+            });
+          },
+          () => {
+            DialogueModal.play([
+              { text: '你倒在地上。沙子灌進嘴裡。' },
+              { speaker: '監督官', text: '……不夠。' },
+              { text: '他轉身走了。你爬起來，膝蓋在發抖。' },
+            ], {
+              onComplete: () => {
+                Stats.modVital('mood', -10);
+                addLog('切磋落敗。', '#8899aa', true, true);
+                renderAll();
+              },
+            });
+          }
+        );
+      },
+    });
+  }, 28);
+
+  // ── Day 15 監督官公開訓話（秋季大賽日程） ──
+  DayCycle.onDayStart('day15Speech', (newDay) => {
+    if (newDay !== 15) return;
+    if (Flags.has('day15_done')) return;
+    Flags.set('day15_done', true);
+
+    _pendingDialogues.push({
+      id: 'day15_speech',
+      lines: [
+        { text: '所有人被叫到訓練場集合。' },
+        { text: '監督官站在高台上。他的表情比平常更嚴肅。' },
+        { speaker: '監督官', text: '聽好了。' },
+        { speaker: '監督官', text: '秋季大賽的日期已經定了。第五十天。' },
+        { speaker: '監督官', text: '從今天起，訓練強度會提高。' },
+        { speaker: '監督官', text: '跟不上的人——' },
+        { text: '他停頓了一下。' },
+        { speaker: '監督官', text: '不需要我說。你們都看過了。' },
+        { text: '你想到十天前被帶走的那三個人。' },
+        { text: '訓練場上安靜得像有人在辦喪事。' },
+      ],
+    });
+  }, 28);
+
+  // ── Day 20 第二批奴隸到來 ──
+  DayCycle.onDayStart('day20NewSlaves', (newDay) => {
+    if (newDay !== 20) return;
+    if (Flags.has('day20_done')) return;
+    Flags.set('day20_done', true);
+
+    _pendingDialogues.push({
+      id: 'day20_new_arrivals',
+      lines: [
+        { text: '早上醒來，訓練場上多了幾張陌生的臉。' },
+        { text: '三個人。被鐵鏈串在一起，跟你第一天一模一樣。' },
+        { text: '他們的眼神裡還有恐懼。你突然想起——你剛來的時候也是那個樣子。' },
+        { text: '但現在你看著他們，卻覺得很遠。' },
+        { text: '有人對你行注目禮。也許是因為你手裡的武器，也許是因為你站的位置。' },
+        { text: '你已經不是新人了。' },
+      ],
+    });
+    // 背景角鬥士池可能在此時擴充（未來用）
+    addLog('【第二批奴隸到來】訓練場上多了幾張新面孔。', '#c8a060', true, true);
+  }, 28);
+
+  // ── Day 25 秋祭（難得的放鬆日） ──
+  DayCycle.onDayStart('day25Festival', (newDay) => {
+    if (newDay !== 25) return;
+    if (Flags.has('day25_done')) return;
+    Flags.set('day25_done', true);
+
+    const melaAff = (typeof teammates !== 'undefined') ? teammates.getAffection('melaKook') : 0;
+    const olanAff = (typeof teammates !== 'undefined') ? teammates.getAffection('orlan') : 0;
+
+    const lines = [
+      { text: '今天是秋祭。訓練所難得地放了半天假。' },
+      { text: '訓練場上沒有器械的碰撞聲——取而代之的是炊煙和笑聲。' },
+    ];
+
+    if (melaAff >= 30) {
+      lines.push(
+        { text: '梅拉在廚房裡忙了一整個早上。她做了一道你沒吃過的東西。' },
+        { speaker: '梅拉', text: '秋祭特別的。嚐嚐。' },
+        { text: '你嚐了一口。嘴裡突然有一種說不出的溫暖。' },
+        { text: '你不知道是食物的味道，還是被人記得的感覺。' },
+      );
+      Stats.modVital('food', 30);
+      Stats.modVital('mood', 20);
+    } else {
+      lines.push(
+        { text: '梅拉做了特別料理。每個人都多分到一份。' },
+        { text: '你吃了。比平常好吃。但也只是比平常好吃而已。' },
+      );
+      Stats.modVital('food', 20);
+      Stats.modVital('mood', 10);
+    }
+
+    if (olanAff >= 40) {
+      lines.push(
+        { speaker: '奧蘭', text: '秋祭快樂。' },
+        { text: '他遞給你一個小東西——是他用草編的，形狀像一隻鳥。' },
+        { speaker: '奧蘭', text: '我小時候在磨坊常編這個。不值什麼錢，但……' },
+        { text: '他沒說完，你也不需要他說完。' },
+      );
+      teammates.modAffection('orlan', 10);
+    }
+
+    lines.push(
+      { text: '秋祭在傍晚結束了。明天又是訓練。' },
+      { text: '但今天——今天還算不錯。' },
+    );
+
+    _pendingDialogues.push({ id: 'day25_festival', lines });
+  }, 28);
+
   // ── 索爾 Day 2-4 小事件（在武器事件之前觸發） ──
   DayCycle.onDayStart('solEvents', (newDay) => {
     if (typeof teammates !== 'undefined' && teammates.getNPC('sol')?.alive === false) return;
