@@ -2671,6 +2671,20 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   line-height: 1.4;
 }
 .action-btn:hover:not([disabled]) .action-name { color: #e8c090; }
+
+/* 🆕 受傷風險警告燈 */
+.injury-warn {
+  font-size: 14px;
+  margin-left: 4px;
+  animation: injury-blink 1.2s ease-in-out infinite;
+}
+.injury-mid  { color: #cc8833; }  /* 10-30%：橘色 */
+.injury-high { color: #cc3333; }  /* 30%+：紅色 */
+@keyframes injury-blink {
+  0%, 100% { opacity: 0.6; }
+  50%      { opacity: 1; }
+}
+
 .action-btn-sleep {
   width: 100%;
   background: #0d0808;

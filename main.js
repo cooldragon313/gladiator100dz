@@ -1422,12 +1422,31 @@ const Game = (() => {
       if (act.staminaCost > 0) costs.push(`⚡${act.staminaCost}`);
       if ((act.foodCost || 0) > 0) costs.push(`🍖${act.foodCost}`);
 
+      // 🆕 受傷率預估（只顯示 > 10% 時的警告色燈）
+      let injuryHint = '';
+      if (act.staminaCost > 0 && (act.effects || []).some(e => e.type === 'exp' || e.type === 'attr')) {
+        const ratio = act.staminaCost / Math.max(1, p.stamina);
+        let risk = 0.05;
+        if      (ratio >= 2.0) risk += 0.50;
+        else if (ratio >= 1.5) risk += 0.35;
+        else if (ratio >= 1.0) risk += 0.20;
+        else if (ratio >= 0.7) risk += 0.08;
+        if (p.stamina <= 20) risk += 0.05;
+        risk = Math.min(0.85, risk);
+
+        if (risk >= 0.30) {
+          injuryHint = ' <span class="injury-warn injury-high" title="受傷風險高">⚠</span>';
+        } else if (risk >= 0.10) {
+          injuryHint = ' <span class="injury-warn injury-mid" title="有受傷風險">⚠</span>';
+        }
+      }
+
       const costStr  = costs.join(' · ');
       const warnStr  = reason ? ` · <span style="color:#cc4444;font-size:13px;">${reason}</span>` : '';
       const clickStr = disabled ? '' : `onclick="Game.doAction('${act.id}')"`;
 
       html += `<button class="action-btn" ${disabled ? 'disabled' : clickStr}>
-        <div class="action-name">${act.name}</div>
+        <div class="action-name">${act.name}${injuryHint}</div>
         <div class="action-cost">${costStr}${warnStr}</div>
       </button>`;
     });
