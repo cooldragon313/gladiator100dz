@@ -1664,7 +1664,14 @@ const Game = (() => {
   }
 
   // ── Execute action ─────────────────────────────────────
+  // 🆕 Stage/對話動畫中禁止操作
+  let _uiLocked = false;
+
   function doAction(actionId) {
+    // 🆕 動畫播放中 → 禁止操作
+    if (_uiLocked) return;
+    if (typeof DialogueModal !== 'undefined' && DialogueModal.isOpen()) return;
+
     const p = Stats.player;
 
     // Special: end-of-day sleep
@@ -2291,9 +2298,11 @@ const Game = (() => {
   }
 
   async function sleepEndDay() {
+    _uiLocked = true;   // 🆕 鎖住 UI 直到晨起演出全部完成
     const p = Stats.player;
     if (p.day >= 100) {
       addLog('一百天到了。萬骸祭的鐘聲即將敲響。', '#8b0000', true);
+      _uiLocked = false;
       return;
     }
 
@@ -2335,6 +2344,7 @@ const Game = (() => {
       if (typeof DoctorEvents !== 'undefined' && DoctorEvents.tryVisit) {
         try { DoctorEvents.tryVisit(); } catch (e) { console.error('[Doctor]', e); }
       }
+      _uiLocked = false;   // 🆕 晨起演出全部完成，解鎖 UI
     } else {
       _sleepEndDayBody(sleepType);
       _flushStageEvents();
@@ -2342,6 +2352,7 @@ const Game = (() => {
       if (typeof DoctorEvents !== 'undefined' && DoctorEvents.tryVisit) {
         try { DoctorEvents.tryVisit(); } catch (e) { console.error('[Doctor]', e); }
       }
+      _uiLocked = false;   // 🆕 解鎖
     }
   }
 
@@ -4023,6 +4034,10 @@ const Game = (() => {
   }
 
   function _doCinematic(onComplete) {
+    // 🆕 先把遊戲畫面藏起來（避免介紹頁淡出時閃到 UI）
+    const gameRoot = document.getElementById('game-root');
+    if (gameRoot) gameRoot.style.visibility = 'hidden';
+
     // 建立全螢幕覆蓋層
     const ov = document.createElement('div');
     ov.id = 'opening-cinematic';
@@ -4086,7 +4101,13 @@ const Game = (() => {
         _showOpeningTitle(ov, textBox, () => {
           document.removeEventListener('keydown', skipHandler);
           ov.style.opacity = 0;
-          setTimeout(() => { ov.remove(); onComplete(); }, 800);
+          setTimeout(() => {
+            ov.remove();
+            // 🆕 恢復遊戲畫面
+            const gr = document.getElementById('game-root');
+            if (gr) gr.style.visibility = '';
+            onComplete();
+          }, 800);
         });
         return;
       }
