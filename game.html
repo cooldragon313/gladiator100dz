@@ -668,6 +668,34 @@ html, body {
 }
 
 /* ── Log area ── */
+/* 🆕 碎念跑馬燈 — scene-view 和 log 之間的固定兩行 */
+#mumble-ticker {
+  flex-shrink: 0;
+  min-height: 0;
+  max-height: 48px;
+  overflow: hidden;
+  padding: 4px 14px;
+  background: rgba(10,8,4,.85);
+  border-top: 1px solid rgba(200,160,80,0.15);
+  font-size: 14px;
+  font-style: italic;
+  line-height: 1.5;
+  color: #9a8c6a;
+  transition: max-height .3s ease;
+}
+#mumble-ticker:empty {
+  max-height: 0;
+  padding: 0 14px;
+  border-top: none;
+}
+#mumble-ticker .mumble-line {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#mumble-ticker .mumble-gossip { color: #b8a870; }
+#mumble-ticker .mumble-synergy { color: #d9a84f; }
+
 #log-area {
   height: 260px;
   flex-shrink: 0;
@@ -3014,6 +3042,9 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 
       </div><!-- /npc-area -->
     </div><!-- /scene-view -->
+
+    <!-- 🆕 碎念跑馬燈（固定兩行，不擋 stage 不擠日誌） -->
+    <div id="mumble-ticker"></div>
 
     <!-- Log area -->
     <div id="log-area">

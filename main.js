@@ -294,6 +294,19 @@ const Game = (() => {
   }
 
   // ── Log ───────────────────────────────────────────────
+  // 🆕 碎念跑馬燈（固定兩行，不擋 stage 不擠日誌）
+  const _mumbleLines = [];
+  function _pushMumbleTicker(html) {
+    _mumbleLines.push(html);
+    if (_mumbleLines.length > 2) _mumbleLines.shift();
+    const el = document.getElementById('mumble-ticker');
+    if (el) {
+      el.innerHTML = _mumbleLines
+        .map(h => `<div class="mumble-line">${h}</div>`)
+        .join('');
+    }
+  }
+
   function addLog(text, color = '#e0e0e0', italic = true, flash = false) {
     logHistory.unshift({ text, color, italic });
     if (logHistory.length > MAX_LOG) logHistory.pop();
@@ -1692,26 +1705,21 @@ const Game = (() => {
     // 🆕 D.18：訓練時累積背景角鬥士的熟悉度 + 碎念/協力吶喊
     if (hasAttrEffect && typeof BackgroundGladiators !== 'undefined') {
       BackgroundGladiators.bumpOnTraining();
-      // 70% 機率有人碎念一句（任何背景人員都可能出聲；15% 會講八卦）
+      // 70% 機率有人碎念 → 送到跑馬燈（不塞日誌，不擋 stage）
       if (Math.random() < 0.70) {
         const m = BackgroundGladiators.getMumble();
         if (m) {
-          if (m.isSignature) {
-            // 個人簽名八卦：較亮的暖色，有人物印記的味道
-            addLog(`💭 ${m.name}：「${m.line}」`, '#c8a878', false);
-          } else if (m.isGossip) {
-            // 公共八卦：暖褐色 + 💬
-            addLog(`💬 ${m.name}：「${m.line}」`, '#9a8c6a', false);
-          } else {
-            // 屬性碎念：冷藍
-            addLog(`「${m.line}」——${m.name}`, '#88a0b8', false);
-          }
+          const cls = m.isGossip ? 'mumble-gossip' : (m.isSignature ? 'mumble-gossip' : '');
+          const prefix = (m.isGossip || m.isSignature) ? `💬 ${m.name}：` : `${m.name}：`;
+          _pushMumbleTicker(`<span class="${cls}">${prefix}「${m.line}」</span>`);
         }
       }
-      // 協力觸發時：同屬性通過熟悉度的人員會再多喊 1~2 句
+      // 協力觸發時 → 跑馬燈
       if (bgNpcMult > 1.0 && trainedAttr) {
         const shouts = BackgroundGladiators.getSynergyShouts(trainedAttr, 2);
-        shouts.forEach(s => addLog(`🔥「${s.line}」——${s.name}`, '#d9a84f', false));
+        shouts.forEach(s => {
+          _pushMumbleTicker(`<span class="mumble-synergy">🔥 ${s.name}：「${s.line}」</span>`);
+        });
       }
     }
 
