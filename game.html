@@ -2673,46 +2673,46 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   background: #090704;
   flex-direction: column;
   overflow: hidden;
-  font-size: 13px;
+  font-size: 15px;          /* 🆕 整體戰鬥字體從 13 → 15 */
   font-family: var(--font);
 }
 
 /* ── Enemy info bar ── */
 #bt-enemy-info {
   display: flex;
-  gap: 10px;
-  padding: 8px 10px;
+  gap: 12px;
+  padding: 10px 14px;
   background: #110806;
   border-bottom: 2px solid #3a1010;
   flex-shrink: 0;
 }
 #bt-ei-left {
   flex: 0 0 auto;
-  min-width: 170px;
-  max-width: 210px;
+  min-width: 180px;
+  max-width: 240px;
 }
-#bt-ei-name   { font-size: 17px; font-weight: 700; color: #cc4422; letter-spacing: .1em; margin-bottom: 3px; }
-#bt-ei-title  { font-size: 11px; color: #885544; margin-bottom: 5px; }
-#bt-ei-passive { font-size: 11px; color: #cc8822; line-height: 1.5; margin-bottom: 2px; }
-#bt-ei-special { font-size: 11px; color: #bb66cc; line-height: 1.5; margin-bottom: 2px; }
-#bt-ei-weak    { font-size: 11px; color: #6699aa; line-height: 1.5; }
+#bt-ei-name   { font-size: 20px; font-weight: 700; color: #cc4422; letter-spacing: .1em; margin-bottom: 4px; }
+#bt-ei-title  { font-size: 14px; color: #885544; margin-bottom: 6px; }
+#bt-ei-passive { font-size: 14px; color: #cc8822; line-height: 1.5; margin-bottom: 3px; }
+#bt-ei-special { font-size: 14px; color: #bb66cc; line-height: 1.5; margin-bottom: 3px; }
+#bt-ei-weak    { font-size: 14px; color: #6699aa; line-height: 1.5; }
 #bt-ei-right { flex: 1; min-width: 0; }
 #bt-ei-attrs {
   display: flex;
-  gap: 5px;
+  gap: 6px;
   flex-wrap: wrap;
-  margin-bottom: 5px;
+  margin-bottom: 6px;
 }
 .bt-attr-item {
   display: flex; flex-direction: column; align-items: center;
   background: #1a100a; border: 1px solid #2a1a10;
-  padding: 2px 7px; border-radius: 2px;
+  padding: 3px 10px; border-radius: 2px;
 }
-.bt-attr-k { font-size: 9px; color: #665544; }
-.bt-attr-v { font-size: 15px; font-weight: 700; color: #cc9944; }
-#bt-ei-derived { font-size: 11px; color: #887766; line-height: 1.7; margin-bottom: 3px; }
+.bt-attr-k { font-size: 12px; color: #665544; }
+.bt-attr-v { font-size: 18px; font-weight: 700; color: #cc9944; }
+#bt-ei-derived { font-size: 14px; color: #887766; line-height: 1.8; margin-bottom: 4px; }
 #bt-ei-derived b { color: #ccaa66; }
-#bt-ei-equip   { font-size: 10px; color: #554433; }
+#bt-ei-equip   { font-size: 13px; color: #887766; }
 
 /* ── Combatant cards ── */
 #bt-combatants {
@@ -2732,10 +2732,10 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 }
 .bt-card-player { border-color: #223388; }
 .bt-card-enemy  { border-color: #882222; }
-.bt-comb-name  { font-size: 15px; font-weight: 700; letter-spacing: .1em; margin-bottom: 2px; color: var(--text-hi); }
-.bt-comb-title { font-size: 10px; color: #666680; margin-bottom: 5px; }
-.bt-bar-label  { font-size: 10px; color: #666; display: flex; justify-content: space-between; margin-bottom: 2px; }
-.bt-bar-track  { height: 11px; background: #18120a; border-radius: 1px; overflow: hidden; margin-bottom: 5px; }
+.bt-comb-name  { font-size: 18px; font-weight: 700; letter-spacing: .1em; margin-bottom: 3px; color: var(--text-hi); }
+.bt-comb-title { font-size: 13px; color: #666680; margin-bottom: 5px; }
+.bt-bar-label  { font-size: 13px; color: #888; display: flex; justify-content: space-between; margin-bottom: 2px; }
+.bt-bar-track  { height: 14px; background: #18120a; border-radius: 2px; overflow: hidden; margin-bottom: 6px; }
 .bt-bar-fill   { height: 100%; transition: width 0.25s ease; }
 .bt-hp-fill    { background: linear-gradient(to right, #660000, #cc2200); }
 .bt-gauge-fill.rage  { background: linear-gradient(to right, #440000, #cc4400); }
@@ -2747,17 +2747,27 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 .bt-card-player .bt-atb-fill        { background: linear-gradient(to right, #112244, #2266cc); }
 .bt-card-player .bt-atb-fill.ready  { background: linear-gradient(to right, #116633, #33ff88); box-shadow: 0 0 5px #33ff88; }
 .bt-card-enemy  .bt-atb-fill        { background: linear-gradient(to right, #441111, #cc2222); }
-.bt-status     { font-size: 10px; color: #cc8800; min-height: 13px; margin-bottom: 4px; letter-spacing: .05em; }
-.bt-vs         { display: flex; align-items: center; justify-content: center; font-size: 20px; color: #553333; font-weight: 700; flex-shrink: 0; padding: 0 6px; }
+.bt-status     { font-size: 13px; color: #cc8800; min-height: 16px; margin-bottom: 4px; letter-spacing: .05em; }
+.bt-vs         { display: flex; align-items: center; justify-content: center; font-size: 24px; color: #553333; font-weight: 700; flex-shrink: 0; padding: 0 8px; }
 .bt-mini-stats {
   display: grid; grid-template-columns: repeat(3, 1fr);
-  gap: 1px 4px; margin-top: 5px;
-  border-top: 1px solid #22180e; padding-top: 4px;
+  gap: 2px 6px; margin-top: 6px;
+  border-top: 1px solid #22180e; padding-top: 5px;
 }
-.bt-ms-item { display: flex; justify-content: space-between; font-size: 10px; padding: 1px 2px; }
-.bt-ms-lbl  { color: #444430; }
-.bt-ms-val  { color: #aa8833; font-weight: bold; }
+.bt-ms-item { display: flex; justify-content: space-between; font-size: 13px; padding: 2px 3px; }
+.bt-ms-lbl  { color: #555540; }
+.bt-ms-val  { color: #bb9944; font-weight: bold; }
 .bt-ms-val.pressured { color: #cc4422 !important; }
+
+/* 🆕 戰鬥裝備顯示 */
+.bt-equip-info {
+  margin-top: 6px;
+  padding-top: 5px;
+  border-top: 1px solid #22180e;
+  font-size: 13px;
+  color: #998866;
+  letter-spacing: .05em;
+}
 
 /* ── Skill display ── */
 #bt-skill-display {

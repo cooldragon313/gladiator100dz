@@ -972,6 +972,49 @@ const Battle = (() => {
 
     _fillMiniStats('bt-p-mini', _player);
     _fillMiniStats('bt-e-mini', _enemy);
+
+    // 🆕 裝備顯示
+    _fillEquipInfo('bt-p-equip', _player);
+    _fillEquipInfo('bt-e-equip', _enemy);
+  }
+
+  function _fillEquipInfo(targetId, unit) {
+    let el = document.getElementById(targetId);
+    if (!el) {
+      // 動態建立裝備欄位（在 mini-stats 下方）
+      const parent = document.getElementById(targetId.replace('-equip', '-mini'))?.parentElement;
+      if (!parent) return;
+      el = document.createElement('div');
+      el.id = targetId;
+      el.className = 'bt-equip-info';
+      parent.appendChild(el);
+    }
+    const wName = _getWeaponName(unit.weaponId);
+    const aName = _getArmorName(unit.armorId);
+    const oName = _getOffhandName(unit.offhandId || unit.shieldId);
+    const parts = [`⚔ ${wName}`];
+    if (oName !== '—') parts.push(`🛡 ${oName}`);
+    parts.push(`🦺 ${aName}`);
+    el.innerHTML = parts.join('　');
+  }
+
+  function _getWeaponName(id) {
+    if (!id || id === 'fists') return '空手';
+    const w = (typeof TB_WEAPONS !== 'undefined') ? TB_WEAPONS[id] : null;
+    if (w && w.name) return w.name;
+    if (typeof Weapons !== 'undefined' && Weapons[id]) return Weapons[id].name;
+    return id;
+  }
+  function _getArmorName(id) {
+    if (!id || id === 'rags') return '破布';
+    const a = (typeof TB_ARMORS !== 'undefined') ? TB_ARMORS[id] : null;
+    return a ? a.name : id;
+  }
+  function _getOffhandName(id) {
+    if (!id || id === 'none') return '—';
+    const s = (typeof TB_SHIELDS !== 'undefined') ? TB_SHIELDS[id] : null;
+    if (s) return s.name;
+    return _getWeaponName(id);
   }
 
   function _fillMiniStats(targetId, unit) {
