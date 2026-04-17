@@ -3912,25 +3912,183 @@ const Game = (() => {
       GameState.setFieldId(FIXED_FIELD);
       currentFieldId = FIXED_FIELD;
       currentNPCs    = GameState.getCurrentNPCs();
-      // Restore original name-entry form
-      box.innerHTML = `
-        <div class="modal-header"><span class="modal-title">你是誰</span></div>
-        <div class="modal-body">
-          <p style="color:var(--text-dim);font-size:24px;margin-bottom:12px;line-height:1.8">
-            鐵鏈將你押入競技場。<br>他們問你的名字，不是因為在乎你——而是要刻在你的墓碑上。
-          </p>
-          <input type="text" id="name-input" maxlength="6" placeholder="輸入名字（最多六字）" autocomplete="off"/>
-          <p class="name-hint">按 Enter 或點擊確認</p>
-        </div>
-        <div class="modal-footer">
-          <button class="game-btn primary" id="btn-confirm-name">踏入命運</button>
-        </div>`;
-      document.getElementById('btn-confirm-name')?.addEventListener('click', confirmName);
-      document.getElementById('name-input')?.addEventListener('keydown', e => {
-        if (e.key === 'Enter') confirmName();
+
+      // 🆕 開場動畫（startscene.png + 打字機文字）→ 名字輸入
+      _playOpeningCinematic(() => {
+        // 動畫結束後顯示名字輸入
+        box.innerHTML = `
+          <div class="modal-header"><span class="modal-title">你是誰</span></div>
+          <div class="modal-body">
+            <p style="color:var(--text-dim);font-size:24px;margin-bottom:12px;line-height:1.8">
+              他們問你的名字。<br>不是因為在乎你——而是要刻在你的墓碑上。
+            </p>
+            <input type="text" id="name-input" maxlength="6" placeholder="輸入名字（最多六字）" autocomplete="off"/>
+            <p class="name-hint">按 Enter 或點擊確認</p>
+          </div>
+          <div class="modal-footer">
+            <button class="game-btn primary" id="btn-confirm-name">踏入命運</button>
+          </div>`;
+        document.getElementById('modal-name')?.classList.add('open');
+        document.getElementById('btn-confirm-name')?.addEventListener('click', confirmName);
+        document.getElementById('name-input')?.addEventListener('keydown', e => {
+          if (e.key === 'Enter') confirmName();
+        });
+        document.getElementById('name-input')?.focus();
       });
-      document.getElementById('name-input')?.focus();
     });
+  }
+
+  // ══════════════════════════════════════════════════
+  // 🆕 開場動畫：startscene.png + 打字機文字 + 標題
+  // ══════════════════════════════════════════════════
+  function _playOpeningCinematic(onComplete) {
+    // 隱藏 name modal（等動畫完再開）
+    document.getElementById('modal-name')?.classList.remove('open');
+
+    // 建立全螢幕覆蓋層
+    const ov = document.createElement('div');
+    ov.id = 'opening-cinematic';
+    ov.style.cssText = `
+      position:fixed; inset:0; z-index:9999;
+      background:#000; display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      opacity:0; transition:opacity 1.2s;
+    `;
+
+    // 背景圖
+    const img = document.createElement('div');
+    img.style.cssText = `
+      position:absolute; inset:0;
+      background:url('asset/startscene.png') center/cover no-repeat;
+      opacity:0.7; filter:brightness(0.6);
+    `;
+    ov.appendChild(img);
+
+    // 文字容器
+    const textBox = document.createElement('div');
+    textBox.style.cssText = `
+      position:relative; z-index:2; max-width:580px;
+      padding:30px 40px; text-align:center;
+      font-family:var(--font); line-height:2.2;
+    `;
+    ov.appendChild(textBox);
+
+    document.body.appendChild(ov);
+
+    // 淡入
+    requestAnimationFrame(() => requestAnimationFrame(() => { ov.style.opacity = 1; }));
+
+    const lines = [
+      { text: '鐵鏈把你拖進一間石牆的房間。', delay: 1500 },
+      { text: '地上有半顆爛蘋果和一碗髒水。', delay: 1200 },
+      { text: '', delay: 600 },
+      { text: '有人把你推了一下。你摔在地上。', delay: 1200 },
+      { text: '', delay: 800 },
+      { text: '「吃了。睡了。明天開始訓練。」', delay: 1500, color: '#aa9060', italic: false },
+      { text: '', delay: 600 },
+      { text: '門在你身後關上。', delay: 1000 },
+      { text: '鐵鎖的聲音在走廊迴盪了很久。', delay: 1500 },
+      { text: '', delay: 800 },
+      { text: '你不知道這是哪裡。', delay: 1200 },
+      { text: '你只知道——', delay: 800 },
+      { text: '從今天起，你不再是自由的人。', delay: 2000, color: '#c8a060' },
+    ];
+
+    let skipRequested = false;
+    const skipHandler = (e) => {
+      if (e.key === 'Control' || e.key === 'Escape') skipRequested = true;
+    };
+    document.addEventListener('keydown', skipHandler);
+
+    // 逐行打字顯示
+    let lineIdx = 0;
+    function showNextLine() {
+      if (skipRequested || lineIdx >= lines.length) {
+        // 顯示標題 + 按鈕
+        _showOpeningTitle(ov, textBox, () => {
+          document.removeEventListener('keydown', skipHandler);
+          ov.style.opacity = 0;
+          setTimeout(() => { ov.remove(); onComplete(); }, 800);
+        });
+        return;
+      }
+
+      const line = lines[lineIdx++];
+      if (!line.text) {
+        // 空行 = 停頓
+        setTimeout(showNextLine, skipRequested ? 0 : line.delay);
+        return;
+      }
+
+      const p = document.createElement('p');
+      p.style.cssText = `
+        color:${line.color || '#c0b8a0'}; font-size:20px;
+        letter-spacing:.08em; opacity:0; transition:opacity .6s;
+        ${line.italic === false ? '' : 'font-style:italic;'}
+        margin:0; padding:2px 0;
+      `;
+
+      // 打字機效果
+      const fullText = line.text;
+      p.textContent = '';
+      textBox.appendChild(p);
+      requestAnimationFrame(() => { p.style.opacity = 1; });
+
+      if (skipRequested) {
+        p.textContent = fullText;
+        setTimeout(showNextLine, 50);
+        return;
+      }
+
+      let charIdx = 0;
+      const typeInterval = setInterval(() => {
+        if (skipRequested) {
+          clearInterval(typeInterval);
+          p.textContent = fullText;
+          setTimeout(showNextLine, 50);
+          return;
+        }
+        if (charIdx < fullText.length) {
+          p.textContent += fullText[charIdx++];
+        } else {
+          clearInterval(typeInterval);
+          setTimeout(showNextLine, line.delay);
+        }
+      }, 45);
+    }
+
+    setTimeout(showNextLine, 1500);  // 圖片淡入後開始
+  }
+
+  function _showOpeningTitle(ov, textBox, onDone) {
+    // 標題
+    const title = document.createElement('div');
+    title.style.cssText = `
+      font-size:36px; font-weight:900; color:#c8a060;
+      letter-spacing:.4em; margin-top:30px;
+      opacity:0; transition:opacity 1.2s;
+    `;
+    title.textContent = '百 日 萬 骸 祭';
+    textBox.appendChild(title);
+    requestAnimationFrame(() => requestAnimationFrame(() => { title.style.opacity = 1; }));
+
+    // 按鈕
+    setTimeout(() => {
+      const btn = document.createElement('button');
+      btn.style.cssText = `
+        display:block; margin:24px auto 0;
+        padding:12px 40px; background:transparent;
+        border:1px solid rgba(200,160,80,0.4); color:#c8a060;
+        font-family:var(--font); font-size:18px; letter-spacing:.2em;
+        cursor:pointer; opacity:0; transition:opacity .8s, background .2s;
+      `;
+      btn.textContent = '……活下去。';
+      btn.onmouseover = () => { btn.style.background = 'rgba(200,160,80,0.1)'; };
+      btn.onmouseout  = () => { btn.style.background = 'transparent'; };
+      btn.onclick = onDone;
+      textBox.appendChild(btn);
+      requestAnimationFrame(() => { btn.style.opacity = 1; });
+    }, 1500);
   }
 
   function confirmName() {
@@ -4033,18 +4191,9 @@ const Game = (() => {
     const originId = _selectedOrigin;
     const o = Origins[originId];
 
-    // 🆕 Stage 開場敘述：幕後套 origin + 進入遊戲，玩家看到黑幕 + 文字 + 掀幕
-    const narrative = (o && o.openingNarrative) || [];
-    const runOnBlack = () => {
-      Stats.applyOrigin(originId);
-      _enterNewGame();   // 會更新訓練場 log、roll NPC、renderAll
-    };
-
-    if (typeof Stage !== 'undefined' && Stage.playOpening && narrative.length > 0) {
-      Stage.playOpening(narrative, runOnBlack);
-    } else {
-      runOnBlack();
-    }
+    // 開場動畫已在 _playOpeningCinematic 處理，這裡直接進入遊戲
+    Stats.applyOrigin(originId);
+    _enterNewGame();
   }
 
   /** 新遊戲真正開始（rollNPCs、resolve meal、save、render） */
