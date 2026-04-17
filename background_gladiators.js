@@ -202,10 +202,26 @@ const BackgroundGladiators = (() => {
   // ══════════════════════════════════════════════════
   // 每次訓練讓今日在場的背景人員 +1 熟悉度
   // ══════════════════════════════════════════════════
+  // 🆕 通過熟悉度門檻時的打招呼台詞（隨機選一句）
+  const PARTNER_GREETINGS = [
+    '嘿！我喜歡跟你一起訓練的感覺。以後我們多努力吧！',
+    '你練得越來越好了——我可不想被你甩開。',
+    '感覺跟你訓練的時候特別帶勁。繼續吧，夥伴。',
+    '我覺得我們合得來。別問為什麼——直覺。',
+    '嘿，你是叫……算了，名字不重要。重要的是你練得不錯。',
+  ];
+
   function bumpOnTraining() {
+    const newPartners = [];
     activeToday.forEach(id => {
-      familiarity[id] = Math.min(100, (familiarity[id] || 0) + 1);
+      const before = familiarity[id] || 0;
+      familiarity[id] = Math.min(100, before + 1);
+      // 剛好跨過門檻 → 記下來
+      if (before < FAMILIAR_THRESHOLD && familiarity[id] >= FAMILIAR_THRESHOLD) {
+        newPartners.push(id);
+      }
     });
+    return newPartners;   // 回傳剛成為夥伴的 id 列表
   }
 
   // ══════════════════════════════════════════════════
@@ -303,11 +319,16 @@ const BackgroundGladiators = (() => {
     lastRollDay = -1;
   }
 
+  function getPartnerGreeting() {
+    return PARTNER_GREETINGS[Math.floor(Math.random() * PARTNER_GREETINGS.length)];
+  }
+
   return {
     POOL,
     SHOUT_POOLS,
     FAMILIAR_THRESHOLD,
     SYNERGY_MULT,
+    getPartnerGreeting,
     rollDaily,
     getActiveToday,
     get,

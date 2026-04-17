@@ -986,9 +986,9 @@ const Game = (() => {
       const passed = BackgroundGladiators.isFamiliar(bg.id);
       const cls    = passed ? 'bg-entry passed' : 'bg-entry';
       const famMark = passed
-        ? '<span class="bg-check">✓</span>'
-        : `<span class="bg-fam">${fam}/${BackgroundGladiators.FAMILIAR_THRESHOLD}</span>`;
-      return `<div class="${cls}" title="${bg.name}（偏好 ${bg.favoredAttr}）熟悉度 ${fam}">
+        ? '<span class="bg-partner">夥伴</span>'
+        : '';   // 沒通過就不顯示數字，保持乾淨
+      return `<div class="${cls}" title="${bg.name}（偏好 ${bg.favoredAttr}）">
         <span class="bg-name">${bg.name}</span>
         <span class="bg-attr">${bg.favoredAttr}</span>
         ${famMark}
@@ -1704,7 +1704,16 @@ const Game = (() => {
 
     // 🆕 D.18：訓練時累積背景角鬥士的熟悉度 + 碎念/協力吶喊
     if (hasAttrEffect && typeof BackgroundGladiators !== 'undefined') {
-      BackgroundGladiators.bumpOnTraining();
+      const newPartners = BackgroundGladiators.bumpOnTraining();
+      // 🆕 剛成為夥伴的背景角鬥士跳出來打招呼
+      if (newPartners.length > 0) {
+        newPartners.forEach(bgId => {
+          const bg = BackgroundGladiators.get(bgId);
+          if (!bg) return;
+          const greeting = BackgroundGladiators.getPartnerGreeting();
+          addLog(`「${greeting}」——${bg.name}`, '#d9c28f', true, true);
+        });
+      }
       // 70% 機率有人碎念 → 送到跑馬燈（不塞日誌，不擋 stage）
       if (Math.random() < 0.70) {
         const m = BackgroundGladiators.getMumble();
