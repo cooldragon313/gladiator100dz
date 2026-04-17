@@ -538,6 +538,113 @@ const teammates = (() => {
       likedTraits:    { patient:3, merciful:2, humble:2, reliable:2 },
       dislikedTraits: { impulsive:3, cruel:3, prideful:2, opportunist:1 },
       background: '老默曾是帝國北境軍團的主治醫官。某場戰役他違反軍令，試圖救治敵軍的傷員，被軍法判刑剝奪自由身。競技場的主人買下他——因為他技術太好了，不救治可惜。他每天處理鞭傷、斷骨、化膿、失眠、恐懼——看過的死法比活人多。',
+
+      // ── 故事揭露（10 段：5 flavor + 5 event）──
+      storyReveals: [
+        // ── Flavor：關係圖卡片常駐 ──
+        {
+          id: 'mo_bottle', type: 'flavor', affection: 10,
+          text: '他桌上永遠有一個小陶瓶。你不知道裡面是酒還是藥。也許對他來說是同一種東西。',
+        },
+        {
+          id: 'mo_no_face', type: 'flavor', affection: 25,
+          text: '他處理你傷口的時候從不看你的臉。只看傷。像是不想記住太多人的樣子。',
+        },
+        {
+          id: 'mo_burn_scar', type: 'flavor', affection: 40,
+          text: '他的手指上有燒傷的疤。不是鍛造的傷——是火刑的灼痕。有人試圖懲罰過那雙手。',
+        },
+        {
+          id: 'mo_counting', type: 'flavor', affection: 55,
+          text: '他偶爾會對著牆壁發呆。你注意到他在數什麼——嘴唇微動，像在唸一串名字。',
+        },
+        {
+          id: 'mo_cloth_names', type: 'flavor', affection: 75,
+          text: '他枕頭下有一塊布條。上面用炭筆歪歪扭扭地寫著十七個名字。不是帝國人的名字。',
+        },
+
+        // ── Event：事件觸發 ──
+        {
+          id: 'mo_317', type: 'event', affection: 30, chance: 0.30, onceOnly: true,
+          logColor: '#8899aa',
+          text: '你深夜經過醫療房。老默坐在桌前握著陶瓶，沒喝。「三百一十七個。我救活過三百一十七個人。但他們不記那個數字。他們只記得我救了十七個不該救的。」',
+          dialogueLines: [
+            { text: '你深夜經過醫療房，聽見裡面有聲音。' },
+            { text: '門縫裡你看見老默坐在桌前，手裡握著那個陶瓶。' },
+            { text: '他沒喝。他只是握著。' },
+            { speaker: '老默', text: '三百一十七個。' },
+            { speaker: '老默', text: '我救活過三百一十七個人。' },
+            { speaker: '老默', text: '但他們不記那個數字。' },
+            { speaker: '老默', text: '他們只記得我救了十七個不該救的。' },
+          ],
+        },
+        {
+          id: 'mo_insomnia_bond', type: 'event', affection: 50, chance: 0.40, onceOnly: true,
+          requireAnyAilment: ['insomnia_disorder'],
+          logColor: '#aa99cc',
+          text: '你又失眠了。老默遞給你一杯溫水。「不是藥。」你們坐了很久。「不要記臉。只記傷。傷會好。臉不會。」',
+          dialogueLines: [
+            { text: '你又失眠了。老默也沒睡。' },
+            { text: '他看見你坐在走廊上，遞給你一杯溫水。' },
+            { speaker: '老默', text: '喝了。不是藥。' },
+            { text: '你們坐了很久。' },
+            { speaker: '老默', text: '我以前也睡不著。' },
+            { speaker: '老默', text: '不是因為疼——是因為想起他們的臉。' },
+            { speaker: '老默', text: '後來我學會了一件事。' },
+            { speaker: '老默', text: '不要記臉。只記傷。傷會好。臉不會。' },
+          ],
+        },
+        {
+          id: 'mo_why_save', type: 'event', affection: 65, chance: 0.35, onceOnly: true,
+          requireMinAttr: { WIL: 15 },
+          logColor: '#e8d070',
+          text: '老默問你知不知道他為什麼救那些敵軍。「因為有個小兵，十六歲，腸子都流出來了。他說：醫生，我媽在等我回家。那句話在哪個國家都一樣。」',
+          dialogueLines: [
+            { text: '老默今天沒喝酒。這很罕見。' },
+            { speaker: '老默', text: '你知道我為什麼救那些敵軍嗎？' },
+            { text: '你搖頭。' },
+            { speaker: '老默', text: '因為有個小兵——十六歲——腸子都流出來了。' },
+            { speaker: '老默', text: '他看著我說了一句話。' },
+            { speaker: '老默', text: '他說：「醫生，我媽在等我回家。」' },
+            { speaker: '老默', text: '他說的是敵國的語言。但我聽得懂。' },
+            { speaker: '老默', text: '因為——那句話在哪個國家都一樣。' },
+          ],
+        },
+        {
+          id: 'mo_cloth_show', type: 'event', affection: 80, chance: 0.50, onceOnly: true,
+          requireAnyTrait: ['merciful', 'kindness'],
+          logColor: '#e8d070',
+          text: '老默把布條拿給你看。十七個名字。「也許他們死了。也許活著。也許根本不記得。但我記得。每一個。」他看著你——第一次。「你也是。」',
+          dialogueLines: [
+            { text: '老默把那塊布條拿給你看。十七個名字。' },
+            { speaker: '老默', text: '這是我救的那十七個人。' },
+            { speaker: '老默', text: '他們活下來了。但我不知道他們後來怎樣。' },
+            { speaker: '老默', text: '也許死了。也許活著。也許根本不記得有個帝國軍醫救過他們。' },
+            { text: '他把布條收回去。' },
+            { speaker: '老默', text: '但我記得。' },
+            { speaker: '老默', text: '每一個。' },
+            { text: '他看著你的眼睛——第一次。' },
+            { speaker: '老默', text: '你也是。' },
+          ],
+        },
+        {
+          id: 'mo_shaking_hands', type: 'event', affection: 90, chance: 0.60, onceOnly: true,
+          logColor: '#d9a84f',
+          text: '「我跟你說個秘密。我的手——其實早就在抖了。但每次拿起手術刀——就不抖了。也許是那些名字在撐著。也許是你們這些蠢孩子讓我覺得——還有事情要做。」',
+          dialogueLines: [
+            { speaker: '老默', text: '我跟你說個秘密。' },
+            { text: '他的聲音比平常輕。' },
+            { speaker: '老默', text: '我的手——其實早就在抖了。' },
+            { speaker: '老默', text: '從三年前開始。每天早上起來都在抖。' },
+            { speaker: '老默', text: '但每次拿起手術刀的時候——就不抖了。' },
+            { speaker: '老默', text: '我不知道為什麼。也許是那些名字在撐著。' },
+            { speaker: '老默', text: '也許是你們這些蠢孩子讓我覺得——' },
+            { speaker: '老默', text: '還有事情要做。' },
+            { text: '他轉過身。你看見他的手背在微微顫動。' },
+            { text: '你假裝沒看見。' },
+          ],
+        },
+      ],
     },
 
   };

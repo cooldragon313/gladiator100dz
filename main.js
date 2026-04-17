@@ -812,7 +812,14 @@ const Game = (() => {
       const preBattleLines = _buildPreBattleLines(ev);
 
       // 🆕 onLose 邏輯：Day 100 才真正死亡，其他日只是重傷
-      const onWin  = () => { addLog('你贏得了這場戰鬥！', '#d4af37'); renderAll(); };
+      const onWin  = () => {
+        addLog('你贏得了這場戰鬥！', '#d4af37');
+        // 🆕 戰鬥獎金（主人分你一點）
+        const reward = 15 + Math.floor(Math.random() * 16);  // 15~30
+        Stats.modMoney(reward);
+        addLog(`侍從遞來一小袋銅幣。「大人說這是你的。」（+${reward}）`, '#c8a060', false);
+        renderAll();
+      };
       const onLose = (ev.id === 'final_festival')
         ? () => { Endings.deathEnding(Stats.player.name); }   // Day 100 = 真死
         : () => {
@@ -2087,8 +2094,15 @@ const Game = (() => {
     // 🆕 D.22c：訓練次數追蹤（武器獎勵門檻用）
     if (hasAttrEffect) {
       Flags.increment('training_action_count', 1);
-      // 到門檻 → 觸發武器選擇事件
       _tryWeaponRewardCheck();
+
+      // 🆕 金錢：連續訓練獎勵（每 5 次訓練 → 監督官注意 → 獎金 +8）
+      const totalTrain = Flags.get('training_action_count', 0);
+      if (totalTrain > 0 && totalTrain % 5 === 0 && !Flags.has(`train_bonus_${totalTrain}`)) {
+        Flags.set(`train_bonus_${totalTrain}`, true);
+        Stats.modMoney(8);
+        addLog('監督官走過來丟了幾個銅幣在你腳邊。「不錯。繼續。」', '#c8a060', false);
+      }
     }
 
     // 🆕 D.1.8: 依設定自動存檔（寫到 auto slot，不影響手動槽）
