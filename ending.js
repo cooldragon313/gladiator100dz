@@ -344,18 +344,20 @@ const Endings = (() => {
         }, 800);
       });
 
-      _addButton(box, '讀取存檔', d + 2200, () => {
+      _addButton(box, '回到戰鬥前', d + 2200, () => {
         ov.style.opacity = 0;
         setTimeout(() => {
           ov.remove();
-          // 嘗試讀取最近的存檔
+          // 讀取戰前備份（backup slot，戰鬥前自動存的）
           if (typeof Game !== 'undefined' && Game.loadGameFromSlot) {
-            const ok = Game.loadGameFromSlot('slot_0');
+            let ok = Game.loadGameFromSlot('backup');
+            if (!ok) ok = Game.loadGameFromSlot('auto');   // fallback: 每日自動存檔
+            if (!ok) ok = Game.loadGameFromSlot('slot_0'); // fallback: 手動存檔
             if (ok) {
               if (Game.renderAll) Game.renderAll();
-              if (Game.showToast) Game.showToast('📂 存檔讀取成功', 2000);
+              if (Game.showToast) Game.showToast('📂 回到戰鬥前', 2000);
             } else {
-              location.reload();   // 沒存檔就重新載入
+              location.reload();
             }
           } else {
             location.reload();

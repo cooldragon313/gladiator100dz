@@ -825,6 +825,12 @@ const Game = (() => {
           });
         };
 
+      // 🆕 戰鬥前自動備份到 backup slot（死了可以回到這裡）
+      if (typeof SaveSystem !== 'undefined') {
+        const payload = _buildSavePayload();
+        SaveSystem.saveToSlot('backup', payload);
+      }
+
       if (preBattleLines.length > 0 && typeof DialogueModal !== 'undefined') {
         DialogueModal.play(preBattleLines, {
           onComplete: () => { Battle.start(ev.opponent, onWin, onLose); },
