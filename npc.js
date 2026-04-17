@@ -302,6 +302,133 @@ const teammates = (() => {
       // Day 5 之後不再出現（alive 設為 false）
     },
 
+    // ── 赫克托（訓練所惡人・算計型反派） ──────────────
+    // 比你早進訓練所兩年。不是最強但活最久。靠算計、告密、利用他人活下來。
+    // 他不是瘋子 — 他是極度理性的自利者。每個行為都有計算。
+    // 偶爾做好事，但都是為了之後更大的利用。
+    // 弟弟在另一個訓練所（好感 60+ 才透露）。
+    hector: {
+      id: 'hector', name: '赫克托',
+      role: 'teammate',
+      title: '老油條',
+      desc: '在訓練所待了兩年的傢伙。不是最強，但活最久。每個人都知道他不好惹——不是因為他的拳頭，是因為他的嘴。',
+      baseAffection: -10,        // 一開始就討厭你（你是新來搶資源的）
+      personality: 'cunning',
+      favoredAttr: 'DEX',        // 靠速度和技巧，不靠蠻力
+      arriveDay: 1,
+      likedTraits:    { cruel:3, opportunist:2, prideful:1 },  // 他尊重跟他一樣的人
+      dislikedTraits: { kindness:3, merciful:2, reliable:2, humble:1 },  // 善良讓他不舒服
+
+      storyReveals: [
+        // ── Flavor ──
+        {
+          id: 'hector_smile', type: 'flavor', affection: -5,
+          text: '他看你的時候總是在笑。但那個笑跟開心沒有關係。',
+        },
+        {
+          id: 'hector_survive', type: 'flavor', affection: 10,
+          text: '兩年了。很多比他強的人都死了。他還在。你開始想——也許他知道一些你不知道的東西。',
+        },
+        {
+          id: 'hector_scar', type: 'flavor', affection: 30,
+          text: '他背上有一條很長的刀疤。不是訓練場的傷——是有人從背後砍的。他活了下來。砍他的人沒有。',
+        },
+        {
+          id: 'hector_night', type: 'flavor', affection: 50,
+          text: '你偶爾看見他深夜坐在走廊上。不是失眠——他在算什麼。嘴唇微動，手指在膝蓋上敲。像在下一盤看不見的棋。',
+        },
+        {
+          id: 'hector_brother', type: 'flavor', affection: 70,
+          text: '他枕頭下有一個小布袋。裡面只有一根繩結——打了兩個結，一大一小。像兩兄弟。',
+        },
+
+        // ── Event ──
+        {
+          id: 'hector_warning', type: 'event', affection: 0, chance: 0.40, onceOnly: true,
+          logColor: '#aa7755',
+          text: '赫克托攔住你。「聽著，新人。在這裡只有一條規則——別讓任何人覺得你好欺負。包括我。」',
+          dialogueLines: [
+            { text: '赫克托攔住你的路。' },
+            { speaker: '赫克托', text: '聽著，新人。' },
+            { speaker: '赫克托', text: '在這裡只有一條規則——' },
+            { speaker: '赫克托', text: '別讓任何人覺得你好欺負。' },
+            { text: '他靠近一步。' },
+            { speaker: '赫克托', text: '包括我。' },
+            { text: '他笑著走了。那個笑讓你後背發涼。' },
+          ],
+        },
+        {
+          id: 'hector_deal_intro', type: 'event', affection: 10, chance: 0.35, onceOnly: true,
+          logColor: '#c8a060',
+          text: '赫克托找上你。「我知道一些你想知道的事情。你有錢嗎？在這裡，資訊就是命。」',
+          dialogueLines: [
+            { speaker: '赫克托', text: '嘿。' },
+            { text: '他靠過來。聲音壓很低。' },
+            { speaker: '赫克托', text: '我知道一些你想知道的事情。' },
+            { speaker: '赫克托', text: '你有錢嗎？' },
+            { speaker: '赫克托', text: '在這裡，資訊就是命。天下沒有白吃的午餐。' },
+            { text: '他伸出手。掌心朝上。' },
+            { speaker: '赫克托', text: '想想吧。你知道在哪找我。' },
+          ],
+        },
+        {
+          id: 'hector_truth', type: 'event', affection: 40, chance: 0.30, onceOnly: true,
+          logColor: '#aa9060',
+          text: '你問他為什麼做這些。他說：「因為你幫我是你的選擇。我怎麼用，是我的。你不服氣？那下次別幫我。但你會的。因為你是那種人。」',
+          dialogueLines: [
+            { text: '你問他：「你為什麼要這樣？」' },
+            { speaker: '赫克托', text: '這樣？哪樣？' },
+            { speaker: '赫克托', text: '我只是在活下去。跟你一樣。' },
+            { speaker: '赫克托', text: '差別在——你活下去的方式會害死自己。' },
+            { speaker: '赫克托', text: '我的不會。' },
+            { text: '你看著他。' },
+            { speaker: '赫克托', text: '你不服氣？那你告訴我——' },
+            { speaker: '赫克托', text: '你幫我是你的選擇。我怎麼用，是我的。' },
+            { speaker: '赫克托', text: '下次別幫我。' },
+            { text: '他停了一秒。' },
+            { speaker: '赫克托', text: '但你會的。因為你是那種人。' },
+          ],
+        },
+        {
+          id: 'hector_brother_reveal', type: 'event', affection: 60, chance: 0.40, onceOnly: true,
+          requireMinAttr: { WIL: 18 },
+          logColor: '#d9a84f',
+          text: '赫克托第一次不看你的眼睛。「我有個弟弟。在另一個訓練所。他比我善良。所以他會比我先死。除非我先活到能找他。」',
+          dialogueLines: [
+            { text: '赫克托今天不一樣。他沒有笑。' },
+            { speaker: '赫克托', text: '我跟你說件事。你要是敢跟別人講——' },
+            { text: '他頓了一下。' },
+            { speaker: '赫克托', text: '算了。你不會。' },
+            { speaker: '赫克托', text: '我有個弟弟。' },
+            { speaker: '赫克托', text: '在另一個訓練所。' },
+            { speaker: '赫克托', text: '他比我善良。所以他會比我先死。' },
+            { speaker: '赫克托', text: '除非我先活到能找他。' },
+            { text: '他第一次不看你的眼睛。' },
+            { speaker: '赫克托', text: '你覺得我壞？' },
+            { speaker: '赫克托', text: '也許吧。但我弟還活著。' },
+            { speaker: '赫克托', text: '那些「好人」的弟弟呢？' },
+          ],
+        },
+        {
+          id: 'hector_final', type: 'event', affection: 80, chance: 0.50, onceOnly: true,
+          logColor: '#d9a84f',
+          text: '「如果你活過祭典——去找他。告訴他我沒事。不要告訴他我做過什麼。他不需要知道。」',
+          dialogueLines: [
+            { text: '祭典前夕。赫克托找到你。他的臉上沒有笑。' },
+            { speaker: '赫克托', text: '我跟你談個事。' },
+            { speaker: '赫克托', text: '不是交易。這次不是。' },
+            { text: '他從口袋裡拿出那個小布袋。兩個繩結。' },
+            { speaker: '赫克托', text: '如果你活過祭典——' },
+            { speaker: '赫克托', text: '去找他。在西區的訓練所。叫里昂。' },
+            { speaker: '赫克托', text: '告訴他我沒事。' },
+            { text: '他停了很久。' },
+            { speaker: '赫克托', text: '不要告訴他我做過什麼。' },
+            { speaker: '赫克托', text: '他不需要知道。' },
+          ],
+        },
+      ],
+    },
+
     // ── Fellow gladiators (teammates) ──
     cassius: {
       id: 'cassius', name: '卡西烏斯',

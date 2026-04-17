@@ -1450,6 +1450,183 @@ const Game = (() => {
     }
   }
 
+  // ══════════════════════════════════════════════════
+  // 🆕 赫克托日常騷擾（訓練後隨機觸發）
+  // ══════════════════════════════════════════════════
+  function _tryHectorHarassment() {
+    const p = Stats.player;
+    if (p.day < 3) return;  // 前兩天他觀察你
+    const hectorPresent = [...(currentNPCs.teammates || [])].includes('hector');
+    if (!hectorPresent) return;
+    if (Flags.has(`hector_harass_today`)) return;
+
+    // 每天最多騷擾一次
+    const roll = Math.random();
+    if (roll >= 0.18) return;   // 18% 機率
+
+    Flags.set('hector_harass_today', true);
+
+    const events = [
+      {
+        text: '你的麵包不見了。你看見赫克托在角落舔手指——他對你笑了。',
+        effects: () => { Stats.modVital('food', -10); Stats.modVital('mood', -5); },
+      },
+      {
+        text: '有人故意踢翻你旁邊的沙袋。你回頭——赫克托在遠處吹口哨。',
+        effects: () => { Stats.modVital('mood', -5); },
+      },
+      {
+        text: '訓練的時候赫克托從後面撞了你一下。「喔不好意思。」他完全不像不好意思。',
+        effects: () => { Stats.modVital('mood', -8); },
+      },
+      {
+        text: '赫克托經過你旁邊，小聲說：「你今天練得不錯。可惜——不夠格。」',
+        effects: () => { Stats.modVital('mood', -5); },
+      },
+      {
+        text: '你發現你的水壺被人動過。水還在，但嚐起來有沙子的味道。赫克托在遠處看著你喝。',
+        effects: () => { Stats.modVital('mood', -8); Stats.modVital('food', -5); },
+      },
+    ];
+
+    const ev = events[Math.floor(Math.random() * events.length)];
+    addLog(ev.text, '#aa7755', true, false);
+    ev.effects();
+  }
+
+  // 每天清除赫克托騷擾 flag
+  DayCycle.onDayStart('clearHectorHarass', () => {
+    Flags.unset('hector_harass_today');
+  }, 19);
+
+  // 赫克托 Day 8 試探事件（他推你一下看你反應）
+  DayCycle.onDayStart('hectorDay8', (newDay) => {
+    if (newDay !== 8 || Flags.has('hector_day8_done')) return;
+    Flags.set('hector_day8_done', true);
+
+    _pendingDialogues.push({
+      id: 'hector_day8_test',
+      lines: [
+        { text: '訓練結束的時候，赫克托走過來。' },
+        { text: '他故意用肩膀撞了你一下。很重。' },
+        { speaker: '赫克托', text: '喔。沒看到你。' },
+        { text: '他沒有道歉的意思。他在等你的反應。' },
+      ],
+      onComplete: () => {
+        ChoiceModal.show({
+          id: 'hector_test',
+          icon: '💢',
+          title: '赫克托在試探你',
+          body: '他站在你面前，嘴角掛著笑。整個訓練場都在看。',
+          forced: true,
+          choices: [
+            {
+              id: 'push_back',
+              label: '推回去',
+              hint: '你不是好惹的。',
+              effects: [
+                { type:'vital', key:'mood', delta:5 },
+                { type:'affection', key:'hector', delta:8 },
+                { type:'moral', axis:'pride', side:'negative' },
+              ],
+              resultLog: '你用力推了他一把。他踉蹌退了兩步——然後笑了。「嗯。有點意思。」他轉身走了。',
+              logColor: '#c8a060',
+            },
+            {
+              id: 'ignore',
+              label: '無視他',
+              hint: '不值得跟這種人計較。',
+              effects: [
+                { type:'moral', axis:'patience', side:'positive' },
+                { type:'affection', key:'hector', delta:-5 },
+              ],
+              resultLog: '你繼續走。赫克托在背後哼了一聲。「無聊。」但他記住了你——不好惹，也不好玩。',
+              logColor: '#8899aa',
+            },
+            {
+              id: 'fight',
+              label: '一拳揍他',
+              hint: '用行動告訴他你是誰。',
+              effects: [
+                { type:'vital', key:'stamina', delta:-10 },
+                { type:'affection', key:'hector', delta:15 },
+                { type:'affection', key:'officer', delta:-5 },
+                { type:'moral', axis:'patience', side:'negative' },
+              ],
+              resultLog: '你的拳頭砸在他下巴上。他摔了一跤。爬起來的時候居然笑得更開心了。「哈！你比我想的有趣多了。」監督官遠遠看了一眼，搖了搖頭。',
+              logColor: '#cc7744',
+            },
+          ],
+        });
+      },
+    });
+  }, 27);
+
+  // 赫克托 Day 25 秋祭嫁禍
+  DayCycle.onDayStart('hectorFestival', (newDay) => {
+    if (newDay !== 25 || Flags.has('hector_festival_done')) return;
+    // 只在秋祭事件之後觸發（等 Day 25 主事件結束）
+    if (!Flags.has('day25_done')) return;
+    Flags.set('hector_festival_done', true);
+
+    _pendingDialogues.push({
+      id: 'hector_festival_frame',
+      lines: [
+        { text: '秋祭結束後，你回到牢房。' },
+        { text: '侍從攔住你。' },
+        { speaker: '侍從', text: '你的床上發現了這個。' },
+        { text: '他手裡拿著一個不屬於你的錢袋。你從沒見過。' },
+        { speaker: '侍從', text: '這是誰的？' },
+        { text: '你看見赫克托站在走廊盡頭。他背對著你。肩膀在微微抖動——他在笑。' },
+      ],
+      onComplete: () => {
+        ChoiceModal.show({
+          id: 'hector_frame',
+          icon: '💰',
+          title: '不是你的錢袋',
+          body: '侍從在等你解釋。赫克托在走廊盡頭。',
+          forced: true,
+          choices: [
+            {
+              id: 'take_blame',
+              label: '吞下來（「是我的。」）',
+              effects: [
+                { type:'affection', key:'masterArtus', delta:-8 },
+                { type:'vital', key:'mood', delta:-15 },
+                { type:'moral', axis:'reliability', side:'positive' },
+              ],
+              resultLog: '你把罪吞了。侍從收走錢袋。你被罰了一頓飯。赫克托第二天走過你身邊，輕聲說：「聰明。」你不知道那是讚美還是嘲笑。',
+              logColor: '#8899aa',
+            },
+            {
+              id: 'blame_hector',
+              label: '指認赫克托',
+              effects: [
+                { type:'affection', key:'hector', delta:-20 },
+                { type:'moral', axis:'loyalty', side:'positive' },
+              ],
+              resultLog: '你指向走廊。「問他。」侍從帶走了赫克托。他被罰了。三天後他回來了——看你的眼神變了。不是恨，是計算。',
+              logColor: '#cc7744',
+            },
+            {
+              id: 'collude',
+              label: '走向赫克托（「分我一半。」）',
+              hint: '你決定用他的方式跟他打交道。',
+              effects: [
+                { type:'affection', key:'hector', delta:20 },
+                { type:'money', delta:15 },
+                { type:'moral', axis:'loyalty', side:'negative' },
+                { type:'moral', axis:'reliability', side:'negative' },
+              ],
+              resultLog: '你走到赫克托面前。他轉過身——笑容不見了。他認真地看了你一眼。然後從口袋裡掏出幾個銅幣塞進你手裡。「歡迎上船。」',
+              logColor: '#aa7733',
+            },
+          ],
+        });
+      },
+    });
+  }, 26);
+
   /**
    * 🆕 D.21 Option A：奧蘭藥房懸念觸發
    * 條件：
@@ -2002,6 +2179,9 @@ const Game = (() => {
 
     // 🆕 抓老鼠任務觸發（梅拉好感 ≥ 25 + 她在場 + 隨機）
     _tryMouseQuest();
+
+    // 🆕 赫克托日常騷擾（隨機觸發）
+    _tryHectorHarassment();
 
     // 🆕 D.21 Option A：奧蘭藥房懸念事件（隨機觸發）
     _tryOrlanApothecarySighting();

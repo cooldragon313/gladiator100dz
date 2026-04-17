@@ -41,6 +41,7 @@ const FIELDS = {
       { npcId: 'orlan',         role: 'teammate', chance: 1.00 },
       // 🆕 索爾（Day 1-4 在場，Day 5 後透過 alive:false 從隊伍消失）
       { npcId: 'sol',           role: 'teammate', chance: 1.00 },
+      { npcId: 'hector',        role: 'teammate', chance: 0.80 },  // 赫克托常在（他無處不在）
       { npcId: 'cassius',       role: 'teammate', chance: 0.60 },
       { npcId: 'ursa',          role: 'teammate', chance: 0.55 },
       { npcId: 'dagiSlave',     role: 'teammate', chance: 0.50 },
