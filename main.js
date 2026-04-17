@@ -4004,6 +4004,22 @@ const Game = (() => {
     // 隱藏 name modal（等動畫完再開）
     document.getElementById('modal-name')?.classList.remove('open');
 
+    // 🆕 先預載圖片（4MB PNG 可能要時間），載完才開始動畫
+    const preload = new Image();
+    preload.src = 'asset/startscene.png';
+
+    function _startCinematic() {
+      _doCinematic(onComplete);
+    }
+    if (preload.complete) {
+      _startCinematic();
+    } else {
+      preload.onload  = _startCinematic;
+      preload.onerror = _startCinematic;  // 圖片載入失敗也繼續（只是沒背景）
+    }
+  }
+
+  function _doCinematic(onComplete) {
     // 建立全螢幕覆蓋層
     const ov = document.createElement('div');
     ov.id = 'opening-cinematic';
@@ -4014,12 +4030,12 @@ const Game = (() => {
       opacity:0; transition:opacity 1.2s;
     `;
 
-    // 背景圖
-    const img = document.createElement('div');
+    // 背景圖（用 img 元素確保載入）
+    const img = document.createElement('img');
+    img.src = 'asset/startscene.png';
     img.style.cssText = `
-      position:absolute; inset:0;
-      background:url('asset/startscene.png') center/cover no-repeat;
-      opacity:0.7; filter:brightness(0.6);
+      position:absolute; inset:0; width:100%; height:100%;
+      object-fit:cover; opacity:0.7; filter:brightness(0.6);
     `;
     ov.appendChild(img);
 
