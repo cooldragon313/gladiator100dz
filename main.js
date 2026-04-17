@@ -3796,8 +3796,11 @@ const Game = (() => {
       _showContinueModal();
       return;
     }
-    document.getElementById('modal-name')?.classList.add('open');
-    document.getElementById('name-input')?.focus();
+    // 🆕 第一次進入（沒存檔）→ 遊戲介紹 → 開場動畫 → 名字輸入
+    _showGameIntro(() => _playOpeningCinematic(() => {
+      document.getElementById('modal-name')?.classList.add('open');
+      document.getElementById('name-input')?.focus();
+    }));
   }
 
   function _showContinueModal() {
