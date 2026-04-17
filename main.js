@@ -1418,14 +1418,43 @@ const Game = (() => {
       const disabled  = noStamina || noFood || noSlots;
       const reason    = noSlots ? '時間不足' : noStamina ? '體力不足' : noFood ? '飽食不足' : '';
 
+      // 🆕 預估實際體力消耗（含協力加成）
+      let previewStaminaCost = act.staminaCost;
+      if (act.staminaCost > 0 && (act.effects || []).some(e => e.type === 'exp' || e.type === 'attr')) {
+        const tAttr = _getTrainedAttrKey(act);
+        let sAdd = 0;
+        if (tAttr) {
+          (currentNPCs.teammates || []).forEach(nid => {
+            const npc = teammates.getNPC(nid);
+            if (!npc || npc.favoredAttr !== tAttr) return;
+            const a = teammates.getAffection(nid);
+            if      (a >= 90) sAdd += 0.7;
+            else if (a >= 60) sAdd += 0.5;
+            else if (a >= 30) sAdd += 0.3;
+          });
+          if (typeof BackgroundGladiators !== 'undefined') {
+            BackgroundGladiators.getActiveToday().forEach(bg => {
+              if (bg.favoredAttr !== tAttr) return;
+              if (BackgroundGladiators.isFamiliar(bg.id)) sAdd += 0.2;
+            });
+          }
+        }
+        previewStaminaCost = Math.round(act.staminaCost * (1 + sAdd));
+      }
+
       const costs = [`⏱${act.slots * 2}小時`];
-      if (act.staminaCost > 0) costs.push(`⚡${act.staminaCost}`);
+      if (previewStaminaCost > 0) {
+        const costLabel = previewStaminaCost > act.staminaCost
+          ? `⚡${previewStaminaCost}（協力）`
+          : `⚡${previewStaminaCost}`;
+        costs.push(costLabel);
+      }
       if ((act.foodCost || 0) > 0) costs.push(`🍖${act.foodCost}`);
 
-      // 🆕 受傷率預估（只顯示 > 10% 時的警告色燈）
+      // 🆕 受傷率預估（用實際消耗計算）
       let injuryHint = '';
-      if (act.staminaCost > 0 && (act.effects || []).some(e => e.type === 'exp' || e.type === 'attr')) {
-        const ratio = act.staminaCost / Math.max(1, p.stamina);
+      if (previewStaminaCost > 0 && (act.effects || []).some(e => e.type === 'exp' || e.type === 'attr')) {
+        const ratio = previewStaminaCost / Math.max(1, p.stamina);
         let risk = 0.05;
         if      (ratio >= 2.0) risk += 0.50;
         else if (ratio >= 1.5) risk += 0.35;
@@ -1647,13 +1676,32 @@ const Game = (() => {
       if (synergyMult > 15) synergyMult = 15;
     }
 
-    // 協力體力消耗倍率（訓練動作才套用，上限 70）
-    const _STAMINA_MULT = [1.0, 1.2, 1.5, 1.8, 2.1, 2.5];
-    const staminaMult = (hasAttrEffect && act.staminaCost > 0)
-      ? _STAMINA_MULT[Math.min(partnerCount, 5)]
-      : 1.0;
+    // 🆕 協力體力消耗（動態・依關係深度）
+    //   命名 NPC：aff≥30 +0.3 / aff≥60 +0.5 / aff≥90 +0.7（需 favoredAttr 匹配）
+    //   背景夥伴：熟悉 + 匹配 → +0.2
+    //   目標：滿協力（3 story aff90 + 3 bg）= ×3.7 → 20×3.7 = 74（≈ 體力 60-75%）
+    //   一天最多練 1~2 次，第 3 次 = 95% 受傷
+    let staminaSynergyAdd = 0;
+    if (hasAttrEffect && act.staminaCost > 0) {
+      (currentNPCs.teammates || []).forEach(npcId => {
+        if (!npcId) return;
+        const npc = teammates.getNPC(npcId);
+        if (!npc || !trainedAttr || npc.favoredAttr !== trainedAttr) return;
+        const aff = teammates.getAffection(npcId);
+        if      (aff >= 90) staminaSynergyAdd += 0.7;
+        else if (aff >= 60) staminaSynergyAdd += 0.5;
+        else if (aff >= 30) staminaSynergyAdd += 0.3;
+      });
+      if (trainedAttr) {
+        bgActive.forEach(bg => {
+          if (bg.favoredAttr !== trainedAttr) return;
+          if (BackgroundGladiators.isFamiliar(bg.id)) staminaSynergyAdd += 0.2;
+        });
+      }
+    }
+    const staminaMult = 1 + staminaSynergyAdd;
     const effectiveStaminaCost = hasAttrEffect
-      ? Math.min(Math.round(act.staminaCost * staminaMult), 70)
+      ? Math.round(act.staminaCost * staminaMult)
       : act.staminaCost;
 
     // 記錄扣除前的體力（受傷計算用）
@@ -1787,7 +1835,7 @@ const Game = (() => {
       // ── 體虛輕微加成（身體弱，小傷也更難撐）──────
       if (staminaBefore <= 20) injuryChance += 0.05;
 
-      injuryChance = Math.min(injuryChance, 0.85);
+      injuryChance = Math.min(injuryChance, 0.95);   // 🆕 上限 95%（留 5% 奇蹟）
 
       if (Math.random() < injuryChance) {
         const part = act.injuryPart || '身體';
