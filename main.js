@@ -4196,15 +4196,66 @@ const Game = (() => {
     _enterNewGame();
   }
 
-  /** 新遊戲真正開始（rollNPCs、resolve meal、save、render） */
+  /** 新遊戲真正開始（rollNPCs、Day 1 起床演出、resolve meal、save、render） */
   function _enterNewGame() {
     rollDailyNPCs();
-    const f = FIELDS[currentFieldId];
-    if (f) addLog('【' + f.name + '】\n' + f.logText, '#ddd', true);
-    // 🆕 Phase 1-B: 新遊戲從 06:00 開始，直接跳過早餐時段進入訓練
-    _resolveNonTrainingSlots();
-    saveGame();
     renderAll();
+
+    // 🆕 Day 1 起床演出：黑幕 → 獄卒踢門 → 睜眼 → 長官訓話
+    _playDay1WakeUp(() => {
+      const f = FIELDS[currentFieldId];
+      if (f) addLog('【' + f.name + '】\n' + f.logText, '#ddd', true);
+      _resolveNonTrainingSlots();
+      saveGame();
+      renderAll();
+    });
+  }
+
+  // ══════════════════════════════════════════════════
+  // 🆕 Day 1 起床演出
+  // ══════════════════════════════════════════════════
+  async function _playDay1WakeUp(onComplete) {
+    // 先閉眼（確保黑幕狀態）
+    if (typeof Stage !== 'undefined') await Stage.closeEyes();
+
+    // 場景一：牢房（黑幕中・獄卒踢門）
+    await new Promise(resolve => {
+      DialogueModal.play([
+        { speaker: '???', text: '起床！臭奴隸！' },
+        { text: '砰——鐵門被踢開。聲音在石牆之間彈了好幾下。' },
+        { speaker: '???', text: '還在睡？太陽都曬屁股了！' },
+        { speaker: '???', text: '給我滾起來，去訓練場集合！' },
+        { speaker: '???', text: '今天開始你就不是人了——是貨。懂嗎？' },
+      ], { onComplete: resolve });
+    });
+
+    // 睜眼（黑幕掀開）
+    if (typeof Stage !== 'undefined') await Stage.openEyes();
+
+    // 場景二：訓練場（長官訓話）
+    await new Promise(resolve => {
+      DialogueModal.play([
+        { text: '眼前是訓練場。沙地。器械。' },
+        { text: '還有一排跟你一樣眼神空洞的人。' },
+        { text: '長官站在高台上。所有人安靜下來。' },
+        { speaker: '塔倫長官', text: '都到了？' },
+        { text: '他環視一圈。目光在你身上停了半秒。' },
+        { speaker: '塔倫長官', text: '聽好。我只說一次。' },
+        { speaker: '塔倫長官', text: '吃完早餐就去訓練。' },
+        { speaker: '塔倫長官', text: '每天四個時段——訓練、吃飯、訓練、睡覺。' },
+        { speaker: '塔倫長官', text: '我不管你以前是誰、幹過什麼——' },
+        { speaker: '塔倫長官', text: '在這裡，你只有一個身分：' },
+        { speaker: '塔倫長官', text: '活著的投資。' },
+        { speaker: '塔倫長官', text: '給我拿出吃奶的力氣練。' },
+        { text: '他停頓了一下。嘴角微微上揚。' },
+        { speaker: '塔倫長官', text: '不然的話——' },
+        { speaker: '塔倫長官', text: '呵呵。' },
+        { text: '他沒說完。但所有人都知道他的意思。' },
+        { speaker: '塔倫長官', text: '散了。' },
+      ], { onComplete: resolve });
+    });
+
+    onComplete();
   }
 
   // ── Init ──────────────────────────────────────────────
