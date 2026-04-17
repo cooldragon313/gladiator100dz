@@ -110,6 +110,7 @@
 | `Game.skipToDay(N)` | main.js（return 區塊內） | Console 輸入跳到指定天數 |
 | `Game.testChoice` | main.js | 測試 ChoiceModal |
 | **F5 快存 / F9 快讀** | main.js 底部（IIFE 外） | 按鍵快速存讀檔 |
+| **`_showGameIntro()`** | main.js（新遊戲流程內） | 測試用遊戲介紹頁，正式版改為官方首頁或移除 |
 
 ---
 
