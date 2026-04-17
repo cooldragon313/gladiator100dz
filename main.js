@@ -1265,6 +1265,184 @@ const Game = (() => {
     return 0;
   }
 
+  // ══════════════════════════════════════════════════
+  // 🆕 梅拉抓老鼠任務鏈（3 次互動 → 寵物「小灰」）
+  //   第 1 次：抓到老鼠 → 殺掉 or 饒了
+  //   第 2 次（幾天後）：同一隻又出現 → 餵牠（food -5）
+  //   第 3 次：牠自己跑來 → 餵牠 → 牠留下了（成為寵物）
+  // ══════════════════════════════════════════════════
+  function _tryMouseQuest() {
+    const p = Stats.player;
+    if (typeof teammates === 'undefined') return;
+    const melaPresent = [...(currentNPCs.audience || [])].includes('melaKook');
+    if (!melaPresent) return;
+    const melaAff = teammates.getAffection('melaKook');
+
+    // 第 1 次：抓老鼠
+    if (!Flags.has('mouse_quest_1') && melaAff >= 25 && Math.random() < 0.15) {
+      Flags.set('mouse_quest_1', true);
+      Flags.set('mouse_quest_1_day', p.day);
+
+      DialogueModal.play([
+        { text: '訓練結束後，梅拉攔住你。' },
+        { speaker: '梅拉', text: '那個……我有件事想拜託你。' },
+        { speaker: '梅拉', text: '廚房最近老鼠多得嚇人。我一個人抓不完。' },
+        { speaker: '梅拉', text: '你……可以幫我嗎？' },
+      ], {
+        onComplete: () => {
+          const agi = (typeof Stats.eff === 'function') ? Stats.eff('AGI') : (p.AGI || 10);
+          ChoiceModal.show({
+            id: 'mouse_quest_1',
+            icon: '🐭',
+            title: '廚房的老鼠',
+            body: '梅拉用期待的眼神看著你。',
+            forced: true,
+            choices: [
+              {
+                id: 'catch_spare',
+                label: '幫她抓，但放了那隻老鼠',
+                hint: '你抓住了一隻特別靈活的小灰鼠。牠在你手裡掙扎。',
+                effects: [
+                  { type:'vital', key:'stamina', delta:-15 },
+                  { type:'affection', key:'melaKook', delta:10 },
+                  { type:'vital', key:'mood', delta:8 },
+                  { type:'moral', axis:'mercy', side:'positive' },
+                  { type:'flag', key:'mouse_spared' },
+                ],
+                resultLog: '你把那隻小灰鼠放在牆角。牠看了你一眼——然後跑了。梅拉沒注意到。',
+                logColor: '#c8a878',
+              },
+              {
+                id: 'catch_kill',
+                label: '幫她抓，全部處理掉',
+                hint: '徹底清理，梅拉會很感謝。',
+                effects: [
+                  { type:'vital', key:'stamina', delta:-15 },
+                  { type:'affection', key:'melaKook', delta:8 },
+                  { type:'vital', key:'mood', delta:5 },
+                ],
+                resultLog: '你把老鼠全處理了。梅拉很感謝。「謝謝你。廚房終於乾淨了。」',
+                logColor: '#c8a878',
+              },
+              {
+                id: 'refuse',
+                label: '沒空',
+                effects: [
+                  { type:'affection', key:'melaKook', delta:-3 },
+                ],
+                resultLog: '梅拉沒說什麼，但眼神暗了一下。',
+                logColor: '#8899aa',
+              },
+            ],
+          });
+        },
+      });
+      return;
+    }
+
+    // 第 2 次：老鼠又出現了（需要之前饒了牠）
+    if (Flags.has('mouse_spared') && !Flags.has('mouse_quest_2')
+        && p.day >= (Flags.get('mouse_quest_1_day', 0) || p.day) + 3
+        && Math.random() < 0.20) {
+      Flags.set('mouse_quest_2', true);
+      Flags.set('mouse_quest_2_day', p.day);
+
+      DialogueModal.play([
+        { text: '訓練的時候你注意到腳邊有東西在動。' },
+        { text: '是一隻小灰鼠。看起來……很眼熟。' },
+        { text: '牠蹲在沙地邊緣看著你，沒有跑。' },
+      ], {
+        onComplete: () => {
+          ChoiceModal.show({
+            id: 'mouse_quest_2',
+            icon: '🐭',
+            title: '那隻老鼠又來了',
+            body: '牠記得你。',
+            forced: false,
+            choices: [
+              {
+                id: 'feed',
+                label: '給牠一點食物',
+                hint: 'food -5',
+                effects: [
+                  { type:'vital', key:'food', delta:-5 },
+                  { type:'flag', key:'mouse_fed_1' },
+                  { type:'moral', axis:'mercy', side:'positive' },
+                ],
+                resultLog: '你掰了一小塊麵包放在地上。牠湊過來吃了。吃完牠抬頭看了你一眼——然後慢慢離開。這次走得比上次慢。',
+                logColor: '#c8a878',
+              },
+              {
+                id: 'ignore',
+                label: '不理牠',
+                resultLog: '你繼續訓練。牠蹲了一會兒，然後離開了。',
+                logColor: '#8899aa',
+              },
+            ],
+          });
+        },
+      });
+      return;
+    }
+
+    // 第 3 次：牠自己跑來了（需要餵過）
+    if (Flags.has('mouse_fed_1') && !Flags.has('mouse_quest_3')
+        && p.day >= (Flags.get('mouse_quest_2_day', 0) || p.day) + 2
+        && Math.random() < 0.25) {
+      Flags.set('mouse_quest_3', true);
+
+      DialogueModal.play([
+        { text: '你坐下來休息的時候，有什麼東西爬上了你的腳。' },
+        { text: '是牠。那隻小灰鼠。' },
+        { text: '牠沒有跑。牠蹭了蹭你的鞋。' },
+        { text: '然後抬起頭，用那雙黑豆似的眼睛看著你。' },
+      ], {
+        onComplete: () => {
+          ChoiceModal.show({
+            id: 'mouse_quest_3',
+            icon: '🐭',
+            title: '牠不走了',
+            body: '牠在等你做決定。',
+            forced: false,
+            choices: [
+              {
+                id: 'keep',
+                label: '餵牠，讓牠留下',
+                hint: 'food -5 · 獲得寵物「小灰」',
+                effects: [
+                  { type:'vital', key:'food', delta:-5 },
+                  { type:'vital', key:'mood', delta:15 },
+                  { type:'moral', axis:'mercy', side:'positive' },
+                  { type:'flag', key:'pet_mouse_acquired' },
+                ],
+                resultLog: '你掰了一塊麵包。牠吃完，然後——爬上了你的肩膀。牠不走了。你叫牠「小灰」。',
+                logColor: '#d9c28f',
+              },
+              {
+                id: 'shoo',
+                label: '趕走牠',
+                resultLog: '你輕輕推了牠一下。牠看了你最後一眼，慢慢離開。你覺得有什麼東西輕輕刺了一下。',
+                logColor: '#8899aa',
+              },
+            ],
+          }, {
+            onChoose: (choiceId) => {
+              if (choiceId === 'keep') {
+                // 🆕 寵物系統啟動
+                p.pets = p.pets || { companion: null, cell: null, outside: null };
+                p.pets.cell = { id: 'mouse_grey', name: '小灰', type: 'mouse', dayAcquired: p.day };
+                addLog('🐭 小灰成為了你的夥伴。', '#d9c28f', true, true);
+                if (typeof SoundManager !== 'undefined') SoundManager.playSynth('level_up');
+                renderAll();
+              }
+            },
+          });
+        },
+      });
+      return;
+    }
+  }
+
   /**
    * 🆕 D.21 Option A：奧蘭藥房懸念觸發
    * 條件：
@@ -1799,6 +1977,18 @@ const Game = (() => {
       }
     }
 
+    // 🆕 梅拉被動好感：她在場看你訓練 → +1（AGI 訓練 +2）
+    if (hasAttrEffect && typeof teammates !== 'undefined') {
+      const melaPresent = [...(currentNPCs.audience || [])].includes('melaKook');
+      if (melaPresent) {
+        const isAgi = trainedAttr === 'AGI';
+        teammates.modAffection('melaKook', isAgi ? 2 : 1);
+      }
+    }
+
+    // 🆕 抓老鼠任務觸發（梅拉好感 ≥ 25 + 她在場 + 隨機）
+    _tryMouseQuest();
+
     // 🆕 D.21 Option A：奧蘭藥房懸念事件（隨機觸發）
     _tryOrlanApothecarySighting();
 
@@ -2178,6 +2368,15 @@ const Game = (() => {
     p.time = SLOT_START;
 
     addLog(`\n────────────────────\n第 ${p.day} 天　天光未明，新的一天開始了。`, '#b8960c', false);
+
+    // 🆕 寵物每日被動效果（有寵物 → mood +2）
+    if (p.pets) {
+      const hasPet = Object.values(p.pets).some(v => v && v.id);
+      if (hasPet) {
+        Stats.modVital('mood', 2);
+        addLog('🐭 小灰蹭了蹭你的手。今天好像沒那麼難熬。', '#c8a878', false);
+      }
+    }
 
     // 🆕 D.1.11: Fire "day start" hooks (p.day 是新的)
     DayCycle.fireDayStart(p.day);
@@ -2768,11 +2967,21 @@ const Game = (() => {
       { key: 'cell',      label: '牢房' },
       { key: 'outside',   label: '戶外' },
     ];
+    const hasPet = slots.some(s => p.pets?.[s.key]?.id);
+    if (!hasPet) {
+      el.style.display = 'none';
+      return;
+    }
+    el.style.display = '';
     el.innerHTML = slots.map(s => {
       const pet = p.pets?.[s.key];
-      const name = pet?.name || '—';
-      return `<div class="cs-equip-row"><span class="cs-equip-slot">${s.label}</span><span class="cs-equip-val">${name}</span></div>`;
-    }).join('');
+      if (!pet || !pet.id) return '';
+      const icon = pet.type === 'mouse' ? '🐭' : '🐾';
+      return `<div class="cs-equip-row">
+        <span class="cs-equip-slot">${s.label}</span>
+        <span class="cs-equip-val" style="color:#d9c28f">${icon} ${pet.name}</span>
+      </div>`;
+    }).filter(Boolean).join('');
   }
 
   // ── L5: 資源 ────────────────────────────────────

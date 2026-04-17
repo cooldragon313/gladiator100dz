@@ -489,7 +489,7 @@ const teammates = (() => {
       desc: '用廚房剩料也能做出讓人流淚的食物。她悄悄多塞給你的那口飯，你永遠記得。',
       baseAffection: 15,
       personality: 'support',
-      favoredAttr: null,  // 非訓練 NPC（觀眾）
+      favoredAttr: 'AGI',   // 🆕 廚房要手腳快，她欣賞靈活的人
       // 🆕 D.19：廚娘母親般的溫柔，最愛善良的孩子，最厭殘忍
       likedTraits:    { kindness:3, merciful:3, humble:2, reliable:1 },
       dislikedTraits: { cruel:3, prideful:2, opportunist:1 },
