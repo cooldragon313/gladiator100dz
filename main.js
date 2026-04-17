@@ -797,22 +797,40 @@ const Game = (() => {
       btn.remove();
       // 🆕 D.22c：戰前 DialogueModal 演出（情緒鋪墊）
       const preBattleLines = _buildPreBattleLines(ev);
+
+      // 🆕 onLose 邏輯：Day 100 才真正死亡，其他日只是重傷
+      const onWin  = () => { addLog('你贏得了這場戰鬥！', '#d4af37'); renderAll(); };
+      const onLose = (ev.id === 'final_festival')
+        ? () => { Endings.deathEnding(Stats.player.name); }   // Day 100 = 真死
+        : () => {
+          // 平日戰敗 = 重傷 + 恥辱，但不死
+          DialogueModal.play([
+            { text: '你倒在沙地上。視野模糊。' },
+            { text: '觀眾的聲音像是從很遠的地方傳來。' },
+            { text: '有人把你拖下場。你聽見長官的聲音——' },
+            { speaker: '塔倫長官', text: '……下次再這樣，就不只是丟臉了。' },
+          ], {
+            onComplete: () => {
+              Stats.modVital('hp',   -30);
+              Stats.modVital('mood', -20);
+              Stats.modFame(-10);
+              // 加一個傷勢（如果還沒有）
+              if (!Stats.player.ailments.includes('torso_injury')) {
+                Stats.player.ailments.push('torso_injury');
+                addLog('⚠️ 你在戰鬥中受了重傷。軀幹的疼痛讓你很難呼吸。', '#cc7733', true, true);
+              }
+              addLog('你敗了。但你還活著——這次。', '#8899aa', true, true);
+              renderAll();
+            },
+          });
+        };
+
       if (preBattleLines.length > 0 && typeof DialogueModal !== 'undefined') {
         DialogueModal.play(preBattleLines, {
-          onComplete: () => {
-            Battle.start(
-              ev.opponent,
-              () => { addLog('你贏得了這場戰鬥！', '#d4af37'); renderAll(); },
-              () => { Endings.deathEnding(Stats.player.name); }
-            );
-          },
+          onComplete: () => { Battle.start(ev.opponent, onWin, onLose); },
         });
       } else {
-        Battle.start(
-          ev.opponent,
-          () => { addLog('你贏得了這場戰鬥！', '#d4af37'); renderAll(); },
-          () => { Endings.deathEnding(Stats.player.name); }
-        );
+        Battle.start(ev.opponent, onWin, onLose);
       }
     };
     stageCenter.appendChild(btn);
@@ -1127,11 +1145,19 @@ const Game = (() => {
 
     const staminaGain = Math.min(staminaMax, daily.SLEEP_STAMINA_GAIN);
 
+    // 🆕 HP 每日恢復（所有睡眠類型都恢復，但量不同）
+    //   正常睡眠 +20 HP、失眠 +8、噩夢 +5
+    //   有受傷 ailment 時減半
+    const hasInjury = Array.isArray(p.ailments) &&
+      p.ailments.some(a => a.includes('injury'));
+    const injuryMult = hasInjury ? 0.5 : 1.0;
+
     if (sleepType === 'normal') {
       if (typeof SoundManager !== 'undefined') SoundManager.playSynth('sleep');
       addLog('🌙【就寢】你閉上眼，很快沉入黑暗。沒有夢，只有沉重的疲倦與虛空。', '#8b87b8', true);
       Stats.modVital('stamina', staminaGain);
       Stats.modVital('mood',    daily.SLEEP_MOOD_GAIN);
+      Stats.modVital('hp', Math.round(20 * injuryMult));   // 🆕 HP 恢復
       // 正常睡眠 → 重置失眠計數，累積正常睡眠天數
       p.insomniaStreak   = 0;
       p.normalSleepStreak = (p.normalSleepStreak || 0) + 1;
@@ -1149,6 +1175,7 @@ const Game = (() => {
       }
       Stats.modVital('stamina', Math.round(staminaGain * 0.45));
       Stats.modVital('mood',    -5);
+      Stats.modVital('hp', Math.round(8 * injuryMult));    // 🆕 失眠也恢復一點 HP
       // 失眠計數 +1
       p.insomniaStreak   = prevStreak + 1;
       p.normalSleepStreak = 0;
@@ -1156,6 +1183,7 @@ const Game = (() => {
       addLog('🌙【就寢】夢見鮮血。夢見沙土。夢見一張臉——你說不清楚是誰。驚醒時全身冷汗，天色才剛亮。', '#c47a6e', true, true);
       Stats.modVital('stamina', Math.round(staminaGain * 0.55));
       Stats.modVital('mood',    -12);
+      Stats.modVital('hp', Math.round(5 * injuryMult));    // 🆕 噩夢只恢復極少 HP
       // 噩夢計入失眠（也算沒睡好）
       p.insomniaStreak   = (p.insomniaStreak || 0) + 1;
       p.normalSleepStreak = 0;
