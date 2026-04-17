@@ -335,9 +335,32 @@ const Endings = (() => {
       box.appendChild(fin);
       setTimeout(() => fin.classList.add('e-show'), d + 300);
 
-      _addButton(box, '輪迴重生', d + 1600, () => {
+      // 🆕 死亡結局：提供重新開始 + 讀取存檔兩個選項
+      _addButton(box, '重新開始', d + 1600, () => {
         ov.style.opacity = 0;
-        setTimeout(() => ov.remove(), 1600);
+        setTimeout(() => {
+          ov.remove();
+          location.reload();   // 重新載入頁面 = 乾淨的新遊戲/讀檔畫面
+        }, 800);
+      });
+
+      _addButton(box, '讀取存檔（F9）', d + 2200, () => {
+        ov.style.opacity = 0;
+        setTimeout(() => {
+          ov.remove();
+          // 嘗試讀取最近的存檔
+          if (typeof Game !== 'undefined' && Game.loadGameFromSlot) {
+            const ok = Game.loadGameFromSlot('slot_0');
+            if (ok) {
+              if (Game.renderAll) Game.renderAll();
+              if (Game.showToast) Game.showToast('📂 存檔讀取成功', 2000);
+            } else {
+              location.reload();   // 沒存檔就重新載入
+            }
+          } else {
+            location.reload();
+          }
+        }, 800);
       });
 
     }, 900);
