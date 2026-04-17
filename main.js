@@ -3913,8 +3913,8 @@ const Game = (() => {
       currentFieldId = FIXED_FIELD;
       currentNPCs    = GameState.getCurrentNPCs();
 
-      // 🆕 開場動畫（startscene.png + 打字機文字）→ 名字輸入
-      _playOpeningCinematic(() => {
+      // 🆕 遊戲介紹 → 開場動畫 → 名字輸入
+      _showGameIntro(() => _playOpeningCinematic(() => {
         // 動畫結束後顯示名字輸入
         box.innerHTML = `
           <div class="modal-header"><span class="modal-title">你是誰</span></div>
@@ -3934,8 +3934,67 @@ const Game = (() => {
           if (e.key === 'Enter') confirmName();
         });
         document.getElementById('name-input')?.focus();
-      });
+      }));
     });
+  }
+
+  // ══════════════════════════════════════════════════
+  // 🆕 遊戲介紹（測試用，讓朋友知道這是什麼遊戲）
+  // ══════════════════════════════════════════════════
+  function _showGameIntro(onComplete) {
+    document.getElementById('modal-name')?.classList.remove('open');
+
+    const ov = document.createElement('div');
+    ov.style.cssText = `
+      position:fixed; inset:0; z-index:9999;
+      background:rgba(0,0,0,0.92); display:flex;
+      align-items:center; justify-content:center;
+      opacity:0; transition:opacity .8s;
+    `;
+
+    const box = document.createElement('div');
+    box.style.cssText = `
+      max-width:560px; padding:40px 44px;
+      font-family:var(--font); line-height:2.0;
+      color:#c0b8a0; text-align:center;
+    `;
+    box.innerHTML = `
+      <div style="font-size:28px;font-weight:900;color:#c8a060;letter-spacing:.3em;margin-bottom:24px;">
+        百 日 萬 骸 祭
+      </div>
+      <p style="font-size:16px;color:#aa9060;font-weight:700;letter-spacing:.15em;margin-bottom:16px;">
+        你不是英雄。你是一筆投資。
+      </p>
+      <p style="font-size:14px;line-height:2.0;color:#9a8c70;text-align:left;">
+        被賣進角鬥場的那天，你失去了名字、自由，和所有選擇的權利。<br>
+        每天的生活只有四件事：訓練、吃飯、訓練、睡覺。<br><br>
+        但在這片沙地上，你會遇到願意把最後半塊麵包塞給你的兄弟，<br>
+        會遇到用冷眼決定你生死的主人，<br>
+        也會遇到你無論如何都救不了的人。<br><br>
+        你的每一個選擇都會被記住——被身邊的人，也被你自己。<br><br>
+        第一百天，萬骸祭的號角響起。<br>
+        整座城市都在看著你。
+      </p>
+      <button id="intro-start-btn" style="
+        margin-top:28px; padding:14px 48px;
+        background:transparent; border:1px solid rgba(200,160,80,0.4);
+        color:#c8a060; font-family:var(--font);
+        font-size:18px; font-weight:700; letter-spacing:.2em;
+        cursor:pointer; transition:background .2s;
+      ">活 下 去</button>
+    `;
+
+    ov.appendChild(box);
+    document.body.appendChild(ov);
+    requestAnimationFrame(() => requestAnimationFrame(() => { ov.style.opacity = 1; }));
+
+    const btn = box.querySelector('#intro-start-btn');
+    btn.onmouseover = () => { btn.style.background = 'rgba(200,160,80,0.1)'; };
+    btn.onmouseout  = () => { btn.style.background = 'transparent'; };
+    btn.onclick = () => {
+      ov.style.opacity = 0;
+      setTimeout(() => { ov.remove(); onComplete(); }, 800);
+    };
   }
 
   // ══════════════════════════════════════════════════
