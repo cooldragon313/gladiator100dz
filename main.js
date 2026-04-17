@@ -4006,7 +4006,7 @@ const Game = (() => {
 
     // 🆕 先預載圖片（4MB PNG 可能要時間），載完才開始動畫
     const preload = new Image();
-    preload.src = 'asset/startscene.png';
+    preload.src = 'asset/startscene.jpg';
 
     function _startCinematic() {
       _doCinematic(onComplete);
@@ -4032,7 +4032,7 @@ const Game = (() => {
 
     // 背景圖（用 img 元素確保載入）
     const img = document.createElement('img');
-    img.src = 'asset/startscene.png';
+    img.src = 'asset/startscene.jpg';
     img.style.cssText = `
       position:absolute; inset:0; width:100%; height:100%;
       object-fit:cover; opacity:0.7; filter:brightness(0.6);
