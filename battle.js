@@ -98,16 +98,19 @@ const Battle = (() => {
   // ══════════════════════════════════════════════════════
   // PUBLIC: start(opponentId, onWin, onLose)
   // ══════════════════════════════════════════════════════
-  function start(opponentId, onWin, onLose) {
+  function start(opponentId, onWin, onLose, opts) {
+    const options = opts || {};
     _onWin  = onWin  || (() => {});
     _onLose = onLose || (() => {});
     _turn        = 0;
     _autoRunning    = false;
     _hardcoreActive = false;
     _battleTick       = 0;
-    _isArenaBattle    = false;
+    // 🆕 預設開啟斬首面板，但切磋可傳 { sparring: true } 關閉
+    _isArenaBattle    = !options.sparring;
     _pendingFameReward= 0;
     _lastRating       = null;
+    _crowdMood        = _generateCrowdMood();
     _playerDelay      = 0;
     _playerDelaySkill = null;
 

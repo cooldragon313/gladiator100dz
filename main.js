@@ -3920,6 +3920,7 @@ const Game = (() => {
         { speaker: '監督官', text: '不准殺。打到一方倒地為止。開始。' },
       ],
       onComplete: () => {
+        // 切磋不顯示斬首/饒恕面板（{ sparring: true }）
         Battle.start('sparringPartner',
           () => {
             DialogueModal.play([
@@ -3947,7 +3948,8 @@ const Game = (() => {
                 renderAll();
               },
             });
-          }
+          },
+          { sparring: true }   // 🆕 切磋模式：不顯示斬首/饒恕面板
         );
       },
     });
