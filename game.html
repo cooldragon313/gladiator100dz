@@ -293,6 +293,31 @@ html, body {
   background: #0a0804; /* fallback；bg-* 類別會覆蓋 */
 }
 
+/* 🆕 D.28：舞台紅光閃動 + 震動（用於被鞭等痛感演出） */
+.stage-red-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  background: rgba(204, 40, 40, 0.55);
+  pointer-events: none;
+  animation: stage-flash-fade 500ms ease-out forwards;
+}
+@keyframes stage-flash-fade {
+  0%   { opacity: 1; }
+  40%  { opacity: 0.8; }
+  100% { opacity: 0; }
+}
+#game-root.shake-pain {
+  animation: shake-pain 400ms cubic-bezier(.36,.07,.19,.97);
+}
+@keyframes shake-pain {
+  10%, 90% { transform: translate(-2px, 1px); }
+  20%, 80% { transform: translate(3px, -1px); }
+  30%, 70% { transform: translate(-4px, 2px); }
+  40%, 60% { transform: translate(4px, -2px); }
+  50%      { transform: translate(-3px, 1px); }
+}
+
 /* 🆕 D.18 背景角鬥士小字條（疊在 scene-view 右側） */
 #bg-gladiator-strip {
   position: absolute;

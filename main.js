@@ -5051,16 +5051,71 @@ const Game = (() => {
       DialogueModal.play(lines, { onComplete: resolve });
     });
 
-    // 睜眼（走出牢房的瞬間，掀開黑幕，接下來才看得見達吉）
+    // 睜眼（走出牢房的瞬間，掀開黑幕）
     if (typeof Stage !== 'undefined') await Stage.openEyes();
 
-    // ── 場景 3.5：特性即時互動（遇到達吉）──
+    // ── 場景 3.5a：石走廊（Spartacus 氛圍 + 視覺伏筆 + 赫克特假善意）──
+    await new Promise(resolve => {
+      DialogueModal.play([
+        { text: '（你走出牢房門。）' },
+        { text: '（眼前是一條長長的、陰暗的石廊。）' },
+        { text: '（空氣比牢房裡還悶。汗馬上又流出來了。）' },
+        { text: '（牆上每隔幾步有一根火把。光線跳動。）' },
+        { text: '（走廊裡已經有一些人——不是新進的。）' },
+        { text: '（他們站著、靠牆、或拿著東西經過。）' },
+        { text: '（他們盯著你。）' },
+        { text: '（⋯⋯這些都是誰？）' },
+        { text: '（你不自覺放慢了腳步。）' },
+        // 疤臉視覺伏筆
+        { text: '（靠牆站著一個男人。他的左臉有一條從眉骨到下巴的疤——又深又粗。）' },
+        { text: '（⋯⋯這疤看起來真恐怖。是怎麼來的？）' },
+        { text: '（他看你的時候連眼皮都沒眨。）' },
+        // 假手視覺伏筆
+        { text: '（再往前——一個男人走過。他的右手⋯⋯）' },
+        { text: '（⋯⋯那個是木頭？假的手掌？）' },
+        { text: '（木頭的指節還會動。他跟你四目相交——你先移開。）' },
+        // 嘲諷壯漢
+        { text: '（一個壯漢扛著一個破沙袋經過你身邊。他的手臂比你的大腿還粗。）' },
+        { speaker: '壯漢', text: '（嘖）又一批？' },
+        { speaker: '壯漢', text: '⋯⋯撐過一週再說吧。' },
+        // 唾棄老鬥士
+        { text: '（再往前——一個疤臉老鬥士吐了一口痰。剛好在你腳邊。）' },
+        { speaker: '疤臉老鬥士', text: '哼～新鮮肉。' },
+        { speaker: '疤臉老鬥士', text: '⋯⋯看你幾天後變成臭肉。' },
+        // 血狼（種子鬥士伏筆）
+        { text: '（突然——走廊裡的人全部停下來，然後讓開一條路。）' },
+        { text: '（一個人走過。他戴著一條黑鐵鑄的頸圈。）' },
+        { text: '（他沒有贅肉。他走路的樣子像刀。）' },
+        { speaker: '???（小聲）', text: '⋯⋯那是「血狼」伍爾克。上一季二十七戰全勝。' },
+        { speaker: '???（小聲）', text: '阿圖斯大人的招牌。' },
+        { text: '（他沒看你。你也沒敢看他太久。）' },
+        { text: '（你只記住了那條黑鐵頸圈，跟他走路的背影。）' },
+        { text: '（他走遠了——走廊裡的空氣才鬆開。）' },
+        // 赫克特假善意（反差伏筆）
+        { text: '（再走幾步，一個笑嘻嘻的男人靠過來。）' },
+        { text: '（他的手拍了一下你肩膀——有點太熟了。）' },
+        { speaker: '赫克特', text: '哎喲，新來的。' },
+        { speaker: '赫克特', text: '別緊張嘛。我叫赫克特。' },
+        { speaker: '赫克特', text: '這裡不難混——只要跟對人。' },
+        { speaker: '赫克特', text: '有什麼不懂的，問我就對了。' },
+        { text: '（他拍了拍你肩膀，往前走了。）' },
+        { text: '（你心裡有點⋯⋯暖？）' },
+        { text: '（好像終於有人願意對你好。）' },
+      ], { onComplete: resolve });
+    });
+
+    // 記錄玩家見過「血狼」伍爾克（未來對戰時引用）
+    Flags.set('met_blood_wolf_day1', true);
+    // 記錄赫克特 Day 1 的假善意（未來揭穿時可引用）
+    Flags.set('hector_fake_friendly_day1', true);
+
+    // ── 場景 3.5b：特性即時互動（遇到達吉）──
     await new Promise(resolve => {
       let lines;
       if (hasCruel) {
         // cruel 路徑（農家預設不會，保險起見）
         lines = [
-          { text: '（走出牢房的路上，一個男孩擋在你路上，縮著身子哭。）' },
+          { text: '（再往前——一個男孩擋在你路上，縮著身子哭。）' },
           { text: '（你沒思考——踢了他一腳。）' },
           { speaker: '男孩', text: '嗚啊——！' },
           { text: '（他摔在地上。獄卒在遠處聽到，抬頭看了一眼，又低頭啃他的饅頭。）' },
@@ -5069,14 +5124,14 @@ const Game = (() => {
       } else if (hasKindness) {
         // farmBoy 預設路徑（kindness）
         lines = [
-          { text: '（走出牢房的路上，你看見一個男孩蹲在牆邊哭。）' },
+          { text: '（繼續往前——你看見一個男孩蹲在牆邊哭。）' },
           { text: '（他看起來比你小得多。他抓著自己的手腕在發抖。）' },
           { text: '（你沒多想——伸手把他扶起來。）' },
           { speaker: '你', text: '⋯⋯深呼吸。你站得起來。' },
           { speaker: '男孩（小聲）', text: '⋯⋯謝謝。' },
           { speaker: '男孩（小聲）', text: '我叫⋯⋯達吉。' },
           { text: '（你聽見後面有腳步聲。）' },
-          { text: '（是一個捲髮的年輕人——他剛好看到這一幕。）' },
+          { text: '（是另一個捲髮的年輕人——他剛好看到這一幕。）' },
           { text: '（他對你笑了一下。眼睛先彎的那種笑。）' },
         ];
       } else {
@@ -5104,12 +5159,15 @@ const Game = (() => {
       }
     }
 
-    // ── 場景 4：走向訓練場（感官）──
-    //（Stage 已在場景 3 後 openEyes，這裡不重複）
+    // ── 場景 4：走向訓練場（感官 + 器材細節）──
     await new Promise(resolve => {
       DialogueModal.play([
         { text: '（你走進訓練場。）' },
         { text: '（腳底是沙——早晨的沙還是涼的，但空氣已經悶了。）' },
+        { text: '（場邊堆著幾個沙袋——有些已經破了，沙從裂口漏出來。）' },
+        { text: '（一排木樁立在中央。每根木樁上都有被砍出來的凹痕，密密麻麻。）' },
+        { text: '（兵器架上掛著練習武器——鈍的木劍、缺角的盾、無刃的斧。）' },
+        { text: '（有些柄上的木紋已經被磨得光滑。）' },
         { text: '（你聞到血味、汗味，還有什麼東西在燒——是早餐的爐子？）' },
         { text: '（一排比你先到的人站在場中央——他們的眼睛裡沒有顏色。）' },
         { text: '（角落裡有人在練劍。每一下都像在砍一個他恨的人。）' },
@@ -5118,23 +5176,28 @@ const Game = (() => {
       ], { onComplete: resolve });
     });
 
-    // ── 場景 5：塔倫訓話 ──
+    // ── 場景 5：塔倫訓話（修正版 — 阿圖斯大人的所有物） ──
     await new Promise(resolve => {
       DialogueModal.play([
         { text: '（一個人從高台走下來。他手裡拿著鞭子——但沒在用。）' },
-        { speaker: '???', text: '都到齊了？' },
+        { speaker: '???', text: '嗯⋯⋯都到齊了？' },
         { text: '（他環視一圈。停在你身上半秒。——就半秒。）' },
-        { speaker: '塔倫長官', text: '好。' },
-        { speaker: '塔倫長官', text: '我叫塔倫。從今天起——你們是我的。' },
-        { speaker: '塔倫長官', text: '我只說一次規則。' },
-        { speaker: '塔倫長官', text: '吃早飯。訓練。吃晚飯。睡覺。再來一次。' },
-        { speaker: '塔倫長官', text: '就那麼的簡單——' },
-        { speaker: '塔倫長官', text: '但能撐住的人不多。' },
+        { speaker: '塔倫長官', text: '我叫塔倫。' },
+        { speaker: '塔倫長官', text: '你們——知道你們現在在哪嗎？' },
+        { text: '（沒人敢出聲。）' },
+        { speaker: '塔倫長官', text: '這裡，是我們偉大的阿圖斯大人的訓練場。' },
+        { speaker: '塔倫長官', text: '你們——都是阿圖斯大人的所有物。' },
+        { speaker: '塔倫長官', text: '別忘了這件事。' },
+        { speaker: '塔倫長官', text: '在這裡只有一個規則。我只說一次——你們給我聽好！' },
+        { speaker: '塔倫長官', text: '吃飯、訓練、睡覺。' },
+        { speaker: '塔倫長官', text: '——就那麼簡單。' },
+        { speaker: '塔倫長官', text: '但能撐到後面的人，不多。' },
         { text: '（他停了一下。他的嘴角挑了一下。）' },
+        { speaker: '塔倫長官', text: '然後——' },
         { speaker: '塔倫長官', text: '五天後，有一件事。' },
         { speaker: '塔倫長官', text: '我把它叫做「沙洗」。' },
-        { speaker: '塔倫長官', text: '別問那是什麼——到那天你自己會知道。' },
-        { speaker: '塔倫長官', text: '希望那天你們都不會讓我失望。' },
+        { speaker: '塔倫長官', text: '你們現在不需要知道那是什麼——到那天你們自會知道。' },
+        { speaker: '塔倫長官', text: '希望那天，你們都不會讓我失望。' },
         { text: '（幾個人不敢出聲。你也是。）' },
         { speaker: '塔倫長官', text: '總之給我拿出吃奶的力氣練。五天！' },
         { speaker: '塔倫長官', text: '不然的話——' },
@@ -5145,9 +5208,10 @@ const Game = (() => {
       ], { onComplete: resolve });
     });
 
-    // 塔倫介紹「沙洗」→ 百日條揭露 Day 5
+    // 塔倫介紹「沙洗」→ 百日條揭露 Day 5 + 記錄阿圖斯大人名字揭露
     Flags.set('timeline_sand_wash_revealed', true);
     Flags.set('met_officer', true);
+    Flags.set('master_artus_name_known', true);
 
     // ── 場景 6：散場內心（依 origin）──
     await new Promise(resolve => {
@@ -5170,10 +5234,47 @@ const Game = (() => {
       DialogueModal.play(lines, { onComplete: resolve });
     });
 
+    // ── 場景 6.5：鞭子醒來 🆕 ──
+    // 玩家發呆太久，被訓練所規則教育
+    _flashStageRed();
+    _shakeGameRoot();
+    if (typeof SoundManager !== 'undefined') SoundManager.playSynth('sword_swing');
+    Stats.modVital('hp', -5);
+    await new Promise(resolve => {
+      DialogueModal.play([
+        { text: '咻——！' },
+        { text: '（一條鞭子抽在你背上。）' },
+        { text: '（痛——！）' },
+        { speaker: '???', text: '發呆？你以為這裡是你家後院？' },
+        { text: '（你急忙回神。發現所有人都已經散開了——只有你還站在原地。）' },
+        { text: '（你沒來得及看清打你的是誰。）' },
+        { text: '（你急急忙忙往訓練器材那邊走。）' },
+      ], { onComplete: resolve });
+    });
+
     // ── 場景 7：奧蘭第一次接觸 ──
     await _playDay1OrlanMeet();
 
     onComplete();
+  }
+
+  // 🆕 D.28：舞台紅光閃動（被鞭等痛感演出）
+  function _flashStageRed() {
+    const view = document.getElementById('scene-view');
+    if (!view) return;
+    const flash = document.createElement('div');
+    flash.className = 'stage-red-flash';
+    view.appendChild(flash);
+    setTimeout(() => { if (flash.parentNode) flash.remove(); }, 600);
+  }
+  // 🆕 D.28：全畫面震動
+  function _shakeGameRoot() {
+    const root = document.getElementById('game-root');
+    if (!root) return;
+    root.classList.remove('shake-pain');
+    void root.offsetHeight;   // force reflow
+    root.classList.add('shake-pain');
+    setTimeout(() => root.classList.remove('shake-pain'), 500);
   }
 
   // 🆕 Day 1 結尾：奧蘭握手（依玩家之前的表現變化）
@@ -5201,8 +5302,8 @@ const Game = (() => {
       await new Promise(resolve => {
         DialogueModal.play([
           { text: '（他伸手但沒伸完——他看過你踢達吉。他的眼神裡有警戒。）' },
-          { speaker: '奧蘭', text: '你⋯⋯做一種朋友就好。' },
-          { speaker: '奧蘭', text: '不要⋯⋯像剛才那樣對我就行。' },
+          { speaker: '奧蘭', text: '我⋯⋯我不該來。' },
+          { speaker: '奧蘭', text: '你⋯⋯別來找我就好。' },
           { text: '（他沒等你回應就走了。）' },
         ], { onComplete: resolve });
       });
