@@ -207,6 +207,64 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       2026-04-18 動作系統重構 + 奴隸生活感
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">FEATURE</span>
+      <span class="version-title">D.27 — 動作重構 · 偷懶放空 · 飽食生活感</span>
+      <span class="version-date">2026-04-18</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text"><strong>動作重新設計——奴隸沒有合法休息</strong> <span class="file-tag">actions.js</span>
+          — 刪除「休息」動作（奴隸白天不該有合法喘息）。訓練每次扣 -3 心情
+          （被迫勞動該痛）。冥想調息改為純意志訓練（不扣心情、不回體力、不消耗體力）。
+          強迫玩家在乖訓練與偷懶之間選。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>偷懶放空 + 動態扣分</strong> <span class="file-tag">main.js</span>
+          — 新動作「偷懶放空」取代獨自沉思：體力+15 心情+15，放在動作列表最下方。
+          現場有權威 NPC 依身份扣好感與心情（主人 -8 / 長官 -5 / 監督官 -3 / 侍從 -2）
+          + 各自專屬台詞。友善 NPC（卡西烏斯/梅拉/奧蘭/老默）在場只搖頭不扣分。
+          赫克特在場會 +2（壞人惺惺相惜）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>無人時 30% 抓包率</strong> <span class="file-tag">main.js</span>
+          — 沒人在場時偷懶：30% 機率被巡邏抓包，三檔憤怒
+          （監督官 70% / 長官 20% / 侍從 10%），被抓版扣 1.5 倍好感 + 1.3 倍心情。
+          未被抓版：額外加 5 體力（爽爽偷閒獎勵）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>飽食度日結生活感</strong> <span class="file-tag">main.js</span>
+          — 飽食 &lt; 20 日結扣 8 心情 + 5 HP（飢餓真的會痛）；
+          飽食 &lt; 30 扣 5 心情 + 3 HP；飽食 ≥ 70 加 2 心情（吃飽睡好）。
+          食物不再是另一個體力——跟心情/HP 串起來後有真實的分量。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text"><strong>動作按鈕顯示強化</strong> <span class="file-tag">main.js</span>
+          — cost 行加 +/- 符號區分消耗/恢復：
+          <code>⚡-20</code>（體力消耗）/ <code>⚡+15</code>（體力恢復）。
+          新增 💭 心情徽章顯示訓練扣心情、偷懶加心情的幅度。
+          偷懶類動作自動排在訓練類之後。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text"><strong>睡眠體力微調</strong> <span class="file-tag">config.js</span>
+          — <code>SLEEP_STAMINA_GAIN</code> 40 → 45 以補償刪除「休息」動作。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
        2026-04-18 結局判定器 + NPC 世界感
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">

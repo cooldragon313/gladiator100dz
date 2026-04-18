@@ -22,28 +22,25 @@
 
 const ACTIONS = {
 
-  // 🆕 Phase 1 重構：訓練場是唯一場景，所有玩家可主動執行的動作都改為 'any'
-  // 房間品質（豪華/破舊）改為休息事件的敘事描述，由名聲決定
-  rest: {
-    id: 'rest', name: '休息',
-    desc: '靜靜待著，讓身體稍作恢復。',
+  // 🆕 D.26：奴隸白天沒有「合法休息」。rest 已移除。
+  //          唯一能補體力+心情的主動動作是「偷懶放空」——但有被抓風險。
+  // nap 已移除（Phase 1-D）：改由 sleep_normal / nightmare 等強制事件取代
+
+  // 🆕 D.26：偷懶放空 — 心情的主要主動來源
+  //   基礎效果：體力+15、心情+15
+  //   動態代價：main.js 的 _handleSlacking() 根據現場 NPC 扣對應好感
+  //   無人時 30% 機率被巡邏抓包（三檔憤怒：監督官/長官/主人）
+  //   放在動作列表最下方（main.js renderActionList 有專門排序）
+  soloThink: {
+    id: 'soloThink', name: '偷懶放空',
+    desc: '找個角落歇下來。如果被看見，有得你受。',
     slots: 1, staminaCost: 0, foodCost: 0,
     fields: 'any',
     effects: [
       { type: 'vital', key: 'stamina', delta: 15 },
+      { type: 'vital', key: 'mood',    delta: 15 },
     ],
-  },
-
-  // nap 已移除（Phase 1-D）：改由 sleep_normal / nightmare 等強制事件取代
-  soloThink: {
-    id: 'soloThink', name: '獨自沉思',
-    desc: '面壁沉思，磨礪意志與心性。',
-    slots: 1, staminaCost: 5, foodCost: 0,
-    fields: 'any',
-    effects: [
-      { type: 'exp',   key: 'WIL',  delta: 4 },
-      { type: 'vital', key: 'mood', delta: 5 },
-    ],
+    _isSlacking: true,   // main.js 依此判定額外的抓包/扣分邏輯
   },
 
 
@@ -58,7 +55,11 @@ const ACTIONS = {
     desc: '反覆揮動武器，磨礪攻擊動作。',
     slots: 1, staminaCost: 20, foodCost: 10,
     fields: ['stdTraining'],
-    effects: [{ type: 'exp', key: 'STR', delta: 8 }],
+    // 🆕 D.26：訓練本身是被迫勞動，會扣心情
+    effects: [
+      { type: 'exp',   key: 'STR',  delta: 8  },
+      { type: 'vital', key: 'mood', delta: -3 },
+    ],
     eventPool: ['overseerWatch', 'trainingInjury'],
     injuryPart: '手臂',
   },
@@ -67,7 +68,10 @@ const ACTIONS = {
     desc: '對木樁反覆刺擊，鍛鍊手眼協調與出手精度。',
     slots: 1, staminaCost: 20, foodCost: 10,
     fields: ['stdTraining'],
-    effects: [{ type: 'exp', key: 'DEX', delta: 8 }],
+    effects: [
+      { type: 'exp',   key: 'DEX',  delta: 8  },
+      { type: 'vital', key: 'mood', delta: -3 },
+    ],
     eventPool: ['overseerWatch', 'trainingInjury'],
     injuryPart: '手部',
   },
@@ -76,7 +80,10 @@ const ACTIONS = {
     desc: '全副武裝奔跑，強化體質與持久力。',
     slots: 1, staminaCost: 20, foodCost: 12,
     fields: ['stdTraining'],
-    effects: [{ type: 'exp', key: 'CON', delta: 8 }],
+    effects: [
+      { type: 'exp',   key: 'CON',  delta: 8  },
+      { type: 'vital', key: 'mood', delta: -3 },
+    ],
     eventPool: ['overseerWatch', 'trainingInjury'],
     injuryPart: '軀幹',
   },
@@ -85,19 +92,21 @@ const ACTIONS = {
     desc: '反覆移動步伐，提高靈敏與閃躲能力。',
     slots: 1, staminaCost: 20, foodCost: 10,
     fields: ['stdTraining'],
-    effects: [{ type: 'exp', key: 'AGI', delta: 8 }],
+    effects: [
+      { type: 'exp',   key: 'AGI',  delta: 8  },
+      { type: 'vital', key: 'mood', delta: -3 },
+    ],
     eventPool: ['overseerWatch', 'trainingInjury'],
     injuryPart: '腿部',
   },
   meditation: {
     id: 'meditation', name: '冥想調息',
-    desc: '靜坐調整呼吸，強化意志，恢復心情與體力。',
-    slots: 1, staminaCost: 0, foodCost: 0,   // 靜坐不消耗體力
+    desc: '靜坐調整呼吸，磨礪意志。不消耗體力，也不補心情——這是修行，不是放鬆。',
+    slots: 1, staminaCost: 0, foodCost: 0,
     fields: ['stdTraining'],
+    // 🆕 D.26：冥想純意志訓練。不扣不補心情，不補體力。
     effects: [
-      { type: 'exp',   key: 'WIL',     delta: 8  },
-      { type: 'vital', key: 'mood',    delta: 10 },
-      { type: 'vital', key: 'stamina', delta: 8  },  // 調息本身是一種恢復
+      { type: 'exp', key: 'WIL', delta: 8 },
     ],
     // 精神訓練：不設 eventPool（不會有身體受傷事件）
   },

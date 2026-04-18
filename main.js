@@ -1252,6 +1252,79 @@ const Game = (() => {
     return null;
   }
 
+  // 🆕 D.26：偷懶放空的動態代價（在場扣好感 / 無人時 30% 被抓）
+  // 權威 NPC 的靜態扣分規則
+  const _SLACKING_WATCHERS = {
+    masterArtus:  { affDelta: -8, moodHit: -12, line: '「這傢伙好大狗膽——在我眼皮底下。」', color: '#663344' },
+    officer:      { affDelta: -5, moodHit: -6,  line: '塔倫長官冷冷地看你：「廢物。浪費口糧。」', color: '#cc6666' },
+    overseer:     { affDelta: -3, moodHit: -4,  line: '監督官揚起鞭子：「那邊那個！給我站起來！」', color: '#cc8844' },
+    masterServant:{ affDelta: -2, moodHit: -3,  line: '侍從瞇起眼記下什麼：「我會報告大人的。」', color: '#a07060' },
+    hector:       { affDelta:  2, moodHit:  0,  line: '赫克特遠遠地對你舉了舉下巴——「乾得漂亮。」', color: '#9a5a70', isAlly: true },
+  };
+  // 友善 NPC 在場的反應（不扣好感，但有台詞）
+  const _SLACKING_FRIENDLY = {
+    cassius:  { line: '卡西烏斯看見你——只是搖搖頭，沒說什麼。',      color: '#8a8a8a' },
+    orlan:    { line: '奧蘭遠遠地看了你一眼。他什麼都沒說。',          color: '#8a8a8a' },
+    melaKook: { line: '梅拉從廚房門口探頭，壓低聲音：「小聲點，孩子。」', color: '#c8a060' },
+    doctorMo: { line: '老默恰好經過，他沒停下——但他的眼睛笑了一下。',   color: '#b0a080' },
+  };
+
+  function _handleSlacking() {
+    const teamIds = Array.isArray(currentNPCs?.teammates) ? currentNPCs.teammates : [];
+    const audIds  = Array.isArray(currentNPCs?.audience)  ? currentNPCs.audience  : [];
+    const present = [...teamIds, ...audIds];
+
+    // 優先度：掃描「會處罰你的」在場 NPC
+    const watchers = present.filter(id => _SLACKING_WATCHERS[id]);
+
+    if (watchers.length > 0) {
+      // 有權威 NPC 在場 → 直接扣
+      // 同時把心情加成減半（被瞪哪有心情爽）
+      Stats.modVital('mood', -8);   // 抵銷 effects 加的 +15 之中的 8
+      watchers.forEach(id => {
+        const rule = _SLACKING_WATCHERS[id];
+        if (rule.affDelta) teammates.modAffection(id, rule.affDelta);
+        if (rule.moodHit && !rule.isAlly) Stats.modVital('mood', rule.moodHit);
+        addLog(rule.line, rule.color, true, true);
+      });
+      return;
+    }
+
+    // 沒權威 NPC → 檢查友善 NPC 反應（不扣分，只加敘述）
+    const friends = present.filter(id => _SLACKING_FRIENDLY[id]);
+    if (friends.length > 0) {
+      const pick = friends[Math.floor(Math.random() * friends.length)];
+      const rule = _SLACKING_FRIENDLY[pick];
+      addLog(rule.line, rule.color, false, false);
+      // 正常偷懶，沒被抓
+      addLog('你找到一個角落，真的歇了一會。體力跟心情都回來一些。', '#d4af37', false, false);
+      return;
+    }
+
+    // 完全沒人在場 → 30% 機率被巡邏抓包
+    if (Math.random() < 0.30) {
+      const roll = Math.random();
+      let caught;
+      if (roll < 0.70) caught = 'overseer';
+      else if (roll < 0.90) caught = 'officer';
+      else caught = 'masterServant';
+
+      const rule = _SLACKING_WATCHERS[caught];
+      // 被抓 = 震怒版：扣更多
+      const angryAff  = Math.round(rule.affDelta * 1.5);
+      const angryMood = Math.round(rule.moodHit * 1.3);
+      teammates.modAffection(caught, angryAff);
+      Stats.modVital('mood', angryMood);
+      addLog('【被抓包】' + rule.line, rule.color, true, true);
+      addLog(`你以為沒人在——但你錯了。額外扣心情與好感。`, '#cc5533', true, false);
+    } else {
+      // 平安偷懶成功
+      addLog('你找了個背風處窩著，沒人來。體力跟心情都回來了。', '#d4af37', false, false);
+      // 獎勵一點額外恢復
+      Stats.modVital('stamina', 5);
+    }
+  }
+
   // 🆕 D.26：訓練屬性徽章（左側彩色標籤）
   const _ATTR_BADGE_LABEL = {
     STR: '力量',
@@ -1942,6 +2015,13 @@ const Game = (() => {
     const allActs = getFieldActions(currentFieldId, p, npcs)
       .filter(act => !act.hiddenFromList);
 
+    // 🆕 D.26：偷懶類動作排到最後（讓訓練類排上面）
+    allActs.sort((a, b) => {
+      const aSlack = a._isSlacking ? 1 : 0;
+      const bSlack = b._isSlacking ? 1 : 0;
+      return aSlack - bSlack;
+    });
+
     allActs.forEach(act => {
       const noStamina = p.stamina < act.staminaCost;
       const noFood    = (act.foodCost || 0) > 0 && p.food < act.foodCost;
@@ -1974,13 +2054,26 @@ const Game = (() => {
       }
 
       const costs = [`⏱${act.slots * 2}小時`];
-      if (previewStaminaCost > 0) {
-        const costLabel = previewStaminaCost > act.staminaCost
-          ? `⚡${previewStaminaCost}（協力）`
-          : `⚡${previewStaminaCost}`;
-        costs.push(costLabel);
+      // 🆕 D.26：體力顯示 +/- 區分消耗/恢復
+      const staminaRecovery = (act.effects || [])
+        .filter(e => e.type === 'vital' && e.key === 'stamina' && e.delta > 0)
+        .reduce((sum, e) => sum + e.delta, 0);
+      const netStamina = staminaRecovery - previewStaminaCost;
+      if (netStamina < 0) {
+        const synergy = previewStaminaCost > act.staminaCost;
+        costs.push(synergy ? `⚡${netStamina}（協力）` : `⚡${netStamina}`);
+      } else if (netStamina > 0) {
+        costs.push(`⚡+${netStamina}`);
       }
-      if ((act.foodCost || 0) > 0) costs.push(`🍖${act.foodCost}`);
+      if ((act.foodCost || 0) > 0) costs.push(`🍖-${act.foodCost}`);
+      // 🆕 D.26：顯示心情變動
+      const moodDelta = (act.effects || [])
+        .filter(e => e.type === 'vital' && e.key === 'mood')
+        .reduce((sum, e) => sum + e.delta, 0);
+      if (moodDelta !== 0) {
+        const sign = moodDelta > 0 ? '+' : '';
+        costs.push(`💭${sign}${moodDelta}`);
+      }
 
       // 🆕 受傷率預估（用實際消耗計算）
       let injuryHint = '';
@@ -2263,6 +2356,9 @@ const Game = (() => {
       source: 'action:' + actionId,
     });
     // 🆕 D.6 v2：訓練只累積 EXP，不自動升級。升級請到角色頁手動花 EXP。
+
+    // 🆕 D.26：偷懶放空的動態代價（在場扣好感 / 無人時 30% 被抓）
+    if (act._isSlacking) _handleSlacking();
 
     // Advance time by slot(s)
     Stats.advanceTime(act.slots * SLOT_DUR);
@@ -2739,6 +2835,21 @@ const Game = (() => {
 
     // Overnight food cost（與就寢體力恢復分開）
     Stats.modVital('food', Config.DAILY.SLEEP_FOOD_COST);
+
+    // 🆕 D.26：飽食度日結效果 — 餓肚子會心情差、身體虛
+    const foodAfter = p.food;
+    if (foodAfter < 20) {
+      Stats.modVital('mood', -8);
+      Stats.modVital('hp',   -5);
+      addLog('【飢餓】肚子咕嚕叫了整晚，你睡得不安穩。心情和身體都在下墜。', '#cc5533', true, true);
+    } else if (foodAfter < 30) {
+      Stats.modVital('mood', -5);
+      Stats.modVital('hp',   -3);
+      addLog('【半飢】你整晚都感覺肚子沒填飽。', '#cc7733', false);
+    } else if (foodAfter >= 70) {
+      Stats.modVital('mood', 2);
+      addLog('你吃得飽飽的，睡得也安穩。（心情 +2）', '#d4af37', false);
+    }
 
     // Advance to next day
     p.day  = Math.min(100, p.day + 1);

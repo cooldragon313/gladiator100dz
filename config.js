@@ -203,7 +203,7 @@ const Config = (() => {
     REST_STAMINA_GAIN: 10,
     REST_MOOD_GAIN:     3,
     // 夜間睡覺
-    SLEEP_STAMINA_GAIN: 40,
+    SLEEP_STAMINA_GAIN: 45,   // 🆕 D.26：移除「休息」動作後微調補償
     SLEEP_MOOD_GAIN:     5,
     SLEEP_FOOD_COST:   -15,   // 🆕 2026-04-15 加重：原 -12
   };
