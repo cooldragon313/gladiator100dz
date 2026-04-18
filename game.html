@@ -3006,13 +3006,48 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 
 /* ── Attribute panel (left/right) ── */
 .battle-v2 .bt-attr-panel { display: flex; flex-direction: column; gap: 10px; }
-.battle-v2 .bt-face {
-  font-size: 64px;
-  text-align: center;
-  line-height: 1;
-  margin: 4px 0 8px;
-  filter: drop-shadow(0 0 10px rgba(200,160,80,.25));
+
+/* 🆕 大頭圖（戰鬥時會撲擊對方） */
+.battle-v2 .bt-portrait {
+  position: relative;
+  width: 100%;
+  height: 120px;
+  background: linear-gradient(180deg, #1a1208 0%, #0c0805 100%);
+  border: 2px solid #3a2410;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.5), inset 0 0 20px rgba(200,160,80,.05);
+  transition: border-color .2s;
 }
+.battle-v2 .bt-portrait-player {
+  border-color: #4a5488;
+  box-shadow: 0 4px 12px rgba(0,0,0,.5), inset 0 0 20px rgba(80,120,200,.1);
+}
+.battle-v2 .bt-portrait-enemy {
+  border-color: #884a4a;
+  box-shadow: 0 4px 12px rgba(0,0,0,.5), inset 0 0 20px rgba(200,80,80,.1);
+}
+.battle-v2 .bt-portrait-name {
+  font-size: 22px;
+  font-weight: 900;
+  color: #e8d070;
+  letter-spacing: .15em;
+  text-shadow: 0 2px 4px rgba(0,0,0,.6);
+}
+.battle-v2 .bt-portrait-enemy .bt-portrait-name { color: #ff9966; }
+.battle-v2 .bt-portrait-mood {
+  font-size: 28px;
+  line-height: 1;
+}
+.battle-v2 .bt-portrait-bars {
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 0 2px;
+}
+
 .battle-v2 .bt-attr-name {
   font-size: 20px; font-weight: 700;
   text-align: center;
@@ -3151,13 +3186,14 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 50px;
+  min-height: 100px;   /* 🆕 加高讓泡泡有空間顯示 */
 }
 .battle-v2 .bt-stage-vs {
-  font-size: 40px;
+  font-size: 48px;
   font-weight: 900;
   color: rgba(200, 160, 80, 0.25);
   letter-spacing: .3em;
+  text-shadow: 0 2px 6px rgba(0,0,0,.5);
 }
 
 /* ── Audience zone ── */
@@ -3232,21 +3268,27 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 /* ── Speech bubble (stage middle) ── */
 .battle-v2 .bt-speech {
   position: absolute;
-  padding: 6px 12px;
-  background: rgba(22, 16, 8, 0.92);
-  border: 1px solid var(--gold);
-  border-radius: 4px;
-  font-size: 16px;
+  padding: 8px 16px;
+  background: rgba(22, 16, 8, 0.95);
+  border: 2px solid var(--gold);
+  border-radius: 6px;
+  font-size: 18px;
   font-weight: 700;
   color: #ffd76a;
   white-space: nowrap;
-  z-index: 10;
-  animation: bt-speech-pop .3s ease-out;
+  z-index: 20;
+  animation: bt-speech-pop .35s ease-out, bt-speech-fade .6s ease-in 1s forwards;
   pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0,0,0,.6), 0 0 12px rgba(212,175,55,.3);
 }
+.battle-v2 .bt-speech.side-player { left: 15%; }
+.battle-v2 .bt-speech.side-enemy  { right: 15%; }
 @keyframes bt-speech-pop {
-  from { opacity: 0; transform: translateY(8px) scale(0.9); }
+  from { opacity: 0; transform: translateY(8px) scale(0.8); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes bt-speech-fade {
+  to { opacity: 0; transform: translateY(-12px); }
 }
 
 /* ── Face color classes (set on .bt-face and .bt-slot-face) ── */
@@ -3633,8 +3675,16 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
       <!-- ═══ LEFT COLUMN: Player attributes ═══ -->
       <div class="bt-col bt-col-left">
         <div class="bt-attr-panel">
-          <div class="bt-face" id="bt-face-player">💚</div>
-          <div class="bt-attr-name" id="bt-lname">玩家</div>
+          <!-- 🆕 大頭圖（戰鬥時會撲擊對方） -->
+          <div class="bt-portrait bt-portrait-player" id="bt-portrait-l">
+            <div class="bt-portrait-name" id="bt-lname">玩家</div>
+            <div class="bt-portrait-mood" id="bt-face-player"></div>
+          </div>
+          <div class="bt-portrait-bars">
+            <div class="bt-bar-label"><span>HP</span><span id="bt-lhp-txt">—</span></div>
+            <div class="bt-bar-track"><div class="bt-bar-fill bt-hp-fill" id="bt-lhp-bar" style="width:100%"></div></div>
+            <div class="bt-atb-track"><div class="bt-atb-fill" id="bt-latb-bar" style="width:0%"></div></div>
+          </div>
           <div class="bt-attr-title" id="bt-ltitle">角鬥士</div>
           <div class="bt-attr-section">
             <div class="bt-attr-sec-title">屬性</div>
@@ -3771,8 +3821,16 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
       <!-- ═══ RIGHT COLUMN: Enemy attributes ═══ -->
       <div class="bt-col bt-col-right">
         <div class="bt-attr-panel">
-          <div class="bt-face" id="bt-face-enemy">🟣</div>
-          <div class="bt-attr-name" id="bt-rname">—</div>
+          <!-- 🆕 大頭圖（戰鬥時會撲擊對方） -->
+          <div class="bt-portrait bt-portrait-enemy" id="bt-portrait-r">
+            <div class="bt-portrait-name" id="bt-rname">—</div>
+            <div class="bt-portrait-mood" id="bt-face-enemy"></div>
+          </div>
+          <div class="bt-portrait-bars">
+            <div class="bt-bar-label"><span>HP</span><span id="bt-rhp-txt">—</span></div>
+            <div class="bt-bar-track"><div class="bt-bar-fill bt-hp-fill" id="bt-rhp-bar" style="width:100%"></div></div>
+            <div class="bt-atb-track"><div class="bt-atb-fill" id="bt-ratb-bar" style="width:0%"></div></div>
+          </div>
           <div class="bt-attr-title" id="bt-rtitle">—</div>
           <div class="bt-attr-section">
             <div class="bt-attr-sec-title">屬性</div>

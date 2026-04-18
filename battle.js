@@ -229,33 +229,35 @@ const Battle = (() => {
 
   // 🆕 D.28：攻擊動畫（攻擊方撲向被攻擊方 + 被攻擊方震動）
   //   attackerSide: 'player' | 'enemy'
+  //   大頭圖（左右欄）跟中間 slot 同時動畫
   function _playAttackAnim(attackerSide) {
-    const playerCard = document.querySelector('.bt-card-player');
-    const enemyCard  = document.querySelector('.bt-card-enemy');
-    if (!playerCard || !enemyCard) return;
-    const attacker = attackerSide === 'player' ? playerCard : enemyCard;
-    const defender = attackerSide === 'player' ? enemyCard : playerCard;
+    const attackerEls = attackerSide === 'player'
+      ? [document.querySelector('.bt-card-player'), document.getElementById('bt-portrait-l')]
+      : [document.querySelector('.bt-card-enemy'),  document.getElementById('bt-portrait-r')];
+    const defenderEls = attackerSide === 'player'
+      ? [document.querySelector('.bt-card-enemy'),  document.getElementById('bt-portrait-r')]
+      : [document.querySelector('.bt-card-player'), document.getElementById('bt-portrait-l')];
+
     const lungeClass = attackerSide === 'player' ? 'bt-lunge-right' : 'bt-lunge-left';
 
-    // 清掉之前的動畫（避免同回合多擊時不 reset）
-    attacker.classList.remove('bt-lunge-right', 'bt-lunge-left');
-    defender.classList.remove('bt-hit-shake');
-    void attacker.offsetHeight;   // 觸發 reflow 讓動畫重新開始
-    void defender.offsetHeight;
+    attackerEls.forEach(el => {
+      if (!el) return;
+      el.classList.remove('bt-lunge-right', 'bt-lunge-left');
+      void el.offsetHeight;
+      el.classList.add(lungeClass);
+      setTimeout(() => el.classList.remove(lungeClass), 650);
+    });
+    defenderEls.forEach(el => {
+      if (!el) return;
+      el.classList.remove('bt-hit-shake');
+      void el.offsetHeight;
+      setTimeout(() => el.classList.add('bt-hit-shake'), 120);
+      setTimeout(() => el.classList.remove('bt-hit-shake'), 650);
+    });
 
-    attacker.classList.add(lungeClass);
-    // 撲擊中段時被攻擊方才震動（有時間差才像真的撞到）
-    setTimeout(() => defender.classList.add('bt-hit-shake'), 120);
-
-    // 動畫完成後清掉 class
-    setTimeout(() => {
-      attacker.classList.remove(lungeClass);
-      defender.classList.remove('bt-hit-shake');
-    }, 650);
-
-    // 🆕 攻擊台詞（約 30% 機率）+ 防守台詞（15% 機率）
-    if (Math.random() < 0.30) _showSpeech(attackerSide, 'attack');
-    else if (Math.random() < 0.15) _showSpeech(attackerSide === 'player' ? 'enemy' : 'player', 'defend');
+    // 🆕 攻擊台詞（40% 機率，提高一點讓常看到）
+    if (Math.random() < 0.40) _showSpeech(attackerSide, 'attack');
+    else if (Math.random() < 0.20) _showSpeech(attackerSide === 'player' ? 'enemy' : 'player', 'defend');
   }
 
   // 🆕 D.28：對話泡泡（stage 中央跳）
@@ -281,18 +283,12 @@ const Battle = (() => {
     const pool = _SPEECH_POOL[type] || _SPEECH_POOL.attack;
     const line = pool[Math.floor(Math.random() * pool.length)];
     const bubble = document.createElement('div');
-    bubble.className = 'bt-speech';
+    bubble.className = 'bt-speech side-' + side;
     bubble.textContent = line;
-    // 依側位置偏左或右
-    if (side === 'player') {
-      bubble.style.left = '20%';
-    } else {
-      bubble.style.right = '20%';
-    }
     bubble.style.top = '50%';
     bubble.style.transform = 'translateY(-50%)';
     stageMid.appendChild(bubble);
-    setTimeout(() => { if (bubble.parentNode) bubble.remove(); }, 1400);
+    setTimeout(() => { if (bubble.parentNode) bubble.remove(); }, 1800);
   }
 
   // ══════════════════════════════════════════════════════
@@ -450,6 +446,28 @@ const Battle = (() => {
       el.classList.remove('bt-face-green', 'bt-face-blue', 'bt-face-purple');
       el.classList.add(eCls);
     });
+
+    // 🆕 同步左右欄 HP/ATB bar
+    _syncSideBars();
+  }
+
+  // 🆕 同步左右欄的 HP 和 ATB bar 顯示
+  function _syncSideBars() {
+    if (!_player || !_enemy) return;
+    // 左欄（玩家）
+    const lhpBar = document.getElementById('bt-lhp-bar');
+    const lhpTxt = document.getElementById('bt-lhp-txt');
+    const latbBar = document.getElementById('bt-latb-bar');
+    if (lhpBar) lhpBar.style.width = Math.max(0, (_player.hp / _player._hpMax) * 100) + '%';
+    if (lhpTxt) lhpTxt.textContent = `${_player.hp}/${_player._hpMax}`;
+    if (latbBar) latbBar.style.width = Math.min(100, _playerAtb) + '%';
+    // 右欄（敵人）
+    const rhpBar = document.getElementById('bt-rhp-bar');
+    const rhpTxt = document.getElementById('bt-rhp-txt');
+    const ratbBar = document.getElementById('bt-ratb-bar');
+    if (rhpBar) rhpBar.style.width = Math.max(0, (_enemy.hp / _enemy._hpMax) * 100) + '%';
+    if (rhpTxt) rhpTxt.textContent = `${_enemy.hp}/${_enemy._hpMax}`;
+    if (ratbBar) ratbBar.style.width = Math.min(100, _enemyAtb) + '%';
   }
 
   function _fillEnemyInfo() {
@@ -1530,6 +1548,15 @@ const Battle = (() => {
     if (eBar) eBar.style.width = _enemyAtb + '%';
     if (pTxt) pTxt.textContent = Math.round(_playerAtb) + '%';
     if (eTxt) eTxt.textContent = Math.round(_enemyAtb) + '%';
+    // 🆕 D.28：同步左右欄 ATB bar
+    const lAtb = document.getElementById('bt-latb-bar');
+    const rAtb = document.getElementById('bt-ratb-bar');
+    if (lAtb) {
+      lAtb.style.width = _playerAtb + '%';
+      if (_playerAtb >= 100) lAtb.classList.add('ready');
+      else                   lAtb.classList.remove('ready');
+    }
+    if (rAtb) rAtb.style.width = _enemyAtb + '%';
   }
 
   // ══════════════════════════════════════════════════════
