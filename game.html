@@ -1322,33 +1322,35 @@ html, body {
   align-items: center !important;   /* 垂直置中，閱讀舒服 */
   justify-content: center !important;
   padding: 0 24px;
-  background: transparent;   /* 用 dialogue-dim 控制 */
+  background: transparent;   /* 🆕 D.28：不暗背景，讓玩家看見 NPC 反應 */
+  pointer-events: auto;
 }
+/* 🆕 D.28：取消全屏變暗——NPC 需要被看見 */
 .dialogue-overlay .dialogue-dim {
   position: absolute;
   inset: 0;
-  background: rgba(0,0,0,0.55);
-  backdrop-filter: blur(2px);
+  background: transparent;
+  backdrop-filter: none;
   z-index: 1;
 }
 .dialogue-box {
   position: relative;
   z-index: 2;
-  width: min(720px, 92%);
-  min-height: 140px;
-  max-height: 50vh;
+  width: min(620px, 88%);
+  min-height: 110px;
+  max-height: 34vh;   /* 🆕 D.28：縮短，讓上下的 NPC 可見 */
   background: linear-gradient(180deg, rgba(22,14,6,.96) 0%, rgba(14,8,2,.98) 100%);
   border: 2px solid var(--gold);
   border-radius: 6px;
   box-shadow: 0 8px 40px rgba(0,0,0,0.8), inset 0 0 60px rgba(200,160,80,0.08);
-  padding: 22px 30px 30px 30px;
+  padding: 18px 26px 24px 26px;
   margin: 0 auto;
   cursor: pointer;
   animation: dialogue-slide-up .35s ease-out;
   /* 🆕 頭像 + 文字並排 */
   display: flex;
   align-items: flex-start;
-  gap: 20px;
+  gap: 18px;
 }
 /* 🆕 頭像佔位（未來接真實立繪） */
 .dialogue-portrait {
@@ -1385,12 +1387,14 @@ html, body {
   border-bottom: 1px solid rgba(200,160,80,0.3);
 }
 .dialogue-text {
-  font-size: 18px;
-  line-height: 1.85;
+  font-size: 17px;
+  line-height: 1.7;
   color: #e8e0cc;
   letter-spacing: .05em;
-  min-height: 60px;
+  min-height: 48px;
   white-space: pre-wrap;
+  overflow-y: auto;
+  max-height: 24vh;
 }
 .dialogue-continue {
   position: absolute;
