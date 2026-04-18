@@ -266,6 +266,7 @@ const OrlanEvents = (() => {
         teammates.getNPC('orlan').alive = false;
       }
       Flags.set('orlan_dead', true);
+      Flags.set('orlan_died_day', p.day);
       return true;
     }
 
@@ -416,6 +417,28 @@ const OrlanEvents = (() => {
       // Day 30+ 房間升級
       if (_tryRoomUpgrade()) return;
     });
+
+    // 訣別後一週左右，奧蘭在前哨賽戰死（accept / reject 路線都會死）
+    DayCycle.onDayStart('orlanPrelimDeath', (newDay) => {
+      if (Flags.has('orlan_dead')) return;
+      if (Flags.has('orlan_will_fight_beside')) return;  // 並肩路線不在前哨賽死
+      const accepted = Flags.has('orlan_farewell_accepted');
+      const rejected = Flags.has('orlan_farewell_rejected');
+      if (!accepted && !rejected) return;
+      // Day 85 訣別 → Day 92 左右的前哨賽
+      if (newDay < 92) return;
+
+      if (typeof teammates !== 'undefined' && teammates.getNPC('orlan')) {
+        teammates.getNPC('orlan').alive = false;
+      }
+      Flags.set('orlan_dead', true);
+      Flags.set('orlan_died_day', newDay);
+      // 訊息留在 log — 細節情緒回聲交給 npc_reactions
+      const lastWord = accepted
+        ? '「……告訴他，我替他走了一段。」'
+        : '「……他會活下去的。那就夠了。」';
+      addLog(`前哨賽的消息傳回來——奧蘭沒能活著走出場。他最後說的是：${lastWord}`, '#663344', true, true);
+    }, 20);
   }
 
   // 自動初始化（需要 DayCycle 已載入）

@@ -606,9 +606,11 @@ const Endings = (() => {
     // 奇蹟殘局：共同作戰 + 極高屬性 + 多條件
     if (Flags.has('orlan_will_fight_beside') && !Flags.has('orlan_dead')) {
       const totalStats = (p.STR||0) + (p.DEX||0) + (p.CON||0) + (p.AGI||0) + (p.WIL||0);
+      const sisterTruthSeen = Flags.has('olan_sister_truth_known')
+                           || (Array.isArray(p.seenReveals) && p.seenReveals.includes('orlan_sister_truth_reveal'));
       const isMiracle = totalStats >= 120
                      && Flags.has('shared_olans_punishment')
-                     && Flags.has('olan_sister_truth_known');
+                     && sisterTruthSeen;
       if (isMiracle) { miracleEnding(name); return; }
       brotherhoodEnding(name); return;
     }

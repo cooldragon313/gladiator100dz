@@ -86,7 +86,7 @@ const NPCConflicts = (() => {
       id: 'hector_bullies_orlan',
       minDay: 8,
       maxDay: 84,
-      chance: 0.28,
+      chance: 0.38,
       condition: () =>
         !Flags.has('orlan_dead') &&
         !Flags.has('betrayed_olan') &&
@@ -154,7 +154,7 @@ const NPCConflicts = (() => {
     {
       id: 'officer_vs_doctor_medicine',
       minDay: 15,
-      chance: 0.25,
+      chance: 0.35,
       condition: () => typeof teammates !== 'undefined' &&
                        teammates.getNPC('doctorMo')?.alive !== false,
       title: '藥是留給誰的',
@@ -215,7 +215,7 @@ const NPCConflicts = (() => {
     {
       id: 'cassius_vs_hector_standoff',
       minDay: 20,
-      chance: 0.22,
+      chance: 0.32,
       condition: () => typeof teammates !== 'undefined' &&
                        teammates.getNPC('cassius')?.alive !== false &&
                        teammates.getNPC('hector')?.alive !== false,
@@ -290,7 +290,7 @@ const NPCConflicts = (() => {
     {
       id: 'mela_caught_feeding',
       minDay: 25,
-      chance: 0.25,
+      chance: 0.35,
       condition: () => typeof teammates !== 'undefined' &&
                        teammates.getAffection('melaKook') >= 20,
       title: '多出來的那個饅頭',
@@ -352,7 +352,7 @@ const NPCConflicts = (() => {
       id: 'orlan_asks_revenge',
       minDay: 35,
       maxDay: 84,
-      chance: 0.3,
+      chance: 0.4,
       condition: () =>
         !Flags.has('orlan_dead') &&
         !Flags.has('betrayed_olan') &&
@@ -419,7 +419,7 @@ const NPCConflicts = (() => {
       id: 'officer_targets_orlan',
       minDay: 40,
       maxDay: 84,
-      chance: 0.26,
+      chance: 0.36,
       condition: () =>
         !Flags.has('orlan_dead') &&
         !Flags.has('betrayed_olan') &&

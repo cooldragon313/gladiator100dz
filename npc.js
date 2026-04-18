@@ -131,6 +131,11 @@ const teammates = (() => {
       //   cruel  3 分   — 他最怕你變成那種人
       likedTraits:    { kindness:3, merciful:3, reliable:2, loyal:2, humble:1 },
       dislikedTraits: { cruel:3, opportunist:2, coward:1, prideful:1 },
+      // 🆕 D.26：NPC 間的關係（供 npc_conflicts / 關係圖 UI 使用）
+      relations: {
+        allies:   ['melaKook', 'cassius', 'doctorMo'],
+        enemies:  ['hector', 'officer'],
+      },
 
       personalityDesc: '主動溫暖，話不多，但該說的話都會先說。笑的時候眼睛先彎起來。',
       arriveDay: 1,
@@ -499,6 +504,11 @@ const teammates = (() => {
       arriveDay: 1,
       likedTraits:    { cruel:3, opportunist:2, prideful:1 },  // 他尊重跟他一樣的人
       dislikedTraits: { kindness:3, merciful:2, reliable:2, humble:1 },  // 善良讓他不舒服
+      // 🆕 D.26：NPC 間的關係
+      relations: {
+        allies:   ['officer'],
+        enemies:  ['orlan', 'cassius', 'melaKook', 'doctorMo'],
+      },
 
       storyReveals: [
         // ── Flavor ──
@@ -622,6 +632,11 @@ const teammates = (() => {
       // 🆕 D.19：老兵看重可靠與耐心，最討厭投機和膽小
       likedTraits:    { reliable:3, patient:2, iron_will:2, humble:1 },
       dislikedTraits: { coward:3, opportunist:2, prideful:2, impulsive:1 },
+      // 🆕 D.26：NPC 間的關係
+      relations: {
+        allies:   ['orlan', 'doctorMo', 'melaKook'],
+        enemies:  ['hector', 'officer'],
+      },
 
       personalityDesc: '沉默寡言，但對新人有隱藏的耐心。重承諾，鄙視欺騙。',
       arriveDay: 1,
@@ -774,6 +789,11 @@ const teammates = (() => {
       // 🆕 D.19：存活派的長官 — 最愛耐心可靠，恨衝動投機
       likedTraits:    { reliable:3, patient:3, loyal:2, iron_will:1 },
       dislikedTraits: { impulsive:3, opportunist:3, coward:2, prideful:1 },
+      // 🆕 D.26：NPC 間的關係
+      relations: {
+        allies:   ['hector', 'masterArtus'],
+        enemies:  ['doctorMo', 'melaKook', 'orlan'],
+      },
     },
 
     blacksmithGra: {
@@ -801,6 +821,11 @@ const teammates = (() => {
       // 🆕 D.19：廚娘母親般的溫柔，最愛善良的孩子，最厭殘忍
       likedTraits:    { kindness:3, merciful:3, humble:2, reliable:1 },
       dislikedTraits: { cruel:3, prideful:2, opportunist:1 },
+      // 🆕 D.26：NPC 間的關係
+      relations: {
+        allies:   ['orlan', 'doctorMo', 'cassius'],
+        enemies:  ['officer', 'hector'],
+      },
     },
 
     masterArtus: {
@@ -845,6 +870,11 @@ const teammates = (() => {
       //   他每天都在處理衝動者和殘忍者造成的後果
       likedTraits:    { patient:3, merciful:2, humble:2, reliable:2 },
       dislikedTraits: { impulsive:3, cruel:3, prideful:2, opportunist:1 },
+      // 🆕 D.26：NPC 間的關係
+      relations: {
+        allies:   ['melaKook', 'orlan', 'cassius'],
+        enemies:  ['officer', 'hector'],
+      },
       background: '老默曾是帝國北境軍團的主治醫官。某場戰役他違反軍令，試圖救治敵軍的傷員，被軍法判刑剝奪自由身。競技場的主人買下他——因為他技術太好了，不救治可惜。他每天處理鞭傷、斷骨、化膿、失眠、恐懼——看過的死法比活人多。',
 
       // ── 故事揭露（10 段：5 flavor + 5 event）──

@@ -22,6 +22,7 @@ const NPCReactions = (() => {
     return _tryTrialReactions(day)
         || _tryStealingReactions(day)
         || _tryFarewellReactions(day)
+        || _tryOrlanMourning(day)
         || null;
   }
 
@@ -338,6 +339,140 @@ const NPCReactions = (() => {
         _aff('cassius', -5);
         _aff('doctorMo', -5);
         _log('你一整天都沒聽到奧蘭那雙拖鞋的聲音。', '#8899aa', true);
+      },
+    };
+  }
+
+  // ══════════════════════════════════════════════════
+  // 奧蘭死後的哀悼序列（+1 / +4 / +10 天）
+  // ══════════════════════════════════════════════════
+  function _tryOrlanMourning(day) {
+    if (!Flags.has('orlan_dead')) return null;
+    const deathDay = Flags.get('orlan_died_day');
+    if (typeof deathDay !== 'number') return null;
+    const delta = day - deathDay;
+
+    // 第 1 天（隔日）：第一波震盪
+    if (delta >= 1 && !Flags.has('mourn1_done')) {
+      Flags.set('mourn1_done', true);
+      return Flags.has('betrayed_olan') ? _buildMournBetray1() : _buildMournDay1();
+    }
+    // 第 4 天：梅拉塞失去慣性
+    if (delta >= 4 && !Flags.has('mourn4_done')) {
+      Flags.set('mourn4_done', true);
+      return _buildMournDay4();
+    }
+    // 第 10 天：老默把舊筆記給你
+    if (delta >= 10 && !Flags.has('mourn10_done')) {
+      Flags.set('mourn10_done', true);
+      return _buildMournDay10();
+    }
+    return null;
+  }
+
+  function _buildMournDay1() {
+    return {
+      id: 'mourn_d1',
+      lines: [
+        { text: '清晨。你醒來時沒聽見他的呼吸聲。' },
+        { text: '沒有。再也沒有了。' },
+        { text: '食堂裡沒有人跟你說話。所有人都知道——他代你走了。' },
+        { speaker: '梅拉塞', text: '……孩子。' },
+        { speaker: '梅拉塞', text: '坐下吃東西。' },
+        { speaker: '梅拉塞', text: '他昨天早上喝完了我煮的湯。' },
+        { speaker: '梅拉塞', text: '他說——好。' },
+        { text: '她轉身進廚房，很久沒出來。' },
+        { speaker: '卡西烏斯', text: '他選了你。' },
+        { speaker: '卡西烏斯', text: '你現在欠他的不是眼淚——是繼續走下去。' },
+        { speaker: '老默', text: '我前幾天給他雙倍的止痛藥。' },
+        { speaker: '老默', text: '……希望他上場時不會太痛。' },
+        { speaker: '老默', text: '希望。' },
+        { text: '你一整天都沒說話。晚上你把他床位上的毯子疊好——跟平常一樣的折法。' },
+      ],
+      onComplete: () => {
+        Stats.modVital('mood', -25);
+        _aff('melaKook', 5);
+        _aff('cassius', 5);
+        _aff('doctorMo', 5);
+        _log('你好像永遠聽得見他那雙拖鞋的聲音。', '#8899aa', true);
+      },
+    };
+  }
+
+  function _buildMournBetray1() {
+    return {
+      id: 'mourn_betray_d1',
+      lines: [
+        { text: '清晨。訓練所裡沒有人跟你說早。' },
+        { text: '他們知道昨晚的事。' },
+        { text: '——奧蘭是因為你才上的處決台。' },
+        { speaker: '梅拉塞', text: '……你的麵包。' },
+        { text: '她放下盤子就走了。從那天起她再也沒叫過你的名字。' },
+        { speaker: '卡西烏斯', text: '……' },
+        { text: '他經過你身邊，沒停下。' },
+        { speaker: '老默', text: '以後你的藥自己來領。' },
+        { speaker: '老默', text: '——我不會再多說一個字。' },
+        { speaker: '赫克特', text: '別理他們。' },
+        { speaker: '赫克特', text: '你做的是聰明人的選擇。' },
+        { speaker: '赫克特', text: '往上爬的人，從來都不回頭。' },
+        { text: '他的手搭到你肩上。那重量你抖不掉。' },
+      ],
+      onComplete: () => {
+        Stats.modVital('mood', -30);
+        _aff('melaKook', -10);
+        _aff('cassius', -15);
+        _aff('doctorMo', -10);
+        _aff('hector', 8);
+        _log('訓練所從今以後不屬於你了。你只是還活在裡面。', '#663344', true);
+      },
+    };
+  }
+
+  function _buildMournDay4() {
+    return {
+      id: 'mourn_d4',
+      lines: [
+        { text: '第四天。你去食堂吃早餐。' },
+        { text: '——食堂的鍋裡沒湯。' },
+        { text: '梅拉塞站在灶台前很久，手裡拿著木勺。' },
+        { speaker: '梅拉塞', text: '……抱歉。' },
+        { speaker: '梅拉塞', text: '我每天煮兩人份，煮了快一年。' },
+        { speaker: '梅拉塞', text: '今天起我得學會煮一人份了。' },
+        { text: '她的手在抖。' },
+        { text: '她給你一個麵包——還是熱的。' },
+        { speaker: '梅拉塞', text: '這個是給你的。' },
+        { speaker: '梅拉塞', text: '……他那份我就不做了。' },
+        { text: '你接過麵包。那塊麵包沉得不像麵包。' },
+      ],
+      onComplete: () => {
+        Stats.modVital('mood', -10);
+        _aff('melaKook', 8);
+        _log('你發現自己在找他的位置——然後想起那裡已經沒人了。', '#8899aa', true);
+      },
+    };
+  }
+
+  function _buildMournDay10() {
+    return {
+      id: 'mourn_d10',
+      lines: [
+        { text: '十天了。你以為你已經習慣了。' },
+        { text: '晚上老默來找你。他手裡拿著一個舊本子。' },
+        { speaker: '老默', text: '這是奧蘭以前在藥房幫我時記的。' },
+        { speaker: '老默', text: '他字寫得歪，但每一個草藥名都記得很認真。' },
+        { text: '他把本子翻開。最後一頁有一行歪歪的字——' },
+        { text: '「替我妹妹記住他。她叫伊娜。」' },
+        { speaker: '老默', text: '……他大概知道自己會先走。' },
+        { speaker: '老默', text: '我把這個交給你。' },
+        { speaker: '老默', text: '你比我有機會見到他妹妹。' },
+        { text: '老默把本子放在你手心。離開前他拍了你肩膀一下——很輕。' },
+      ],
+      onComplete: () => {
+        _aff('doctorMo', 15);
+        Stats.modVital('mood', 10);
+        Flags.set('has_orlan_notebook', true);
+        Flags.set('olan_sister_truth_known', true);   // 奇蹟殘局結局條件
+        _log('你把本子收好。你不知道這會不會送得到。但你會帶著它走。', '#d4af37', true);
       },
     };
   }

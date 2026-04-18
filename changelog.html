@@ -240,10 +240,37 @@ html, body {
           每日機率觸發，一次一個，含殘忍/鐵意志等特性專屬選項。</span>
       </li>
       <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>奧蘭哀悼序列（3 段）</strong> <span class="file-tag">npc_reactions.js</span>
+          — 奧蘭死後的 +1 / +4 / +10 天，NPC 分階段表達失去：第一天眾人震盪（或告發路線的冷清）、
+          第四天梅拉塞無法煮兩人份的湯、第十天老默把奧蘭的舊筆記交給你
+          （設 flag <code>has_orlan_notebook</code> + <code>olan_sister_truth_known</code>）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>前哨賽奧蘭戰死</strong> <span class="file-tag">orlan_events.js</span>
+          — Day 85 訣別（接受/驕傲拒絕）後約 Day 92 收到前哨賽戰死的消息，設
+          <code>orlan_dead</code> + <code>orlan_died_day</code> 觸發哀悼序列。
+          並肩路線（<code>orlan_will_fight_beside</code>）不走這條。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text"><strong>NPC relations 欄位</strong> <span class="file-tag">npc.js</span>
+          — 6 位主要 NPC（奧蘭/赫克特/卡西烏斯/塔倫長官/梅拉/老默）加上 allies/enemies 欄位，
+          供 npc_conflicts 與未來關係圖 UI 讀取。</span>
+      </li>
+      <li class="change-item">
         <span class="change-badge badge-system">SYSTEM</span>
-        <span class="change-text"><strong>DayCycle 整合</strong> — NPCReactions 與 NPCConflicts 透過
-          `_pendingDialogues` 管線在晨起動畫後串播，不破壞黑幕節奏。衝突事件會讓位給反應事件
-          （同日不雙疊）。</span>
+        <span class="change-text"><strong>DayCycle 整合 + 平衡</strong> — NPCReactions 與 NPCConflicts 透過
+          <code>_pendingDialogues</code> 管線在晨起動畫後串播，不破壞黑幕節奏。
+          衝突事件會讓位給反應事件（同日不雙疊）。衝突觸發機率 0.22-0.30 → 0.32-0.40，
+          玩家 100 天內預期碰上 4-6 個衝突事件。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">FIX</span>
+        <span class="change-text"><strong>奇蹟殘局條件放寬</strong> <span class="file-tag">ending.js</span>
+          — <code>olan_sister_truth_known</code> 改為 flag 或 <code>seenReveals</code> 包含
+          <code>orlan_sister_truth_reveal</code> 皆可，兩條路線皆能觸發奇蹟結局。</span>
       </li>
     </ul>
   </div>
