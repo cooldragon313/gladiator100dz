@@ -4835,34 +4835,22 @@ const Game = (() => {
   }
 
   function _showOpeningTitle(ov, textBox, onDone) {
-    // 標題
-    const title = document.createElement('div');
-    title.style.cssText = `
-      font-size:36px; font-weight:900; color:#c8a060;
-      letter-spacing:.4em; margin-top:30px;
-      opacity:0; transition:opacity 1.2s;
+    // 🆕 D.28：拿掉最後的「百日萬骸祭」標題（使用者要求）
+    //   只保留「……活下去。」按鈕結束開場
+    const btn = document.createElement('button');
+    btn.style.cssText = `
+      display:block; margin:40px auto 0;
+      padding:12px 40px; background:transparent;
+      border:1px solid rgba(200,160,80,0.4); color:#c8a060;
+      font-family:var(--font); font-size:18px; letter-spacing:.2em;
+      cursor:pointer; opacity:0; transition:opacity .8s, background .2s;
     `;
-    title.textContent = '百 日 萬 骸 祭';
-    textBox.appendChild(title);
-    requestAnimationFrame(() => requestAnimationFrame(() => { title.style.opacity = 1; }));
-
-    // 按鈕
-    setTimeout(() => {
-      const btn = document.createElement('button');
-      btn.style.cssText = `
-        display:block; margin:24px auto 0;
-        padding:12px 40px; background:transparent;
-        border:1px solid rgba(200,160,80,0.4); color:#c8a060;
-        font-family:var(--font); font-size:18px; letter-spacing:.2em;
-        cursor:pointer; opacity:0; transition:opacity .8s, background .2s;
-      `;
-      btn.textContent = '……活下去。';
-      btn.onmouseover = () => { btn.style.background = 'rgba(200,160,80,0.1)'; };
-      btn.onmouseout  = () => { btn.style.background = 'transparent'; };
-      btn.onclick = onDone;
-      textBox.appendChild(btn);
-      requestAnimationFrame(() => { btn.style.opacity = 1; });
-    }, 1500);
+    btn.textContent = '……活下去。';
+    btn.onmouseover = () => { btn.style.background = 'rgba(200,160,80,0.1)'; };
+    btn.onmouseout  = () => { btn.style.background = 'transparent'; };
+    btn.onclick = onDone;
+    textBox.appendChild(btn);
+    requestAnimationFrame(() => requestAnimationFrame(() => { btn.style.opacity = 1; }));
   }
 
   function confirmName() {
