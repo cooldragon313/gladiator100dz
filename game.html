@@ -3025,6 +3025,32 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 }
 .bt-card-player { border-color: #223388; }
 .bt-card-enemy  { border-color: #882222; }
+
+/* 🆕 D.28：攻擊動畫 — 攻擊方撲向被攻擊方，被攻擊方震動 */
+@keyframes bt-lunge-right {
+  0%   { transform: translateX(0); }
+  40%  { transform: translateX(32px); }
+  60%  { transform: translateX(32px); }
+  100% { transform: translateX(0); }
+}
+@keyframes bt-lunge-left {
+  0%   { transform: translateX(0); }
+  40%  { transform: translateX(-32px); }
+  60%  { transform: translateX(-32px); }
+  100% { transform: translateX(0); }
+}
+@keyframes bt-hit-shake {
+  0%, 100% { transform: translate(0, 0); background-color: inherit; }
+  10%      { transform: translate(-6px, 2px); background-color: rgba(204, 40, 40, 0.35); }
+  25%      { transform: translate(6px, -2px); }
+  40%      { transform: translate(-5px, 1px); }
+  55%      { transform: translate(5px, -1px); }
+  70%      { transform: translate(-3px, 1px); }
+  85%      { transform: translate(2px, 0); }
+}
+.bt-card.bt-lunge-right { animation: bt-lunge-right 280ms ease-out; z-index: 2; position: relative; }
+.bt-card.bt-lunge-left  { animation: bt-lunge-left 280ms ease-out;  z-index: 2; position: relative; }
+.bt-card.bt-hit-shake   { animation: bt-hit-shake 450ms cubic-bezier(.36,.07,.19,.97); }
 .bt-comb-name  { font-size: 18px; font-weight: 700; letter-spacing: .1em; margin-bottom: 3px; color: var(--text-hi); }
 .bt-comb-title { font-size: 13px; color: #666680; margin-bottom: 5px; }
 .bt-bar-label  { font-size: 13px; color: #888; display: flex; justify-content: space-between; margin-bottom: 2px; }

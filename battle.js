@@ -205,6 +205,33 @@ const Battle = (() => {
     if (ov) ov.style.display = 'none';
   }
 
+  // 🆕 D.28：攻擊動畫（攻擊方撲向被攻擊方 + 被攻擊方震動）
+  //   attackerSide: 'player' | 'enemy'
+  function _playAttackAnim(attackerSide) {
+    const playerCard = document.querySelector('.bt-card-player');
+    const enemyCard  = document.querySelector('.bt-card-enemy');
+    if (!playerCard || !enemyCard) return;
+    const attacker = attackerSide === 'player' ? playerCard : enemyCard;
+    const defender = attackerSide === 'player' ? enemyCard : playerCard;
+    const lungeClass = attackerSide === 'player' ? 'bt-lunge-right' : 'bt-lunge-left';
+
+    // 清掉之前的動畫（避免同回合多擊時不 reset）
+    attacker.classList.remove('bt-lunge-right', 'bt-lunge-left');
+    defender.classList.remove('bt-hit-shake');
+    void attacker.offsetHeight;   // 觸發 reflow 讓動畫重新開始
+    void defender.offsetHeight;
+
+    attacker.classList.add(lungeClass);
+    // 撲擊中段時被攻擊方才震動（有時間差才像真的撞到）
+    setTimeout(() => defender.classList.add('bt-hit-shake'), 120);
+
+    // 動畫完成後清掉 class
+    setTimeout(() => {
+      attacker.classList.remove(lungeClass);
+      defender.classList.remove('bt-hit-shake');
+    }, 650);
+  }
+
   // ══════════════════════════════════════════════════════
   // INIT UI
   // ══════════════════════════════════════════════════════
@@ -885,7 +912,11 @@ const Battle = (() => {
     }
 
     const wasAbove30 = target.hp >= target._hpMax * 0.30;
-    if (dmg > 0) target.hp = Math.max(0, target.hp - dmg);
+    if (dmg > 0) {
+      target.hp = Math.max(0, target.hp - dmg);
+      // 🆕 D.28：攻擊動畫 — 攻擊方撲擊 + 被攻擊方震動
+      _playAttackAnim(target === _player ? 'enemy' : 'player');
+    }
     if (counterTarget && counterDmg > 0)
       counterTarget.hp = Math.max(0, counterTarget.hp - counterDmg);
 
