@@ -2391,6 +2391,10 @@ const Game = (() => {
 
     // ── 協力爆擊日誌（D.8c）─────────────────────────
     if (hasAttrEffect && synergyMult > 1.0) {
+      // 🆕 D.28：標記協力發生過 → 讓 tutorial_hints 能觸發卡西烏斯的提示
+      if (typeof TutorialHints !== 'undefined' && TutorialHints.markSynergyHappened) {
+        TutorialHints.markSynergyHappened();
+      }
       const multStr = synergyMult.toFixed(1);
       if (synergyMult >= 10) {
         addLog(`🌟 傳說爆擊！協力 ×${multStr}`, '#cc44ff', false);
@@ -2553,9 +2557,25 @@ const Game = (() => {
       }
     }
 
+    // 🆕 D.28：對話型教學提示（條件觸發，1~3 句帶過）
+    _tryTutorialHint();
+
     // 🆕 D.1.8: 依設定自動存檔（寫到 auto slot，不影響手動槽）
     autoSave('action');
     renderAll();
+  }
+
+  // 🆕 D.28：對話型教學提示的觸發器
+  //   由 doAction / sleepEndDay 結尾呼叫。
+  //   每個 hint 透過 flag 鎖住只觸發一次。
+  function _tryTutorialHint() {
+    if (typeof TutorialHints === 'undefined') return;
+    if (typeof DialogueModal === 'undefined') return;
+    // 動畫中 / Modal 已開就延後
+    if (_uiLocked) return;
+    if (DialogueModal.isOpen && DialogueModal.isOpen()) return;
+    const hint = TutorialHints.tryShow(Stats.player);
+    if (hint) DialogueModal.play(hint.lines);
   }
 
   // ══════════════════════════════════════════════════
@@ -5273,6 +5293,15 @@ const Game = (() => {
     const pending = NPCConflicts.pickDaily(newDay);
     if (pending) _pendingDialogues.push(pending);
   }, 28);   // 在 npcReactions 之後
+
+  // 🆕 D.28：對話型教學提示（新的一天早上條件如果達成就觸發一個）
+  //   排在 NPC 反應 / 衝突之後，這樣劇情比教學優先
+  DayCycle.onDayStart('tutorialHints', () => {
+    if (typeof TutorialHints === 'undefined') return;
+    if (_pendingDialogues.length > 0) return;   // 本日已有其他劇情不塞教學
+    const hint = TutorialHints.tryShow(Stats.player);
+    if (hint) _pendingDialogues.push({ id: hint.id, lines: hint.lines });
+  }, 35);
 
   // Day 4 安全網（路線 B）
   DayCycle.onDayStart('weaponSafetyNet', (newDay) => {
