@@ -27,6 +27,13 @@
    - ⚠️ **「X 做完了嗎」→ 只看頂部進度總表**。其他章節的 checkbox 都是歷史快照。
 2. **`HISTORY.md`** — 已實作系統的歷史細節、已廢棄設計的考古紀錄。一般開發不需要讀。
 3. **`docs/CONTENT-TEMPLATES.md`** — 新 NPC / 武器 / 訓練所等內容創作模板（原 D.11）。
+3a. **`docs/characters/*.md`** — 🆕 D.28：每個 NPC 的完整檔案（愛憎 / 對話風格 / 特性反應 / 招牌動作 / 程式碼指標）
+   - 目前已建：orlan / melaKook / cassius / hector / doctorMo / officer / masterArtus / sol
+   - 改 NPC 對白先看這份，確保語氣一致
+3b. **`docs/quests/*.md`** — 🆕 D.28：每個任務的完整設計書（觸發 / 階段 / 門檻 / 對白 / 獎勵 / flag）
+   - 目前已建：mela-rat（抓老鼠任務）
+3c. **`docs/systems/*.md`** — 🆕 D.28：系統規範（night-events, multi-check-quest）
+3d. **`docs/philosophy/*.md`** — 🆕 D.28：設計哲學（numbers-hiding）
 4. **`changelog.html`** — 版本記錄與歷次 commit 摘要
 5. **`NOTES.md`** — 🆕 手機草稿本。使用者會在手機上寫未整理的想法到底部「待整理」區。
    **看到使用者叫你「整理 NOTES.md」時**：讀 NOTES.md → 歸類每個項目（屬於哪個章節）
