@@ -1736,16 +1736,37 @@ const Game = (() => {
     if (newDay !== 8 || Flags.has('hector_day8_done')) return;
     Flags.set('hector_day8_done', true);
 
+    // 🆕 D.28：撞擊分為「前奏」+「撞擊（震動 + HP-3 + 音效）」+「後續對話」
     _pendingDialogues.push({
-      id: 'hector_day8_test',
+      id: 'hector_day8_test_pre',
       lines: [
         { text: '訓練結束的時候，赫克托走過來。' },
-        { text: '他故意用肩膀撞了你一下。很重。' },
-        { speaker: '赫克托', text: '喔。沒看到你。' },
-        { text: '他沒有道歉的意思。他在等你的反應。' },
+        { text: '他加快腳步——' },
       ],
       onComplete: () => {
-        ChoiceModal.show({
+        // ⚡ 撞擊瞬間
+        _shakeGameRoot();
+        _flashStageRed();
+        if (typeof SoundManager !== 'undefined') SoundManager.playSynth('sword_swing');
+        Stats.modVital('hp', -3);
+        addLog('（赫克托的肩膀狠狠撞在你身上。）', '#cc5533', true, true);
+        renderAll();
+        // 稍等一下再接後續對話（讓震動跟 UI 更新同步）
+        setTimeout(() => {
+          DialogueModal.play([
+            { text: '——肩膀重重撞在你身上！' },
+            { text: '你踉蹌了兩步。耳朵嗡嗡響。' },
+            { speaker: '赫克托', text: '喔。沒看到你。' },
+            { text: '他沒有道歉的意思。他在等你的反應。' },
+          ], { onComplete: () => { _showHectorDay8Choice(); } });
+        }, 280);
+      },
+    });
+  }, 27);
+
+  // 🆕 D.28：赫克托 Day 8 試探的選項（拆成獨立函式方便引用）
+  function _showHectorDay8Choice() {
+    ChoiceModal.show({
           id: 'hector_test',
           icon: '💢',
           title: '赫克托在試探你',
@@ -1790,9 +1811,7 @@ const Game = (() => {
             },
           ],
         });
-      },
-    });
-  }, 27);
+  }
 
   // 赫克托 Day 15 交易登門（他主動找上你）
   DayCycle.onDayStart('hectorDay15', (newDay) => {

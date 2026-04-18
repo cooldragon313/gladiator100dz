@@ -431,6 +431,18 @@ const MelaRatQuest = (() => {
     const aff  = Math.max(1, Math.round(10 * percent / 100));
     Stats.modVital('food', food);
     if (typeof teammates !== 'undefined') teammates.modAffection('melaKook', aff);
+    // 🆕 加敘述 log 讓玩家知道有獎勵（避免「選了什麼都沒感覺」）
+    if (typeof addLog === 'function') {
+      let line;
+      if (percent <= 10) {
+        line = '（梅拉塞嘆了口氣，還是塞了一小塊麵包給你。）';
+      } else if (percent <= 40) {
+        line = '（梅拉塞搖搖頭，給了你一塊麵包跟一口湯。）「下次別再失手。」';
+      } else {
+        line = '（梅拉塞把一份完整的食物端給你。）「你差一點就成了——算你有心。」';
+      }
+      addLog(line, '#c8a060', false, true);
+    }
   }
 
   function _finishQuest() {
