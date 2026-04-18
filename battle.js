@@ -252,6 +252,47 @@ const Battle = (() => {
       attacker.classList.remove(lungeClass);
       defender.classList.remove('bt-hit-shake');
     }, 650);
+
+    // 🆕 攻擊台詞（約 30% 機率）+ 防守台詞（15% 機率）
+    if (Math.random() < 0.30) _showSpeech(attackerSide, 'attack');
+    else if (Math.random() < 0.15) _showSpeech(attackerSide === 'player' ? 'enemy' : 'player', 'defend');
+  }
+
+  // 🆕 D.28：對話泡泡（stage 中央跳）
+  const _SPEECH_POOL = {
+    attack: [
+      '看招！', '給你嘗嘗！', '呵！', '吃我一擊！',
+      '拿命來！', '該結束了！', '去死吧！',
+    ],
+    defend: [
+      '閃得好！', '哼！', '想都別想！', '差得遠了！',
+      '這招我看過！',
+    ],
+    crit: [
+      '啊啊啊！', '完美！', '漂亮！', '就是現在！',
+    ],
+    hurt: [
+      '該死⋯⋯', '可惡！', '嗚——！', '啊！',
+    ],
+  };
+  function _showSpeech(side, type) {
+    const stageMid = document.getElementById('bt-stage-mid');
+    if (!stageMid) return;
+    const pool = _SPEECH_POOL[type] || _SPEECH_POOL.attack;
+    const line = pool[Math.floor(Math.random() * pool.length)];
+    const bubble = document.createElement('div');
+    bubble.className = 'bt-speech';
+    bubble.textContent = line;
+    // 依側位置偏左或右
+    if (side === 'player') {
+      bubble.style.left = '20%';
+    } else {
+      bubble.style.right = '20%';
+    }
+    bubble.style.top = '50%';
+    bubble.style.transform = 'translateY(-50%)';
+    stageMid.appendChild(bubble);
+    setTimeout(() => { if (bubble.parentNode) bubble.remove(); }, 1400);
   }
 
   // ══════════════════════════════════════════════════════
