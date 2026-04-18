@@ -5461,6 +5461,9 @@ const Game = (() => {
     // Wire up detail / settings buttons
     document.getElementById('btn-detail')   ?.addEventListener('click', openDetailModal);
     document.getElementById('btn-settings') ?.addEventListener('click', openSettingsModal);
+    document.getElementById('btn-help')     ?.addEventListener('click', () => {
+      if (typeof HelpModal !== 'undefined') HelpModal.show();
+    });
     document.getElementById('btn-close-detail')   ?.addEventListener('click', closeDetailModal);
     document.getElementById('btn-close-settings') ?.addEventListener('click', closeSettingsModal);
 
