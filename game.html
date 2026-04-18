@@ -2793,6 +2793,16 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   color: var(--text-hi);
   letter-spacing: .04em;
   margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.action-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .action-cost {
   font-size: 14px;
@@ -2820,21 +2830,21 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 .attr-badge.attr-DEX { color: #88c0e8; background: #10283a; border-color: #20406a; }
 .attr-badge.attr-MOOD { color: #ffc870; background: #2a1a08; border-color: #5a3a10; }
 
-/* 🆕 D.28：訓練協力名單（底部人形列） */
+/* 🆕 D.28：訓練協力名單（置於動作名字右側，節省垂直空間） */
 .action-synergy {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-  margin-top: 4px;
-  padding-top: 4px;
-  border-top: 1px dashed rgba(255,255,255,0.07);
+  display: inline-flex;
+  gap: 2px;
+  flex-wrap: nowrap;
+  margin-left: auto;
+  flex-shrink: 0;
+  padding-left: 4px;
 }
 .syn-icon {
   display: inline-block;
   font-size: 13px;
   line-height: 1;
   filter: grayscale(1) brightness(0.5);
-  opacity: 0.7;
+  opacity: 0.65;
   transition: filter .2s, opacity .2s, text-shadow .2s;
 }
 .syn-icon.syn-bg { font-size: 11px; }   /* 背景角鬥士小一點 */

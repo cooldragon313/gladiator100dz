@@ -2167,14 +2167,13 @@ const Game = (() => {
 
       // 🆕 D.26：訓練屬性徽章（左側彩色標籤）
       const badgeHtml = _getAttrBadgeHtml(act);
-      // 🆕 D.28：協力名單（今日在場的對應屬性 NPC）
+      // 🆕 D.28：協力名單（今日在場的對應屬性 NPC）→ 擺在名字右側，省垂直空間
       const synergyAttr = _getTrainedAttrKey(act);
       const synergyHtml = _renderSynergyRosterHtml(synergyAttr);
 
       html += `<button class="action-btn" ${disabled ? 'disabled' : clickStr}>
-        <div class="action-name">${badgeHtml}${act.name}${injuryHint}</div>
+        <div class="action-name">${badgeHtml}<span class="action-title">${act.name}${injuryHint}</span>${synergyHtml}</div>
         <div class="action-cost">${costStr}${warnStr}</div>
-        ${synergyHtml}
       </button>`;
     });
 
