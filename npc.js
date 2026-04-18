@@ -269,6 +269,187 @@ const teammates = (() => {
           logColor:  '#e8d070',
         },
 
+        // ═══ 🆕 8 個散點支線（純敘事小片段，累積角色印象）═══
+
+        // 1. 磨坊的味道（aff ≥ 30）
+        {
+          id:        'orlan_mill_smell',
+          type:      'event',
+          affection: 30,
+          chance:    0.25,
+          onceOnly:  true,
+          logColor:  '#b09060',
+          text:      '奧蘭閉上眼：「你知道嗎？壓碎的麥子有一種陽光的味道。那味道……你不會在這裡聞到。」',
+          dialogueLines: [
+            { text: '夜裡你聞到某種味道——是奧蘭的衣服。灰塵、沙、汗。' },
+            { speaker: '奧蘭', text: '你知道嗎？' },
+            { speaker: '奧蘭', text: '壓碎的麥子有一種陽光的味道。' },
+            { speaker: '奧蘭', text: '我小時候幫父親磨麥——手上三天都是那個味道。' },
+            { speaker: '奧蘭', text: '那味道……你不會在這裡聞到。' },
+            { text: '他沒有再說話。你也沒有。' },
+          ],
+        },
+
+        // 2. 笨拙的磨劍（aff ≥ 35）
+        {
+          id:        'orlan_clumsy_sharpen',
+          type:      'event',
+          affection: 35,
+          chance:    0.30,
+          onceOnly:  true,
+          logColor:  '#c8a878',
+          text:      '奧蘭偷偷在磨你的劍——手被劃破了。「我想幫你。沒想到磨劍這麼難。」',
+          dialogueLines: [
+            { text: '你走回牢房，看見奧蘭在角落偷偷做什麼。' },
+            { text: '他手裡握著你的劍——還有一塊磨劍石。他的手在流血。' },
+            { speaker: '奧蘭', text: '啊——你回來了。' },
+            { speaker: '奧蘭', text: '我只是想幫你磨一下。' },
+            { speaker: '奧蘭', text: '沒想到磨劍這麼難。' },
+            { text: '他尷尬地笑。手上的血滴在石頭上。' },
+            { text: '你接過劍。劍刃沒變鋒利多少，但磨痕很深。' },
+            { text: '他是真的用力了。' },
+          ],
+        },
+
+        // 3. 信（aff ≥ 40）
+        {
+          id:        'orlan_letter',
+          type:      'event',
+          affection: 40,
+          chance:    0.30,
+          onceOnly:  true,
+          logColor:  '#d9a84f',
+          text:      '主人的侍從遞給奧蘭一封信。他讀完後靜了很久，然後把信塞進懷裡。「家裡一切都好。」他笑——但眼眶紅了。',
+          dialogueLines: [
+            { text: '早晨，侍從走進牢房。' },
+            { speaker: '侍從', text: '誰叫奧蘭？' },
+            { text: '奧蘭舉起手。侍從遞給他一封已經被拆過的信。' },
+            { speaker: '侍從', text: '大人看過了。他說可以給你。' },
+            { text: '奧蘭接過信。坐下來讀。' },
+            { text: '你看見他讀了很久。比一封信該讀的時間長多了。' },
+            { text: '讀完他把信折好，塞進懷裡。' },
+            { speaker: '奧蘭', text: '家裡一切都好。' },
+            { text: '他笑了。但你看見他的眼眶紅了。' },
+            { text: '他沒有告訴你信上實際寫了什麼。你也沒有問。' },
+          ],
+        },
+
+        // 4. 梅拉的特別一份（aff ≥ 45 + 梅拉 aff ≥ 30）
+        {
+          id:        'orlan_mela_bread',
+          type:      'event',
+          affection: 45,
+          requireAffection: { melaKook: 30 },
+          chance:    0.30,
+          onceOnly:  true,
+          logColor:  '#c8a878',
+          text:      '用餐時梅拉多塞一塊麵包給奧蘭。他把那塊麵包掰成兩半——一半放進你的碗裡。「她多給的。我們分。」',
+          dialogueLines: [
+            { text: '用餐時間。梅拉經過奧蘭身邊。' },
+            { text: '她手一伸——一塊麵包掉進奧蘭的碗裡。比別人的多一塊。' },
+            { text: '奧蘭愣了一下。梅拉沒回頭。' },
+            { text: '他看著那塊麵包。' },
+            { text: '然後他把它掰成兩半。' },
+            { text: '一半放進你的碗裡。' },
+            { speaker: '奧蘭', text: '她多給的。我們分。' },
+            { text: '你看著他。他自己碗裡那半——其實比分給你的還小一點。' },
+          ],
+        },
+
+        // 5. 他的護符（aff ≥ 60）
+        {
+          id:        'orlan_talisman',
+          type:      'event',
+          affection: 60,
+          chance:    0.40,
+          onceOnly:  true,
+          logColor:  '#e8d070',
+          text:      '奧蘭拿出一個小木牌。「我妹妹給的。進來的那天她塞給我的。」他把木牌推向你：「你可能比我需要它。」',
+          dialogueLines: [
+            { text: '奧蘭從懷裡掏出一個小東西。' },
+            { text: '一塊木牌。被摸得發亮。上面刻著一個歪歪的圖案。' },
+            { speaker: '奧蘭', text: '這是我妹妹給我的。' },
+            { speaker: '奧蘭', text: '進來的那天她塞給我的。' },
+            { speaker: '奧蘭', text: '她說這個可以保平安。' },
+            { text: '他把木牌推向你。' },
+            { speaker: '奧蘭', text: '你可能比我需要它。' },
+            { text: '你看著他的眼睛。他是認真的。' },
+          ],
+        },
+
+        // 6. 暴雨之夜（aff ≥ 50，隨機某個晚上）
+        {
+          id:        'orlan_rain_night',
+          type:      'event',
+          affection: 50,
+          chance:    0.30,
+          onceOnly:  true,
+          logColor:  '#8899aa',
+          text:      '暴雨之夜奧蘭問你：「如果明天你能走出去，你最想做的第一件事是什麼？」',
+          dialogueLines: [
+            { text: '暴雨之夜。雨水打在石牆上的聲音讓人睡不著。' },
+            { text: '奧蘭在黑暗中突然開口。' },
+            { speaker: '奧蘭', text: '欸。' },
+            { speaker: '奧蘭', text: '如果明天你能走出去——' },
+            { speaker: '奧蘭', text: '你最想做的第一件事是什麼？' },
+            { text: '你想了很久。' },
+            { text: '他等你。雨聲很大。' },
+            { text: '你告訴他。他沒有評論。' },
+            { text: '過了很久他才說：' },
+            { speaker: '奧蘭', text: '我的話……我想回家吃一頓媽做的飯。' },
+            { speaker: '奧蘭', text: '然後抱一下我妹。' },
+            { speaker: '奧蘭', text: '就這樣。' },
+          ],
+        },
+
+        // 7. 兩人的一瓶酒（aff ≥ 55 + 金錢 ≥ 50）
+        {
+          id:        'orlan_bottle',
+          type:      'event',
+          affection: 55,
+          chance:    0.35,
+          onceOnly:  true,
+          logColor:  '#d9a84f',
+          text:      '奧蘭從某處弄來一瓶廉價的酒。「我們喝一次。就一次。」',
+          dialogueLines: [
+            { text: '某天夜裡奧蘭神秘兮兮地把一個東西推給你。' },
+            { text: '是一瓶酒。標籤破了，但酒是真的。' },
+            { speaker: '奧蘭', text: '我們喝一次。就一次。' },
+            { text: '你不問他從哪弄來的。他也不說。' },
+            { text: '你們倆一人一口。酒很差——喉嚨像著火。' },
+            { speaker: '奧蘭', text: '……其實也沒那麼好喝。' },
+            { text: '他笑了。你也笑了。' },
+            { text: '那是你到這裡以後第一次真心地笑。' },
+          ],
+        },
+
+        // 8. 第二百次跌倒（aff ≥ 40，Day 70+）
+        {
+          id:        'orlan_200_falls',
+          type:      'event',
+          affection: 40,
+          chance:    0.25,
+          onceOnly:  true,
+          requireMinAttr: { WIL: 12 },
+          setFlag:   'saw_olan_persist',
+          logColor:  '#e8d070',
+          text:      '你看著奧蘭又一次被摔倒。他慢慢爬起來，沒哭沒咒罵，只是用手背擦了嘴角——然後站了回去。這不是第一次。你算過。這是第兩百次。',
+          dialogueLines: [
+            { text: '你看著他又一次被摔倒。' },
+            { text: '他慢慢爬起來。' },
+            { text: '他沒哭，沒咒罵。' },
+            { text: '他只是用手背擦了嘴角。' },
+            { text: '然後又站了回去。' },
+            { text: '' },
+            { text: '這不是他的第一百次跌倒。' },
+            { text: '你算過——這是第兩百次。' },
+            { text: '' },
+            { text: '他沒注意到你在看。他只是繼續訓練。' },
+            { text: '你突然明白了一件事——' },
+            { text: '他用他的跌倒，教你怎麼站起來。' },
+          ],
+        },
+
         // 5) 妹妹的真相 — 關鍵揭露，一次性
         {
           id:              'orlan_sister_truth_reveal',

@@ -1562,6 +1562,148 @@ const Game = (() => {
     });
   }, 27);
 
+  // 赫克托 Day 15 交易登門（他主動找上你）
+  DayCycle.onDayStart('hectorDay15', (newDay) => {
+    if (newDay !== 15 || Flags.has('hector_day15_done')) return;
+    Flags.set('hector_day15_done', true);
+    const p = Stats.player;
+
+    _pendingDialogues.push({
+      id: 'hector_day15_trade',
+      lines: [
+        { text: '訓練後赫克托擋住你的去路。' },
+        { speaker: '赫克托', text: '嘿，新人。聽說你快上場了。' },
+        { speaker: '赫克托', text: '我知道你下一場對手的弱點。' },
+        { text: '他湊近，聲音壓低。' },
+        { speaker: '赫克托', text: '二十個銅幣。換一條命。我覺得划算。' },
+        { text: '你看著他。你知道他可能是真的——也可能根本是胡扯。' },
+      ],
+      onComplete: () => {
+        const choices = [
+          {
+            id: 'buy',
+            label: '買情報（20 金）',
+            hint: '也許有用……也許被他賣了兩次。',
+            requireMinAttr: { LUK: 1 },
+          },
+          {
+            id: 'refuse',
+            label: '不用',
+            effects: [
+              { type:'affection', key:'hector', delta:-5 },
+            ],
+            resultLog: '你搖頭走開。「你會後悔的。」他在背後笑。他很享受你可能後悔的樣子。',
+            logColor: '#8899aa',
+          },
+          {
+            id: 'threaten',
+            label: '揍他一拳',
+            hint: '讓他知道威脅不了你。',
+            effects: [
+              { type:'vital', key:'stamina', delta:-8 },
+              { type:'affection', key:'hector', delta:8 },
+              { type:'moral', axis:'patience', side:'negative' },
+            ],
+            resultLog: '你一拳揍在他臉上。他摔坐在地上，擦了擦嘴角的血——然後笑了。「哈。真有你的。」他從此比較少惹你。',
+            logColor: '#cc7744',
+          },
+        ];
+
+        ChoiceModal.show({
+          id: 'hector_day15',
+          icon: '🐍',
+          title: '赫克托想做生意',
+          body: '他手心朝上，在等你的決定。',
+          forced: false,
+          choices,
+        }, {
+          onChoose: (choiceId) => {
+            if (choiceId === 'buy') {
+              if ((Stats.player.money || 0) < 20) {
+                addLog('你沒有 20 金。赫克托：「喔，你沒錢？那去訓練吧新人。」', '#8899aa', true, true);
+                return;
+              }
+              Stats.modMoney(-20);
+              // 50% 真情報、50% 假情報（他同時賣給對手）
+              const isReal = Math.random() < 0.50;
+              if (isReal) {
+                Flags.set('hector_tip_real');
+                addLog('赫克托收下錢。「下一場對手有舊傷在右膝——往那邊打。」（下次競技場暴擊率 +15%）', '#c8a060', true, true);
+              } else {
+                Flags.set('hector_tip_fake');
+                addLog('赫克托收下錢。他告訴你一個「弱點」。三天後你才會知道——他同時把你的弱點賣給了對手。', '#8899aa', true, true);
+              }
+            }
+          },
+        });
+      },
+    });
+  }, 26);
+
+  // 赫克托 Day 40 受傷（你可以選擇救不救）
+  DayCycle.onDayStart('hectorDay40', (newDay) => {
+    if (newDay !== 40 || Flags.has('hector_day40_done')) return;
+    if (Flags.has('hector_dead')) return;
+    Flags.set('hector_day40_done', true);
+
+    _pendingDialogues.push({
+      id: 'hector_day40_injury',
+      lines: [
+        { text: '訓練場中央——有人倒在地上。' },
+        { text: '是赫克托。他被烏爾薩狠狠摔了一下，動作不對勁。' },
+        { text: '沒人走過去。每個人都在看，但每個人都繼續訓練。' },
+        { text: '你站在那裡。沒人會責怪你不幫。' },
+      ],
+      onComplete: () => {
+        ChoiceModal.show({
+          id: 'hector_day40',
+          icon: '🩸',
+          title: '赫克托倒在地上',
+          body: '他抬頭看你。沒有央求的意思。只是看。',
+          forced: true,
+          choices: [
+            {
+              id: 'help',
+              label: '過去扶他',
+              hint: '不是因為他值得——是因為你不想變成他那種人。',
+              effects: [
+                { type:'affection', key:'hector', delta:25 },
+                { type:'vital', key:'stamina', delta:-10 },
+                { type:'moral', axis:'mercy', side:'positive' },
+                { type:'flag', key:'helped_hector' },
+              ],
+              resultLog: '你把他扶起來，送到醫療房。一路上他沒說話。到了門口他才開口：「我不會忘。」你不知道這是承諾還是威脅。',
+              logColor: '#c8a060',
+            },
+            {
+              id: 'call_doctor',
+              label: '叫醫生',
+              hint: '你不碰他，但也不會讓他死在這裡。',
+              effects: [
+                { type:'affection', key:'hector', delta:10 },
+                { type:'affection', key:'doctorMo', delta:3 },
+                { type:'moral', axis:'mercy', side:'positive' },
+              ],
+              resultLog: '你跑去叫老默。老默看了赫克托一眼。「嗯。」他處理了。赫克托後來找你：「謝了。雖然不是你親自做的——但你做了。」',
+              logColor: '#c8a060',
+            },
+            {
+              id: 'ignore',
+              label: '繼續訓練',
+              hint: '他害過你。你不欠他。',
+              effects: [
+                { type:'affection', key:'hector', delta:-20 },
+                { type:'moral', axis:'mercy', side:'negative' },
+              ],
+              resultLog: '你轉過身繼續訓練。餘光瞥見赫克托慢慢爬起來，拖著腳走了。那天之後他看你的眼神變了——不是恨，是「記住了」。',
+              logColor: '#8899aa',
+            },
+          ],
+        });
+      },
+    });
+  }, 26);
+
   // 赫克托 Day 25 秋祭嫁禍
   DayCycle.onDayStart('hectorFestival', (newDay) => {
     if (newDay !== 25 || Flags.has('hector_festival_done')) return;

@@ -284,9 +284,24 @@ const Stats = (() => {
         && typeof OrlanEvents !== 'undefined' && OrlanEvents.tryDeathSave) {
       const saved = OrlanEvents.tryDeathSave();
       if (saved) {
-        // HP 已被 tryDeathSave 回復，重新渲染並返回
         renderVitalBars();
         return;
+      }
+    }
+
+    // 🆕 奧蘭第二百次跌倒旗標：HP ≤ 20% 時，給你一次「想起他」的站起來機會
+    //   條件：flag saw_olan_persist + HP 剛從 >20% 跌到 ≤20% + 未用過
+    if (key === 'hp' && typeof Flags !== 'undefined'
+        && Flags.has('saw_olan_persist') && !Flags.has('olan_persist_used')
+        && player[key] > 0 && player[key] <= player[maxKey] * 0.2
+        && before > player[maxKey] * 0.2) {
+      Flags.set('olan_persist_used', true);
+      // HP 回復到 30%
+      player[key] = Math.round(player[maxKey] * 0.3);
+      if (typeof addLog === 'function') {
+        addLog('你膝蓋一軟，準備倒下——', '#8899aa', false);
+        addLog('你想起奧蘭的背影。第一百次。第二百次。他每次都站了回去。', '#e8d070', true, true);
+        addLog('你咬牙站了起來。', '#d9a84f', true, true);
       }
     }
 
