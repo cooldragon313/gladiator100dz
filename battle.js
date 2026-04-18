@@ -311,6 +311,33 @@ const Battle = (() => {
     _fillSlotDisplay('enemy',  _enemy);
     _fillAudience();
     _updateMoodFaces();
+    _setupTargeting();
+  }
+
+  // 🆕 D.28：目標選擇系統（1v1 自動選中，3v3 未來可點切換）
+  let _currentTargetSlot = 1;   // 0/1/2，預設中間
+
+  function _setupTargeting() {
+    // 掛點擊 handler 到敵方 slot
+    document.querySelectorAll('.bt-slot-enemy:not(.bt-slot-empty)').forEach(slot => {
+      slot.onclick = () => {
+        const idx = parseInt(slot.getAttribute('data-idx'), 10);
+        _selectTarget(idx);
+      };
+    });
+    // 預設中間
+    _selectTarget(1);
+  }
+
+  function _selectTarget(slotIdx) {
+    _currentTargetSlot = slotIdx;
+    // 清除所有 target class，設給選中的那個
+    document.querySelectorAll('.bt-slot-enemy').forEach(s => s.classList.remove('bt-target'));
+    const target = document.querySelector(`.bt-slot-enemy[data-idx="${slotIdx}"]`);
+    if (target && !target.classList.contains('bt-slot-empty')) {
+      target.classList.add('bt-target');
+    }
+    // 未來 3v3：_enemy = _enemyTeam[slotIdx]
   }
 
   function _fillAttrColumn(side, unit, kind) {

@@ -3155,6 +3155,37 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 }
 .battle-v2 .bt-slot.bt-card-player { border-color: #3a4480; }
 .battle-v2 .bt-slot.bt-card-enemy  { border-color: #803a3a; }
+
+/* 🆕 D.28：敵方 slot 可點選為目標 */
+.battle-v2 .bt-slot-enemy:not(.bt-slot-empty) { cursor: crosshair; }
+.battle-v2 .bt-slot-enemy:not(.bt-slot-empty):hover {
+  border-color: #ff8844;
+  background: rgba(40, 20, 12, 0.92);
+}
+.battle-v2 .bt-slot.bt-target {
+  border-color: #ffcc44 !important;
+  background: rgba(50, 30, 12, 0.92) !important;
+  animation: bt-target-pulse 1.2s ease-in-out infinite;
+}
+@keyframes bt-target-pulse {
+  0%, 100% { box-shadow: 0 0 4px #ff9944, inset 0 0 8px rgba(255,153,68,.2); }
+  50%      { box-shadow: 0 0 14px #ffcc44, inset 0 0 12px rgba(255,204,68,.4); }
+}
+.battle-v2 .bt-slot.bt-target::after {
+  content: '🎯';
+  position: absolute;
+  top: -12px;
+  right: -8px;
+  font-size: 16px;
+  filter: drop-shadow(0 0 4px #ffcc44);
+}
+
+/* 🆕 D.28：死亡的 slot */
+.battle-v2 .bt-slot.bt-dead {
+  opacity: 0.35;
+  filter: grayscale(1);
+  pointer-events: none;
+}
 .battle-v2 .bt-slot-face {
   font-size: 28px;
   text-align: center;
