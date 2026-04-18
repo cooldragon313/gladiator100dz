@@ -1371,6 +1371,50 @@ const Game = (() => {
     return '';
   }
 
+  // 🆕 D.28：計算這個訓練今天有誰會協力（名單 + 亮燈狀態）
+  //   tier: 0 在場但未協力（灰）/ 1 ×1.3（綠）/ 2 ×1.6（藍）/ 3 ×1.8（紫）
+  //   背景角鬥士 familiar → tier 1，否則 0
+  function _computeSynergyRoster(attrKey) {
+    if (!attrKey) return [];
+    const roster = [];
+    // 命名隊友（在場 + favoredAttr 匹配）
+    const teamIds = Array.isArray(currentNPCs?.teammates) ? currentNPCs.teammates : [];
+    teamIds.forEach(id => {
+      const npc = teammates.getNPC(id);
+      if (!npc || npc.favoredAttr !== attrKey) return;
+      const aff = teammates.getAffection(id);
+      let tier = 0;
+      if      (aff >= 90) tier = 3;
+      else if (aff >= 60) tier = 2;
+      else if (aff >= 30) tier = 1;
+      roster.push({ id, name: npc.name, tier, isBg: false });
+    });
+    // 背景角鬥士（今日有露面）
+    if (typeof BackgroundGladiators !== 'undefined') {
+      const bgActive = BackgroundGladiators.getActiveToday() || [];
+      bgActive.forEach(bg => {
+        if (bg.favoredAttr !== attrKey) return;
+        const tier = BackgroundGladiators.isFamiliar(bg.id) ? 1 : 0;
+        roster.push({ id: bg.id, name: bg.name, tier, isBg: true });
+      });
+    }
+    return roster;
+  }
+
+  function _renderSynergyRosterHtml(attrKey) {
+    const roster = _computeSynergyRoster(attrKey);
+    if (roster.length === 0) return '';
+    const tierMult = { 1: '1.3', 2: '1.6', 3: '1.8' };
+    const icons = roster.map(r => {
+      const cls   = `syn-t${r.tier}${r.isBg ? ' syn-bg' : ''}`;
+      const title = r.tier === 0
+        ? `${r.name}（尚未協力）`
+        : `${r.name}（協力 ×${tierMult[r.tier]}）`;
+      return `<span class="syn-icon ${cls}" title="${title}">👤</span>`;
+    }).join('');
+    return `<div class="action-synergy">${icons}</div>`;
+  }
+
   /**
    * 訓練所加成倍率（預留接口，Phase 2 S2 實作）。
    * 未來會從 FACILITIES[id].trainingBonus 讀取。
@@ -2123,10 +2167,14 @@ const Game = (() => {
 
       // 🆕 D.26：訓練屬性徽章（左側彩色標籤）
       const badgeHtml = _getAttrBadgeHtml(act);
+      // 🆕 D.28：協力名單（今日在場的對應屬性 NPC）
+      const synergyAttr = _getTrainedAttrKey(act);
+      const synergyHtml = _renderSynergyRosterHtml(synergyAttr);
 
       html += `<button class="action-btn" ${disabled ? 'disabled' : clickStr}>
         <div class="action-name">${badgeHtml}${act.name}${injuryHint}</div>
         <div class="action-cost">${costStr}${warnStr}</div>
+        ${synergyHtml}
       </button>`;
     });
 

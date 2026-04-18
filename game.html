@@ -2820,6 +2820,43 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 .attr-badge.attr-DEX { color: #88c0e8; background: #10283a; border-color: #20406a; }
 .attr-badge.attr-MOOD { color: #ffc870; background: #2a1a08; border-color: #5a3a10; }
 
+/* 🆕 D.28：訓練協力名單（底部人形列） */
+.action-synergy {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px dashed rgba(255,255,255,0.07);
+}
+.syn-icon {
+  display: inline-block;
+  font-size: 13px;
+  line-height: 1;
+  filter: grayscale(1) brightness(0.5);
+  opacity: 0.7;
+  transition: filter .2s, opacity .2s, text-shadow .2s;
+}
+.syn-icon.syn-bg { font-size: 11px; }   /* 背景角鬥士小一點 */
+.syn-icon.syn-t1 {
+  filter: none;
+  opacity: 1;
+  color: #88e088;
+  text-shadow: 0 0 4px #44cc44, 0 0 8px #44cc44;
+}
+.syn-icon.syn-t2 {
+  filter: none;
+  opacity: 1;
+  color: #88c0e8;
+  text-shadow: 0 0 5px #44a0ff, 0 0 10px #44a0ff;
+}
+.syn-icon.syn-t3 {
+  filter: none;
+  opacity: 1;
+  color: #c890e8;
+  text-shadow: 0 0 6px #aa44ee, 0 0 12px #aa44ee;
+}
+
 /* 🆕 受傷風險警告燈 */
 .injury-warn {
   font-size: 14px;
