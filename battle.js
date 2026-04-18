@@ -1376,5 +1376,8 @@ const Battle = (() => {
   // ══════════════════════════════════════════════════════
   function getLastRating() { return _lastRating; }
 
-  return { start, startFromConfig, doAction, toggleAuto, getLastRating, finishChoice };
+  // 🆕 D.28：對外暴露「戰鬥進行中」旗標，讓 main.js 可以擋住訓練動作
+  function isActive() { return _active; }
+
+  return { start, startFromConfig, doAction, toggleAuto, getLastRating, finishChoice, isActive };
 })();

@@ -2162,7 +2162,9 @@ const Game = (() => {
       }
 
       const costStr  = costs.join(' · ');
-      const warnStr  = reason ? ` · <span style="color:#cc4444;font-size:13px;">${reason}</span>` : '';
+      // 🆕 D.28：移除「體力不足/時間不足」文字 — disabled 狀態已夠明顯，
+      //         改用 button title 讓懸停仍看得見原因
+      const titleAttr = reason ? `title="${reason}"` : '';
       const clickStr = disabled ? '' : `onclick="Game.doAction('${act.id}')"`;
 
       // 🆕 D.26：訓練屬性徽章（左側彩色標籤）
@@ -2171,9 +2173,9 @@ const Game = (() => {
       const synergyAttr = _getTrainedAttrKey(act);
       const synergyHtml = _renderSynergyRosterHtml(synergyAttr);
 
-      html += `<button class="action-btn" ${disabled ? 'disabled' : clickStr}>
+      html += `<button class="action-btn" ${titleAttr} ${disabled ? 'disabled' : clickStr}>
         <div class="action-name">${badgeHtml}<span class="action-title">${act.name}${injuryHint}</span>${synergyHtml}</div>
-        <div class="action-cost">${costStr}${warnStr}</div>
+        <div class="action-cost">${costStr}</div>
       </button>`;
     });
 
@@ -2190,6 +2192,8 @@ const Game = (() => {
     // 🆕 動畫播放中 → 禁止操作
     if (_uiLocked) return;
     if (typeof DialogueModal !== 'undefined' && DialogueModal.isOpen()) return;
+    // 🆕 D.28：戰鬥中禁止觸發其他動作
+    if (typeof Battle !== 'undefined' && Battle.isActive && Battle.isActive()) return;
 
     const p = Stats.player;
 
