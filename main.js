@@ -1504,10 +1504,10 @@ const Game = (() => {
   //   夜晚由 _resolveNonTrainingSlots() 檢查 MelaRatQuest.hasPending() 播放
   //   舊三階段實作保留為 fallback（未載入新模組時啟用）
   // ══════════════════════════════════════════════════
-  function _tryMouseQuest() {
+  function _tryMouseQuest(trainedAttr) {
     if (typeof MelaRatQuest !== 'undefined' && typeof MelaRatQuest.tryOffer === 'function') {
-      // 新系統：交給 quest 模組
-      MelaRatQuest.tryOffer();
+      // 新系統：交給 quest 模組（第二次起 trainedAttr 是重試觸發條件）
+      MelaRatQuest.tryOffer(trainedAttr);
       return;
     }
     // ── fallback（舊版實作，新模組沒載入才跑）─────────
@@ -2617,7 +2617,8 @@ const Game = (() => {
     }
 
     // 🆕 抓老鼠任務觸發（梅拉好感 ≥ 25 + 她在場 + 隨機）
-    _tryMouseQuest();
+    //   第二次起，梅拉看到你練 AGI/DEX/WIL 也可能重新提議
+    _tryMouseQuest(trainedAttr);
 
     // 🆕 赫克托日常騷擾（隨機觸發）
     _tryHectorHarassment();

@@ -58,22 +58,87 @@ const MelaRatQuest = (() => {
   // ══════════════════════════════════════════════════
   // 白天提議（tryOffer） — 由 main.js 在訓練後檢查
   // ══════════════════════════════════════════════════
-  function tryOffer() {
-    if (Flags.has('mela_rat_offered') || Flags.has('mela_rat_done')) return false;
-    if (Flags.has('mela_rat_accepted')) return false;
-    const aff = (typeof teammates !== 'undefined') ? teammates.getAffection('melaKook') : 0;
-    if (aff < MELA_AFF_OFFER) return false;
-    // 檢查三種訓練各做過至少一次（透過 exp）
-    const p = Stats.player;
-    const hasAGI = (p.exp?.AGI || 0) > 0;
-    const hasDEX = (p.exp?.DEX || 0) > 0;
-    const hasWIL = (p.exp?.WIL || 0) > 0;
-    if (!hasAGI || !hasDEX || !hasWIL) return false;
-    if (Math.random() > OFFER_CHANCE) return false;
+  function tryOffer(trainedAttr) {
+    // 🆕 D.28：已成功通關 → 不再觸發
+    if (Flags.has('mela_rat_passed')) return false;
 
-    Flags.set('mela_rat_offered', true);
-    _playOfferIntro();
-    return true;
+    // 正在進行中（接了還沒做） → 不觸發新的
+    if (Flags.has('mela_rat_accepted')) return false;
+
+    const p = Stats.player;
+
+    // ═══ 第一次提議路徑 ═══
+    if (!Flags.has('mela_rat_offered')) {
+      const aff = (typeof teammates !== 'undefined') ? teammates.getAffection('melaKook') : 0;
+      if (aff < MELA_AFF_OFFER) return false;
+      // 檢查三種訓練各做過至少一次（透過 exp）
+      const hasAGI = (p.exp?.AGI || 0) > 0;
+      const hasDEX = (p.exp?.DEX || 0) > 0;
+      const hasWIL = (p.exp?.WIL || 0) > 0;
+      if (!hasAGI || !hasDEX || !hasWIL) return false;
+      if (Math.random() > OFFER_CHANCE) return false;
+
+      Flags.set('mela_rat_offered', true);
+      _playOfferIntro();
+      return true;
+    }
+
+    // ═══ 失敗後重試路徑 🆕 ═══
+    // 條件：
+    //   - 已提議過、已完成（失敗）
+    //   - 沒有完整通關（mela_rat_passed 為 false）
+    //   - 剛才訓練的是 AGI / DEX / WIL（梅拉看到你練這些會想起來）
+    //   - 梅拉在觀眾區（她要看得到你）
+    //   - 完成日隔天之後（冷卻至少 1 天）
+    //   - 25% 機率
+    if (Flags.has('mela_rat_done')) {
+      if (!['AGI', 'DEX', 'WIL'].includes(trainedAttr)) return false;
+      // 梅拉要在場
+      const melaPresent = _isMelaPresent();
+      if (!melaPresent) return false;
+      // 冷卻
+      const doneDay = Flags.get('mela_rat_done_day');
+      if (typeof doneDay === 'number' && p.day <= doneDay) return false;
+      // 機率
+      if (Math.random() > 0.25) return false;
+
+      // 清除失敗狀態，重新進入提議流程
+      Flags.unset('mela_rat_done');
+      Flags.unset('mela_rat_done_day');
+      Flags.unset('mela_rat_failed_stage1');
+      Flags.unset('mela_rat_failed_stage2');
+      Flags.unset('mela_rat_failed_stage3');
+      Flags.unset('mela_rat_accepted');
+
+      _playReOfferIntro();
+      return true;
+    }
+
+    return false;
+  }
+
+  // 檢查梅拉是否在當前場景（觀眾或隊友區）
+  function _isMelaPresent() {
+    if (typeof GameState === 'undefined' || typeof GameState.getCurrentNPCs !== 'function') {
+      return false;
+    }
+    const npcs = GameState.getCurrentNPCs() || {};
+    const audience = npcs.audience  || [];
+    const teams    = npcs.teammates || [];
+    return audience.includes('melaKook') || teams.includes('melaKook');
+  }
+
+  // 🆕 D.28：失敗後再次提議的對白
+  function _playReOfferIntro() {
+    _play([
+      { speaker: '梅拉塞', text: '喂，小子。過來一下。' },
+      { text: '（她在擦手。動作比平常慢。）' },
+      { speaker: '梅拉塞', text: '我看你這幾天練得挺勤的——' },
+      { speaker: '梅拉塞', text: '那件⋯⋯廚房老鼠的事，你還記得嗎？' },
+      { text: '（你點頭。）' },
+      { speaker: '梅拉塞', text: '那隻小子還沒抓到。' },
+      { speaker: '梅拉塞', text: '你⋯⋯要不要再試試？' },
+    ], _showOfferChoice);
   }
 
   function _playOfferIntro() {
@@ -419,7 +484,8 @@ const MelaRatQuest = (() => {
       };
     }
     const lines = variants ? _pickByTrait(variants) : [];
-    _play(lines, _finishQuest);
+    // 🆕 D.28：完整通關 → 標記 passed（未來不會再提議）
+    _play(lines, _finishQuestPassed);
   }
 
   // ══════════════════════════════════════════════════
@@ -455,9 +521,18 @@ const MelaRatQuest = (() => {
 
   function _finishQuest() {
     Flags.set('mela_rat_done', true);
+    // 🆕 D.28：記錄完成日，用於重試冷卻
+    Flags.set('mela_rat_done_day', Stats.player?.day || 0);
     if (typeof Game !== 'undefined' && typeof Game.renderAll === 'function') {
       Game.renderAll();
     }
+  }
+
+  // 🆕 D.28：完整通關（三階段全過）時呼叫，額外設 mela_rat_passed
+  //   → 未來不會再次提議
+  function _finishQuestPassed() {
+    Flags.set('mela_rat_passed', true);
+    _finishQuest();
   }
 
   // ══════════════════════════════════════════════════
