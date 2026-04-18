@@ -2961,15 +2961,298 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 ════════════════════════════════════════════════════════════ */
 #battle-overlay {
   display: none;
-  position: absolute;
+  position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 9000;
   background: #090704;
-  flex-direction: column;
   overflow: hidden;
-  font-size: 15px;          /* 🆕 整體戰鬥字體從 13 → 15 */
+  font-size: 15px;
   font-family: var(--font);
 }
+/* 🆕 D.28 v2：三欄 grid 版型 */
+#battle-overlay.battle-v2 {
+  display: none;
+  grid-template-columns: 22% 56% 22%;
+  grid-template-rows: 100%;
+  gap: 0;
+  height: 100vh;
+  width: 100vw;
+}
+#battle-overlay.battle-v2.open,
+#battle-overlay.battle-v2[style*="display: flex"] {
+  display: grid !important;
+}
+
+/* ── Column base ── */
+.battle-v2 .bt-col {
+  overflow-y: auto;
+  padding: 14px;
+  color: #cbc0a8;
+}
+.battle-v2 .bt-col-left {
+  background: #120a06;
+  border-right: 1px solid #2a1a10;
+}
+.battle-v2 .bt-col-right {
+  background: #120a06;
+  border-left: 1px solid #2a1a10;
+}
+.battle-v2 .bt-col-mid {
+  background: #0a0704;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 14px;
+}
+
+/* ── Attribute panel (left/right) ── */
+.battle-v2 .bt-attr-panel { display: flex; flex-direction: column; gap: 10px; }
+.battle-v2 .bt-face {
+  font-size: 64px;
+  text-align: center;
+  line-height: 1;
+  margin: 4px 0 8px;
+  filter: drop-shadow(0 0 10px rgba(200,160,80,.25));
+}
+.battle-v2 .bt-attr-name {
+  font-size: 20px; font-weight: 700;
+  text-align: center;
+  color: var(--gold-lt);
+  letter-spacing: .1em;
+}
+.battle-v2 .bt-col-right .bt-attr-name { color: #cc4422; }
+.battle-v2 .bt-attr-title {
+  font-size: 13px; color: #887766;
+  text-align: center;
+  margin-bottom: 6px;
+}
+.battle-v2 .bt-attr-section {
+  background: rgba(20, 14, 8, 0.6);
+  border: 1px solid #22140a;
+  padding: 6px 10px;
+  border-radius: 3px;
+}
+.battle-v2 .bt-attr-sec-title {
+  font-size: 12px; color: #776655;
+  letter-spacing: .12em;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+.battle-v2 .bt-attr-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 10px;
+  font-size: 14px;
+  color: #cbc0a8;
+}
+.battle-v2 .bt-attr-group .k { color: #776655; }
+.battle-v2 .bt-attr-group .v { font-weight: 700; color: #d4af37; text-align: right; }
+.battle-v2 .bt-attr-switch {
+  background: #1a0e08;
+  border: 1px solid #2a1a10;
+  color: #c8a060;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 6px 8px;
+  margin-top: 6px;
+  width: 100%;
+  cursor: pointer;
+}
+
+/* ── Mid column layout ── */
+.battle-v2 .bt-timer {
+  text-align: center;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--gold-lt);
+  letter-spacing: .2em;
+  padding: 8px 0;
+  border-bottom: 1px solid #22140a;
+  flex-shrink: 0;
+}
+.battle-v2 .bt-stage {
+  flex: 1;
+  position: relative;
+  background-image: url('asset/arena00.png');
+  background-size: cover;
+  background-position: center;
+  background-color: #1a0f08;
+  min-height: 280px;
+  max-height: 40vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 10px;
+  overflow: hidden;
+  border: 1px solid #2a1a10;
+  margin-bottom: 8px;
+}
+.battle-v2 .bt-stage::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0.45), rgba(0,0,0,0.55));
+  pointer-events: none;
+}
+.battle-v2 .bt-row {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  justify-items: center;
+}
+
+/* ── Slot (fighter card) ── */
+.battle-v2 .bt-slot {
+  position: relative;
+  width: 100%;
+  max-width: 180px;
+  padding: 6px 8px;
+  background: rgba(22, 16, 8, 0.82);
+  border: 1px solid #3a2410;
+  border-radius: 3px;
+  font-size: 13px;
+  transition: background .2s;
+}
+.battle-v2 .bt-slot-empty {
+  background: rgba(22, 16, 8, 0.25);
+  border: 1px dashed #22140a;
+  min-height: 60px;
+}
+.battle-v2 .bt-slot.bt-card-player { border-color: #3a4480; }
+.battle-v2 .bt-slot.bt-card-enemy  { border-color: #803a3a; }
+.battle-v2 .bt-slot-face {
+  font-size: 28px;
+  text-align: center;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+.battle-v2 .bt-slot-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #e8d070;
+  text-align: center;
+  letter-spacing: .06em;
+  margin-bottom: 4px;
+}
+.battle-v2 .bt-card-enemy .bt-slot-name { color: #ff9966; }
+.battle-v2 .bt-slot-bars { display: flex; flex-direction: column; gap: 3px; }
+.battle-v2 .bt-slot .bt-bar-label {
+  font-size: 11px; color: #887766;
+  display: flex; justify-content: space-between;
+}
+.battle-v2 .bt-slot .bt-bar-track { height: 8px; }
+.battle-v2 .bt-slot .bt-atb-track { height: 4px; }
+
+/* ── Stage middle (VFX + speech) ── */
+.battle-v2 .bt-stage-mid {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50px;
+}
+.battle-v2 .bt-stage-vs {
+  font-size: 40px;
+  font-weight: 900;
+  color: rgba(200, 160, 80, 0.25);
+  letter-spacing: .3em;
+}
+
+/* ── Audience zone ── */
+.battle-v2 .bt-audience {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  padding: 6px 0;
+  font-size: 13px;
+  color: #887766;
+  flex-shrink: 0;
+}
+.battle-v2 .bt-aud-item {
+  padding: 3px 10px;
+  background: rgba(20, 14, 8, 0.55);
+  border: 1px solid #22140a;
+  border-radius: 12px;
+}
+
+/* ── Action grid 2x2 ── */
+.battle-v2 .bt-action-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 6px;
+  padding: 8px 0;
+  flex-shrink: 0;
+}
+.battle-v2 .bt-action-grid .bt-btn {
+  background: #1a0e08;
+  border: 1px solid #3a2410;
+  color: #c8a060;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  padding: 10px;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, transform .1s;
+}
+.battle-v2 .bt-action-grid .bt-btn:hover:not([disabled]) {
+  background: #2a1810;
+  border-color: var(--gold-lt);
+  color: #ffd76a;
+}
+.battle-v2 .bt-action-grid .bt-btn:active:not([disabled]) { transform: scale(0.97); }
+.battle-v2 .bt-action-grid .bt-btn[disabled] {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ── Log box (mid column bottom) ── */
+.battle-v2 .bt-log-box {
+  background: #080604;
+  border: 1px solid #22140a;
+  height: 140px;
+  overflow-y: auto;
+  padding: 6px 10px;
+  font-size: 13px;
+  color: #887766;
+  line-height: 1.6;
+  flex-shrink: 0;
+}
+.battle-v2 #bt-round {
+  text-align: center;
+  color: #776655;
+  font-size: 12px;
+  padding: 4px 0;
+  flex-shrink: 0;
+}
+
+/* ── Speech bubble (stage middle) ── */
+.battle-v2 .bt-speech {
+  position: absolute;
+  padding: 6px 12px;
+  background: rgba(22, 16, 8, 0.92);
+  border: 1px solid var(--gold);
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffd76a;
+  white-space: nowrap;
+  z-index: 10;
+  animation: bt-speech-pop .3s ease-out;
+  pointer-events: none;
+}
+@keyframes bt-speech-pop {
+  from { opacity: 0; transform: translateY(8px) scale(0.9); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Face color classes (set on .bt-face and .bt-slot-face) ── */
+.bt-face-green  { filter: drop-shadow(0 0 10px rgba(80,200,80,.35)); }
+.bt-face-blue   { filter: drop-shadow(0 0 10px rgba(80,140,200,.35)); }
+.bt-face-purple { filter: drop-shadow(0 0 10px rgba(180,80,200,.35)); }
 
 /* ── Enemy info bar ── */
 #bt-enemy-info {
@@ -3345,87 +3628,173 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
     </div>
 
     <!-- ══ BATTLE OVERLAY (covers center panel during combat) ══ -->
-    <div id="battle-overlay">
+    <div id="battle-overlay" class="battle-v2">
 
-      <!-- Enemy info top bar -->
-      <div id="bt-enemy-info">
-        <div id="bt-ei-left">
-          <div id="bt-ei-name"></div>
-          <div id="bt-ei-title"></div>
-          <div id="bt-ei-passive"></div>
-          <div id="bt-ei-special"></div>
-          <div id="bt-ei-weak"></div>
-        </div>
-        <div id="bt-ei-right">
-          <div id="bt-ei-attrs"></div>
-          <div id="bt-ei-derived"></div>
-          <div id="bt-ei-equip"></div>
-        </div>
-      </div>
-
-      <!-- Combatant cards -->
-      <div id="bt-combatants">
-        <div class="bt-card bt-card-player">
-          <div class="bt-comb-name" id="bt-pname">玩家</div>
-          <div class="bt-comb-title" id="bt-ptitle">角鬥士</div>
-          <div class="bt-bar-label"><span>HP</span><span id="bt-php-txt">—</span></div>
-          <div class="bt-bar-track"><div class="bt-bar-fill bt-hp-fill" id="bt-php-bar" style="width:100%"></div></div>
-          <div class="bt-bar-label"><span id="bt-pgauge-lbl">儀表</span><span id="bt-pgauge-txt">0/100</span></div>
-          <div class="bt-bar-track"><div class="bt-bar-fill bt-gauge-fill fury" id="bt-pgauge-bar" style="width:0%"></div></div>
-          <div class="bt-bar-label"><span>ATB</span><span id="bt-patb-txt">0%</span></div>
-          <div class="bt-atb-track"><div class="bt-atb-fill" id="bt-patb-bar" style="width:0%"></div></div>
-          <div id="bt-hc-count"></div>
-          <div class="bt-status" id="bt-pstatus"></div>
-          <div class="bt-mini-stats" id="bt-p-mini"></div>
-        </div>
-
-        <div class="bt-vs">VS</div>
-
-        <div class="bt-card bt-card-enemy">
-          <div class="bt-comb-name" id="bt-ename">—</div>
-          <div class="bt-comb-title" id="bt-etitle">—</div>
-          <div class="bt-bar-label"><span>HP</span><span id="bt-ehp-txt">—</span></div>
-          <div class="bt-bar-track"><div class="bt-bar-fill bt-hp-fill" id="bt-ehp-bar" style="width:100%"></div></div>
-          <div class="bt-bar-label"><span id="bt-egauge-lbl">儀表</span><span id="bt-egauge-txt">0/100</span></div>
-          <div class="bt-bar-track"><div class="bt-bar-fill bt-gauge-fill fury" id="bt-egauge-bar" style="width:0%"></div></div>
-          <div class="bt-bar-label"><span>ATB</span><span id="bt-eatb-txt">0%</span></div>
-          <div class="bt-atb-track"><div class="bt-atb-fill" id="bt-eatb-bar" style="width:0%"></div></div>
-          <div class="bt-status" id="bt-estatus"></div>
-          <div class="bt-mini-stats" id="bt-e-mini"></div>
-        </div>
-      </div>
-
-      <!-- Skill display -->
-      <div id="bt-skill-display">
-        <div class="bt-skill-card" id="bt-p-skill-card">
-          <div class="bt-sk-header">
-            <span id="bt-p-sk-route"></span>
-            <span id="bt-p-sk-gauge" style="font-size:10px;color:#444456;">儀表 0%</span>
+      <!-- ═══ LEFT COLUMN: Player attributes ═══ -->
+      <div class="bt-col bt-col-left">
+        <div class="bt-attr-panel">
+          <div class="bt-face" id="bt-face-player">💚</div>
+          <div class="bt-attr-name" id="bt-lname">玩家</div>
+          <div class="bt-attr-title" id="bt-ltitle">角鬥士</div>
+          <div class="bt-attr-section">
+            <div class="bt-attr-sec-title">屬性</div>
+            <div class="bt-attr-group" id="bt-l-stats"></div>
           </div>
-          <div class="bt-sk-name" id="bt-p-sk-name">— 未開戰 —</div>
-          <div class="bt-sk-desc" id="bt-p-sk-desc">開始戰鬥後顯示技能狀態</div>
-        </div>
-        <div class="bt-skill-card" id="bt-e-skill-card">
-          <div class="bt-sk-header">
-            <span id="bt-e-sk-route"></span>
-            <span id="bt-e-sk-gauge" style="font-size:10px;color:#444456;">儀表 0%</span>
+          <div class="bt-attr-section">
+            <div class="bt-attr-sec-title">派生</div>
+            <div class="bt-attr-group" id="bt-l-derived"></div>
           </div>
-          <div class="bt-sk-name" id="bt-e-sk-name">— 未開戰 —</div>
-          <div class="bt-sk-desc" id="bt-e-sk-desc">選擇敵人後顯示特技資訊</div>
+          <div class="bt-attr-section">
+            <div class="bt-attr-sec-title">裝備</div>
+            <div class="bt-attr-group" id="bt-l-equip"></div>
+          </div>
+          <div class="bt-attr-section">
+            <div class="bt-attr-sec-title">特性</div>
+            <div class="bt-attr-group" id="bt-l-traits"></div>
+          </div>
+          <select class="bt-attr-switch" id="bt-switch-l">
+            <option value="player">玩家本人</option>
+          </select>
         </div>
       </div>
 
-      <!-- Battle log -->
-      <div id="bt-log"></div>
+      <!-- ═══ MIDDLE COLUMN: Battle stage ═══ -->
+      <div class="bt-col bt-col-mid">
 
-      <!-- Action buttons -->
-      <div id="bt-action-bar">
-        <button class="bt-btn" id="bt-btn-attack"  onclick="Battle.doAction('attack')"  disabled>攻 擊</button>
-        <button class="bt-btn" id="bt-btn-defend"  onclick="Battle.doAction('defend')"  disabled>防 禦</button>
-        <button class="bt-btn" id="bt-btn-special" onclick="Battle.doAction('special')" disabled>技 能</button>
-        <button class="bt-btn" id="bt-btn-auto"    onclick="Battle.toggleAuto()"        disabled>自 動</button>
+        <!-- Battle timer -->
+        <div class="bt-timer" id="bt-timer">戰鬥時間 00:00</div>
+
+        <!-- Arena stage -->
+        <div class="bt-stage" id="bt-stage">
+
+          <!-- Player team row (3 slots) -->
+          <div class="bt-row bt-row-player" id="bt-row-player">
+            <div class="bt-slot bt-slot-empty" data-side="player" data-idx="0"></div>
+            <div class="bt-slot bt-card-player" data-side="player" data-idx="1">
+              <div class="bt-slot-face" id="bt-pface">💚</div>
+              <div class="bt-slot-name" id="bt-pname">玩家</div>
+              <div class="bt-slot-bars">
+                <div class="bt-bar-label"><span>HP</span><span id="bt-php-txt">—</span></div>
+                <div class="bt-bar-track"><div class="bt-bar-fill bt-hp-fill" id="bt-php-bar" style="width:100%"></div></div>
+                <div class="bt-atb-track"><div class="bt-atb-fill" id="bt-patb-bar" style="width:0%"></div></div>
+              </div>
+              <!-- hidden legacy fields for battle.js back-compat -->
+              <div style="display:none">
+                <span id="bt-ptitle"></span>
+                <span id="bt-patb-txt"></span>
+                <span id="bt-pgauge-lbl"></span>
+                <span id="bt-pgauge-txt"></span>
+                <span id="bt-pgauge-bar"></span>
+                <span id="bt-hc-count"></span>
+                <span id="bt-pstatus"></span>
+                <span id="bt-p-mini"></span>
+              </div>
+            </div>
+            <div class="bt-slot bt-slot-empty" data-side="player" data-idx="2"></div>
+          </div>
+
+          <!-- Stage middle (speech + VFX) -->
+          <div class="bt-stage-mid" id="bt-stage-mid">
+            <span class="bt-stage-vs">VS</span>
+          </div>
+
+          <!-- Enemy team row (3 slots) -->
+          <div class="bt-row bt-row-enemy" id="bt-row-enemy">
+            <div class="bt-slot bt-slot-empty" data-side="enemy" data-idx="0"></div>
+            <div class="bt-slot bt-card-enemy" data-side="enemy" data-idx="1">
+              <div class="bt-slot-face" id="bt-eface">🟣</div>
+              <div class="bt-slot-name" id="bt-ename">—</div>
+              <div class="bt-slot-bars">
+                <div class="bt-bar-label"><span>HP</span><span id="bt-ehp-txt">—</span></div>
+                <div class="bt-bar-track"><div class="bt-bar-fill bt-hp-fill" id="bt-ehp-bar" style="width:100%"></div></div>
+                <div class="bt-atb-track"><div class="bt-atb-fill" id="bt-eatb-bar" style="width:0%"></div></div>
+              </div>
+              <div style="display:none">
+                <span id="bt-etitle"></span>
+                <span id="bt-eatb-txt"></span>
+                <span id="bt-egauge-lbl"></span>
+                <span id="bt-egauge-txt"></span>
+                <span id="bt-egauge-bar"></span>
+                <span id="bt-estatus"></span>
+                <span id="bt-e-mini"></span>
+              </div>
+            </div>
+            <div class="bt-slot bt-slot-empty" data-side="enemy" data-idx="2"></div>
+          </div>
+
+        </div><!-- /bt-stage -->
+
+        <!-- Audience zone (watchers) -->
+        <div class="bt-audience" id="bt-audience">
+          <span class="bt-aud-item">👤 塔倫</span>
+          <span class="bt-aud-item">👤 阿圖斯</span>
+          <span class="bt-aud-item">👤 侍從</span>
+        </div>
+
+        <!-- Action buttons 4-grid -->
+        <div class="bt-action-grid">
+          <button class="bt-btn" id="bt-btn-attack"  onclick="Battle.doAction('attack')"  disabled>⚔ 普&nbsp;攻</button>
+          <button class="bt-btn" id="bt-btn-special" onclick="Battle.doAction('special')" disabled>⚡ 技能&nbsp;1</button>
+          <button class="bt-btn" id="bt-btn-defend"  onclick="Battle.doAction('defend')"  disabled>🛡 技能&nbsp;2</button>
+          <button class="bt-btn" id="bt-btn-auto"    onclick="Battle.toggleAuto()"        disabled>▶ 自&nbsp;動</button>
+        </div>
+
+        <!-- Battle log -->
+        <div class="bt-log-box" id="bt-log"></div>
+        <div id="bt-round">— 準備中 —</div>
+
+        <!-- Hidden legacy skill display (battle.js may reference) -->
+        <div style="display:none" id="bt-skill-display">
+          <span id="bt-p-sk-route"></span>
+          <span id="bt-p-sk-gauge"></span>
+          <span id="bt-p-sk-name"></span>
+          <span id="bt-p-sk-desc"></span>
+          <span id="bt-e-sk-route"></span>
+          <span id="bt-e-sk-gauge"></span>
+          <span id="bt-e-sk-name"></span>
+          <span id="bt-e-sk-desc"></span>
+        </div>
+        <!-- Hidden legacy enemy info top bar fields -->
+        <div style="display:none">
+          <span id="bt-ei-name"></span>
+          <span id="bt-ei-title"></span>
+          <span id="bt-ei-passive"></span>
+          <span id="bt-ei-special"></span>
+          <span id="bt-ei-weak"></span>
+          <span id="bt-ei-attrs"></span>
+          <span id="bt-ei-derived"></span>
+          <span id="bt-ei-equip"></span>
+        </div>
+
+      </div><!-- /bt-col-mid -->
+
+      <!-- ═══ RIGHT COLUMN: Enemy attributes ═══ -->
+      <div class="bt-col bt-col-right">
+        <div class="bt-attr-panel">
+          <div class="bt-face" id="bt-face-enemy">🟣</div>
+          <div class="bt-attr-name" id="bt-rname">—</div>
+          <div class="bt-attr-title" id="bt-rtitle">—</div>
+          <div class="bt-attr-section">
+            <div class="bt-attr-sec-title">屬性</div>
+            <div class="bt-attr-group" id="bt-r-stats"></div>
+          </div>
+          <div class="bt-attr-section">
+            <div class="bt-attr-sec-title">派生</div>
+            <div class="bt-attr-group" id="bt-r-derived"></div>
+          </div>
+          <div class="bt-attr-section">
+            <div class="bt-attr-sec-title">裝備</div>
+            <div class="bt-attr-group" id="bt-r-equip"></div>
+          </div>
+          <div class="bt-attr-section">
+            <div class="bt-attr-sec-title">特性/被動</div>
+            <div class="bt-attr-group" id="bt-r-traits"></div>
+          </div>
+          <select class="bt-attr-switch" id="bt-switch-r">
+            <option value="enemy">主要敵人</option>
+          </select>
+        </div>
       </div>
-      <div id="bt-round">— 準備中 —</div>
 
       <!-- 砍首選擇面板 (arena only, shown after victory) -->
       <div id="bt-finish-panel">
