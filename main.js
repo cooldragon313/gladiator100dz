@@ -568,7 +568,7 @@ const Game = (() => {
         onComplete: () => {
           Battle.start('trialSol',
             () => _solDeathScene(),
-            () => _solDeathScene()   // 輸了長官也會處決索爾
+            () => _trialPlayerLostToSol()   // 🆕 D.28：輸了 → 玩家被拖走，索爾活下來
           );
         },
       });
@@ -760,6 +760,48 @@ const Game = (() => {
         addLog('——索爾已死。', '#663344', true, true);
         if (typeof SoundManager !== 'undefined') SoundManager.playSynth('sleep');  // 沉重的低音
 
+        renderAll();
+      },
+    });
+  }
+
+  // 🆕 D.28：Day 5 試煉中，玩家挑「你 vs 索爾」但輸了
+  //   原本的設計是「長官也處決索爾」—— 但玩家輸了索爾卻被拖走不合理。
+  //   新邏輯：玩家被拖走、重傷，索爾因為贏了試煉而活下來（sol_survived_trial）。
+  function _trialPlayerLostToSol() {
+    const lines = [
+      { text: '你倒在沙地上。' },
+      { text: '索爾站在你頭頂——但他沒有補刀。' },
+      { speaker: '索爾', text: '……起來吧。' },
+      { text: '那是他能給你的最大善意。' },
+      { speaker: '塔倫長官', text: '……廢物。拖下去。' },
+      { text: '侍從抓住你的手臂。你臉貼在沙上被拖走——沙礫磨過你的眼睛。' },
+      { text: '你不知道自己昏了多久。' },
+      { text: '醒來時已經是夜裡。奧蘭在你旁邊。他的手在抖。' },
+      { speaker: '奧蘭', text: '……你還活著。' },
+      { speaker: '奧蘭', text: '索爾沒讓他們殺你——他贏了，所以他可以替你求情。' },
+      { speaker: '奧蘭', text: '他說你是他的夥伴。' },
+      { text: '你看不清奧蘭的臉。但你感覺到他的眼淚滴在你手背上。' },
+    ];
+    DialogueModal.play(lines, {
+      onComplete: () => {
+        Stats.modVital('hp',   -40);
+        Stats.modVital('mood', -30);
+        Stats.modFame(-5);
+        if (!Array.isArray(Stats.player.ailments)) Stats.player.ailments = [];
+        if (!Stats.player.ailments.includes('torso_injury')) {
+          Stats.player.ailments.push('torso_injury');
+        }
+        // 索爾活下來了 — 贏了試煉就該活
+        Flags.set('sol_survived_trial', true);
+        Flags.set('trial_lost_to_sol',  true);
+        // 奧蘭看到你回來，好感變化
+        if (typeof teammates !== 'undefined') {
+          teammates.modAffection('orlan', 8);
+          teammates.modAffection('sol',   15);   // 索爾替你求情
+          teammates.modAffection('officer', -8);  // 長官鄙視你
+        }
+        addLog('你活下來了。整個訓練所都知道你輸了——但索爾記得你。', '#8b0000', true, true);
         renderAll();
       },
     });
