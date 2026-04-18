@@ -5243,6 +5243,12 @@ const Game = (() => {
     // ── 場景 7：奧蘭第一次接觸 ──
     await _playDay1OrlanMeet();
 
+    // 🆕 D.28：Day 1 已經演了奧蘭初遇，把舊版 storyReveal 標為「已看過」避免重複
+    if (!Array.isArray(Stats.player.seenReveals)) Stats.player.seenReveals = [];
+    if (!Stats.player.seenReveals.includes('orlan_first_night_oath')) {
+      Stats.player.seenReveals.push('orlan_first_night_oath');
+    }
+
     onComplete();
   }
 
