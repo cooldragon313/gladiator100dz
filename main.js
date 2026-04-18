@@ -1687,14 +1687,16 @@ const Game = (() => {
   // ══════════════════════════════════════════════════
   function _tryHectorHarassment() {
     const p = Stats.player;
-    if (p.day < 3) return;  // 前兩天他觀察你
+    if (p.day < 2) return;  // Day 1 他第一次出現在走廊已演過
     const hectorPresent = [...(currentNPCs.teammates || [])].includes('hector');
     if (!hectorPresent) return;
     if (Flags.has(`hector_harass_today`)) return;
 
     // 每天最多騷擾一次
     const roll = Math.random();
-    if (roll >= 0.18) return;   // 18% 機率
+    // 🆕 D.28：Day 2-5 用 35% 比較密、Day 6+ 回到 18%
+    const threshold = (p.day <= 5) ? 0.35 : 0.18;
+    if (roll >= threshold) return;
 
     Flags.set('hector_harass_today', true);
 

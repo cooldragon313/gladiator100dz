@@ -41,7 +41,8 @@ const FIELDS = {
       { npcId: 'orlan',         role: 'teammate', chance: 1.00 },
       // 🆕 索爾（Day 1-4 在場，Day 5 後透過 alive:false 從隊伍消失）
       { npcId: 'sol',           role: 'teammate', chance: 1.00 },
-      { npcId: 'hector',        role: 'teammate', chance: 0.80 },  // 赫克托常在（他無處不在）
+      // 🆕 D.28：赫克托 Day 1-10 幾乎必出（反派建立）、之後回到 0.80
+      { npcId: 'hector',        role: 'teammate', chance: 0.80, forceDays: { from:1, to:10, chance:0.95 } },
       { npcId: 'cassius',       role: 'teammate', chance: 0.60 },
       { npcId: 'ursa',          role: 'teammate', chance: 0.55 },
       { npcId: 'dagiSlave',     role: 'teammate', chance: 0.50 },
@@ -86,12 +87,18 @@ function rollFieldNPCs(fieldId) {
   });
 
   // Step 2: random fill, skip already-forced NPCs
+  const curDay = (typeof Stats !== 'undefined') ? (Stats.player?.day || 1) : 1;
   (f.characters || []).forEach(entry => {
     if (forcedIds.has(entry.npcId)) return;
     // 🆕 檢查 NPC 是否還活著（索爾 Day 5 後 alive=false 就不再出現）
     const npcDef = NPC_ALL[entry.npcId];
     if (npcDef && npcDef.alive === false) return;
-    if (Math.random() < entry.chance) {
+    // 🆕 D.28：forceDays 機制 — 指定日期區間內用高機率（用於劇情關鍵 NPC）
+    let chance = entry.chance;
+    if (entry.forceDays && curDay >= entry.forceDays.from && curDay <= entry.forceDays.to) {
+      chance = entry.forceDays.chance;
+    }
+    if (Math.random() < chance) {
       (entry.role === 'teammate' ? tmList : audList).push(entry.npcId);
     }
   });
