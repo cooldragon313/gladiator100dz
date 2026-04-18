@@ -677,33 +677,55 @@ html, body {
 }
 
 /* ── Log area ── */
-/* 🆕 碎念跑馬燈 — scene-view 和 log 之間的固定兩行 */
+/* 🆕 D.28：碎念跑馬燈已改為 NPC 旁小泡泡（bg-bubble）— 此處 hide 保留佔位 */
 #mumble-ticker {
-  flex-shrink: 0;
-  min-height: 0;
-  max-height: 48px;
-  overflow: hidden;
-  padding: 4px 14px;
-  background: rgba(10,8,4,.85);
-  border-top: 1px solid rgba(200,160,80,0.15);
-  font-size: 14px;
-  font-style: italic;
-  line-height: 1.5;
-  color: #9a8c6a;
-  transition: max-height .3s ease;
+  display: none !important;
 }
-#mumble-ticker:empty {
-  max-height: 0;
-  padding: 0 14px;
-  border-top: none;
+
+/* 🆕 D.28：背景角鬥士的對話泡泡（跳在名字條左側） */
+.bg-bubble {
+  position: absolute;
+  right: calc(100% + 6px);
+  top: 50%;
+  transform: translateY(-50%);
+  max-width: 220px;
+  min-width: 60px;
+  padding: 5px 10px;
+  background: rgba(20, 14, 6, 0.96);
+  border: 1px solid rgba(200, 160, 80, 0.6);
+  border-radius: 5px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #d4c090;
+  white-space: normal;
+  word-break: break-word;
+  pointer-events: none;
+  z-index: 30;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.6);
+  animation: bb-pop .25s ease-out;
+  transition: opacity .6s ease;
 }
-#mumble-ticker .mumble-line {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.bg-bubble::after {
+  /* 小三角形指向 NPC 名字 */
+  content: '';
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 5px solid transparent;
+  border-left-color: rgba(200, 160, 80, 0.6);
 }
-#mumble-ticker .mumble-gossip { color: #b8a870; }
-#mumble-ticker .mumble-synergy { color: #d9a84f; }
+.bg-bubble.bb-gossip   { color: #b8a870; border-color: rgba(184,168,112,0.7); }
+.bg-bubble.bb-gossip::after { border-left-color: rgba(184,168,112,0.7); }
+.bg-bubble.bb-synergy  { color: #ffd76a; border-color: rgba(255,215,106,0.8); box-shadow: 0 0 12px rgba(255,215,106,0.4); }
+.bg-bubble.bb-synergy::after { border-left-color: rgba(255,215,106,0.8); }
+.bg-bubble.bg-bubble-fade { opacity: 0; }
+@keyframes bb-pop {
+  from { opacity: 0; transform: translate(6px, -50%); }
+  to   { opacity: 1; transform: translate(0, -50%); }
+}
+/* 🆕 bg-entry 要 relative 才能定位泡泡 */
+#bg-gladiator-strip .bg-entry { position: relative; }
 
 #log-area {
   height: 260px;

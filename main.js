@@ -1064,12 +1064,29 @@ const Game = (() => {
       const famMark = passed
         ? '<span class="bg-partner">夥伴</span>'
         : '';   // 沒通過就不顯示數字，保持乾淨
-      return `<div class="${cls}" title="${bg.name}（偏好 ${bg.favoredAttr}）">
+      return `<div class="${cls}" id="bg-entry-${bg.id}" title="${bg.name}（偏好 ${bg.favoredAttr}）">
         <span class="bg-name">${bg.name}</span>
         <span class="bg-attr">${bg.favoredAttr}</span>
         ${famMark}
       </div>`;
     }).join('');
+  }
+
+  // 🆕 D.28：背景角鬥士在自己名字旁邊跳小泡泡（不吃 log 空間，不擋觀眾）
+  //   html 可包含現成 class（mumble-gossip / mumble-synergy）來染色
+  function _showBgBubble(bgId, html, cls = '') {
+    const entry = document.getElementById(`bg-entry-${bgId}`);
+    if (!entry) return;
+    // 移除舊泡泡（只保留最新一個）
+    const old = entry.querySelector('.bg-bubble');
+    if (old) old.remove();
+    const b = document.createElement('div');
+    b.className = 'bg-bubble ' + cls;
+    b.innerHTML = html;
+    entry.appendChild(b);
+    // 自動淡出
+    setTimeout(() => { b.classList.add('bg-bubble-fade'); }, 4200);
+    setTimeout(() => { if (b.parentNode) b.remove(); }, 5000);
   }
 
   // ── Daily NPC roll (once per day) ─────────────────────
@@ -2538,20 +2555,21 @@ const Game = (() => {
           addLog(`「${greeting}」——${bg.name}`, '#d9c28f', true, true);
         });
       }
-      // 70% 機率有人碎念 → 送到跑馬燈（不塞日誌，不擋 stage）
+      // 🆕 D.28：碎念改為在 NPC 名字旁邊跳小泡泡（不吃 log 空間，不擋觀眾）
       if (Math.random() < 0.70) {
         const m = BackgroundGladiators.getMumble();
-        if (m) {
-          const cls = m.isGossip ? 'mumble-gossip' : (m.isSignature ? 'mumble-gossip' : '');
-          const prefix = (m.isGossip || m.isSignature) ? `💬 ${m.name}：` : `${m.name}：`;
-          _pushMumbleTicker(`<span class="${cls}">${prefix}「${m.line}」</span>`);
+        if (m && m.id) {
+          const cls = (m.isGossip || m.isSignature) ? 'bb-gossip' : '';
+          const prefix = (m.isGossip || m.isSignature) ? '💬 ' : '';
+          _showBgBubble(m.id, `${prefix}「${m.line}」`, cls);
         }
       }
-      // 協力觸發時 → 跑馬燈
+      // 協力觸發時 → 對應 NPC 泡泡（金色）
       if (bgNpcMult > 1.0 && trainedAttr) {
         const shouts = BackgroundGladiators.getSynergyShouts(trainedAttr, 2);
         shouts.forEach(s => {
-          _pushMumbleTicker(`<span class="mumble-synergy">🔥 ${s.name}：「${s.line}」</span>`);
+          if (!s.id) return;
+          _showBgBubble(s.id, `🔥「${s.line}」`, 'bb-synergy');
         });
       }
     }
