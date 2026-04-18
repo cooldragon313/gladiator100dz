@@ -114,13 +114,13 @@ const Events = (() => {
    *     id: 'trial', ... }      // 和平預設版本
    */
   const TIMELINE_EVENTS = [
-    // Day 5：基礎考驗（通用）
+    // Day 5：沙洗（原「基礎考驗」— 訓練所術語，三人進兩人出）
     {
       day: 5,
       priority: 10,
       conditions: {},
       id: 'trial',
-      name: '基礎考驗',
+      name: '沙洗',
       icon: '⚔',
       iconColor: '#cc7700',
       type: 'forced_battle',
