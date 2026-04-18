@@ -1305,7 +1305,11 @@ const Game = (() => {
     // 防禦性：確保 ailments 是陣列（舊存檔可能沒有此欄位）
     if (!Array.isArray(p.ailments)) p.ailments = [];
 
-    if (p.insomniaStreak >= 2 && !p.ailments.includes('insomnia_disorder')) {
+    // 🆕 D.28：失眠症免疫期（老默根除過後 7 天內不重發）
+    const immunityUntil = (typeof Flags !== 'undefined') ? Flags.get('insomnia_immunity_until', -1) : -1;
+    const inImmunity = typeof immunityUntil === 'number' && p.day <= immunityUntil;
+
+    if (p.insomniaStreak >= 2 && !p.ailments.includes('insomnia_disorder') && !inImmunity) {
       p.ailments.push('insomnia_disorder');
       addLog('⚕ 連續兩夜無法充分休息——你感覺到某種根深蒂固的疲憊在蔓延。【失眠症】發作。', '#ff6868', true, true);
     }

@@ -239,6 +239,15 @@ const DoctorEvents = (() => {
         if (ailmentId === 'insomnia_disorder') {
           p.insomniaStreak = 0;
           p.normalSleepStreak = 0;
+          // 🆕 D.28：60% 根除（7 天免疫期）/ 40% 只是暫時壓制
+          if (Math.random() < 0.60) {
+            Flags.set('insomnia_immunity_until', p.day + 7);
+            addLog('⚕ 老默的藥很對症。你覺得頭腦清明——那種根深的疲憊消散了。', '#88d870', true, true);
+          } else {
+            addLog('⚕ 藥暫時壓住了症狀。但那種疲憊還在底層——希望夠撐。', '#c8a060', false);
+          }
+        } else {
+          addLog(`⚕ 【${def.name}】已治癒。`, '#88d870', true, true);
         }
 
         // 時間成本（半天 = 2 slots）— 如果有 advanceTime
@@ -248,8 +257,6 @@ const DoctorEvents = (() => {
 
         // 好感 +5
         teammates.modAffection('doctorMo', +5);
-
-        addLog(`⚕ 【${def.name}】已治癒。`, '#88d870', true, true);
 
         // 重新渲染
         if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
