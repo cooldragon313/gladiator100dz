@@ -122,6 +122,59 @@ independentDislikes: { neurotic: 1 },
 - 他討厭的特性 → 抱怨 / 失望 / 保持距離
 - 避免讓不討厭 cruel 的 NPC 突然罵 cruel 玩家，會不一致
 
+---
+
+## 🎯 **什麼特性值得寫專屬對白？強度 ≥ 2 規則**
+
+寫事件/任務對白時，**不是每個特性都要寫變化版本**。原則：
+
+| NPC 對該特性的強度 | 是否寫對白 | 原因 |
+|---|---|---|
+| 3（最愛或最恨） | **一定寫**，通常較激烈 | 角色的核心價值觀 |
+| 2（明顯在意） | **應該寫** | 有辨識度 |
+| 1（輕微偏好） | **可以跳過** | 太弱，寫出來反而稀釋強度 |
+
+**梅拉範例**：
+```
+likedTraits:    { kindness:3, merciful:3, humble:2, reliable:1 }
+dislikedTraits: { cruel:3, prideful:2, opportunist:1 }
+```
+
+按規則**要寫**的：kindness, merciful, humble, cruel, prideful（5 種）
+**可跳過**的：reliable（1）, opportunist（1）
+
+### 例外：非軸特性的母性/專業反應
+
+即使沒寫在 likedTraits/dislikedTraits，但如果 NPC 的**性格**會對某特性有反應，也該寫：
+- 梅拉對 coward 玩家 → 母性保護「別慌」（不在愛憎表，但梅拉是照顧型）
+- 老默對 neurotic 玩家 → 專業平靜「深呼吸」（不在愛憎表，但他是醫生）
+- 卡西烏斯對 iron_will 玩家 → 默默欣賞（他愛 iron_will:2，寫）
+
+### baseline 是必要的
+
+**每個事件必須有一個「玩家沒任何觸發特性」的版本**。否則會出現「一個空白對話」。
+baseline 要寫得**溫暖但克制**，不能像範本。
+
+### 反差時刻
+
+玩家做出**跟特性相反**的選擇時（cruel 玩家放生 / kindness 玩家殺掉），
+NPC 反應**應該注意到反差**：
+- 「難得」「意外」「⋯⋯我沒看過你這樣」
+- 這些時刻是遊戲最有戲的瞬間
+
+### 對話處理順序（標準）
+
+在程式碼中處理玩家擁有多個特性時：
+
+1. **負面特性優先**：cruel > prideful > coward > impulsive > opportunist > neurotic
+2. **正面特性次之**：kindness > merciful > humble > reliable > iron_will > loyal > patient
+3. **全都沒有 → baseline（中立版本）**
+
+順序邏輯：
+- 負面特性更有戲（NPC 有話要罵，戲劇性強）
+- 正面特性中 kindness 特別（它是 origin trait，直達角色身份）
+- baseline 保底
+
 ### 範例：梅拉對 cruel 玩家
 
 因為 `cruel:3` 是她最討厭的 → 對白強烈：
