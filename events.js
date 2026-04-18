@@ -123,6 +123,8 @@ const Events = (() => {
       name: '沙洗',
       icon: '⚔',
       iconColor: '#cc7700',
+      // 🆕 D.28：Day 1 塔倫講完才揭露
+      revealFlag: 'timeline_sand_wash_revealed',
       type: 'forced_battle',
       forced: true,
       // 🆕 D.21 修正：oldTraining 已在 Phase 1-J 移除，改用 stdTraining
@@ -146,6 +148,8 @@ const Events = (() => {
       name: '大型競技',
       icon: '★',
       iconColor: '#d4af37',
+      // 🆕 D.28：Day 40+ 監督官透露後才揭露
+      revealFlag: 'timeline_day50_revealed',
       type: 'forced_battle',
       forced: true,
       forcedField: 'stdTraining',
@@ -167,6 +171,8 @@ const Events = (() => {
       name: '宿敵會戰',
       icon: '⚔',
       iconColor: '#c0392b',
+      // 🆕 D.28：Day 60+ 赫克托或卡西烏斯提過才揭露
+      revealFlag: 'timeline_day75_revealed',
       type: 'forced_battle',
       forced: true,
       forcedField: 'stdTraining',
@@ -188,6 +194,8 @@ const Events = (() => {
       name: '萬骸祭',
       icon: '🔥',
       iconColor: '#8b0000',
+      // 🆕 D.28：遊戲介紹頁結尾就揭露（landmark）
+      revealFlag: 'timeline_festival_revealed',
       type: 'final',
       forced: true,
       forcedField: 'stdTraining',
@@ -276,13 +284,72 @@ const Events = (() => {
         byDay[ev.day] = ev;
       }
     });
-    return Object.values(byDay).map(ev => ({
-      day:       ev.day,
-      name:      ev.name,
-      icon:      ev.icon,
-      iconColor: ev.iconColor,
-    }));
+    // 🆕 D.28：動態揭露 — 每個 event 有 revealFlag，flag 為 true 才顯示名字
+    //   沒 revealFlag 的事件預設已揭露（向後相容）
+    //   未揭露的事件完全不顯示在百日條
+    return Object.values(byDay).map(ev => {
+      const revealFlag = ev.revealFlag;
+      const revealed = !revealFlag
+                     || (typeof Flags !== 'undefined' && Flags.has(revealFlag));
+      if (!revealed) return null;
+      return {
+        day:       ev.day,
+        name:      ev.name,
+        icon:      ev.icon,
+        iconColor: ev.iconColor,
+      };
+    }).filter(m => m !== null);
   }
+
+  // 🆕 D.28：動態賭局候補池（Phase 2 主人賭你 vs 外面鬥士）
+  //   每個候補日會在 -7 天 roll 機率；觸發後設 flag 變「已揭露」
+  const DYNAMIC_BETS = [
+    { candidateDay: 35, chance: 0.40, previewDaysBefore: 7,
+      opponent: 'morras_ironarm',
+      name: '鐵臂之戰', icon: '⚔', iconColor: '#b84040',
+      previewLines: [
+        { speaker: '侍從', text: '大人跟莫拉斯老爺打了個賭。' },
+        { speaker: '侍從', text: '七天後——你要跟他家的「鐵臂」打一場。' },
+        { speaker: '侍從', text: '大人下注鐵臂贏。' },
+        { speaker: '侍從', text: '但如果你贏了——大人會記得你的臉。' },
+      ],
+    },
+    { candidateDay: 48, chance: 0.35, previewDaysBefore: 7,
+      opponent: 'bandit_fang',
+      name: '押運遭襲', icon: '🗡', iconColor: '#995533',
+      previewLines: [
+        { speaker: '侍從', text: '七天後要送一批貨。大人要你跟去。' },
+        { speaker: '侍從', text: '路上⋯⋯可能會遇到麻煩。' },
+      ],
+    },
+    { candidateDay: 62, chance: 0.35, previewDaysBefore: 7,
+      opponent: 'dragonbay_shadow',
+      name: '影子', icon: '🌑', iconColor: '#442266',
+      previewLines: [
+        { speaker: '侍從', text: '大人要你去打一個⋯⋯不是訓練所的人。' },
+        { speaker: '侍從', text: '對方叫「影子」。海龍幫的。' },
+        { speaker: '侍從', text: '七天後。沒觀眾、沒計分、沒救援。' },
+      ],
+    },
+    { candidateDay: 75, chance: 0.50, previewDaysBefore: 7,
+      opponent: 'tiger_striped',
+      name: '狩獵', icon: '🐯', iconColor: '#cc6600',
+      previewLines: [
+        { speaker: '侍從', text: '下週主人要打獵。你跟去。' },
+        { speaker: '侍從', text: '據說山裡有大物——主人很期待。' },
+      ],
+    },
+    { candidateDay: 88, chance: 0.40, previewDaysBefore: 7,
+      opponent: 'assassin_nighthawk',
+      name: '夜訪', icon: '🗡', iconColor: '#553344',
+      previewLines: [
+        { speaker: '侍從', text: '大人要你提高警覺。' },
+        { speaker: '侍從', text: '最近有⋯⋯不明身份的人在打聽你。' },
+      ],
+    },
+  ];
+
+  function getDynamicBets() { return DYNAMIC_BETS; }
 
   // ── Action Event Pool ─────────────────────────────
   const ACTION_EVENTS = {
@@ -831,5 +898,8 @@ const Events = (() => {
     // 🆕 D.1.10 條件化時間軸事件
     getTimelineEvent,
     getTimelineMarkers,
+    // 🆕 D.28 動態賭局
+    getDynamicBets,
+    DYNAMIC_BETS,
   };
 })();

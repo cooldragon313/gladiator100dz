@@ -214,6 +214,66 @@ const TB_ENEMIES = {
     desc:'身上的傷疤多過臉上的皺紋。懂得把握時機，不會輕易露出破綻。',
   },
 
+  // ═══════════════════════════════════════════════════════
+  // 🆕 D.28：固定敵人（來自隔壁訓練所 / 地下勢力 / 野外）
+  //   詳見 docs/enemies/
+  // ═══════════════════════════════════════════════════════
+
+  // 莫拉斯的鐵臂 — 隔壁訓練所招牌（Day 35 賭局對手）
+  morras_ironarm: {
+    name:'烏勒克', title:'「鐵臂」',
+    STR:14, DEX:8,  CON:14, AGI:7,  WIL:11, LUK:5, hpBase:55,
+    weaponId:'hammer', armorId:'leather', shieldId:'none',
+    traitId:'none',
+    ai:'normal', passive:null, specialCD:99,
+    fame:22, intimidation:0.03,
+    desc:'莫拉斯大人家的招牌鬥士。跨場二十二勝四敗。左臂有一條從手腕到肘窩的舊疤——所以叫「鐵臂」。',
+  },
+
+  // 海龍幫的影子 — 速度型刺客（Day 55-62 賭局）
+  dragonbay_shadow: {
+    name:'???', title:'「影子」',
+    STR:9,  DEX:16, CON:10, AGI:15, WIL:12, LUK:8, hpBase:38,
+    weaponId:'dagger', armorId:'rags', shieldId:'none',
+    traitId:'none',
+    ai:'normal', passive:null, specialCD:99,
+    fame:0, intimidation:0.08,
+    desc:'全身黑、面罩只露眼睛。海龍幫的代理鬥士——不是正規角鬥士。打起來的風格完全不同。',
+  },
+
+  // 毒牙 — 強盜首領（Day 55-70 外出押運）
+  bandit_fang: {
+    name:'葛雷德', title:'「毒牙」',
+    STR:13, DEX:10, CON:12, AGI:11, WIL:8,  LUK:6, hpBase:48,
+    weaponId:'heavyAxe', armorId:'leather', shieldId:'none',
+    traitId:'none',
+    ai:'normal', passive:null, specialCD:99,
+    fame:0, intimidation:0.05,
+    desc:'流民出身的強盜頭子。嘴巴不停，一邊打一邊罵。殺過至少十五個商隊護衛。',
+  },
+
+  // 夜鷹 — 夜間刺客（Day 65+ 夜間事件）
+  assassin_nighthawk: {
+    name:'???', title:'「夜鷹」',
+    STR:11, DEX:15, CON:9,  AGI:16, WIL:13, LUK:7, hpBase:36,
+    weaponId:'shortSword', armorId:'rags', shieldId:'none',
+    traitId:'none',
+    ai:'normal', passive:null, specialCD:99,
+    fame:0, intimidation:0.06,
+    desc:'全身黑、戴黑色指套。血環公會（？）的刺客。首擊極猛——如果你沒察覺他靠近。',
+  },
+
+  // 斑虎 — 野獸（Day 70+ 狩獵事件）
+  tiger_striped: {
+    name:'斑虎', title:'山林大虎',
+    STR:18, DEX:12, CON:16, AGI:14, WIL:5,  LUK:8, hpBase:75,
+    weaponId:'fists', armorId:'leather', shieldId:'none',   // fists 代表爪；暫用 leather 表獸皮
+    traitId:'none',
+    ai:'normal', passive:null, specialCD:99,
+    fame:0, intimidation:0.10,
+    desc:'成年公虎。左眼上有老傷疤，暗示牠跟人打過且活下來。無法溝通、無法逃。戰鬥節奏完全不同。',
+  },
+
   // ── 固定三人眾 ────────────────────────────────────────
   gruen: {
     name:'葛倫', title:'鐵面・均衡男',

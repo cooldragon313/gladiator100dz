@@ -362,6 +362,8 @@ const Game = (() => {
   function _buildDayBar() {
     const inner = document.getElementById('hdb-inner');
     if (!inner) return;
+    // 🆕 D.28：重建前先清掉舊 markers（讓動態揭露可以即時反映）
+    inner.querySelectorAll('.hdb-tick, .hdb-event, .hdb-dyn-event').forEach(el => el.remove());
     const totalW = 100 * DAY_W;
     inner.style.width = totalW + 'px';
 
@@ -375,6 +377,7 @@ const Game = (() => {
     }
 
     // 🆕 D.1.10: Event markers（從陣列取代舊的 object lookup）
+    //   D.28: getTimelineMarkers() 已內建 revealFlag 過濾，只回傳已揭露的
     const markers = Events.getTimelineMarkers();
     markers.forEach(m => {
       const x = (m.day - 1) * DAY_W + DAY_W / 2;
@@ -388,6 +391,31 @@ const Game = (() => {
       `;
       inner.appendChild(marker);
     });
+
+    // 🆕 D.28：動態賭局（主人下注）— 觸發後顯示
+    if (typeof Events !== 'undefined' && Events.DYNAMIC_BETS) {
+      Events.DYNAMIC_BETS.forEach(bet => {
+        const triggered = (typeof Flags !== 'undefined')
+                        && Flags.has(`bet_day${bet.candidateDay}_triggered`);
+        if (!triggered) return;
+        const x = (bet.candidateDay - 1) * DAY_W + DAY_W / 2;
+        const marker = document.createElement('div');
+        marker.className = 'hdb-event hdb-dyn-event';
+        marker.style.left = x + 'px';
+        marker.title = `第 ${bet.candidateDay} 天：${bet.name}`;
+        marker.innerHTML = `
+          <span class="hdb-event-icon" style="color:${bet.iconColor}">${bet.icon}</span>
+          <span class="hdb-event-name">${bet.name}</span>
+        `;
+        inner.appendChild(marker);
+      });
+    }
+  }
+
+  // 🆕 D.28：百日條重建（當有新事件揭露時呼叫）
+  function _rebuildDayBar() {
+    _buildDayBar();
+    renderDayBar();
   }
 
   function renderDayBar() {
@@ -3255,7 +3283,7 @@ const Game = (() => {
   // ── Full render pass ──────────────────────────────────
   function renderAll() {
     renderTimeBar();
-    renderDayBar();
+    _rebuildDayBar();   // 🆕 D.28：動態揭露 — 每次 render 都重建百日條
     renderSceneInfoBar();
     renderSceneView();
     renderNPCSlots();
@@ -4708,6 +4736,8 @@ const Game = (() => {
     btn.onmouseout  = () => { btn.style.background = 'transparent'; };
     btn.onclick = () => {
       ov.style.opacity = 0;
+      // 🆕 D.28：介紹頁按完「活下去」→ 百日條揭露 Day 100 萬骸祭
+      if (typeof Flags !== 'undefined') Flags.set('timeline_festival_revealed', true);
       setTimeout(() => { ov.remove(); onComplete(); }, 800);
     };
   }
@@ -5840,6 +5870,69 @@ const Game = (() => {
     const hint = TutorialHints.tryShow(Stats.player);
     if (hint) _pendingDialogues.push({ id: hint.id, lines: hint.lines });
   }, 35);
+
+  // 🆕 D.28：百日條動態揭露（主線）
+  //   Day 40 監督官透露 Day 50 大型競技
+  DayCycle.onDayStart('revealDay50', (newDay) => {
+    if (newDay !== 40 || Flags.has('timeline_day50_revealed')) return;
+    _pendingDialogues.push({
+      id: 'reveal_day50',
+      lines: [
+        { text: '（訓練途中，監督官走過你身邊。）' },
+        { speaker: '監督官', text: '下個月初，有一場大比賽。' },
+        { speaker: '監督官', text: '大型競技——不是跟自己人打。' },
+        { speaker: '監督官', text: '大人會親自來看。' },
+        { speaker: '監督官', text: '⋯⋯別丟臉。' },
+        { text: '（他走了。你記住了那個日期——第五十天。）' },
+      ],
+      onComplete: () => {
+        Flags.set('timeline_day50_revealed', true);
+        renderAll();   // 刷新百日條
+      },
+    });
+  }, 40);
+
+  //   Day 60 赫克托 or 卡西烏斯透露 Day 75 宿敵會戰
+  DayCycle.onDayStart('revealDay75', (newDay) => {
+    if (newDay !== 60 || Flags.has('timeline_day75_revealed')) return;
+    // 用卡西烏斯講（比較有重量）
+    _pendingDialogues.push({
+      id: 'reveal_day75',
+      lines: [
+        { text: '（卡西烏斯擦著武器。他沒抬頭。）' },
+        { speaker: '卡西烏斯', text: '有人在盯著你。' },
+        { speaker: '卡西烏斯', text: '我聽過那傢伙的名字。上一季他砍了七個人。' },
+        { speaker: '卡西烏斯', text: '他想親自試試你。' },
+        { speaker: '卡西烏斯', text: '⋯⋯二十五天後，沙地上見。' },
+        { text: '（他沒再說什麼。但你記住了。）' },
+      ],
+      onComplete: () => {
+        Flags.set('timeline_day75_revealed', true);
+        renderAll();
+      },
+    });
+  }, 40);
+
+  //   動態賭局（Phase 2）— 每個候補日前 7 天 roll 機率
+  DayCycle.onDayStart('dynamicBetsReveal', (newDay) => {
+    if (typeof Events === 'undefined' || !Events.DYNAMIC_BETS) return;
+    Events.DYNAMIC_BETS.forEach(bet => {
+      const revealDay = bet.candidateDay - bet.previewDaysBefore;
+      if (newDay !== revealDay) return;
+      const triggerFlag = `bet_day${bet.candidateDay}_triggered`;
+      if (Flags.has(triggerFlag)) return;
+      // roll
+      if (Math.random() > bet.chance) return;
+      // 觸發：設 flag + 排對白
+      Flags.set(triggerFlag, true);
+      Flags.set(`bet_day${bet.candidateDay}_opponent`, bet.opponent);
+      _pendingDialogues.push({
+        id: `bet_reveal_${bet.candidateDay}`,
+        lines: bet.previewLines,
+        onComplete: () => { renderAll(); },
+      });
+    });
+  }, 45);
 
   // Day 4 安全網（路線 B）
   DayCycle.onDayStart('weaponSafetyNet', (newDay) => {
