@@ -4986,50 +4986,313 @@ const Game = (() => {
   }
 
   // ══════════════════════════════════════════════════
-  // 🆕 Day 1 起床演出
+  // 🆕 Day 1 起床演出（D.28 v2 — 依 origin 分支 + 特性互動）
+  //   對應設計：docs/quests/day1-opening.md
+  //   現階段只做 farmBoy 路徑（kindness + diligence）
   // ══════════════════════════════════════════════════
   async function _playDay1WakeUp(onComplete) {
+    const p = Stats.player;
+    const origin = p?.origin || 'farmBoy';
+    const hasKindness = Array.isArray(p?.traits) && p.traits.includes('kindness');
+    const hasCruel    = Array.isArray(p?.traits) && p.traits.includes('cruel');
+
     // 先閉眼（確保黑幕狀態）
     if (typeof Stage !== 'undefined') await Stage.closeEyes();
 
-    // 場景一：牢房（黑幕中・獄卒踢門）
+    // ── 場景 1：牢房感官（夏日清晨，黑幕中）──
     await new Promise(resolve => {
       DialogueModal.play([
-        { speaker: '???', text: '起床！臭奴隸！' },
-        { text: '砰——鐵門被踢開。聲音在石牆之間彈了好幾下。' },
-        { speaker: '???', text: '還在睡？太陽都曬屁股了！' },
-        { speaker: '???', text: '給我滾起來，去訓練場集合！' },
-        { speaker: '???', text: '今天開始你就不是人了——是貨。懂嗎？' },
+        { text: '（雞啼。遠遠一聲。）' },
+        { text: '（夏天的悶——空氣還沒動。）' },
+        { text: '（你的後頸都是汗。）' },
+        { text: '（你舔了舔嘴唇——甜的。是血。）' },
+        { text: '（你的牙齒有一顆在晃。）' },
+        { text: '（你翻身——身上每個關節都痛。）' },
+        { text: '（昨晚的瘀青還在，有些還腫。）' },
+        { text: '（天色才剛亮。不知為何就要起床了。）' },
       ], { onComplete: resolve });
     });
 
-    // 睜眼（黑幕掀開）
-    if (typeof Stage !== 'undefined') await Stage.openEyes();
-
-    // 場景二：訓練場（長官訓話）
+    // ── 場景 2：獄卒踢門 ──
     await new Promise(resolve => {
       DialogueModal.play([
-        { text: '眼前是訓練場。沙地。器械。' },
-        { text: '還有一排跟你一樣眼神空洞的人。' },
-        { text: '長官站在高台上。所有人安靜下來。' },
-        { speaker: '塔倫長官', text: '都到了？' },
-        { text: '他環視一圈。目光在你身上停了半秒。' },
-        { speaker: '塔倫長官', text: '聽好。我只說一次。' },
-        { speaker: '塔倫長官', text: '吃完早餐就去訓練。' },
-        { speaker: '塔倫長官', text: '每天四個時段——訓練、吃飯、訓練、睡覺。' },
-        { speaker: '塔倫長官', text: '我不管你以前是誰、幹過什麼——' },
-        { speaker: '塔倫長官', text: '在這裡，你只有一個身分：' },
-        { speaker: '塔倫長官', text: '活著的投資。' },
-        { speaker: '塔倫長官', text: '給我拿出吃奶的力氣練。' },
-        { text: '他停頓了一下。嘴角微微上揚。' },
+        { text: '砰——' },
+        { text: '（鐵門撞開。聲音在石牆之間彈了好幾下。你的耳朵嗡的一聲。）' },
+        { speaker: '獄卒', text: '起床！臭奴隸！' },
+        { speaker: '獄卒', text: '還在睡？太陽都曬屁股了！' },
+        { speaker: '獄卒', text: '給我滾起來——去訓練場集合！' },
+        { speaker: '獄卒', text: '今天起你是貨，不是人——懂嗎？' },
+        { text: '（他踹你一腳。你撞到角落的牆。）' },
+        { text: '（昨晚重摔的傷口又裂開了一點。）' },
+        { text: '（那顆晃的牙齒——晃得更兇了。）' },
+      ], { onComplete: resolve });
+    });
+
+    // ── 場景 3：玩家內心（依 origin）──
+    await new Promise(resolve => {
+      let lines;
+      if (origin === 'nobleman') {
+        // 🔒 貴族路徑（尚未解鎖，保留參考）
+        lines = [
+          { text: '（你坐起來。手還在抖。）' },
+          { text: '（⋯⋯「訓練場」。你腦子裡閃過一段小時候讀過的書。）' },
+          { text: '（⋯⋯「血洗」、「沙場認證」。書上寫的。）' },
+          { text: '（你告訴自己不要胡思亂想。——但我一定要活下來。）' },
+        ];
+      } else {
+        // farmBoy（預設）— 沒知識亂想
+        lines = [
+          { text: '（你沒說話。只是摸著自己的嘴角。）' },
+          { text: '（「訓練場」——是什麼地方？你在村子裡只聽過「穀場」。）' },
+          { text: '（大概也是排成一排做一樣的事吧。）' },
+          { text: '（只是這次的工頭比較兇。）' },
+        ];
+      }
+      DialogueModal.play(lines, { onComplete: resolve });
+    });
+
+    // 睜眼（走出牢房的瞬間，掀開黑幕，接下來才看得見達吉）
+    if (typeof Stage !== 'undefined') await Stage.openEyes();
+
+    // ── 場景 3.5：特性即時互動（遇到達吉）──
+    await new Promise(resolve => {
+      let lines;
+      if (hasCruel) {
+        // cruel 路徑（農家預設不會，保險起見）
+        lines = [
+          { text: '（走出牢房的路上，一個男孩擋在你路上，縮著身子哭。）' },
+          { text: '（你沒思考——踢了他一腳。）' },
+          { speaker: '男孩', text: '嗚啊——！' },
+          { text: '（他摔在地上。獄卒在遠處聽到，抬頭看了一眼，又低頭啃他的饅頭。）' },
+          { text: '（但後面有個捲髮的年輕人看見了。他的眼神變了。）' },
+        ];
+      } else if (hasKindness) {
+        // farmBoy 預設路徑（kindness）
+        lines = [
+          { text: '（走出牢房的路上，你看見一個男孩蹲在牆邊哭。）' },
+          { text: '（他看起來比你小得多。他抓著自己的手腕在發抖。）' },
+          { text: '（你沒多想——伸手把他扶起來。）' },
+          { speaker: '你', text: '⋯⋯深呼吸。你站得起來。' },
+          { speaker: '男孩（小聲）', text: '⋯⋯謝謝。' },
+          { speaker: '男孩（小聲）', text: '我叫⋯⋯達吉。' },
+          { text: '（你聽見後面有腳步聲。）' },
+          { text: '（是一個捲髮的年輕人——他剛好看到這一幕。）' },
+          { text: '（他對你笑了一下。眼睛先彎的那種笑。）' },
+        ];
+      } else {
+        // baseline（農家一定有 kindness，這個基本不會走到）
+        lines = [
+          { text: '（一個男孩擋在你路上。你繞過去，沒停。）' },
+          { text: '（他看了你一眼。你沒看他。）' },
+        ];
+      }
+      DialogueModal.play(lines, { onComplete: resolve });
+    });
+
+    // 套用特性互動效果
+    if (typeof teammates !== 'undefined') {
+      if (hasCruel) {
+        teammates.modAffection('dagiSlave', -20);
+        teammates.modAffection('orlan',    -15);
+        Flags.set('day1_kicked_dagi', true);
+      } else if (hasKindness) {
+        teammates.modAffection('dagiSlave', +15);
+        teammates.modAffection('orlan',    +10);
+        Flags.set('day1_helped_dagi', true);
+      } else {
+        teammates.modAffection('dagiSlave', -3);
+      }
+    }
+
+    // ── 場景 4：走向訓練場（感官）──
+    //（Stage 已在場景 3 後 openEyes，這裡不重複）
+    await new Promise(resolve => {
+      DialogueModal.play([
+        { text: '（你走進訓練場。）' },
+        { text: '（腳底是沙——早晨的沙還是涼的，但空氣已經悶了。）' },
+        { text: '（你聞到血味、汗味，還有什麼東西在燒——是早餐的爐子？）' },
+        { text: '（一排比你先到的人站在場中央——他們的眼睛裡沒有顏色。）' },
+        { text: '（角落裡有人在練劍。每一下都像在砍一個他恨的人。）' },
+        { text: '（蟲在某個地方叫。夏天的蟲。）' },
+        { text: '（你站到隊伍後面。沒人看你。）' },
+      ], { onComplete: resolve });
+    });
+
+    // ── 場景 5：塔倫訓話 ──
+    await new Promise(resolve => {
+      DialogueModal.play([
+        { text: '（一個人從高台走下來。他手裡拿著鞭子——但沒在用。）' },
+        { speaker: '???', text: '都到齊了？' },
+        { text: '（他環視一圈。停在你身上半秒。——就半秒。）' },
+        { speaker: '塔倫長官', text: '好。' },
+        { speaker: '塔倫長官', text: '我叫塔倫。從今天起——你們是我的。' },
+        { speaker: '塔倫長官', text: '我只說一次規則。' },
+        { speaker: '塔倫長官', text: '吃早飯。訓練。吃晚飯。睡覺。再來一次。' },
+        { speaker: '塔倫長官', text: '就那麼的簡單——' },
+        { speaker: '塔倫長官', text: '但能撐住的人不多。' },
+        { text: '（他停了一下。他的嘴角挑了一下。）' },
+        { speaker: '塔倫長官', text: '五天後，有一件事。' },
+        { speaker: '塔倫長官', text: '我把它叫做「沙洗」。' },
+        { speaker: '塔倫長官', text: '別問那是什麼——到那天你自己會知道。' },
+        { speaker: '塔倫長官', text: '希望那天你們都不會讓我失望。' },
+        { text: '（幾個人不敢出聲。你也是。）' },
+        { speaker: '塔倫長官', text: '總之給我拿出吃奶的力氣練。五天！' },
         { speaker: '塔倫長官', text: '不然的話——' },
-        { speaker: '塔倫長官', text: '呵呵。' },
-        { text: '他沒說完。但所有人都知道他的意思。' },
+        { speaker: '塔倫長官', text: '——呵呵。' },
+        { text: '（他的鞭子抽向地面，揚起塵沙。）' },
+        { text: '（他沒說完。但所有人都懂。）' },
         { speaker: '塔倫長官', text: '散了。' },
       ], { onComplete: resolve });
     });
 
+    // 塔倫介紹「沙洗」→ 百日條揭露 Day 5
+    Flags.set('timeline_sand_wash_revealed', true);
+    Flags.set('met_officer', true);
+
+    // ── 場景 6：散場內心（依 origin）──
+    await new Promise(resolve => {
+      let lines;
+      if (origin === 'nobleman') {
+        // 🔒 貴族（未實作）
+        lines = [
+          { text: '（你的腦子裡有個詞在迴響：「沙洗」。）' },
+          { text: '（⋯⋯書上有段。「以沙磨去不足之人」。）' },
+          { text: '（你的手又開始抖。——我不能死在這種地方。）' },
+        ];
+      } else {
+        // farmBoy
+        lines = [
+          { text: '（你沒動。你腦子裡還在回想「沙洗到底是啥」。）' },
+          { text: '（把我們埋進去沙子裡面洗乾淨?）' },
+          { text: '（這樣不就死了?）' },
+        ];
+      }
+      DialogueModal.play(lines, { onComplete: resolve });
+    });
+
+    // ── 場景 7：奧蘭第一次接觸 ──
+    await _playDay1OrlanMeet();
+
     onComplete();
+  }
+
+  // 🆕 Day 1 結尾：奧蘭握手（依玩家之前的表現變化）
+  async function _playDay1OrlanMeet() {
+    const p = Stats.player;
+    const hasKindness = Array.isArray(p?.traits) && p.traits.includes('kindness');
+    const hasCruel    = Array.isArray(p?.traits) && p.traits.includes('cruel');
+    const helpedDagi  = Flags.has('day1_helped_dagi');
+    const kickedDagi  = Flags.has('day1_kicked_dagi');
+
+    // 基礎開場（所有路徑共通）
+    await new Promise(resolve => {
+      DialogueModal.play([
+        { text: '（你感覺有人碰了你一下。你轉頭。）' },
+        { text: '（是剛才笑過的那個捲髮年輕人。）' },
+        { speaker: '奧蘭', text: '你好。我叫奧蘭。' },
+        { speaker: '奧蘭', text: '以後⋯⋯請多指教。' },
+        { text: '（他伸出手。你看見他的手指在抖。）' },
+        { text: '（你看著那隻手——關節粗糙、但不像訓練過的手。像個文員的手。）' },
+      ], { onComplete: resolve });
+    });
+
+    // cruel + 踢過達吉 → 奧蘭警戒
+    if (kickedDagi || hasCruel) {
+      await new Promise(resolve => {
+        DialogueModal.play([
+          { text: '（他伸手但沒伸完——他看過你踢達吉。他的眼神裡有警戒。）' },
+          { speaker: '奧蘭', text: '你⋯⋯做一種朋友就好。' },
+          { speaker: '奧蘭', text: '不要⋯⋯像剛才那樣對我就行。' },
+          { text: '（他沒等你回應就走了。）' },
+        ], { onComplete: resolve });
+      });
+      if (typeof teammates !== 'undefined') teammates.modAffection('orlan', -5);
+      Flags.set('orlan_day1_wary', true);
+      Flags.set('orlan_initial_met', true);
+      return;
+    }
+
+    // kindness + 救過達吉 → 奧蘭讚賞
+    let preLines;
+    if (helpedDagi) {
+      preLines = [
+        { text: '（他先看了達吉一眼，然後看你。）' },
+        { speaker: '奧蘭', text: '你剛剛⋯⋯做的事情，我看到了。' },
+        { speaker: '奧蘭', text: '⋯⋯謝謝你沒跨過他。' },
+      ];
+    } else {
+      preLines = [];
+    }
+
+    await new Promise(resolve => {
+      DialogueModal.play([
+        ...preLines,
+        { speaker: '奧蘭', text: '那個「沙洗」——你知道是什麼嗎？' },
+        { text: '（你搖頭。）' },
+        { speaker: '奧蘭', text: '我也不知道。' },
+        { speaker: '奧蘭', text: '但塔倫長官看起來不是開玩笑的人。' },
+        { text: '（他苦笑了一下。眼睛先彎起來的那種笑——但笑沒到眼睛。）' },
+        { speaker: '奧蘭', text: '我們⋯⋯一起活下去吧？' },
+      ], { onComplete: resolve });
+    });
+
+    // 三選項
+    await new Promise(resolve => {
+      if (typeof ChoiceModal === 'undefined') {
+        // fallback：預設選第一個
+        if (typeof teammates !== 'undefined') teammates.modAffection('orlan', +5);
+        Flags.set('orlan_day1_oath', true);
+        Flags.set('orlan_initial_met', true);
+        resolve();
+        return;
+      }
+      ChoiceModal.show({
+        id:    'orlan_day1_handshake',
+        icon:  '🤝',
+        title: '奧蘭的手',
+        body:  '他的手指在抖，但他伸給你了。',
+        forced: true,
+        choices: [
+          {
+            id:    'oath',
+            label: '嗯。',
+            hint:  '（你握了他的手。）',
+            effects: [
+              { type: 'affection', key: 'orlan', delta: +5 },
+              { type: 'flag', key: 'orlan_day1_oath' },
+              { type: 'flag', key: 'orlan_initial_met' },
+            ],
+            resultLog: '你握了他的手。他的手比你想像的還冷——但他沒放。',
+            logColor:  '#d4af37',
+          },
+          {
+            id:    'nod',
+            label: '（點頭）',
+            hint:  '你沒說話，但你點了頭。',
+            effects: [
+              { type: 'affection', key: 'orlan', delta: +3 },
+              { type: 'flag', key: 'orlan_initial_met' },
+            ],
+            resultLog: '你點了頭。他也點了頭。你們什麼都沒說——但什麼都知道。',
+            logColor:  '#c8a060',
+          },
+          {
+            id:    'reject',
+            label: '⋯⋯我還不認識你。',
+            hint:  '你沒握手。',
+            effects: [
+              { type: 'affection', key: 'orlan', delta: -2 },
+              { type: 'flag', key: 'orlan_day1_rejected' },
+              { type: 'flag', key: 'orlan_initial_met' },
+            ],
+            resultLog: '他收回手。他沒生氣——但那個笑消失了。',
+            logColor:  '#8899aa',
+          },
+        ],
+      }, {
+        onChoose: () => resolve(),
+      });
+    });
   }
 
   // ── Init ──────────────────────────────────────────────
