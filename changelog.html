@@ -207,6 +207,50 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       2026-04-18 結局判定器 + NPC 世界感
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">FEATURE</span>
+      <span class="version-title">D.26 — 結局判定器 + NPC 對大選擇的情緒回聲 + 衝突事件</span>
+      <span class="version-date">2026-04-18</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>結局判定器（8 結局）</strong> <span class="file-tag">ending.js</span>
+          — Day 100 獲勝後自動依 flags/屬性/特性判定結局：戰死 / 獨自登頂（告發）/ 冠軍（fame≥60）/
+          殘存者 / 同命兄弟（奧蘭並肩）/ 血色皇冠（殘忍+斬首≥3）/ 奇蹟殘局（屬性120+多旗標）。
+          wired 進 final_festival onWin。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>NPC 對大選擇的情緒回聲</strong> <span class="file-tag">npc_reactions.js</span>
+          — Day 5 三人試煉 / Day 60 偷藥 / Day 85 訣別後的隔日清晨，4-5 位 NPC 輪流上前表態。
+          DialogueModal 串接演出 + 好感變動 + 場面 log。
+          分 9 種情境劇本（sol_dead/sol_spared/betray/shared/intercede/silence/fight_beside/accepted/rejected）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>NPC 衝突與羈絆事件（6 個）</strong> <span class="file-tag">npc_conflicts.js</span>
+          — 選邊站型 ChoiceModal：赫克特霸凌奧蘭（Day 8+）/ 長官逼老默拒絕治療（Day 15+）/
+          卡西烏斯對赫克特挑釁（Day 20+）/ 梅拉塞偷塞食物被抓（Day 25+）/
+          奧蘭求你教訓赫克特（Day 35+）/ 長官在訓練場多打奧蘭（Day 40+）。
+          每日機率觸發，一次一個，含殘忍/鐵意志等特性專屬選項。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text"><strong>DayCycle 整合</strong> — NPCReactions 與 NPCConflicts 透過
+          `_pendingDialogues` 管線在晨起動畫後串播，不破壞黑幕節奏。衝突事件會讓位給反應事件
+          （同日不雙疊）。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
        2026-04-17 ~ 2026-04-18 大量更新
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">

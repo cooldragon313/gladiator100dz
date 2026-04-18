@@ -819,6 +819,10 @@ const Game = (() => {
         Stats.modMoney(reward);
         addLog(`侍從遞來一小袋銅幣。「大人說這是你的。」（+${reward}）`, '#c8a060', false);
         renderAll();
+        // Day 100 萬骸祭獲勝 → 進入結局判定器
+        if (ev.id === 'final_festival' && typeof Endings !== 'undefined' && typeof Endings.pickAndPlay === 'function') {
+          setTimeout(() => { Endings.pickAndPlay(true); }, 600);
+        }
       };
       const onLose = (ev.id === 'final_festival')
         ? () => { Endings.deathEnding(Stats.player.name); }   // Day 100 = 真死
@@ -5086,6 +5090,22 @@ const Game = (() => {
     if (count < WEAPON_TRAIN_THRESHOLD) return;
     _fireWeaponEvent('earned');
   }
+
+  // 🆕 NPC 對大選擇的情緒回聲（Day 6 試煉後 / 偷藥後 / 訣別後）
+  DayCycle.onDayStart('npcReactions', (newDay) => {
+    if (typeof NPCReactions === 'undefined') return;
+    const pending = NPCReactions.pickDaily(newDay);
+    if (pending) _pendingDialogues.push(pending);
+  }, 26);   // 在 solEvents(25) 之後，比 weaponSafetyNet(30) 之前
+
+  // 🆕 NPC 之間的對立與羈絆衝突事件（選邊站）
+  DayCycle.onDayStart('npcConflicts', (newDay) => {
+    if (typeof NPCConflicts === 'undefined') return;
+    // 若本日已經有反應事件排隊，就不再加衝突（避免一日太多過場）
+    if (_pendingDialogues.length > 0) return;
+    const pending = NPCConflicts.pickDaily(newDay);
+    if (pending) _pendingDialogues.push(pending);
+  }, 28);   // 在 npcReactions 之後
 
   // Day 4 安全網（路線 B）
   DayCycle.onDayStart('weaponSafetyNet', (newDay) => {

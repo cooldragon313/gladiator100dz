@@ -368,16 +368,288 @@ const Endings = (() => {
     }, 900);
   }
 
+  // ══════════════════════════════════════════════════
+  // 🆕 新增結局（5 種）
+  // ══════════════════════════════════════════════════
+
+  // 獨自登頂（告發奧蘭路線）
+  function loneVictor(playerName) {
+    _injectStyle();
+    const ov = _overlay('e-lone');
+    _particles(ov, 'blood', 15);
+    const vg = document.createElement('div'); vg.className = 'e-vignette';
+    ov.appendChild(vg);
+    const box = document.createElement('div'); box.className = 'e-box';
+    ov.appendChild(box);
+    _addTitle(box, '獨 自 登 頂', 600);
+
+    const lines = [
+      { text: '你贏了。' },
+      { cls: 'e-gap' },
+      { text: '觀眾的歡呼砸在你身上，但你沒聽見。' },
+      { text: '你的耳朵裡只有一個聲音——' },
+      { text: '第一夜黑暗中那隻伸出來的手。' },
+      { cls: 'e-gap' },
+      { text: '主人走過來，拍拍你的肩：「你讓我賺了很多錢。」' },
+      { text: `「<strong>${playerName}</strong>，我看好你。」`, cls: 'e-speech' },
+      { cls: 'e-gap' },
+      { text: '你笑了。你成為了一個成功的鬥士。' },
+      { text: '一個成功的——什麼？' },
+      { cls: 'e-gap' },
+      { text: '那天晚上，你獨自走回房間。', cls: 'e-hi' },
+      { text: '房間很安靜。' },
+      { text: '你從未像今天這樣，覺得自己贏了。' },
+      { text: '也從未像今天這樣，覺得自己什麼都沒有。' },
+    ];
+    const d = _revealLines(box, lines, 1200, 560);
+    _finishEnding(ov, box, '— 空 —', '#663344', d);
+  }
+
+  // 冠軍（高名聲，正面路線）
+  function championEnding(playerName) {
+    _injectStyle();
+    const ov = _overlay('e-champion');
+    _glow(ov, 'rgba(212,175,55,.3)');
+    _particles(ov, 'gold', 40);
+    const vg = document.createElement('div'); vg.className = 'e-vignette';
+    ov.appendChild(vg);
+    const box = document.createElement('div'); box.className = 'e-box';
+    ov.appendChild(box);
+    _addTitle(box, '萬骸祭・冠軍', 700);
+
+    const lines = [
+      { text: '最後一擊落下。沙地歸於寂靜。' },
+      { cls: 'e-gap' },
+      { text: '觀眾的聲音像潮水一樣湧過來。' },
+      { text: `他們在喊你的名字——<strong>${playerName}</strong>。`, cls: 'e-speech' },
+      { cls: 'e-gap' },
+      { text: '領主緩緩站起。他看著你的眼神不一樣了。' },
+      { text: '不是在看商品。是在看——一個人。' },
+      { cls: 'e-gap' },
+      { text: '「這個鬥士，」領主說，「從今天起，是自由人。」' },
+      { cls: 'e-gap' },
+      { text: '你站在沙地中央。', cls: 'e-hi' },
+      { text: '腳下不再是牢籠。' },
+      { text: '但你知道——你永遠是這座競技場的一部分。' },
+    ];
+    const d = _revealLines(box, lines, 1300, 560);
+    _finishEnding(ov, box, '— 榮 耀 —', '#d4af37', d);
+  }
+
+  // 殘存者（一般活下來）
+  function survivorPlain(playerName) {
+    _injectStyle();
+    const ov = _overlay('e-surv-plain');
+    _particles(ov, 'dust', 20);
+    const vg = document.createElement('div'); vg.className = 'e-vignette';
+    ov.appendChild(vg);
+    const box = document.createElement('div'); box.className = 'e-box';
+    ov.appendChild(box);
+    _addTitle(box, '殘 存 者', 600);
+
+    const lines = [
+      { text: '你贏了最後一場。' },
+      { text: '沒有歡呼。沒有獎賞。' },
+      { cls: 'e-gap' },
+      { text: '觀眾散了。沙地被僕人清理。' },
+      { text: '你被帶回牢房。明天——' },
+      { text: '還有下一場。' },
+      { cls: 'e-gap' },
+      { text: '你沒成為英雄。', cls: 'e-hi' },
+      { text: '沒拿到自由。' },
+      { text: '沒人會記得你。' },
+      { cls: 'e-gap' },
+      { text: '但你活著。' },
+      { text: `<strong>${playerName}</strong>，活著。` },
+      { text: '在這裡——這已經是勝利。' },
+    ];
+    const d = _revealLines(box, lines, 1200, 560);
+    _finishEnding(ov, box, '— 活 著 —', '#aa9060', d);
+  }
+
+  // 同命兄弟（奧蘭活，共同作戰路線）
+  function brotherhoodEnding(playerName) {
+    _injectStyle();
+    const ov = _overlay('e-brother');
+    _glow(ov, 'rgba(180,140,80,.25)');
+    _particles(ov, 'gold', 30);
+    const vg = document.createElement('div'); vg.className = 'e-vignette';
+    ov.appendChild(vg);
+    const box = document.createElement('div'); box.className = 'e-box';
+    ov.appendChild(box);
+    _addTitle(box, '同 命 兄 弟', 700);
+
+    const lines = [
+      { text: '你站在沙地中央。' },
+      { text: '旁邊——奧蘭也站著。' },
+      { text: '他瘸了一條腿。但他站著。' },
+      { cls: 'e-gap' },
+      { text: '你們並肩走了一百天。' },
+      { text: '今天，你們並肩走出這片沙地。' },
+      { cls: 'e-gap' },
+      { text: '奧蘭看著你，笑了——' },
+      { text: '眼睛先彎起來的那種笑。' },
+      { cls: 'e-gap' },
+      { speaker: '奧蘭', text: '我們……真的做到了。' },
+      { cls: 'e-gap' },
+      { text: '你沒說話。你只是拍了拍他的肩。', cls: 'e-hi' },
+      { text: '他的肩膀很瘦。但很穩。' },
+      { cls: 'e-gap' },
+      { text: '第一夜黑暗中那隻伸出來的手——' },
+      { text: '你沒有放開。' },
+      { text: '你永遠不會放開。' },
+    ];
+    const d = _revealLines(box, lines, 1400, 580);
+    _finishEnding(ov, box, '— 兄 弟 —', '#d9a84f', d);
+  }
+
+  // 血色皇冠（殘忍路線）
+  function bloodyCrown(playerName) {
+    _injectStyle();
+    const ov = _overlay('e-bloody');
+    _glow(ov, 'rgba(180,30,30,.35)');
+    _particles(ov, 'blood', 40);
+    const vg = document.createElement('div'); vg.className = 'e-vignette';
+    ov.appendChild(vg);
+    const box = document.createElement('div'); box.className = 'e-box';
+    ov.appendChild(box);
+    _addTitle(box, '血 色 皇 冠', 700);
+
+    const lines = [
+      { text: '最後一擊——你沒有停下。' },
+      { text: '對手已經跪下。你還是砍了下去。' },
+      { cls: 'e-gap' },
+      { text: '觀眾的歡呼帶著恐懼。' },
+      { text: `他們喊你的名字——<strong>${playerName}</strong>——但他們不敢看你的眼睛。`, cls: 'e-speech' },
+      { cls: 'e-gap' },
+      { text: '你贏得了冠軍。' },
+      { text: '你贏得了觀眾的尖叫。' },
+      { text: '你贏得了主人帳本上最高的數字。' },
+      { cls: 'e-gap' },
+      { text: '你走回房間。', cls: 'e-hi' },
+      { text: '鏡子裡那個人——你不認識。' },
+      { text: '但他跟你長得一模一樣。' },
+      { cls: 'e-gap' },
+      { text: '你曾經害怕成為那種人。' },
+      { text: '現在你是。' },
+    ];
+    const d = _revealLines(box, lines, 1300, 560);
+    _finishEnding(ov, box, '— 怪 物 —', '#8b0000', d);
+  }
+
+  // 奇蹟殘局（最難條件 — 兩人都活但奧蘭殘廢）
+  function miracleEnding(playerName) {
+    _injectStyle();
+    const ov = _overlay('e-miracle');
+    _glow(ov, 'rgba(232,216,176,.35)');
+    _particles(ov, 'gold', 60);
+    const vg = document.createElement('div'); vg.className = 'e-vignette';
+    ov.appendChild(vg);
+    const box = document.createElement('div'); box.className = 'e-box';
+    ov.appendChild(box);
+    _addTitle(box, '奇 蹟', 800);
+
+    const lines = [
+      { text: '全場安靜了一瞬——' },
+      { text: '然後爆發出沒有人聽過的歡呼。' },
+      { cls: 'e-gap' },
+      { text: '你贏了決賽。獨自一人。' },
+      { text: '帶著奧蘭的期望、索爾的乾肉、老默的藥草——' },
+      { text: '所有幫過你的人，都在這一刻跟你一起站在沙地上。' },
+      { cls: 'e-gap' },
+      { text: '領主站起來，沉默很久才開口。' },
+      { text: '「一百天前，你是一筆投資。」' },
+      { text: '「今天——你是傳說。」', cls: 'e-speech' },
+      { cls: 'e-gap' },
+      { text: '兩個自由身的憑證。' },
+      { text: '你拿了一個。然後走到場邊。' },
+      { text: '奧蘭拄著拐杖，眼眶紅了。' },
+      { cls: 'e-gap' },
+      { speaker: '奧蘭', text: '……你瘋了。' },
+      { text: '你把另一個憑證塞進他手裡。', cls: 'e-hi' },
+      { cls: 'e-gap' },
+      { text: `「<strong>${playerName}</strong>，」奧蘭說，「你妹妹……」`, cls: 'e-speech' },
+      { text: `「我們一起去看她。」`, cls: 'e-speech' },
+    ];
+    const d = _revealLines(box, lines, 1500, 600);
+    _finishEnding(ov, box, '— 自 由 —', '#e8d070', d);
+  }
+
+  // 共用結尾按鈕
+  function _finishEnding(ov, box, finalText, color, delayMs) {
+    const fin = document.createElement('div');
+    fin.className = 'e-line e-big';
+    fin.style.color = color;
+    fin.style.letterSpacing = '.45em';
+    fin.textContent = finalText;
+    box.appendChild(fin);
+    setTimeout(() => fin.classList.add('e-show'), delayMs + 300);
+
+    _addButton(box, '重新開始', delayMs + 1600, () => {
+      ov.style.opacity = 0;
+      setTimeout(() => { ov.remove(); location.reload(); }, 800);
+    });
+  }
+
+  // ══════════════════════════════════════════════════
+  // 🆕 結局判定器：讀玩家 flag/狀態，決定播哪個結局
+  // ══════════════════════════════════════════════════
+  function pickAndPlay(survived) {
+    const p = (typeof Stats !== 'undefined') ? Stats.player : null;
+    const name = p?.name || '無名';
+    if (!survived) { deathEnding(name); return; }
+    if (typeof Flags === 'undefined') { survivorEnding(name); return; }
+
+    // 告發奧蘭 → 獨自登頂
+    if (Flags.has('betrayed_olan')) { loneVictor(name); return; }
+
+    // 奇蹟殘局：共同作戰 + 極高屬性 + 多條件
+    if (Flags.has('orlan_will_fight_beside') && !Flags.has('orlan_dead')) {
+      const totalStats = (p.STR||0) + (p.DEX||0) + (p.CON||0) + (p.AGI||0) + (p.WIL||0);
+      const isMiracle = totalStats >= 120
+                     && Flags.has('shared_olans_punishment')
+                     && Flags.has('olan_sister_truth_known');
+      if (isMiracle) { miracleEnding(name); return; }
+      brotherhoodEnding(name); return;
+    }
+
+    // 血色皇冠：殘忍特性 + 多次斬首
+    const executions = p.combatStats?.executionCount || 0;
+    if ((p.traits || []).includes('cruel') && executions >= 3) {
+      bloodyCrown(name); return;
+    }
+
+    // 冠軍：高名聲
+    if ((p.fame || 0) >= 60) { championEnding(name); return; }
+
+    // 殘存者：一般活下來
+    survivorPlain(name);
+  }
+
   // ── Public API ────────────────────────────────────────
   /**
-   * Test from console: Endings.test('survivor') / Endings.test('death')
+   * Test from console: Endings.test('survivor') 等
    */
   function test(endingId) {
     const name = (typeof Stats !== 'undefined') ? Stats.player.name : '無名英雄';
-    if (endingId === 'survivor') survivorEnding(name);
-    else if (endingId === 'death')   deathEnding(name);
-    else console.log('[Endings] test("survivor") 或 test("death")');
+    const map = {
+      survivor:    () => survivorEnding(name),
+      death:       () => deathEnding(name),
+      lone:        () => loneVictor(name),
+      champion:    () => championEnding(name),
+      plain:       () => survivorPlain(name),
+      brotherhood: () => brotherhoodEnding(name),
+      bloody:      () => bloodyCrown(name),
+      miracle:     () => miracleEnding(name),
+    };
+    if (map[endingId]) map[endingId]();
+    else console.log('[Endings] test():', Object.keys(map).join(' / '));
   }
 
-  return { survivorEnding, deathEnding, test };
+  return {
+    survivorEnding, deathEnding,
+    loneVictor, championEnding, survivorPlain, brotherhoodEnding, bloodyCrown, miracleEnding,
+    pickAndPlay,   // 🆕 主要入口
+    test,
+  };
 })();
