@@ -4750,7 +4750,7 @@ const Game = (() => {
       { text: '鐵鏈把你拖進一間石牆的房間。', delay: 1500 },
       { text: '地上有半顆爛蘋果和一碗髒水。', delay: 1200 },
       { text: '', delay: 600 },
-      { text: '有人把你推了一下。你摔在地上。', delay: 1200 },
+      { text: '有人把你推了一下。你重摔在地上。', delay: 1200 },
       { text: '', delay: 800 },
       { text: '「吃了。睡了。明天開始訓練。」', delay: 1500, color: '#aa9060', italic: false },
       { text: '', delay: 600 },
@@ -4759,7 +4759,7 @@ const Game = (() => {
       { text: '', delay: 800 },
       { text: '你不知道這是哪裡。', delay: 1200 },
       { text: '你只知道——', delay: 800 },
-      { text: '從今天起，你不再是自由的人。', delay: 2000, color: '#c8a060' },
+      { text: '這裡的日子，絕對不會好過。', delay: 2000, color: '#c8a060' },
     ];
 
     let skipRequested = false;
