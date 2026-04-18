@@ -855,6 +855,9 @@ const Game = (() => {
         SaveSystem.saveToSlot('backup', payload);
       }
 
+      // 🆕 D.28：戰前武器安全網——若沒裝備但身上有武器 → 自動裝備
+      _ensureWeaponBeforeBattle();
+
       if (preBattleLines.length > 0 && typeof DialogueModal !== 'undefined') {
         DialogueModal.play(preBattleLines, {
           onComplete: () => { Battle.start(ev.opponent, onWin, onLose); },
@@ -864,6 +867,26 @@ const Game = (() => {
       }
     };
     stageCenter.appendChild(btn);
+  }
+
+  // 🆕 D.28：戰前安全網
+  //   - 沒裝備武器但 inventory 有 → 自動裝備第一把
+  //   - 什麼都沒有 → 維持空手（但 fists 基礎傷害已加強，不會完全打不贏）
+  function _ensureWeaponBeforeBattle() {
+    const p = Stats.player;
+    if (!p) return;
+    if (p.equippedWeapon) return;
+    const inv = Array.isArray(p.weaponInventory) ? p.weaponInventory : [];
+    if (inv.length > 0) {
+      const first = inv[0];
+      const wId = (typeof first === 'string') ? first : first?.id;
+      if (wId) {
+        p.equippedWeapon = wId;
+        addLog(`你從身上撿起${(typeof Weapons !== 'undefined' && Weapons[wId]?.name) || '武器'}握在手裡。`, '#c8a060', true);
+      }
+    } else {
+      addLog('你沒有武器。只能赤手空拳上場。', '#cc7733', true, true);
+    }
   }
 
   // 🆕 D.22c：根據 timeline event 產生戰前對話
@@ -3729,6 +3752,8 @@ const Game = (() => {
           addLog(`✦ ${attr} 升級！(消耗 ${cost} EXP)  ${attr} → ${Stats.player[attr]}`, '#e8d070', true);
           _fillCharSheet();
           if (typeof Stats.renderAll === 'function') Stats.renderAll();
+          // 🆕 D.28：同步更新右上角「詳細」按鈕的升級徽章
+          _updateDetailReadyBadge();
         } else {
           showToast('EXP 不足');
         }

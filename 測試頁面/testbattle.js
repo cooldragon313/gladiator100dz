@@ -33,8 +33,10 @@ const TBC = {
 // ═══════════════════════════════════════════════════════
 const TB_WEAPONS = {
   // ── 空手 ──────────────────────────────────────────────
+  // 🆕 D.28：空手不再 0 攻擊。基礎拳腳能造成傷害，但遠不如武器。
+  //         讓沒武器的初期戰鬥不會完全打不贏。
   fists:      { name:'空手',   type:'unarmed', route:'rage',  twoHanded:false,
-                ATK:0,  ACC:0,  CRT:0,  CDMG:0,  SPD:0,   PEN:0,
+                ATK:4,  ACC:5,  CRT:3,  CDMG:8,  SPD:5,   PEN:0,
                 swingTime:1,  hitParts:['身體'],           special:'none' },
 
   // ── 單手武器 ──────────────────────────────────────────
