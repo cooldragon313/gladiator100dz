@@ -2672,6 +2672,25 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 }
 .action-btn:hover:not([disabled]) .action-name { color: #e8c090; }
 
+/* 🆕 D.26：訓練屬性徽章（左側彩色小標籤） */
+.attr-badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  padding: 2px 7px;
+  border-radius: 3px;
+  margin-right: 7px;
+  vertical-align: middle;
+  border: 1px solid;
+}
+.attr-badge.attr-STR { color: #ff8888; background: #3a1010; border-color: #662020; }
+.attr-badge.attr-AGI { color: #88e088; background: #103a10; border-color: #206620; }
+.attr-badge.attr-CON { color: #e8a860; background: #3a2010; border-color: #664020; }
+.attr-badge.attr-WIL { color: #c890e8; background: #2a1a3a; border-color: #4a306a; }
+.attr-badge.attr-DEX { color: #88c0e8; background: #10283a; border-color: #20406a; }
+.attr-badge.attr-MOOD { color: #ffc870; background: #2a1a08; border-color: #5a3a10; }
+
 /* 🆕 受傷風險警告燈 */
 .injury-warn {
   font-size: 14px;

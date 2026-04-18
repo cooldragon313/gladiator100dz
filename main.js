@@ -1252,6 +1252,29 @@ const Game = (() => {
     return null;
   }
 
+  // 🆕 D.26：訓練屬性徽章（左側彩色標籤）
+  const _ATTR_BADGE_LABEL = {
+    STR: '力量',
+    AGI: '敏捷',
+    CON: '體質',
+    WIL: '意志',
+    DEX: '靈巧',
+  };
+  function _getAttrBadgeHtml(act) {
+    // 優先：有屬性訓練 → 顯示屬性徽章
+    const attrKey = _getTrainedAttrKey(act);
+    if (attrKey && _ATTR_BADGE_LABEL[attrKey]) {
+      return `<span class="attr-badge attr-${attrKey}">${_ATTR_BADGE_LABEL[attrKey]}</span>`;
+    }
+    // 其次：純心情/休息類動作 → 顯示心情徽章
+    const effs = act && act.effects;
+    if (Array.isArray(effs)) {
+      const moodEff = effs.find(e => e.type === 'vital' && e.key === 'mood' && e.delta > 0);
+      if (moodEff) return `<span class="attr-badge attr-MOOD">心情</span>`;
+    }
+    return '';
+  }
+
   /**
    * 訓練所加成倍率（預留接口，Phase 2 S2 實作）。
    * 未來會從 FACILITIES[id].trainingBonus 讀取。
@@ -1982,8 +2005,11 @@ const Game = (() => {
       const warnStr  = reason ? ` · <span style="color:#cc4444;font-size:13px;">${reason}</span>` : '';
       const clickStr = disabled ? '' : `onclick="Game.doAction('${act.id}')"`;
 
+      // 🆕 D.26：訓練屬性徽章（左側彩色標籤）
+      const badgeHtml = _getAttrBadgeHtml(act);
+
       html += `<button class="action-btn" ${disabled ? 'disabled' : clickStr}>
-        <div class="action-name">${act.name}${injuryHint}</div>
+        <div class="action-name">${badgeHtml}${act.name}${injuryHint}</div>
         <div class="action-cost">${costStr}${warnStr}</div>
       </button>`;
     });
