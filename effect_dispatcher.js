@@ -53,8 +53,70 @@ const Effects = (() => {
    */
   function apply(list, ctx = {}) {
     if (!Array.isArray(list)) return;
+    // 🆕 D.28：自動獎勵總結（除非 ctx.silent = true）
+    //   每個 effect 會把自己的效果 push 到 _summary 陣列，套完後集中 addLog 一行。
+    //   讓玩家在 log 看到「我選了這個得到/失去什麼」。
+    const summary = [];
+    ctx._summary = summary;
     for (const eff of list) {
       applyOne(eff, ctx);
+    }
+    if (!ctx.silent && summary.length > 0 && typeof addLog === 'function') {
+      addLog(`　（${summary.join(' · ')}）`, '#887766', false, false);
+    }
+    delete ctx._summary;
+  }
+
+  // 🆕 D.28：把 effect 翻譯成人話加進 summary
+  //   vitals 用 emoji + 數字；affection 用箭頭（不秀數字）；fame/money/exp 秀數字
+  function _addSummary(ctx, eff, delta) {
+    if (!ctx || !Array.isArray(ctx._summary)) return;
+    const s = ctx._summary;
+    const vitalIcon = { hp:'❤️', stamina:'⚡', food:'🍖', mood:'💭' };
+    switch (eff.type) {
+      case 'vital':
+        if (vitalIcon[eff.key] && typeof delta === 'number' && delta !== 0) {
+          s.push(`${vitalIcon[eff.key]}${delta > 0 ? '+' : ''}${delta}`);
+        }
+        break;
+      case 'fame':
+        if (typeof delta === 'number' && delta !== 0) {
+          s.push(`名聲${delta > 0 ? '+' : ''}${delta}`);
+        }
+        break;
+      case 'money':
+        if (typeof delta === 'number' && delta !== 0) {
+          s.push(`💰${delta > 0 ? '+' : ''}${delta}`);
+        }
+        break;
+      case 'exp':
+        if (typeof delta === 'number' && delta > 0) {
+          s.push(`${eff.key} EXP+${Math.round(delta)}`);
+        }
+        break;
+      case 'attr':
+        if (typeof delta === 'number' && delta > 0) {
+          s.push(`${eff.key}+${delta}`);
+        }
+        break;
+      case 'sp':
+        if (typeof delta === 'number' && delta !== 0) {
+          s.push(`SP${delta > 0 ? '+' : ''}${delta}`);
+        }
+        break;
+      case 'affection': {
+        const npc = (typeof teammates !== 'undefined') ? teammates.getNPC(eff.key) : null;
+        const name = npc?.name || eff.key;
+        if (typeof delta === 'number' && delta > 0) s.push(`${name} 好感↑`);
+        else if (typeof delta === 'number' && delta < 0) s.push(`${name} 好感↓`);
+        break;
+      }
+      case 'affection_all_present':
+        if (typeof delta === 'number' && delta > 0) s.push('場上所有人好感↑');
+        else if (typeof delta === 'number' && delta < 0) s.push('場上所有人好感↓');
+        break;
+      // moral: 不加到 summary（只有獲得/失去特性時才另外 log）
+      // flag/item/scar 等：不加到 summary
     }
   }
 
@@ -108,27 +170,33 @@ const Effects = (() => {
       // ── 核心：體力/屬性/名聲 ───────────────────────
       case 'vital':
         Stats.modVital(eff.key, delta);
+        _addSummary(ctx, eff, delta);
         break;
 
       case 'attr':
         Stats.modAttr(eff.key, delta);
+        _addSummary(ctx, eff, delta);
         break;
 
       case 'fame':
         Stats.modFame(delta);
+        _addSummary(ctx, eff, delta);
         break;
 
       // ── 經濟 / 經驗 ─────────────────────────────
       case 'money':
         Stats.modMoney(delta);
+        _addSummary(ctx, eff, delta);
         break;
 
       case 'exp':
         Stats.modExp(eff.key, delta);
+        _addSummary(ctx, eff, delta);
         break;
 
       case 'sp':
         Stats.modSp(delta);
+        _addSummary(ctx, eff, delta);
         break;
 
       // ── 好感（單一 NPC） ────────────────────────
@@ -136,6 +204,7 @@ const Effects = (() => {
         if (typeof teammates !== 'undefined') {
           teammates.modAffection(eff.key, delta);
         }
+        _addSummary(ctx, eff, delta);
         break;
 
       // ── 好感（當前場地所有 NPC） ─────────────────
@@ -147,6 +216,7 @@ const Effects = (() => {
           ];
           allIds.forEach(id => teammates.modAffection(id, delta));
         }
+        _addSummary(ctx, eff, delta);
         break;
 
       // ── 🆕 D.19 道德累積（滑動窗口）──────────────

@@ -429,9 +429,7 @@ const MelaRatQuest = (() => {
     // 慰問獎：percent% 的完整獎勵（完整是 20 食物 + 10 好感）
     const food = Math.max(1, Math.round(20 * percent / 100));
     const aff  = Math.max(1, Math.round(10 * percent / 100));
-    Stats.modVital('food', food);
-    if (typeof teammates !== 'undefined') teammates.modAffection('melaKook', aff);
-    // 🆕 加敘述 log 讓玩家知道有獎勵（避免「選了什麼都沒感覺」）
+    // 🆕 敘述 log 先秀（讓玩家知道發生了什麼）
     if (typeof addLog === 'function') {
       let line;
       if (percent <= 10) {
@@ -442,6 +440,16 @@ const MelaRatQuest = (() => {
         line = '（梅拉塞把一份完整的食物端給你。）「你差一點就成了——算你有心。」';
       }
       addLog(line, '#c8a060', false, true);
+    }
+    // 🆕 透過 Effects.apply 套用 + 自動 log 獎勵總結
+    if (typeof Effects !== 'undefined') {
+      Effects.apply([
+        { type:'vital', key:'food', delta: food },
+        { type:'affection', key:'melaKook', delta: aff },
+      ]);
+    } else {
+      Stats.modVital('food', food);
+      if (typeof teammates !== 'undefined') teammates.modAffection('melaKook', aff);
     }
   }
 

@@ -5151,19 +5151,23 @@ const Game = (() => {
       DialogueModal.play(lines, { onComplete: resolve });
     });
 
-    // 套用特性互動效果
-    if (typeof teammates !== 'undefined') {
-      if (hasCruel) {
-        teammates.modAffection('dagiSlave', -20);
-        teammates.modAffection('orlan',    -15);
-        Flags.set('day1_kicked_dagi', true);
-      } else if (hasKindness) {
-        teammates.modAffection('dagiSlave', +15);
-        teammates.modAffection('orlan',    +10);
-        Flags.set('day1_helped_dagi', true);
-      } else {
-        teammates.modAffection('dagiSlave', -3);
-      }
+    // 🆕 D.28：套用特性互動效果（透過 Effects.apply 自動 log）
+    if (hasCruel) {
+      Effects.apply([
+        { type:'affection', key:'dagiSlave', delta:-20 },
+        { type:'affection', key:'orlan',     delta:-15 },
+        { type:'flag', key:'day1_kicked_dagi' },
+      ]);
+    } else if (hasKindness) {
+      Effects.apply([
+        { type:'affection', key:'dagiSlave', delta:+15 },
+        { type:'affection', key:'orlan',     delta:+10 },
+        { type:'flag', key:'day1_helped_dagi' },
+      ]);
+    } else if (typeof teammates !== 'undefined') {
+      Effects.apply([
+        { type:'affection', key:'dagiSlave', delta:-3 },
+      ]);
     }
 
     // ── 場景 4：走向訓練場（感官 + 器材細節）──
@@ -5320,9 +5324,11 @@ const Game = (() => {
           { text: '（他沒等你回應就走了。）' },
         ], { onComplete: resolve });
       });
-      if (typeof teammates !== 'undefined') teammates.modAffection('orlan', -5);
-      Flags.set('orlan_day1_wary', true);
-      Flags.set('orlan_initial_met', true);
+      Effects.apply([
+        { type:'affection', key:'orlan', delta:-5 },
+        { type:'flag', key:'orlan_day1_wary' },
+        { type:'flag', key:'orlan_initial_met' },
+      ]);
       return;
     }
 
