@@ -207,6 +207,57 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       2026-04-18 抓老鼠夜間任務（第一個 night-event 範本）
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">FEATURE</span>
+      <span class="version-title">D.28 — 抓老鼠任務（多階段夜間任務範本）</span>
+      <span class="version-date">2026-04-18</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>梅拉塞的抓老鼠任務</strong> <span class="file-tag">quests/mela_rat_quest.js</span>
+          — 第一個「多階段夜間任務」。白天梅拉接近（好感 ≥ 25 + 練過 AGI/DEX/WIL 各 1 次）→
+          ChoiceModal 接受/拒絕 → Slot 7（20-22h）觸發三段判定：
+          <code>WIL ≥ 15</code>（等待）→ <code>AGI ≥ 18</code>（追捕）→ <code>DEX ≥ 18</code>（擒拿）。
+          失敗分層獎勵（5% / 30% / 60%），全通過 + 放生/殺/養三選一（含反差對白）。
+          9 種特性變化對白（cruel/prideful/kindness/merciful/humble/coward/neurotic/iron_will + baseline）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text"><strong>夜間事件窗口（Slot 7）</strong> <span class="file-tag">main.js</span>
+          — 20:00-22:00 不再只是空轉休息。檢查 <code>MelaRatQuest.hasPending()</code>
+          有待辦任務就播放，沒有才走原本的靠牆恢復。未來所有夜間任務都走這個管線。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text"><strong>4 份設計文件</strong> <span class="file-tag">docs/</span>
+          — <code>philosophy/numbers-hiding.md</code>（全遊戲零數字哲學）、
+          <code>systems/night-events.md</code>（20-22h 窗口規則）、
+          <code>systems/multi-check-quest.md</code>（多屬性判定模式）、
+          <code>systems/traits.md</code>（特性系統 + 強度 ≥ 2 規則）、
+          <code>quests/mela-rat.md</code>（本任務設計書）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text"><strong>8 個 NPC 角色檔</strong> <span class="file-tag">docs/characters/</span>
+          — orlan / melaKook / cassius / hector / doctorMo / officer / masterArtus / sol
+          各 150~250 行。每個檔含愛憎表、對話風格、特性反應、招牌動作、程式碼指標。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">FIX</span>
+        <span class="change-text"><strong>舊版 _tryMouseQuest 保留為 fallback</strong> — 未載入新模組時才跑。
+          未來確認穩定後可移除。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
        2026-04-18 對話型教學 + 屬性升級提醒
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">

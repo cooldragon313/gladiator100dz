@@ -1499,12 +1499,18 @@ const Game = (() => {
   }
 
   // ══════════════════════════════════════════════════
-  // 🆕 梅拉抓老鼠任務鏈（3 次互動 → 寵物「小灰」）
-  //   第 1 次：抓到老鼠 → 殺掉 or 饒了
-  //   第 2 次（幾天後）：同一隻又出現 → 餵牠（food -5）
-  //   第 3 次：牠自己跑來 → 餵牠 → 牠留下了（成為寵物）
+  // 🆕 D.28：梅拉抓老鼠任務已移至 quests/mela_rat_quest.js
+  //   白天由 _tryMouseQuest() 呼叫 MelaRatQuest.tryOffer()
+  //   夜晚由 _resolveNonTrainingSlots() 檢查 MelaRatQuest.hasPending() 播放
+  //   舊三階段實作保留為 fallback（未載入新模組時啟用）
   // ══════════════════════════════════════════════════
   function _tryMouseQuest() {
+    if (typeof MelaRatQuest !== 'undefined' && typeof MelaRatQuest.tryOffer === 'function') {
+      // 新系統：交給 quest 模組
+      MelaRatQuest.tryOffer();
+      return;
+    }
+    // ── fallback（舊版實作，新模組沒載入才跑）─────────
     const p = Stats.player;
     if (typeof teammates === 'undefined') return;
     const melaPresent = [...(currentNPCs.audience || [])].includes('melaKook');
@@ -2042,16 +2048,22 @@ const Game = (() => {
         const mealType = idx === 0 ? 'breakfast' : idx === 3 ? 'lunch' : 'dinner';
         _triggerMealEvent(mealType);
       } else if (type === 'rest') {
-        // Phase 1-E 會改為事件；目前保留安靜恢復
-        addLog('【傍晚】訓練結束，你靠在牆邊喘了口氣。', '#8899aa', true);
-        Stats.modVital('stamina', daily.REST_STAMINA_GAIN);
-        Stats.modVital('mood',    daily.REST_MOOD_GAIN);
-        // 失眠症：rest 時段額外被動消耗
-        if (p.ailments?.includes('insomnia_disorder')) {
-          const passive = Config.AILMENT_DEFS.insomnia_disorder.passiveOnRest;
-          if (passive) {
-            Stats.modVital('stamina', passive.stamina || 0);
-            Stats.modVital('mood',    passive.mood    || 0);
+        // 🆕 D.28：夜間事件窗口 — 如果有接受過的夜間任務，優先播
+        if (typeof MelaRatQuest !== 'undefined' && MelaRatQuest.hasPending && MelaRatQuest.hasPending()) {
+          MelaRatQuest.playTonight();
+          // 任務開始後 advance time 照常，任務內部會處理 flag
+        } else {
+          // 沒任務 → 走原本的靠牆恢復
+          addLog('【傍晚】訓練結束，你靠在牆邊喘了口氣。', '#8899aa', true);
+          Stats.modVital('stamina', daily.REST_STAMINA_GAIN);
+          Stats.modVital('mood',    daily.REST_MOOD_GAIN);
+          // 失眠症：rest 時段額外被動消耗
+          if (p.ailments?.includes('insomnia_disorder')) {
+            const passive = Config.AILMENT_DEFS.insomnia_disorder.passiveOnRest;
+            if (passive) {
+              Stats.modVital('stamina', passive.stamina || 0);
+              Stats.modVital('mood',    passive.mood    || 0);
+            }
           }
         }
       }

@@ -173,6 +173,7 @@
 | **背景角鬥士** | background_gladiators.js | `BackgroundGladiators.rollDaily(day, weight)` | 碎念 + 八卦 + 協力 |
 | **奧蘭事件** | orlan_events.js | `OrlanEvents.tryDeathSave()` | Day 30/60/85 脊椎事件 + 生死援手 |
 | **醫生事件** | doctor_events.js | `DoctorEvents.tryVisit()` | 自動觸發，差異化治療 |
+| **抓老鼠任務** | quests/mela_rat_quest.js | `MelaRatQuest.tryOffer()` / `playTonight()` | 🆕 D.28：白天接、晚上做、3 段判定 |
 | **NPC 反應（情緒回聲）** | npc_reactions.js | `NPCReactions.pickDaily(day)` | Day 5/60/85 大選擇後隔日清晨 NPC 輪流表態 |
 | **NPC 衝突事件** | npc_conflicts.js | `NPCConflicts.pickDaily(day)` | 6 個選邊站事件（赫克特/奧蘭/長官/老默/梅拉） |
 | **結局判定器** | ending.js | `Endings.pickAndPlay(survived)` | 8 種結局：依 flags/屬性/特性自動判定 |
