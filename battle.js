@@ -197,12 +197,34 @@ const Battle = (() => {
   // ══════════════════════════════════════════════════════
   function _showOverlay() {
     const ov = document.getElementById('battle-overlay');
-    if (ov) ov.style.display = 'flex';
+    if (ov) ov.style.display = 'grid';   // 🆕 D.28 v2：grid 取代 flex
+    _startBattleTimer();
   }
 
   function _hideOverlay() {
     const ov = document.getElementById('battle-overlay');
     if (ov) ov.style.display = 'none';
+    _stopBattleTimer();
+  }
+
+  // 🆕 D.28：戰鬥計時器（顯示在中央欄最上方）
+  let _timerStart = 0;
+  let _timerInterval = null;
+  function _startBattleTimer() {
+    _timerStart = Date.now();
+    if (_timerInterval) clearInterval(_timerInterval);
+    _timerInterval = setInterval(() => {
+      const el = document.getElementById('bt-timer');
+      if (!el) return;
+      const elapsed = Math.floor((Date.now() - _timerStart) / 1000);
+      const mm = String(Math.floor(elapsed / 60)).padStart(2, '0');
+      const ss = String(elapsed % 60).padStart(2, '0');
+      el.textContent = `戰鬥時間 ${mm}:${ss}`;
+    }, 500);
+  }
+  function _stopBattleTimer() {
+    if (_timerInterval) clearInterval(_timerInterval);
+    _timerInterval = null;
   }
 
   // 🆕 D.28：攻擊動畫（攻擊方撲向被攻擊方 + 被攻擊方震動）
@@ -241,6 +263,152 @@ const Battle = (() => {
     const rd = document.getElementById('bt-round');
     if (rd) rd.textContent = '— 戰鬥開始 —';
     _fillEnemyInfo();
+    _fillBattleV2UI();
+  }
+
+  // 🆕 D.28 Step 2：填 v2 左右欄屬性 + slot 名字 + 觀眾區
+  function _fillBattleV2UI() {
+    _fillAttrColumn('l', _player, 'player');
+    _fillAttrColumn('r', _enemy,  'enemy');
+    _fillSlotDisplay('player', _player);
+    _fillSlotDisplay('enemy',  _enemy);
+    _fillAudience();
+    _updateMoodFaces();
+  }
+
+  function _fillAttrColumn(side, unit, kind) {
+    if (!unit) return;
+    const prefix = 'bt-' + side;
+    // Name / title
+    _setTxt('bt-' + (side === 'l' ? 'lname' : 'rname'), unit.name || '—');
+    const def = (kind === 'enemy') ? (TB_ENEMIES[_enemy.id] || {}) : {};
+    _setTxt('bt-' + (side === 'l' ? 'ltitle' : 'rtitle'),
+            kind === 'enemy' ? (def.title || unit.title || '') : '角鬥士');
+
+    // Stats
+    const statsEl = document.getElementById(prefix + '-stats');
+    if (statsEl) {
+      const keys = ['STR','DEX','CON','AGI','WIL','LUK'];
+      statsEl.innerHTML = keys.map(k =>
+        `<span class="k">${k}</span><span class="v">${unit[k] || 0}</span>`
+      ).join('');
+    }
+
+    // Derived
+    const d = unit.derived || {};
+    const drvEl = document.getElementById(prefix + '-derived');
+    if (drvEl) {
+      const rc = ROUTE_CFG[d.route] || { color:'#888', label:'?', icon:'?' };
+      drvEl.innerHTML =
+        `<span class="k">ATK</span><span class="v">${d.ATK || 0}</span>` +
+        `<span class="k">DEF</span><span class="v">${d.DEF || 0}</span>` +
+        `<span class="k">SPD</span><span class="v">${d.SPD || 0}</span>` +
+        `<span class="k">ACC</span><span class="v">${d.ACC || 0}%</span>` +
+        `<span class="k">CRT</span><span class="v">${d.CRT || 0}%</span>` +
+        `<span class="k">EVA</span><span class="v">${d.EVA || 0}%</span>` +
+        `<span class="k">路線</span><span class="v" style="color:${rc.color}">${rc.label}</span>`;
+    }
+
+    // Equipment
+    const w  = TB_WEAPONS[unit.weaponId] || {};
+    const ar = TB_ARMORS[unit.armorId]   || {};
+    const sh = TB_SHIELDS[unit.shieldId] || {};
+    const eqEl = document.getElementById(prefix + '-equip');
+    if (eqEl) {
+      eqEl.innerHTML =
+        `<span class="k">武器</span><span class="v">${w.name || '—'}</span>` +
+        `<span class="k">護甲</span><span class="v">${ar.name || '—'}</span>` +
+        `<span class="k">盾</span><span class="v">${sh.name || '無'}</span>`;
+    }
+
+    // Traits（戰鬥相關 + 敵方的 passive/special）
+    const trEl = document.getElementById(prefix + '-traits');
+    if (trEl) {
+      if (kind === 'enemy') {
+        const lines = [];
+        if (def.passiveDesc) lines.push(`<div>【被動】${def.passiveDesc}</div>`);
+        if (def.specialDesc) lines.push(`<div>【特技】${def.specialDesc}</div>`);
+        if (def.weakPoint)   lines.push(`<div style="color:#6699aa">【弱點】${def.weakPoint}</div>`);
+        trEl.innerHTML = lines.join('') || '<div style="color:#887766">無</div>';
+      } else {
+        const p = Stats.player;
+        const traits = Array.isArray(p?.traits) ? p.traits : [];
+        if (traits.length === 0) {
+          trEl.innerHTML = '<div style="color:#887766">無</div>';
+        } else {
+          trEl.innerHTML = traits.map(t => {
+            const td = (typeof Config !== 'undefined' && Config.TRAIT_DEFS) ? Config.TRAIT_DEFS[t] : null;
+            const name = td?.name || t;
+            return `<div>${name}</div>`;
+          }).join('');
+        }
+      }
+    }
+  }
+
+  function _fillSlotDisplay(side, unit) {
+    // 更新 slot 內部的名字（玩家／敵人）
+    const nameId = side === 'player' ? 'bt-pname' : 'bt-ename';
+    _setTxt(nameId, unit?.name || '—');
+  }
+
+  function _fillAudience() {
+    const el = document.getElementById('bt-audience');
+    if (!el) return;
+    // 顯示主人 / 長官 / 侍從（如果有在場）
+    const watchers = ['masterArtus', 'officer', 'masterServant', 'overseer'];
+    const names = {
+      masterArtus: '阿圖斯',
+      officer: '塔倫',
+      masterServant: '侍從',
+      overseer: '監督官',
+    };
+    const present = watchers.filter(id => {
+      const npc = (typeof teammates !== 'undefined' && teammates.getNPC) ? teammates.getNPC(id) : null;
+      return npc && npc.alive !== false;
+    });
+    if (present.length === 0) {
+      el.innerHTML = '<span class="bt-aud-item" style="opacity:0.4">（場邊無人）</span>';
+      return;
+    }
+    el.innerHTML = present.map(id =>
+      `<span class="bt-aud-item">👤 ${names[id] || id}</span>`
+    ).join('');
+  }
+
+  // 根據 HP 百分比 + 心情更新臉色（純視覺，不影響數值）
+  function _updateMoodFaces() {
+    const playerFaceIds = ['bt-face-player', 'bt-pface'];
+    const enemyFaceIds  = ['bt-face-enemy',  'bt-eface'];
+    const playerHpPct = _player ? (_player.hp / _player._hpMax) : 1;
+    const enemyHpPct  = _enemy  ? (_enemy.hp  / _enemy._hpMax)  : 1;
+    const playerMood  = (typeof Stats !== 'undefined') ? (Stats.player?.mood || 50) : 50;
+
+    // 玩家：hp < 30% → 紫，hp < 60% 或 mood < 30 → 藍，else 綠
+    let pFace = '💚', pCls = 'bt-face-green';
+    if (playerHpPct < 0.30) { pFace = '🟣'; pCls = 'bt-face-purple'; }
+    else if (playerHpPct < 0.60 || playerMood < 30) { pFace = '🔵'; pCls = 'bt-face-blue'; }
+
+    playerFaceIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = pFace;
+      el.classList.remove('bt-face-green', 'bt-face-blue', 'bt-face-purple');
+      el.classList.add(pCls);
+    });
+
+    // 敵人：hp < 30% → 紫，hp < 60% → 藍，else 綠
+    let eFace = '💚', eCls = 'bt-face-green';
+    if (enemyHpPct < 0.30) { eFace = '🟣'; eCls = 'bt-face-purple'; }
+    else if (enemyHpPct < 0.60) { eFace = '🔵'; eCls = 'bt-face-blue'; }
+
+    enemyFaceIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = eFace;
+      el.classList.remove('bt-face-green', 'bt-face-blue', 'bt-face-purple');
+      el.classList.add(eCls);
+    });
   }
 
   function _fillEnemyInfo() {
@@ -962,6 +1130,9 @@ const Battle = (() => {
 
   function _updateCombatantUI() {
     if (!_player || !_enemy) return;
+
+    // 🆕 D.28：更新心情臉（依 HP 動態變色）
+    _updateMoodFaces();
 
     // Player
     _setTxt('bt-pname',  _player.name);
