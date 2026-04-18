@@ -3074,7 +3074,36 @@ const Game = (() => {
     renderLog();
     Stats.renderAll();
     document.getElementById('player-name-display').textContent = Stats.player.name;
+    _updateDetailReadyBadge();
     checkTimelineEvent();
+  }
+
+  // 🆕 D.27：「詳細」按鈕上的升級提醒徽章
+  //   任何屬性 EXP 夠升級 → 顯示金色數字（可升級的屬性數量）
+  function _updateDetailReadyBadge() {
+    const btn = document.getElementById('btn-detail');
+    if (!btn) return;
+    const p = Stats.player;
+    if (!p || !p.exp) return;
+    const attrs = ['STR','DEX','CON','AGI','WIL'];
+    let readyCount = 0;
+    for (const key of attrs) {
+      const lvl  = p[key] || 10;
+      const exp  = p.exp[key] || 0;
+      const cost = Stats.expToNext(lvl);
+      if (exp >= cost) readyCount++;
+    }
+    let badge = btn.querySelector('.detail-ready-badge');
+    if (readyCount > 0) {
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'detail-ready-badge';
+        btn.appendChild(badge);
+      }
+      badge.textContent = readyCount;
+    } else if (badge) {
+      badge.remove();
+    }
   }
 
   // ── Toast notification ────────────────────────────────
@@ -3652,12 +3681,13 @@ const Game = (() => {
       const tooltip = canAfford
         ? `花費 ${cost} EXP 升級 ${key}（${lvl} → ${lvl + 1}）`
         : `還差 ${cost - exp} EXP`;
+      const readyCls = canAfford ? ' cs-spend-ready' : '';
       return `
-        <div class="cs-spend-card">
+        <div class="cs-spend-card${readyCls}">
           <div class="cs-spend-head">
             <span class="cs-spend-label">${key}</span>
             <span class="cs-spend-val">${lvl}${penTag}</span>
-            <button class="cs-spend-btn" data-spend-attr="${key}" ${canAfford ? '' : 'disabled'}
+            <button class="cs-spend-btn${readyCls}" data-spend-attr="${key}" ${canAfford ? '' : 'disabled'}
                     title="${tooltip}">升級</button>
           </div>
           <div class="cs-spend-exp-row">

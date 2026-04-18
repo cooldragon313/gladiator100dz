@@ -2191,6 +2191,51 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   cursor: not-allowed;
   color: var(--text-dim);
 }
+
+/* 🆕 D.27：EXP 足夠升級時的發光提醒 */
+@keyframes spend-ready-glow {
+  0%, 100% { box-shadow: 0 0 4px #8b6914, inset 0 0 4px rgba(212,175,55,.15); }
+  50%      { box-shadow: 0 0 14px #ffd76a, inset 0 0 8px rgba(255,215,106,.35); }
+}
+.cs-spend-card.cs-spend-ready {
+  border-color: #d4af37 !important;
+  animation: spend-ready-glow 1.6s ease-in-out infinite;
+}
+.cs-spend-btn.cs-spend-ready {
+  background: #2a1400 !important;
+  border-color: #d4af37 !important;
+  color: #ffd76a !important;
+}
+.cs-spend-btn.cs-spend-ready::after {
+  content: ' !';
+  color: #ffe080;
+  font-weight: 900;
+  margin-left: 2px;
+  text-shadow: 0 0 6px #ffd76a;
+}
+
+/* 🆕 D.27：右上角「詳細」按鈕的升級提醒徽章 */
+#btn-detail { position: relative; }
+.detail-ready-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  background: #d4af37;
+  border: 2px solid #1e0800;
+  border-radius: 10px;
+  font-size: 11px;
+  color: #1a0a00;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 8px #ffd76a;
+  animation: spend-ready-glow 1.6s ease-in-out infinite;
+  pointer-events: none;
+}
 .cs-spend-exp-track {
   position: relative;
   height: 10px;
