@@ -3298,20 +3298,10 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 .battle-v2 .bt-attr-panel { display: flex; flex-direction: column; gap: 10px; }
 
 /* 🆕 大頭圖（戰鬥時會撲擊對方） */
+/* 🆕 2026-04-20：使用者要隱藏大頭像 → display:none
+   卡片 .bt-card-player / .bt-card-enemy 的 lunge/shake 特效不受影響（_playAttackAnim 會同時對卡片作用）*/
 .battle-v2 .bt-portrait {
-  position: relative;
-  width: 100%;
-  height: 120px;
-  background: linear-gradient(180deg, #1a1208 0%, #0c0805 100%);
-  border: 2px solid #3a2410;
-  border-radius: 4px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  box-shadow: 0 4px 12px rgba(0,0,0,.5), inset 0 0 20px rgba(200,160,80,.05);
-  transition: border-color .2s;
+  display: none !important;
 }
 .battle-v2 .bt-portrait-player {
   border-color: #4a5488;
@@ -3477,8 +3467,10 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   pointer-events: none;
 }
 .battle-v2 .bt-slot-face {
-  /* 🆕 2026-04-20：使用者不要愛心 emoji 頭像 → 隱藏（只留名字）*/
-  display: none;
+  font-size: 28px;
+  text-align: center;
+  line-height: 1;
+  margin-bottom: 2px;
 }
 .battle-v2 .bt-slot-name {
   font-size: 14px;
