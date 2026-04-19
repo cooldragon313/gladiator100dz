@@ -317,6 +317,8 @@ const teammates = (() => {
         },
 
         // 3. 信（aff ≥ 40）
+        // 🆕 2026-04-19：改為動態 dialogueLines — 依玩家 origin 播不同內心獨白
+        //   + effects mood-8（可被 emotion modulator 調整：冷酷 ×0.5 / 多愁善感 ×1.5）
         {
           id:        'orlan_letter',
           type:      'event',
@@ -324,19 +326,46 @@ const teammates = (() => {
           chance:    0.30,
           onceOnly:  true,
           logColor:  '#d9a84f',
-          text:      '主人的侍從遞給奧蘭一封信。他讀完後靜了很久，然後把信塞進懷裡。「家裡一切都好。」他笑——但眼眶紅了。',
-          dialogueLines: [
-            { text: '早晨，侍從走進牢房。' },
-            { speaker: '侍從', text: '誰叫奧蘭？' },
-            { text: '奧蘭舉起手。侍從遞給他一封已經被拆過的信。' },
-            { speaker: '侍從', text: '大人看過了。他說可以給你。' },
-            { text: '奧蘭接過信。坐下來讀。' },
-            { text: '你看見他讀了很久。比一封信該讀的時間長多了。' },
-            { text: '讀完他把信折好，塞進懷裡。' },
-            { speaker: '奧蘭', text: '家裡一切都好。' },
-            { text: '他笑了。但你看見他的眼眶紅了。' },
-            { text: '他沒有告訴你信上實際寫了什麼。你也沒有問。' },
+          text:      '主人的侍從遞給奧蘭一封信。你看著他讀完塞進懷裡，忽然想起——你自己的家呢？',
+          effects: [
+            { type: 'vital', key: 'mood', delta: -8 },
+            { type: 'affection', key: 'orlan', delta: 3 },
           ],
+          dialogueLines: (player) => {
+            const baseOpen = [
+              { text: '早晨。侍從走進牢房。' },
+              { speaker: '侍從', text: '誰叫奧蘭？' },
+              { text: '奧蘭舉起手。侍從遞給他一封已經被拆過的信。' },
+              { speaker: '侍從', text: '大人看過了。他說可以給你。' },
+              { text: '奧蘭接過信。手有點抖。' },
+              { text: '他坐下讀 — 讀了很久。比一封信該讀的時間長多了。' },
+              { text: '讀完他小心地摺好，塞進懷裡。' },
+              { speaker: '奧蘭', text: '家裡⋯⋯都好。' },
+              { speaker: '奧蘭', text: '爹說大夫說，妹的病在好轉⋯⋯' },
+              { text: '他笑了。但眼眶紅了一圈。' },
+            ];
+            // 依 origin 玩家內心獨白
+            const innerMap = {
+              farmBoy:      '（你想起村子那天的煙。誰也沒寫信給你 — 因為，沒人了。）',
+              nobleman:     '（家族徽章被撤下那天⋯⋯沒人來過。連一張字條都沒有。）',
+              ruinedKnight: '（你家的牆上早就沒人畫你的名字了。）',
+              beggar:       '（你沒家。從來沒人寫信給你。）',
+              artisan:      '（工坊燒的那夜，他們逃得比你快。）'  ,
+              criminal:     '（就算有人寫信⋯⋯你也沒臉打開。）',
+              gambler:      '（那次輸光之後，娘把門關上了。連一聲罵都沒有。）',
+              believer:     '（神殿放逐你那天，連一張字條都沒有。）',
+            };
+            const inner = innerMap[player?.origin] || '（誰也沒寫信給你。）';
+            const midClose = [
+              { text: inner },
+              { text: '⋯⋯家人。' },
+              { text: '他還有家人。' },
+              { text: '我的呢？' },
+              { text: '（你看著他。想說什麼 — 什麼話都多餘。）' },
+              { text: '（這傢伙還把家當家。你呢？）' },
+            ];
+            return [...baseOpen, ...midClose];
+          },
         },
 
         // 4. 梅拉的特別一份（aff ≥ 45 + 梅拉 aff ≥ 30）

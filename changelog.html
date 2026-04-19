@@ -208,6 +208,48 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       2026-04-19 奧蘭家書事件 + 情緒倍率系統
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">FEATURE</span>
+      <span class="version-title">奧蘭家書事件改寫 + 情緒倍率系統</span>
+      <span class="version-date">2026-04-19</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text"><strong>Story reveal 支援動態對白 + effects</strong> <span class="file-tag">main.js _scanStoryEvents</span>
+          — <code>dialogueLines</code> 可以是函式（接 player 回傳陣列）→ 讓同一個事件依 origin / traits 播不同內容。
+          新增 <code>reveal.effects</code> 支援 → 對白結束後套 Effects.apply。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>情緒倍率系統</strong> <span class="file-tag">main.js _calcEmotionMult</span>
+          — story reveal 的 mood 變化根據玩家特性加乘：
+          cruel <code>×0.5</code> / prideful <code>×0.7</code> / blessed <code>×0.8</code> /
+          (無) <code>×1.0</code> / neurotic <code>×1.3</code> / shadowed <code>×1.3</code> / brooding <code>×1.5</code>。
+          多特性相乘，clamp 0.2-3.0。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text"><strong>奧蘭家書事件改寫</strong> <span class="file-tag">npc.js orlan_letter</span>
+          — 加入 8 origins 玩家內心獨白（「家人⋯⋯它還有家人⋯⋯我的呢？」情感張力）。
+          從純敘事改為<strong>新家人伏筆</strong>的情感錨點。
+          effects: mood-8（受情緒倍率修正）+ 奧蘭好感 +3。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text"><strong>CODEX.md 新增章節</strong>
+          — 「情緒倍率（Emotion Modulator）」完整數字表與使用範例。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
        2026-04-19 三層擲骰 + Origin 設計規範
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">

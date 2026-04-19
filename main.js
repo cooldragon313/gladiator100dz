@@ -2957,6 +2957,29 @@ const Game = (() => {
    *
    * 一晚可能觸發多個（但每段只會觸發一次）。
    */
+  /**
+   * 🆕 2026-04-19 情緒倍率（emotion modulator）
+   *   特性影響事件 mood 起伏：
+   *     cruel 冷酷     → ×0.5（家書？無聊。）
+   *     prideful 驕傲  → ×0.7
+   *     brooding 鬱結  → ×1.5（多愁善感）
+   *     neurotic 神經質 → ×1.3
+   *     blessed 神眷   → ×0.8（信念穩定）
+   *     shadowed 暗影  → ×1.3（黑暗思維放大）
+   *   多特性疊加（取乘積，clamp 0.2-3.0）
+   */
+  function _calcEmotionMult(p) {
+    if (!p || !Array.isArray(p.traits)) return 1.0;
+    let mult = 1.0;
+    if (p.traits.includes('cruel'))    mult *= 0.5;
+    if (p.traits.includes('prideful')) mult *= 0.7;
+    if (p.traits.includes('brooding')) mult *= 1.5;
+    if (p.traits.includes('neurotic')) mult *= 1.3;
+    if (p.traits.includes('blessed'))  mult *= 0.8;
+    if (p.traits.includes('shadowed')) mult *= 1.3;
+    return Math.max(0.2, Math.min(3.0, mult));
+  }
+
   function _scanStoryEvents() {
     if (typeof teammates === 'undefined' || !teammates.getPendingStoryEvents) return;
     const p = Stats.player;
@@ -2968,10 +2991,27 @@ const Game = (() => {
       if (Math.random() >= chance) return;
 
       // 🆕 D.21：重量級 reveal 有 dialogueLines → 排入對話佇列（晨起後播）
-      if (Array.isArray(reveal.dialogueLines) && reveal.dialogueLines.length > 0) {
+      // 🆕 2026-04-19：支援 dialogueLines 為函式（依玩家 origin / traits 動態產生）
+      //                支援 reveal.effects（播完對白後套 Effects.apply，可吃 emotion modulator）
+      const rawLines = reveal.dialogueLines;
+      const lines = (typeof rawLines === 'function') ? rawLines(p) : rawLines;
+      if (Array.isArray(lines) && lines.length > 0) {
         _pendingDialogues.push({
           id:    reveal.id,
-          lines: reveal.dialogueLines,
+          lines: lines,
+          onComplete: () => {
+            if (Array.isArray(reveal.effects) && reveal.effects.length > 0 && typeof Effects !== 'undefined') {
+              // 🆕 2026-04-19：emotion modulator — 特性影響情緒起伏
+              const moodMult = _calcEmotionMult(p);
+              const tweaked = reveal.effects.map(eff => {
+                if (eff.type === 'vital' && eff.key === 'mood' && typeof eff.delta === 'number') {
+                  return { ...eff, delta: Math.round(eff.delta * moodMult) };
+                }
+                return eff;
+              });
+              Effects.apply(tweaked, { source: 'story_reveal:' + reveal.id });
+            }
+          },
         });
       } else {
         // 輕量 reveal：直接 log + flash
