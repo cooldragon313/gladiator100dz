@@ -3330,8 +3330,8 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 }
 .battle-v2 .bt-portrait-enemy .bt-portrait-name { color: #ff9966; }
 .battle-v2 .bt-portrait-mood {
-  font-size: 28px;
-  line-height: 1;
+  /* 🆕 2026-04-20：使用者覺得愛心 emoji 破壞感覺 → 隱藏（只留名字）*/
+  display: none;
 }
 .battle-v2 .bt-portrait-bars {
   display: flex; flex-direction: column; gap: 3px;
@@ -3401,7 +3401,7 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   background-size: cover;
   background-position: center;
   background-color: #1a0f08;
-  min-height: 400px;   /* 🆕 2026-04-20 從 280 拉高 */
+  min-height: 360px;   /* 🆕 2026-04-20 從 280 拉高 */
   max-height: 55vh;    /* 🆕 從 40vh 拉高（避免敵方 slot 被下面欄位遮住）*/
   display: flex;
   flex-direction: column;
@@ -3477,10 +3477,8 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   pointer-events: none;
 }
 .battle-v2 .bt-slot-face {
-  font-size: 28px;
-  text-align: center;
-  line-height: 1;
-  margin-bottom: 2px;
+  /* 🆕 2026-04-20：使用者不要愛心 emoji 頭像 → 隱藏（只留名字）*/
+  display: none;
 }
 .battle-v2 .bt-slot-name {
   font-size: 14px;
@@ -3508,7 +3506,7 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   align-items: center;
   justify-content: center;
   min-height: 100px;    /* 對話泡泡最少要多大 */
-  max-height: 180px;    /* 🆕 2026-04-20 限制中間空間 — 避免玩家對手間距過大 */
+  max-height: 120px;    /* 🆕 2026-04-20 限制中間空間 — 避免玩家對手間距過大 */
   /* 調整建議：留對話空間就 160-200；若要完全緊湊可設 120；更寬鬆 220+ */
 }
 .battle-v2 .bt-stage-vs {
