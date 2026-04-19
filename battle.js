@@ -230,34 +230,53 @@ const Battle = (() => {
   // 🆕 D.28：攻擊動畫（攻擊方撲向被攻擊方 + 被攻擊方震動）
   //   attackerSide: 'player' | 'enemy'
   //   大頭圖（左右欄）跟中間 slot 同時動畫
-  function _playAttackAnim(attackerSide) {
-    const attackerEls = attackerSide === 'player'
-      ? [document.querySelector('.bt-card-player'), document.getElementById('bt-portrait-l')]
-      : [document.querySelector('.bt-card-enemy'),  document.getElementById('bt-portrait-r')];
-    const defenderEls = attackerSide === 'player'
-      ? [document.querySelector('.bt-card-enemy'),  document.getElementById('bt-portrait-r')]
-      : [document.querySelector('.bt-card-player'), document.getElementById('bt-portrait-l')];
+  /**
+   * 🆕 2026-04-20 v3：攻擊動畫 — 只作用於中間戰鬥 slot 卡片
+   *   側邊名字框（.bt-portrait）不再動。
+   *   攻擊方飛撲 + 防守方依結果反應：
+   *     hit (未格擋) → 震動 + 紅光
+   *     blocked      → 藍光
+   *     miss / dodge → 黃光
+   *
+   * @param {string} attackerSide 'player' | 'enemy'
+   * @param {object} result { hit: bool, blocked: bool, crit: bool }
+   */
+  function _playAttackAnim(attackerSide, result) {
+    const res = result || { hit: true, blocked: false };
+    const attackerCard = attackerSide === 'player'
+      ? document.querySelector('.bt-card-player')
+      : document.querySelector('.bt-card-enemy');
+    const defenderCard = attackerSide === 'player'
+      ? document.querySelector('.bt-card-enemy')
+      : document.querySelector('.bt-card-player');
 
+    // ── 攻擊方飛撲 ──
     const lungeClass = attackerSide === 'player' ? 'bt-lunge-right' : 'bt-lunge-left';
+    if (attackerCard) {
+      attackerCard.classList.remove('bt-lunge-right', 'bt-lunge-left');
+      void attackerCard.offsetHeight;
+      attackerCard.classList.add(lungeClass);
+      setTimeout(() => attackerCard.classList.remove(lungeClass), 650);
+    }
 
-    attackerEls.forEach(el => {
-      if (!el) return;
-      el.classList.remove('bt-lunge-right', 'bt-lunge-left');
-      void el.offsetHeight;
-      el.classList.add(lungeClass);
-      setTimeout(() => el.classList.remove(lungeClass), 650);
-    });
-    defenderEls.forEach(el => {
-      if (!el) return;
-      el.classList.remove('bt-hit-shake');
-      void el.offsetHeight;
-      setTimeout(() => el.classList.add('bt-hit-shake'), 120);
-      setTimeout(() => el.classList.remove('bt-hit-shake'), 650);
-    });
+    // ── 防守方反應（依結果分類）──
+    if (defenderCard) {
+      // 清除舊特效
+      defenderCard.classList.remove('bt-hit-shake', 'bt-dodge-yellow', 'bt-block-blue');
+      void defenderCard.offsetHeight;
 
-    // 🆕 攻擊台詞（40% 機率，提高一點讓常看到）
-    if (Math.random() < 0.40) _showSpeech(attackerSide, 'attack');
-    else if (Math.random() < 0.20) _showSpeech(attackerSide === 'player' ? 'enemy' : 'player', 'defend');
+      let reactCls;
+      if (!res.hit)         reactCls = 'bt-dodge-yellow';   // 閃避
+      else if (res.blocked) reactCls = 'bt-block-blue';     // 格擋
+      else                  reactCls = 'bt-hit-shake';      // 命中
+
+      setTimeout(() => defenderCard.classList.add(reactCls), 120);
+      setTimeout(() => defenderCard.classList.remove(reactCls), 650);
+    }
+
+    // 🆕 攻擊台詞（40% 機率命中時，30% 防守時）
+    if (res.hit && Math.random() < 0.40) _showSpeech(attackerSide, 'attack');
+    else if (!res.hit && Math.random() < 0.30) _showSpeech(attackerSide === 'player' ? 'enemy' : 'player', 'defend');
   }
 
   // 🆕 D.28：對話泡泡（stage 中央跳）
@@ -669,6 +688,8 @@ const Battle = (() => {
       if (_enemy.hp <= 0) break;
       const r = TB_attack(_player, _enemy, { turn: _turn });
       _applyDamage(_enemy, r.damage, r.counterDamage ? _player : null, r.counterDamage);
+      // 🆕 2026-04-20 v3：攻擊動畫帶 result 觸發（miss/block/hit 不同光）
+      _playAttackAnim('player', { hit: r.hit, blocked: r.blocked, crit: r.crit });
       _appendLog((hits > 1 ? `[第${i+1}擊] ` : '') + r.log,
         r.crit ? 'log-crit' : r.hit ? '' : 'log-miss');
       // D.1.13: 依結果播放命中音效
@@ -710,6 +731,8 @@ const Battle = (() => {
       case 'attack': {
         const r = TB_attack(_enemy, _player, { turn: _turn });
         _applyDamage(_player, r.damage, r.counterDamage ? _enemy : null, r.counterDamage);
+        // 🆕 2026-04-20 v3：敵方攻擊動畫（帶 result）
+        _playAttackAnim('enemy', { hit: r.hit, blocked: r.blocked, crit: r.crit });
         _appendLog(r.log, r.crit ? 'log-crit' : r.hit ? '' : 'log-miss');
         if (r.injuredPart) _appendLog(`  ※ 玩家【${r.injuredPart}】受傷（${r.injuryLevel}）`, 'log-injury');
         break;
@@ -717,6 +740,8 @@ const Battle = (() => {
       case 'mountain_crash': {
         const r = TB_attack(_enemy, _player, { turn: _turn }, { mountainCrash: true });
         _applyDamage(_player, r.damage, null, 0);
+        // 🆕 2026-04-20 v3：mountain_crash 也帶動畫（通常必中）
+        _playAttackAnim('enemy', { hit: r.hit, blocked: r.blocked, crit: true });
         _appendLog(r.log, 'log-crit');
         if (r.injuredPart) _appendLog(`  ※ 玩家【${r.injuredPart}】受傷（${r.injuryLevel}）`, 'log-injury');
         break;
@@ -726,6 +751,8 @@ const Battle = (() => {
           if (_player.hp <= 0) break;
           const r = TB_attack(_enemy, _player, { turn: _turn });
           _applyDamage(_player, r.damage, r.counterDamage ? _enemy : null, r.counterDamage);
+          // 🆕 2026-04-20 v3：每刺都播動畫
+          _playAttackAnim('enemy', { hit: r.hit, blocked: r.blocked, crit: r.crit });
           _appendLog(`  [刺${i+1}] ${r.log}`, r.crit ? 'log-crit' : r.hit ? '' : 'log-miss');
         }
         break;
@@ -1168,8 +1195,9 @@ const Battle = (() => {
     const wasAbove30 = target.hp >= target._hpMax * 0.30;
     if (dmg > 0) {
       target.hp = Math.max(0, target.hp - dmg);
-      // 🆕 D.28：攻擊動畫 — 攻擊方撲擊 + 被攻擊方震動
-      _playAttackAnim(target === _player ? 'enemy' : 'player');
+      // 🆕 2026-04-20 v3：移除這裡的攻擊動畫呼叫
+      //   改到 _playerTurn / _enemyTurn 的 TB_attack 後，帶 result 觸發
+      //   （好處：miss 也能播黃光 / blocked 能播藍光，不只 dmg>0 才動）
     }
     if (counterTarget && counterDmg > 0)
       counterTarget.hp = Math.max(0, counterTarget.hp - counterDmg);

@@ -3677,38 +3677,58 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 .bt-card-enemy  { border-color: #882222; }
 
 /* 🆕 D.28：攻擊動畫 — 攻擊方撲向被攻擊方，被攻擊方震動 */
+/* 🆕 2026-04-20 v3：攻擊方飛撲（擴大到 80px，更戲劇化）*/
 @keyframes bt-lunge-right {
   0%   { transform: translateX(0); }
-  40%  { transform: translateX(32px); }
-  60%  { transform: translateX(32px); }
+  40%  { transform: translateX(80px); }
+  60%  { transform: translateX(80px); }
   100% { transform: translateX(0); }
 }
 @keyframes bt-lunge-left {
   0%   { transform: translateX(0); }
-  40%  { transform: translateX(-32px); }
-  60%  { transform: translateX(-32px); }
+  40%  { transform: translateX(-80px); }
+  60%  { transform: translateX(-80px); }
   100% { transform: translateX(0); }
 }
+
+/* 被擊中：震動 + 紅光 */
 @keyframes bt-hit-shake {
-  0%, 100% { transform: translate(0, 0); background-color: inherit; }
-  10%      { transform: translate(-6px, 2px); background-color: rgba(204, 40, 40, 0.35); }
-  25%      { transform: translate(6px, -2px); }
+  0%, 100% { transform: translate(0, 0); box-shadow: none; }
+  10%      { transform: translate(-6px, 2px); box-shadow: inset 0 0 30px 6px rgba(204, 40, 40, 0.55); }
+  25%      { transform: translate(6px, -2px); box-shadow: inset 0 0 30px 6px rgba(204, 40, 40, 0.40); }
   40%      { transform: translate(-5px, 1px); }
   55%      { transform: translate(5px, -1px); }
   70%      { transform: translate(-3px, 1px); }
   85%      { transform: translate(2px, 0); }
 }
-.bt-card.bt-lunge-right { animation: bt-lunge-right 280ms ease-out; z-index: 2; position: relative; }
-.bt-card.bt-lunge-left  { animation: bt-lunge-left 280ms ease-out;  z-index: 2; position: relative; }
-.bt-card.bt-hit-shake   { animation: bt-hit-shake 450ms cubic-bezier(.36,.07,.19,.97); }
-/* 🆕 2026-04-20 v2：側邊大頭像框同樣套用攻擊特效 */
-.battle-v2 .bt-portrait.bt-lunge-right { animation: bt-lunge-right 280ms ease-out; z-index: 2; }
-.battle-v2 .bt-portrait.bt-lunge-left  { animation: bt-lunge-left 280ms ease-out;  z-index: 2; }
-.battle-v2 .bt-portrait.bt-hit-shake   { animation: bt-hit-shake 450ms cubic-bezier(.36,.07,.19,.97); }
-/* 🆕 2026-04-20 v2：中間 slot 卡片 — 保留 attack 特效的 selector */
-.battle-v2 .bt-slot.bt-lunge-right { animation: bt-lunge-right 280ms ease-out; z-index: 2; }
-.battle-v2 .bt-slot.bt-lunge-left  { animation: bt-lunge-left 280ms ease-out;  z-index: 2; }
+
+/* 🆕 閃避成功：黃光 */
+@keyframes bt-dodge-yellow {
+  0%, 100% { box-shadow: none; }
+  40%      { box-shadow: inset 0 0 30px 6px rgba(255, 204, 50, 0.7), 0 0 8px rgba(255, 204, 50, 0.4); }
+  60%      { box-shadow: inset 0 0 24px 4px rgba(255, 204, 50, 0.5); }
+}
+
+/* 🆕 格擋成功：藍光 */
+@keyframes bt-block-blue {
+  0%, 100% { box-shadow: none; }
+  40%      { box-shadow: inset 0 0 30px 6px rgba(80, 160, 255, 0.7), 0 0 8px rgba(80, 160, 255, 0.4); }
+  60%      { box-shadow: inset 0 0 24px 4px rgba(80, 160, 255, 0.5); }
+}
+
+/* 攻擊方（lunge）— 只作用於中間戰鬥 slot，側邊名字框不動 */
+.battle-v2 .bt-slot.bt-lunge-right { animation: bt-lunge-right 320ms ease-out; z-index: 2; }
+.battle-v2 .bt-slot.bt-lunge-left  { animation: bt-lunge-left  320ms ease-out; z-index: 2; }
+
+/* 防守方反應 — 三種結果對應 */
 .battle-v2 .bt-slot.bt-hit-shake   { animation: bt-hit-shake 450ms cubic-bezier(.36,.07,.19,.97); }
+.battle-v2 .bt-slot.bt-dodge-yellow { animation: bt-dodge-yellow 420ms ease-out; }
+.battle-v2 .bt-slot.bt-block-blue   { animation: bt-block-blue 420ms ease-out; }
+
+/* 舊 selector 保留給兼容 */
+.bt-card.bt-lunge-right { animation: bt-lunge-right 320ms ease-out; z-index: 2; position: relative; }
+.bt-card.bt-lunge-left  { animation: bt-lunge-left  320ms ease-out; z-index: 2; position: relative; }
+.bt-card.bt-hit-shake   { animation: bt-hit-shake 450ms cubic-bezier(.36,.07,.19,.97); }
 .bt-comb-name  { font-size: 18px; font-weight: 700; letter-spacing: .1em; margin-bottom: 3px; color: var(--text-hi); }
 .bt-comb-title { font-size: 13px; color: #666680; margin-bottom: 5px; }
 .bt-bar-label  { font-size: 13px; color: #888; display: flex; justify-content: space-between; margin-bottom: 2px; }
