@@ -263,23 +263,33 @@ const Compulsion = (() => {
       return;
     }
 
+    // 🆕 2026-04-19：對白改為玩家角色的內心獨白，移除後台數字
+    //   依 attr 微調用詞，讓每類訓練的「癮」有自己的語氣
+    const verbMap = {
+      STR: { do: '手癢了⋯⋯一個人我也要去練一下。',      refuse: '手癢不練，今晚可能難睡覺了。' },
+      AGI: { do: '腳停不下來。我去繞兩圈。',              refuse: '腳底發癢，壓也壓不住。' },
+      CON: { do: '肺裡滿滿的 — 得跑一跑才順。',           refuse: '身體裡有一股氣出不去。' },
+      WIL: { do: '腦子停不下來。去靜坐一下。',            refuse: '思緒像蚊子一樣叮著我。' },
+    };
+    const verbs = verbMap[attr] || verbMap.STR;
+
     ChoiceModal.show({
       id: 'compulsion_' + traitId,
       icon: '💢',
       title: `你的身體記得該做${name}訓練了`,
-      body: '要去練嗎？不練的話，今晚會很焦躁。',
+      body: '你停在牢房裡。手指不自覺地動。',
       forced: true,
       choices: [
         {
           id: 'do_it',
-          label: `去練（吃掉 20-22h + 訓練獎勵 + mood +5）`,
-          hint: '補做訓練，獎勵照給但無 NPC 協力。',
+          label: '去練',
+          hint: `（${verbs.do}）`,
           effects: [],
         },
         {
           id: 'refuse',
           label: '不練',
-          hint: `mood -${5 + c.anxiety[traitId] * 5}（累進焦慮）`,
+          hint: `（${verbs.refuse}）`,
           effects: [],
         },
       ],

@@ -4672,7 +4672,26 @@ const Game = (() => {
     if (data.flags) Flags.loadFrom(data.flags);
     else            Flags.clear();
 
+    // 🆕 2026-04-19：從 flag 還原 NPC alive 狀態（避免讀檔後死人復活）
+    _syncNpcAliveFromFlags();
+
     return true;
+  }
+
+  /**
+   * 🆕 2026-04-19：依 flag 同步 NPC 的 alive 狀態
+   *   npc.js 的 npc.alive 只是 runtime 狀態，不進 save。
+   *   死亡/復活的真相在 flag 裡（sol_dead / orlan_dead / betrayed_olan）。
+   *   必須在讀檔後 + 新遊戲後 + 死亡事件後 呼叫，確保 UI 跟戰鬥邏輯一致。
+   */
+  function _syncNpcAliveFromFlags() {
+    if (typeof teammates === 'undefined') return;
+    const setAlive = (id, isDead) => {
+      const npc = teammates.getNPC(id);
+      if (npc) npc.alive = isDead ? false : true;
+    };
+    setAlive('sol',   Flags.has('sol_dead'));
+    setAlive('orlan', Flags.has('orlan_dead') || Flags.has('betrayed_olan'));
   }
 
   /**
@@ -4868,6 +4887,8 @@ const Game = (() => {
         });
         teammates.setAllAffection(resetMap);
       }
+      // 🆕 2026-04-19：新遊戲清空死亡狀態（上次 session 的 sol.alive=false 要還原）
+      _syncNpcAliveFromFlags();
       // 🆕 D.18：重置背景角鬥士熟悉度
       if (typeof BackgroundGladiators !== 'undefined') {
         BackgroundGladiators.reset();
