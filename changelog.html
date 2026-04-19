@@ -208,6 +208,90 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       2026-04-19 強迫症系統（訓練行為生成的特性範本）
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">FEATURE</span>
+      <span class="version-title">強迫症系統 — 玩家行為生成的特性範本</span>
+      <span class="version-date">2026-04-19</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>4 種訓練強迫症</strong> <span class="file-tag">compulsion.js</span>
+          — 力癮（STR）/ 敏癮（AGI）/ 韌癮（CON）/ 禪癮（WIL），紅色負面特性。
+          連續 5 天做同訓練 → 自動養成。Day 3 / 4 有警告對白給玩家收手機會。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text"><strong>三層獎懲機制</strong>
+          — 白天做對應訓練 +mood 3（滿足）；
+          當天沒做 → 夜間 slot 7 彈 ChoiceModal：
+          <code>[去練]</code> 吃掉 20-22h + EXP+5 + mood+5（無 NPC 加成）
+          / <code>[不練]</code> mood-5 累進（第 2 次 -10 / 第 3+ 次 -15 + 失眠症 + HP-10）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text"><strong>夜間 slot 7 優先級鏈</strong> <span class="file-tag">main.js _resolveNonTrainingSlots</span>
+          — 主線任務（抓老鼠）&gt; 強迫症彈選擇 &gt; 正常休息。
+          被任務/約會占用時 <code>Compulsion.onNightPreempted()</code> 記為「被迫拒絕」累進 +1。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text"><strong>解除機制</strong>
+          — 連續 10 天不做 → 減輕提示；20 天 → 完全解除 + flag <code>overcame_{id}</code>。
+          中途做一次該訓練 → 解除進度全部重置。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text"><strong>負面特性改紅色顯示</strong> <span class="file-tag">game.html</span>
+          — <code>.trait-negative</code> 從深紫棕改為紅色
+          （<code>rgba(180,50,50,.15)</code> / <code>#c03838</code> / <code>#e68080</code>）。
+          憂鬱、病痛、強迫症等一眼識別。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text"><strong>設計文件</strong> <span class="file-tag">docs/systems/compulsion.md</span>
+          — 完整設計規範（養成機制 / 三層獎懲 / 優先級鏈 / 解除條件 / NPC 反應擴充方向）。
+          CODEX.md 新增「強迫症字典」章節。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">FIX</span>
+        <span class="change-text"><strong>Day 1 無 NPC bug</strong> <span class="file-tag">main.js _enterNewGame</span>
+          — _lastNPCRollDay module 變數在新遊戲時沒被重置，讓 rollDailyNPCs 誤判「今天已 roll」。
+          _enterNewGame 第一行強制 _lastNPCRollDay = -1 解決。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
+       2026-04-19 完整字典 CODEX.md
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">DOCS</span>
+      <span class="version-title">CODEX.md — 完整字典（一份查所有）</span>
+      <span class="version-date">2026-04-19</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>docs/CODEX.md</strong>
+          — 9 大類完整字典：特性（軸上/非軸/出生稀有/讀書衍生/強迫症）、書本（13 本 × 5 類）、
+          8 origins、傷勢、見識、病痛、旗標、數字速查表、系統檔案索引。
+          <strong>改了數字 / 特性 / 書 → 同步更新此文件</strong>。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
        2026-04-19 三大系統：讀書 + 出生特性 + 傷勢
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">

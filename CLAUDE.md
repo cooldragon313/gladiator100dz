@@ -34,9 +34,10 @@
    - 改 NPC 對白先看這份，確保語氣一致
 3b. **`docs/quests/*.md`** — 🆕 D.28：每個任務的完整設計書（觸發 / 階段 / 門檻 / 對白 / 獎勵 / flag）
    - 目前已建：mela-rat（抓老鼠任務）
-3c. **`docs/systems/*.md`** — 🆕 D.28：系統規範（night-events, multi-check-quest, **reading**, **books-catalog**, **wounds**, traits, origins, timeline, battle-*, npc-growth）
+3c. **`docs/systems/*.md`** — 🆕 D.28：系統規範（night-events, multi-check-quest, **reading**, **books-catalog**, **wounds**, **compulsion**, traits, origins, timeline, battle-*, npc-growth）
    - 🆕 **reading.md / books-catalog.md**（2026-04-19）：讀書系統 + 五類書本 + 見識數值 + 傻福三階段交互
    - 🆕 **wounds.md**（2026-04-19）：4 部位 × 3 級傷勢系統 + 低體力擲傷 + 好痛觸發 + 老默三階段 → 密醫引薦
+   - 🆕 **compulsion.md**（2026-04-19）：4 種訓練強迫症（力/敏/韌/禪癮）+ 連 5 天養成 + 夜間選擇 + 20 天解除
 3d. **`docs/philosophy/*.md`** — 🆕 D.28：設計哲學（numbers-hiding）
 4. **`changelog.html`** — 版本記錄與歷次 commit 摘要
 5. **`NOTES.md`** — 🆕 手機草稿本。使用者會在手機上寫未整理的想法到底部「待整理」區。
@@ -129,6 +130,12 @@
 | 🆕 密醫紙條 | `got_black_doc_contact` + personalItem `black_doc_contact` | doctor_events.js |
 | 🆕 老默三階段 | `doctor_saw_severe_wound` → `doctor_hinted_black_doc` → `got_black_doc_contact` | doctor_events.js |
 | 🆕 自然癒合 flag | `natural_recovery_triggered_{part}` | wounds.js |
+| 🆕 強迫症系統 | `player.compulsion` | compulsion.js |
+| 🆕 4 強迫症特性 | STR_addict/AGI_addict/CON_addict/WIL_addict（力/敏/韌/禪癮）| config.js / compulsion.md |
+| 🆕 強迫症養成 | 連 5 天同訓練 + Day 3/4 警告 | compulsion.js `onTraining` |
+| 🆕 夜間補做 | `Compulsion.hasPendingTonight()` + `playNightChoice()` | main.js slot 7 |
+| 🆕 被任務 preempt | `Compulsion.onNightPreempted()`（累進 +1）| main.js |
+| 🆕 強迫症解除 flag | `overcame_{id}` | compulsion.js |
 
 **Flag 命名規範**：`{主題}_{事件}_{狀態}` — 例：`olan_apothecary_resolved`、`doctor_visit_today`、`read_book_<id>`、`knows_blueprint_<id>`
 
@@ -396,6 +403,7 @@ save_system → testbattle → battle → actions → main
 
 ## 🔄 最近重要變更
 
+- **2026-04-19**：強迫症系統上線（compulsion.md）— 4 種訓練強迫症（力/敏/韌/禪癮）/ 連 5 天同訓練養成 + Day 3-4 警告 / 三層獎懲（做 mood+3 / 夜補做 mood+5 / 拒絕 mood-5~-15 累進 + 失眠）/ 20 天不做可解除 / 夜間 slot 7 優先級鏈（任務 > 強迫症 > 休息）/ 負面特性改紅色顯示
 - **2026-04-19**：傷勢系統上線（wounds.md）— 4 部位 × 3 級嚴重度 / 開場 15% 擲傷 + 紅光震動 + origin×部位回憶矩陣 / 低體力擲新傷 + 有傷練對應部位觸發「好痛」/ 老默三階段暗示 → 密醫紙條（Phase A 完）
 - **2026-04-19**：讀書系統上線（reading.md + books-catalog.md）— 5 類 13 本種子書、見識數值公式、書櫃 5 本容量、傻福三階段漸進、起手書按 origin 差異化、睡前讀書事件、角色頁書櫃區塊
 - **2026-04-19**：出生特性軸組系統（traits.md）— 5 軸互斥（智力 / 體質 / 運勢 / 心性 / 天賦）+ 各軸正負稀有特性 1% 獨立擲骰 + 重擲 2 次 + 特性轉化（天才→心力交瘁 / 鐵人→殘軀 / 神眷→神棄 / 神眷可後天獲得）

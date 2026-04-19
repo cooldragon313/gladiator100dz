@@ -131,6 +131,14 @@ const Stats = (() => {
       arms:  null,
       legs:  null,
     },
+
+    // 🆕 2026-04-19: 強迫症系統（compulsion.md）
+    compulsion: {
+      buildUp:  { STR: 0, AGI: 0, CON: 0, WIL: 0 },       // 連續做天數
+      didToday: { STR: false, AGI: false, CON: false, WIL: false },
+      absent:   { STR_addict: 0, AGI_addict: 0, CON_addict: 0, WIL_addict: 0 },
+      anxiety:  { STR_addict: 0, AGI_addict: 0, CON_addict: 0, WIL_addict: 0 },
+    },
   };
 
   // Effective attr = base + equipment bonus + buff bonus - stamina penalty

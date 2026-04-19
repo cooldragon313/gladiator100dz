@@ -2112,10 +2112,20 @@ const Game = (() => {
         const mealType = idx === 0 ? 'breakfast' : idx === 3 ? 'lunch' : 'dinner';
         _triggerMealEvent(mealType);
       } else if (type === 'rest') {
-        // 🆕 D.28：夜間事件窗口 — 如果有接受過的夜間任務，優先播
+        // 🆕 D.28：夜間事件窗口 — 優先級鏈（見 docs/systems/compulsion.md）
+        //   1. 主線任務（抓老鼠 / 未來約會等）
+        //   2. 強迫症補做彈窗
+        //   3. 正常靠牆恢復
         if (typeof MelaRatQuest !== 'undefined' && MelaRatQuest.hasPending && MelaRatQuest.hasPending()) {
           MelaRatQuest.playTonight();
+          // 🆕 2026-04-19：被任務占用 → 強迫症當作「被迫拒絕」一次
+          if (typeof Compulsion !== 'undefined' && Compulsion.hasPendingTonight()) {
+            Compulsion.onNightPreempted();
+          }
           // 任務開始後 advance time 照常，任務內部會處理 flag
+        } else if (typeof Compulsion !== 'undefined' && Compulsion.hasPendingTonight()) {
+          // 🆕 2026-04-19：強迫症夜間補做彈窗
+          Compulsion.playNightChoice();
         } else {
           // 沒任務 → 走原本的靠牆恢復
           addLog('【傍晚】訓練結束，你靠在牆邊喘了口氣。', '#8899aa', true);
@@ -2603,6 +2613,11 @@ const Game = (() => {
       source: 'action:' + actionId,
     });
     // 🆕 D.6 v2：訓練只累積 EXP，不自動升級。升級請到角色頁手動花 EXP。
+
+    // 🆕 2026-04-19 強迫症：訓練成功後觸發養成/滿足計數
+    if (hasAttrEffect && trainedAttr && typeof Compulsion !== 'undefined') {
+      try { Compulsion.onTraining(trainedAttr); } catch (e) { console.error('[Compulsion]', e); }
+    }
 
     // 🆕 D.26：偷懶放空的動態代價（在場扣好感 / 無人時 30% 被抓）
     if (act._isSlacking) _handleSlacking();
@@ -3096,6 +3111,11 @@ const Game = (() => {
     // 🆕 2026-04-19：睡前讀書（書櫃有書就推進進度）
     if (typeof Reading !== 'undefined' && Reading.tryBedtime) {
       try { Reading.tryBedtime(); } catch (e) { console.error('[Reading]', e); }
+    }
+
+    // 🆕 2026-04-19：強迫症日結（計算 absent / buildUp 重置 / 減輕或解除）
+    if (typeof Compulsion !== 'undefined' && Compulsion.onDayEnd) {
+      try { Compulsion.onDayEnd(); } catch (e) { console.error('[Compulsion]', e); }
     }
 
     // 🆕 D.12: 就寢前先掃描 NPC 故事事件（夜間共鳴）
@@ -4480,6 +4500,15 @@ const Game = (() => {
     ['head','torso','arms','legs'].forEach(part => {
       if (p.wounds[part] === undefined) p.wounds[part] = null;
     });
+    // 🆕 2026-04-19 強迫症系統（v5→v6 欄位）
+    if (!p.compulsion || typeof p.compulsion !== 'object') {
+      p.compulsion = {
+        buildUp:  { STR:0, AGI:0, CON:0, WIL:0 },
+        didToday: { STR:false, AGI:false, CON:false, WIL:false },
+        absent:   { STR_addict:0, AGI_addict:0, CON_addict:0, WIL_addict:0 },
+        anxiety:  { STR_addict:0, AGI_addict:0, CON_addict:0, WIL_addict:0 },
+      };
+    }
 
     // GameState
     if (data.gameState) {
@@ -4710,6 +4739,13 @@ const Game = (() => {
         dullardStage:0, weaponInventory:[],
         // 🆕 2026-04-19 傷勢系統
         wounds: { head:null, torso:null, arms:null, legs:null },
+        // 🆕 2026-04-19 強迫症系統
+        compulsion: {
+          buildUp:  { STR:0, AGI:0, CON:0, WIL:0 },
+          didToday: { STR:false, AGI:false, CON:false, WIL:false },
+          absent:   { STR_addict:0, AGI_addict:0, CON_addict:0, WIL_addict:0 },
+          anxiety:  { STR_addict:0, AGI_addict:0, CON_addict:0, WIL_addict:0 },
+        },
       });
       Flags.clear();          // 清空所有故事旗標
       GameState.reset();       // 🆕 D.1.12: 清空 session state

@@ -425,6 +425,30 @@ const Config = (() => {
       id: 'partial_literate', name: '粗識文字', category: 'positive',
       desc: '讀過點書但沒讀透。解鎖少數文字對話選項。傻福玩家半醒期選擇停留獲得。',
     },
+
+    // ══════════════════════════════════════════════════
+    // 🆕 2026-04-19 強迫症（連 5 天同訓練養成）
+    // ══════════════════════════════════════════════════
+    STR_addict: {
+      id: 'STR_addict', name: '力癮', category: 'negative',
+      compulsionAttr: 'STR',
+      desc: '連續 5 天做力量訓練 → 養成。做該訓練 mood+3；沒做 → 夜間彈出選擇（補做 +mood+5，拒絕 mood-5 累進）。連續 20 天不做可解除。',
+    },
+    AGI_addict: {
+      id: 'AGI_addict', name: '敏癮', category: 'negative',
+      compulsionAttr: 'AGI',
+      desc: '連續 5 天做步法訓練 → 養成。做該訓練 mood+3；沒做 → 夜間彈出選擇（補做 +mood+5，拒絕 mood-5 累進）。連續 20 天不做可解除。',
+    },
+    CON_addict: {
+      id: 'CON_addict', name: '韌癮', category: 'negative',
+      compulsionAttr: 'CON',
+      desc: '連續 5 天做耐力訓練 → 養成。做該訓練 mood+3；沒做 → 夜間彈出選擇（補做 +mood+5，拒絕 mood-5 累進）。連續 20 天不做可解除。',
+    },
+    WIL_addict: {
+      id: 'WIL_addict', name: '禪癮', category: 'negative',
+      compulsionAttr: 'WIL',
+      desc: '連續 5 天做冥想訓練 → 養成。做該訓練 mood+3；沒做 → 夜間彈出選擇（補做 +mood+5，拒絕 mood-5 累進）。連續 20 天不做可解除。',
+    },
   };
 
   // ══════════════════════════════════════════════════
