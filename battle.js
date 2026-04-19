@@ -231,12 +231,13 @@ const Battle = (() => {
   //   attackerSide: 'player' | 'enemy'
   //   大頭圖（左右欄）跟中間 slot 同時動畫
   /**
-   * 🆕 2026-04-20 v3：攻擊動畫 — 只作用於中間戰鬥 slot 卡片
-   *   側邊名字框（.bt-portrait）不再動。
-   *   攻擊方飛撲 + 防守方依結果反應：
-   *     hit (未格擋) → 震動 + 紅光
-   *     blocked      → 藍光
-   *     miss / dodge → 黃光
+   * 🆕 2026-04-20 v4：攻擊動畫 — 垂直方向（stage 上下布局）
+   *   玩家在上 → 往下撲 (bt-lunge-down)
+   *   敵方在下 → 往上撲 (bt-lunge-up)
+   *   防守方依結果反應：
+   *     hit (未格擋) → 震動 + 紅光 (bt-hit-shake)
+   *     blocked      → 往右 + 藍光 (bt-block-right)
+   *     miss / dodge → 往左 + 黃光 (bt-dodge-left)
    *
    * @param {string} attackerSide 'player' | 'enemy'
    * @param {object} result { hit: bool, blocked: bool, crit: bool }
@@ -250,10 +251,10 @@ const Battle = (() => {
       ? document.querySelector('.bt-card-enemy')
       : document.querySelector('.bt-card-player');
 
-    // ── 攻擊方飛撲 ──
-    const lungeClass = attackerSide === 'player' ? 'bt-lunge-right' : 'bt-lunge-left';
+    // ── 攻擊方飛撲（上下方向）──
+    const lungeClass = attackerSide === 'player' ? 'bt-lunge-down' : 'bt-lunge-up';
     if (attackerCard) {
-      attackerCard.classList.remove('bt-lunge-right', 'bt-lunge-left');
+      attackerCard.classList.remove('bt-lunge-down', 'bt-lunge-up');
       void attackerCard.offsetHeight;
       attackerCard.classList.add(lungeClass);
       setTimeout(() => attackerCard.classList.remove(lungeClass), 650);
@@ -262,19 +263,19 @@ const Battle = (() => {
     // ── 防守方反應（依結果分類）──
     if (defenderCard) {
       // 清除舊特效
-      defenderCard.classList.remove('bt-hit-shake', 'bt-dodge-yellow', 'bt-block-blue');
+      defenderCard.classList.remove('bt-hit-shake', 'bt-dodge-left', 'bt-block-right');
       void defenderCard.offsetHeight;
 
       let reactCls;
-      if (!res.hit)         reactCls = 'bt-dodge-yellow';   // 閃避
-      else if (res.blocked) reactCls = 'bt-block-blue';     // 格擋
-      else                  reactCls = 'bt-hit-shake';      // 命中
+      if (!res.hit)         reactCls = 'bt-dodge-left';    // 閃避 左+黃
+      else if (res.blocked) reactCls = 'bt-block-right';   // 格擋 右+藍
+      else                  reactCls = 'bt-hit-shake';     // 命中 震動+紅
 
       setTimeout(() => defenderCard.classList.add(reactCls), 120);
       setTimeout(() => defenderCard.classList.remove(reactCls), 650);
     }
 
-    // 🆕 攻擊台詞（40% 機率命中時，30% 防守時）
+    // 攻擊台詞（40% 命中時，30% 防守時）
     if (res.hit && Math.random() < 0.40) _showSpeech(attackerSide, 'attack');
     else if (!res.hit && Math.random() < 0.30) _showSpeech(attackerSide === 'player' ? 'enemy' : 'player', 'defend');
   }

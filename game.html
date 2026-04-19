@@ -3677,21 +3677,24 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 .bt-card-enemy  { border-color: #882222; }
 
 /* 🆕 D.28：攻擊動畫 — 攻擊方撲向被攻擊方，被攻擊方震動 */
-/* 🆕 2026-04-20 v3：攻擊方飛撲（擴大到 80px，更戲劇化）*/
-@keyframes bt-lunge-right {
-  0%   { transform: translateX(0); }
-  40%  { transform: translateX(80px); }
-  60%  { transform: translateX(80px); }
-  100% { transform: translateX(0); }
+/* 🆕 2026-04-20 v4：攻擊方飛撲（上下方向 — stage 是垂直布局）
+   玩家在上 → 往下撲 (bt-lunge-down)
+   敵方在下 → 往上撲 (bt-lunge-up)
+*/
+@keyframes bt-lunge-down {
+  0%   { transform: translateY(0); }
+  40%  { transform: translateY(60px); }
+  60%  { transform: translateY(60px); }
+  100% { transform: translateY(0); }
 }
-@keyframes bt-lunge-left {
-  0%   { transform: translateX(0); }
-  40%  { transform: translateX(-80px); }
-  60%  { transform: translateX(-80px); }
-  100% { transform: translateX(0); }
+@keyframes bt-lunge-up {
+  0%   { transform: translateY(0); }
+  40%  { transform: translateY(-60px); }
+  60%  { transform: translateY(-60px); }
+  100% { transform: translateY(0); }
 }
 
-/* 被擊中：震動 + 紅光 */
+/* 命中震動 + 紅光 */
 @keyframes bt-hit-shake {
   0%, 100% { transform: translate(0, 0); box-shadow: none; }
   10%      { transform: translate(-6px, 2px); box-shadow: inset 0 0 30px 6px rgba(204, 40, 40, 0.55); }
@@ -3702,33 +3705,28 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   85%      { transform: translate(2px, 0); }
 }
 
-/* 🆕 閃避成功：黃光 */
-@keyframes bt-dodge-yellow {
-  0%, 100% { box-shadow: none; }
-  40%      { box-shadow: inset 0 0 30px 6px rgba(255, 204, 50, 0.7), 0 0 8px rgba(255, 204, 50, 0.4); }
-  60%      { box-shadow: inset 0 0 24px 4px rgba(255, 204, 50, 0.5); }
+/* 🆕 閃避成功：往左 + 黃光 */
+@keyframes bt-dodge-left {
+  0%, 100% { transform: translateX(0); box-shadow: none; }
+  30%      { transform: translateX(-30px); box-shadow: inset 0 0 30px 6px rgba(255, 204, 50, 0.7), 0 0 8px rgba(255, 204, 50, 0.4); }
+  60%      { transform: translateX(-30px); box-shadow: inset 0 0 24px 4px rgba(255, 204, 50, 0.5); }
 }
 
-/* 🆕 格擋成功：藍光 */
-@keyframes bt-block-blue {
-  0%, 100% { box-shadow: none; }
-  40%      { box-shadow: inset 0 0 30px 6px rgba(80, 160, 255, 0.7), 0 0 8px rgba(80, 160, 255, 0.4); }
-  60%      { box-shadow: inset 0 0 24px 4px rgba(80, 160, 255, 0.5); }
+/* 🆕 格擋成功：往右 + 藍光 */
+@keyframes bt-block-right {
+  0%, 100% { transform: translateX(0); box-shadow: none; }
+  30%      { transform: translateX(30px); box-shadow: inset 0 0 30px 6px rgba(80, 160, 255, 0.7), 0 0 8px rgba(80, 160, 255, 0.4); }
+  60%      { transform: translateX(30px); box-shadow: inset 0 0 24px 4px rgba(80, 160, 255, 0.5); }
 }
 
-/* 攻擊方（lunge）— 只作用於中間戰鬥 slot，側邊名字框不動 */
-.battle-v2 .bt-slot.bt-lunge-right { animation: bt-lunge-right 320ms ease-out; z-index: 2; }
-.battle-v2 .bt-slot.bt-lunge-left  { animation: bt-lunge-left  320ms ease-out; z-index: 2; }
+/* 攻擊方（lunge）— 垂直方向，只作用於中間戰鬥 slot */
+.battle-v2 .bt-slot.bt-lunge-down { animation: bt-lunge-down 320ms ease-out; z-index: 2; }
+.battle-v2 .bt-slot.bt-lunge-up   { animation: bt-lunge-up   320ms ease-out; z-index: 2; }
 
 /* 防守方反應 — 三種結果對應 */
 .battle-v2 .bt-slot.bt-hit-shake   { animation: bt-hit-shake 450ms cubic-bezier(.36,.07,.19,.97); }
-.battle-v2 .bt-slot.bt-dodge-yellow { animation: bt-dodge-yellow 420ms ease-out; }
-.battle-v2 .bt-slot.bt-block-blue   { animation: bt-block-blue 420ms ease-out; }
-
-/* 舊 selector 保留給兼容 */
-.bt-card.bt-lunge-right { animation: bt-lunge-right 320ms ease-out; z-index: 2; position: relative; }
-.bt-card.bt-lunge-left  { animation: bt-lunge-left  320ms ease-out; z-index: 2; position: relative; }
-.bt-card.bt-hit-shake   { animation: bt-hit-shake 450ms cubic-bezier(.36,.07,.19,.97); }
+.battle-v2 .bt-slot.bt-dodge-left  { animation: bt-dodge-left 420ms ease-out; }
+.battle-v2 .bt-slot.bt-block-right { animation: bt-block-right 420ms ease-out; }
 .bt-comb-name  { font-size: 18px; font-weight: 700; letter-spacing: .1em; margin-bottom: 3px; color: var(--text-hi); }
 .bt-comb-title { font-size: 13px; color: #666680; margin-bottom: 5px; }
 .bt-bar-label  { font-size: 13px; color: #888; display: flex; justify-content: space-between; margin-bottom: 2px; }
