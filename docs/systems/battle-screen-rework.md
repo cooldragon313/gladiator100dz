@@ -146,3 +146,101 @@
 - 各種 TB_ENEMIES / TB_WEAPONS / TB_ARMORS 資料
 
 只有 UI 變，機制不變。
+
+---
+
+## 🆕 2026-04-20 微調紀錄（測試後回饋）
+
+### 1. 戰鬥畫面 stage 框拉高（敵方 slot 不被遮）
+
+**位置**：[`game.html:3397` `.battle-v2 .bt-stage`](../../game.html#L3397)
+
+| 參數 | 舊 | 新 |
+|---|---|---|
+| `min-height` | 280px | **400px** |
+| `max-height` | 40vh | **55vh** |
+
+**原因**：原本 40vh 導致底下敵方 slot 被下方 audience / 動作按鈕區遮住。
+
+**調整建議**：若還太擠，`max-height` 可拉到 60-65vh。
+
+---
+
+### 2. 中間空間縮小（玩家 vs 對手間距）
+
+**位置**：[`game.html:3503` `.battle-v2 .bt-stage-mid`](../../game.html#L3503)
+
+| 參數 | 舊 | 新 |
+|---|---|---|
+| `flex` | 1 | 1（保留）|
+| `min-height` | 100px | 100px（保留）|
+| `max-height` | 無 | **180px** |
+
+**原因**：`flex:1` 吃光所有中間空間導致玩家對手間距過大。加 `max-height` 限制。
+
+**調整區間**：
+- 完全緊湊 → 120px
+- 對話空間剛好 → **180px**（現值）
+- 寬鬆 → 220px+
+
+---
+
+### 3. 心情 emoji 頭像全面隱藏
+
+**使用者回饋**：綠愛心 / 藍紫臉 emoji 破壞戰鬥感覺。
+
+**位置**：
+- [`game.html:3332` `.battle-v2 .bt-portrait-mood`](../../game.html#L3332) — 左右欄 emoji
+- [`game.html:3479` `.battle-v2 .bt-slot-face`](../../game.html#L3479) — 中間 stage slot emoji
+
+**改動**：`display: none`
+
+**影響**：
+- `battle.js:_updateMoodFaces()` 仍會執行但 DOM 不可見
+- 不影響戰鬥邏輯 / 數值計算
+- mood color 視覺效果失效（未來換真頭像時恢復）
+
+**未來**：加真 portrait.png 時把 `display: none` 改回 flex/block，換 `textContent` 為 `<img>`。
+
+---
+
+### 4. ATB 速度 ×2
+
+**位置**：[`battle.js:1502` `_startAtbLoop`](../../battle.js#L1502)
+
+| 參數 | 舊 | 新 |
+|---|---|---|
+| `setInterval` 間隔 | 100ms | **50ms**（×2 速度）|
+| `RATING_TICKS.S` | 60 | **120** |
+| `RATING_TICKS.A` | 100 | **200** |
+| `RATING_TICKS.B` | 120 | **240** |
+
+**原因**：使用者反映戰鬥節奏太慢。
+
+**設計**：tick interval 減半 = 戰鬥 ×2 速度。`RATING_TICKS` 等比例調整 → **實際時間標準不變**（S 評分仍需約 6 秒內結束）。
+
+---
+
+### 5. 劇情戰鬥關斬首面板（`sparring: true`）
+
+**位置**：[`main.js` Day 5 沙洗所有 `Battle.start()` 呼叫](../../main.js)
+
+**原因**：使用者發現 Day 5 索爾戰鬥有斬首選項，跟劇本矛盾（索爾必死由劇本決定，不是玩家斬首）。
+
+**改動**：Day 5 所有 3 個戰鬥（trialSol × 2 + trialVeteran）加 `{ sparring: true }` 選項 → 關閉斬首面板 + 關競技場評分。
+
+**規則**：
+- **開放式競技場戰鬥** → 不傳 `sparring` → 有斬首 / 饒恕選項
+- **劇情戰鬥**（Day 5 / Day 49 / 其他腳本化戰鬥）→ 傳 `sparring: true` → 關選項
+
+**未來**：Day 49 血戰宴會 / 主人指派的血戰都應該 `sparring: true`。
+
+---
+
+## 維護規則
+
+新增 UI 調整時，寫一條到此文件「微調紀錄」章節，列出：
+- 位置（檔案 + 行號）
+- 參數舊/新
+- 原因
+- 調整建議
