@@ -160,6 +160,7 @@
 | [`docs/systems/mansion-geography.md`](systems/mansion-geography.md) | 大宅地理規範 — 主人家 + 訓練場**同座建築複合**，正門/側門/共用中段 |
 | [`docs/systems/master-family-spec.md`](systems/master-family-spec.md) | 訓練所家庭通用規範 — archetype 模板、家族動力、檢查清單 |
 | [`docs/systems/found-family.md`](systems/found-family.md) | 新家人系統 — NPC 以家人稱呼確認關係的儀式 |
+| [`docs/systems/ending-presentation.md`](systems/ending-presentation.md) | **結局呈現系統** — 四幕結構 + 5 軸組合 + 命名結局框架 + 第五幕隱藏 + 文字風格 |
 | [`docs/characters/livia.md`](characters/livia.md) | 主人娘 Livia（隱形善意源頭，Phase 2/3 登場）|
 | [`docs/characters/marcus.md`](characters/marcus.md) | 少爺 Marcus（真正反派，殘忍沙包型，Phase 2 登場）|
 

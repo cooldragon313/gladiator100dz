@@ -44,6 +44,7 @@
    - 🆕 **mansion-geography.md**（2026-04-19）：大宅地理 — 主人家 + 訓練場**同座建築**，正門/側門/共用中段
    - 🆕 **master-family-spec.md**（2026-04-19）：訓練所家庭通用規範 — archetype 模板，每個訓練所 = 一個家族故事
    - 🆕 **found-family.md**（2026-04-19）：新家人系統 — NPC 以家人稱呼確認關係的儀式（奧蘭=兄弟/梅拉=母/卡西烏斯=師⋯）
+   - 🆕 **ending-presentation.md**（2026-04-19）：結局呈現系統 — 四幕結構（競技場/他們眼中/你成為了誰/多年後）+ 5 軸線組合 + 隱藏第五幕 + 文字風格規範。Disco Elysium 級敘事哲學。
 3d. **`docs/philosophy/*.md`** — 🆕 D.28：設計哲學（numbers-hiding）
 4. **`changelog.html`** — 版本記錄與歷次 commit 摘要
 5. **`NOTES.md`** — 🆕 手機草稿本。使用者會在手機上寫未整理的想法到底部「待整理」區。
