@@ -3997,11 +3997,51 @@ const Game = (() => {
   }
 
   // ── L3: 護符 6 格（空狀態） ─────────────────────
+  // 🆕 2026-04-20：個人物品定義（暫放，未來移至獨立 item_defs.js）
+  const PERSONAL_ITEM_DEFS = {
+    sol_amulet: {
+      name: '女兒的掛件',
+      icon: '🪵',
+      effect: 'LUK +1',
+      desc: '索爾女兒刻的木牌。歪歪斜斜的「D」字樣。',
+    },
+    black_doc_contact: {
+      name: '密醫紙條',
+      icon: '📜',
+      effect: '城南接頭暗號',
+      desc: '老默給的。寫著城南巷子的暗號。',
+    },
+    mars_token: {
+      name: '馬爾斯的護腕',
+      icon: '🔗',
+      effect: 'ACC +2',
+      desc: '老舊的青銅護腕。他臨死前送你的。',
+    },
+    family_pendant: {
+      name: '家族項鍊',
+      icon: '🧿',
+      effect: '可換錢',
+      desc: '貴族家族徽章。你偷偷藏下來的。',
+    },
+  };
+
   function _renderAmulets() {
     const el = document.getElementById('cs-amulets-grid');
     if (!el) return;
-    // Phase 3 D.3 才會有資料，先全部空格
-    el.innerHTML = Array.from({ length: 6 }, () => '<div class="cs-amulet-cell">空</div>').join('');
+    // 🆕 2026-04-20：暫用護符 grid 顯示 personalItems（6 格上限）
+    // Phase 3 D.3 會獨立出來做個人物品區塊
+    const items = Stats.player.personalItems || [];
+    const cells = Array.from({ length: 6 }).map((_, i) => {
+      const itemId = items[i];
+      if (!itemId) return '<div class="cs-amulet-cell">空</div>';
+      const def = PERSONAL_ITEM_DEFS[itemId] || { name: itemId, icon: '●', effect: '', desc: '' };
+      const tooltip = `${def.desc}${def.effect ? '\n效果：' + def.effect : ''}`;
+      return `<div class="cs-amulet-cell has-item" title="${tooltip.replace(/"/g,'&quot;')}">
+        <div class="ca-icon">${def.icon}</div>
+        <div class="ca-name">${def.name}</div>
+      </div>`;
+    });
+    el.innerHTML = cells.join('');
   }
 
   // ── L4: 寵物 3 槽 ────────────────────────────────

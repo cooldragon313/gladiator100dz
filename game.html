@@ -2144,9 +2144,36 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   border: 1px dashed var(--border);
   border-radius: 2px;
   background: #0a0806;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center; justify-content: center;
   font-size: 10px; color: var(--text-dim);
   opacity: .4;
+  padding: 4px;
+  text-align: center;
+  gap: 2px;
+}
+/* 🆕 2026-04-20：有物品的格子 */
+.cs-amulet-cell.has-item {
+  opacity: 1;
+  border: 1px solid #8b7050;
+  background: linear-gradient(135deg, #1a1208, #0a0604);
+  cursor: help;
+  transition: border-color .2s, transform .15s;
+}
+.cs-amulet-cell.has-item:hover {
+  border-color: #d4af37;
+  transform: scale(1.04);
+}
+.cs-amulet-cell .ca-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+.cs-amulet-cell .ca-name {
+  font-size: 11px;
+  color: #d4af37;
+  letter-spacing: .02em;
+  line-height: 1.2;
 }
 #cs-pets-list .cs-equip-row { opacity: .5; }
 
