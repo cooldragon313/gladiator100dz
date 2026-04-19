@@ -3297,11 +3297,22 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 /* ── Attribute panel (left/right) ── */
 .battle-v2 .bt-attr-panel { display: flex; flex-direction: column; gap: 10px; }
 
-/* 🆕 大頭圖（戰鬥時會撲擊對方） */
-/* 🆕 2026-04-20：使用者要隱藏大頭像 → display:none
-   卡片 .bt-card-player / .bt-card-enemy 的 lunge/shake 特效不受影響（_playAttackAnim 會同時對卡片作用）*/
+/* 🆕 大頭像框（戰鬥時會撲擊對方）*/
+/* 🆕 2026-04-20 v2：改為只顯示名字的小框（跟主畫面 .npc-slot 風格一致）
+   HP/ATB bars 隱藏（中間 slot 已有）。Lunge/shake 特效保留（作用於整個框）*/
 .battle-v2 .bt-portrait {
-  display: none !important;
+  position: relative;
+  width: 100%;
+  min-height: 60px;
+  background: rgba(10, 6, 2, 0.7);
+  border: 1px solid var(--border-hi);
+  border-radius: 3px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 8px;
+  transition: border-color 0.2s, transform 0.2s;
 }
 .battle-v2 .bt-portrait-player {
   border-color: #4a5488;
@@ -3324,8 +3335,8 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   display: none;
 }
 .battle-v2 .bt-portrait-bars {
-  display: flex; flex-direction: column; gap: 3px;
-  padding: 0 2px;
+  /* 🆕 2026-04-20 v2：中間 slot 已有 HP/ATB，側邊大頭像框不重複顯示 */
+  display: none;
 }
 
 .battle-v2 .bt-attr-name {
@@ -3690,6 +3701,14 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 .bt-card.bt-lunge-right { animation: bt-lunge-right 280ms ease-out; z-index: 2; position: relative; }
 .bt-card.bt-lunge-left  { animation: bt-lunge-left 280ms ease-out;  z-index: 2; position: relative; }
 .bt-card.bt-hit-shake   { animation: bt-hit-shake 450ms cubic-bezier(.36,.07,.19,.97); }
+/* 🆕 2026-04-20 v2：側邊大頭像框同樣套用攻擊特效 */
+.battle-v2 .bt-portrait.bt-lunge-right { animation: bt-lunge-right 280ms ease-out; z-index: 2; }
+.battle-v2 .bt-portrait.bt-lunge-left  { animation: bt-lunge-left 280ms ease-out;  z-index: 2; }
+.battle-v2 .bt-portrait.bt-hit-shake   { animation: bt-hit-shake 450ms cubic-bezier(.36,.07,.19,.97); }
+/* 🆕 2026-04-20 v2：中間 slot 卡片 — 保留 attack 特效的 selector */
+.battle-v2 .bt-slot.bt-lunge-right { animation: bt-lunge-right 280ms ease-out; z-index: 2; }
+.battle-v2 .bt-slot.bt-lunge-left  { animation: bt-lunge-left 280ms ease-out;  z-index: 2; }
+.battle-v2 .bt-slot.bt-hit-shake   { animation: bt-hit-shake 450ms cubic-bezier(.36,.07,.19,.97); }
 .bt-comb-name  { font-size: 18px; font-weight: 700; letter-spacing: .1em; margin-bottom: 3px; color: var(--text-hi); }
 .bt-comb-title { font-size: 13px; color: #666680; margin-bottom: 5px; }
 .bt-bar-label  { font-size: 13px; color: #888; display: flex; justify-content: space-between; margin-bottom: 2px; }
