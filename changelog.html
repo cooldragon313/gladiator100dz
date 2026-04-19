@@ -208,6 +208,47 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       2026-04-19 三層擲骰 + Origin 設計規範
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">FEATURE</span>
+      <span class="version-title">出生特性三層擲骰 + Origin 設計規範</span>
+      <span class="version-date">2026-04-19</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>三層擲骰結構</strong> <span class="file-tag">birth_traits.js</span>
+          — 原本只骰稀有 1%，擴充為三層獨立擲骰：
+          <code>稀有</code> 1%/軸（5 軸 10 特性）/
+          <code>罕見</code> 3%/項（iron_will/survivor/unbreakable/shaken）/
+          <code>常見</code> 10%/項（kindness/diligence/silverTongue/reckless/neurotic/brooding）。
+          每角色平均多出 0.7 個常見 + 0.15 個罕見特性。
+          跳過 origin 已給的特性避免重複。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text"><strong>命運之骰畫面分層顯示</strong> <span class="file-tag">character_roll.js</span>
+          — 擲骰結果依稀有/罕見/常見三類分組展示，稀有有金色 glow 效果。
+          重擲時三層一起重骰。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text"><strong>Origin 設計規範</strong> <span class="file-tag">docs/systems/origin-design-spec.md</span>
+          — 新增 origin 必看完整規範：欄位清單 / statMod 平衡（總和 ±4 / 至少 1 負值）/
+          startingTraits 原則 / startingBooks 原則 / initialNpcAffection 原則 /
+          難度分級 / 被抓損失配置 / 受傷部位權重 / 回憶對白矩陣 / 檢查清單。
+          <strong>未來擴充設計想法</strong>：某些 origin 應起手就有技能（startingSkillRolls 欄位預留）+
+          Origin 專屬事件時間表（Day 20/40/60/80/95）。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
        2026-04-19 強迫症系統（訓練行為生成的特性範本）
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">

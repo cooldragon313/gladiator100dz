@@ -2342,6 +2342,20 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 }
 .char-roll-reroll-info strong { color: #d4c68a; }
 
+/* 三層分類標籤 */
+.char-roll-tier-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 8px 0 4px 2px;
+  padding-left: 4px;
+  border-left: 2px solid var(--border);
+}
+.char-roll-trait.tier-rare     { box-shadow: 0 0 4px rgba(212,198,138,0.4); }
+.char-roll-trait.tier-uncommon { opacity: 0.95; }
+.char-roll-trait.tier-common   { opacity: 0.85; }
+
 /* ── 🆕 階段 B: 當前狀態 ── */
 .cs-state-row {
   display: flex; align-items: center; gap: 14px;

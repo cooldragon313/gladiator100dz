@@ -34,9 +34,11 @@ const CharacterRoll = (() => {
   function _rollOnce() {
     const o = (typeof Origins !== 'undefined') ? Origins[_originId] : null;
     const statMod = o?.statMod || {};
+    const tierResult = BirthTraits.rollAll();  // { rare, uncommon, common }
     _currentRoll = {
       stats:  BirthTraits.rollStats(statMod),
-      traits: BirthTraits.rollAll(),
+      tiers:  tierResult,
+      traits: [...tierResult.rare, ...tierResult.uncommon, ...tierResult.common],  // flat（向下相容）
     };
   }
 
@@ -81,6 +83,18 @@ const CharacterRoll = (() => {
     document.getElementById('btn-char-roll-accept').addEventListener('click', _onAccept);
   }
 
+  function _renderTraitCard(tid, tierLabel) {
+    const name = BirthTraits.nameOf(tid);
+    const desc = BirthTraits.descOf(tid);
+    const cat  = BirthTraits.categoryOf(tid);
+    const catCls  = cat === 'negative' ? 'negative' : 'positive';
+    const tierCls = 'tier-' + (tierLabel || 'common');
+    return `<div class="char-roll-trait ${catCls} ${tierCls}">
+      <div class="crt-name">${name}</div>
+      <div class="crt-desc">${desc}</div>
+    </div>`;
+  }
+
   function _renderContent() {
     const body = document.getElementById('char-roll-body');
     if (!body || !_currentRoll) return;
@@ -98,22 +112,26 @@ const CharacterRoll = (() => {
     });
     html += `</div></div>`;
 
-    // 出生特性區塊
+    // 出生特性區塊（三層）
     html += `<div class="char-roll-section">`;
     html += `<div class="char-roll-sec-title">出生特性</div>`;
-    if (_currentRoll.traits.length === 0) {
+    const tiers = _currentRoll.tiers || { rare: [], uncommon: [], common: [] };
+    const totalCount = tiers.rare.length + tiers.uncommon.length + tiers.common.length;
+    if (totalCount === 0) {
       html += `<div class="char-roll-none">普通人。沒有天賦，也沒有詛咒。</div>`;
     } else {
-      _currentRoll.traits.forEach(tid => {
-        const name = BirthTraits.nameOf(tid);
-        const desc = BirthTraits.descOf(tid);
-        const cat  = BirthTraits.categoryOf(tid);
-        const cls  = cat === 'negative' ? 'negative' : 'positive';
-        html += `<div class="char-roll-trait ${cls}">`;
-        html += `  <div class="crt-name">${name}</div>`;
-        html += `  <div class="crt-desc">${desc}</div>`;
-        html += `</div>`;
-      });
+      if (tiers.rare.length > 0) {
+        html += `<div class="char-roll-tier-label">稀有（1% 軸擲骰）</div>`;
+        tiers.rare.forEach(tid => html += _renderTraitCard(tid, 'rare'));
+      }
+      if (tiers.uncommon.length > 0) {
+        html += `<div class="char-roll-tier-label">罕見</div>`;
+        tiers.uncommon.forEach(tid => html += _renderTraitCard(tid, 'uncommon'));
+      }
+      if (tiers.common.length > 0) {
+        html += `<div class="char-roll-tier-label">常見</div>`;
+        tiers.common.forEach(tid => html += _renderTraitCard(tid, 'common'));
+      }
     }
     html += `</div>`;
 

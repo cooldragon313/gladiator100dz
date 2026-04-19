@@ -20,7 +20,7 @@
  */
 const BirthTraits = (() => {
 
-  // 軸定義：每軸的正負特性清單
+  // 軸定義：每軸的正負特性清單（稀有層）
   const AXIS_GROUPS = {
     intelligence: {
       positive: ['genius', 'dullard_lucky'],
@@ -44,28 +44,78 @@ const BirthTraits = (() => {
     },
   };
 
+  // ── 🆕 2026-04-19 常見層（每項獨立 10%）──────────────
+  // 每個角色平均 0.7 個常見特性，~50% 玩家至少 1 個
+  const COMMON_POOL = {
+    positive: ['kindness', 'diligence', 'silverTongue'],
+    negative: ['reckless', 'neurotic', 'brooding'],
+  };
+  const COMMON_PROB = 0.10;
+
+  // ── 🆕 2026-04-19 罕見層（每項獨立 3%）──────────────
+  // 每個角色平均 0.15 個罕見特性
+  const UNCOMMON_POOL = {
+    positive: ['iron_will', 'survivor', 'unbreakable'],
+    negative: ['shaken'],
+  };
+  const UNCOMMON_PROB = 0.03;
+
   // 正負稀有機率（每軸獨立擲骰）
   const RARE_PROB = 0.01;
 
   /**
-   * 擲一整組出生特性。回傳特性 ID 陣列（可能為空）。
+   * 擲一整組出生特性（三層）。回傳 { rare, uncommon, common } 每層各一陣列。
+   *
+   * 層級：
+   *   稀有 rare（1% / 軸）：5 軸互斥 + 強力效果
+   *   罕見 uncommon（3% / 項）：後天可得，但出生有小機率
+   *   常見 common（10% / 項）：人格底色，多數角色會有
+   *
+   * 會跳過與既有特性（player.traits）重複的項目（避免 origin starting 已給的）。
    */
   function rollAll() {
-    const result = [];
+    const rare = [];
+    const uncommon = [];
+    const common = [];
+    const existing = (Stats?.player?.traits || []);
+
+    // 稀有層：每軸擲 1% 正 / 1% 負，正面優先
     Object.entries(AXIS_GROUPS).forEach(([axis, group]) => {
       const rolledPositive = Math.random() < RARE_PROB;
       const rolledNegative = Math.random() < RARE_PROB;
-
       if (rolledPositive) {
-        // 同軸可能有多個正面（如智力軸的天才/傻福），隨機挑一個
         const pool = group.positive;
-        result.push(pool[Math.floor(Math.random() * pool.length)]);
+        const t = pool[Math.floor(Math.random() * pool.length)];
+        if (!existing.includes(t) && !rare.includes(t)) rare.push(t);
       } else if (rolledNegative) {
         const pool = group.negative;
-        result.push(pool[Math.floor(Math.random() * pool.length)]);
+        const t = pool[Math.floor(Math.random() * pool.length)];
+        if (!existing.includes(t) && !rare.includes(t)) rare.push(t);
       }
     });
-    return result;
+
+    // 罕見層：每項獨立 3% 擲骰
+    [...UNCOMMON_POOL.positive, ...UNCOMMON_POOL.negative].forEach(t => {
+      if (existing.includes(t) || uncommon.includes(t) || rare.includes(t)) return;
+      if (Math.random() < UNCOMMON_PROB) uncommon.push(t);
+    });
+
+    // 常見層：每項獨立 10% 擲骰
+    [...COMMON_POOL.positive, ...COMMON_POOL.negative].forEach(t => {
+      if (existing.includes(t) || common.includes(t)) return;
+      if (rare.includes(t) || uncommon.includes(t)) return;
+      if (Math.random() < COMMON_PROB) common.push(t);
+    });
+
+    return { rare, uncommon, common };
+  }
+
+  /**
+   * 將 rollAll 結果攤平成單一陣列（向下相容舊呼叫）。
+   */
+  function rollAllFlat() {
+    const r = rollAll();
+    return [...r.rare, ...r.uncommon, ...r.common];
   }
 
   /**
@@ -331,7 +381,10 @@ const BirthTraits = (() => {
 
   return {
     AXIS_GROUPS,
+    COMMON_POOL,
+    UNCOMMON_POOL,
     rollAll,
+    rollAllFlat,
     rollStats,
     countRare,
     nameOf,

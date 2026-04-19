@@ -114,12 +114,55 @@
 
 ---
 
-### D. 特性擲骰規則
+### D. 特性擲骰規則（三層結構）
 
 - **屬性**：每維 base（10 + origin.statMod）± 2 隨機
-- **出生特性**：每軸獨立擲 1% 正面 + 1% 負面；正面優先
+- **出生特性**：分三層獨立擲骰 — 稀有 / 罕見 / 常見
 - **重擲 2 次**：玩家可拒絕結果，最多 2 次，第 3 次強制接受
-- **同時有 4 個稀有特性機率** ≈ 1 / 10,000
+- **自動跳過**：若 origin 已給某特性（startingTraits），擲骰時跳過
+
+#### 三層機率表
+
+| 層級 | 機率 | 池子大小 | 期望值 / 角色 |
+|---|---|---|---|
+| **稀有 rare** | 1% / 軸（5 軸）| 10 個（5 正 + 5 負） | ~0.1（10% 玩家有）|
+| **罕見 uncommon** | 3% / 項 | 4 個（3 正 + 1 負）| ~0.12 |
+| **常見 common** | 10% / 項 | 6 個（3 正 + 3 負）| ~0.6 |
+
+**合計期望**：每角色 ~0.8 個出生特性（不含 origin 起手特性）
+**加上 origin 起手 1-2 個**：平均總共 1.8-2.8 特性/角色
+
+#### 各層特性清單
+
+**稀有（Rare）**：見「C. 出生稀有特性」章節 — genius / dullard_lucky / dull / ironclad / sickly / fortunate / cursed / blessed / shadowed / born_warrior / cowardly
+
+**罕見（Uncommon）**：
+- 正：iron_will（鐵意志）/ survivor（戰場老兵）/ unbreakable（不屈之身）
+- 負：shaken（信心崩潰）
+
+**常見（Common）**：
+- 正：kindness（寬厚）/ diligence（勤勉）/ silverTongue（巧舌）
+- 負：reckless（急躁）/ neurotic（神經質）/ brooding（鬱結）
+
+---
+
+### E. Origin 設計規範
+
+**新增或調整 origin 必看**：[`docs/systems/origin-design-spec.md`](systems/origin-design-spec.md)
+
+包含：
+- 完整欄位清單 + 範例
+- statMod 平衡原則（總和 ±4 / 至少 1 個負值）
+- startingTraits 原則（0-2 個，非稀有軸組）
+- startingBooks 原則（階級現實）
+- initialNpcAffection 原則（±10 內）
+- 難度分級（1-5 星）
+- 被抓損失配置
+- 受傷部位權重
+- 回憶對白矩陣（origin × 4 部位 = 32 變化）
+- 🆕 未來擴充：Origin 起手技能（startingSkillRolls）
+- 🆕 未來擴充：Origin 專屬事件（Day 20/40/60/80/95）
+- 新 origin 檢查清單
 
 ---
 
