@@ -4291,12 +4291,17 @@ const Game = (() => {
       // 🆕 D.12：取當前可見的 flavor 文字（沒有就 fallback）
       const flavor = (teammates.getVisibleFlavor && teammates.getVisibleFlavor(npcId))
                      || '你對他知之甚少。';
+      // 🆕 2026-04-19：死亡狀態顯示（保留資料，加 💀 + gray 類別）
+      const isDead = npc?.alive === false;
+      const deadCls = isDead ? ' is-dead' : '';
+      const deadBadge = isDead ? '<span class="cs-person-dead-badge" title="已逝">💀</span>' : '';
+      const deadOverlay = isDead ? '<div class="cs-person-dead-tag">已逝</div>' : '';
       return `
-        <div class="cs-person-card ${cardCls}">
-          <div class="cs-person-portrait">${fallback}</div>
+        <div class="cs-person-card ${cardCls}${deadCls}">
+          <div class="cs-person-portrait">${fallback}${deadOverlay}</div>
           <div class="cs-person-info">
             <div class="cs-person-head">
-              <span class="cs-person-name">${name}</span>
+              <span class="cs-person-name">${name}${deadBadge}</span>
               <span class="cs-person-tier">${tierInfo.text}</span>
             </div>
             <div class="cs-person-flavor">${flavor}</div>

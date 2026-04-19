@@ -2934,6 +2934,48 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   50%      { box-shadow: 0 0 10px 2px rgba(204, 0, 68, 0.55); }
 }
 
+/* 🆕 2026-04-19 已逝 NPC 視覺處理 — 保留訊息但灰化 + 骷顱標記 */
+.cs-person-card.is-dead {
+  opacity: 0.55;
+  filter: grayscale(0.75);
+  border-color: #5a5045 !important;
+  background: #0c0a08 !important;
+}
+.cs-person-card.is-dead:hover {
+  opacity: 0.8;
+  transform: translateX(0);
+}
+.cs-person-card.is-dead .cs-person-portrait {
+  position: relative;
+  color: #7a7060;
+}
+.cs-person-card.is-dead .cs-person-dead-tag {
+  position: absolute;
+  inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(20, 10, 10, 0.72);
+  color: #aa7a7a;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  border: 1px solid #5a3030;
+  border-radius: 2px;
+}
+.cs-person-dead-badge {
+  margin-left: 6px;
+  font-size: 14px;
+  vertical-align: middle;
+  filter: grayscale(0.3);
+}
+.cs-person-card.is-dead .cs-person-name {
+  color: #9a8a80 !important;
+  text-decoration: line-through;
+  text-decoration-color: #6a5a50;
+}
+.cs-person-card.is-dead .cs-person-flavor {
+  font-style: italic;
+}
+
 .cs-person-portrait {
   width: 52px; height: 52px;
   background: linear-gradient(135deg, #1a1208 0%, #0f0a04 100%);
