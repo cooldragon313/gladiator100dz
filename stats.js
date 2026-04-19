@@ -442,9 +442,12 @@ const Stats = (() => {
       });
     }
 
-    // 重算屬性上限（CON 改了會影響 hpMax）
+    // 重算屬性上限（CON 改了會影響 hpMax / staminaMax）
     player.hpMax = player.hpBase + Math.round(2 * eff('CON'));
     player.hp    = player.hpMax;   // 新遊戲起手滿血
+    // 🆕 2026-04-19：staminaMax 連動 CON（50 + 5×CON）
+    player.staminaMax = 50 + Math.round(5 * eff('CON'));
+    player.stamina    = Math.min(player.stamina, player.staminaMax);
 
     renderAttributes();
     renderDerivedStats();
@@ -600,6 +603,14 @@ const Stats = (() => {
     if ((player.exp[attr] || 0) < cost) return false;
     player.exp[attr] -= cost;
     player[attr]      = cur + 1;
+
+    // 🆕 2026-04-19：CON 升級連動 hpMax + staminaMax
+    //   hpMax 已有公式（80 + 2×CON），這裡確保同步重算
+    //   staminaMax 新公式：50 + 5×CON（CON 10 → 100 / CON 20 → 150）
+    if (attr === 'CON') {
+      player.hpMax      = player.hpBase + Math.round(2 * eff('CON'));
+      player.staminaMax = 50 + Math.round(5 * eff('CON'));
+    }
     return true;
   }
 

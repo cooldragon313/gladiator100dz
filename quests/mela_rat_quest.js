@@ -71,6 +71,8 @@ const MelaRatQuest = (() => {
     if (!Flags.has('mela_rat_offered')) {
       const aff = (typeof teammates !== 'undefined') ? teammates.getAffection('melaKook') : 0;
       if (aff < MELA_AFF_OFFER) return false;
+      // 🆕 2026-04-19：梅拉本人必須在觀眾區（不能她沒出現任務卻冒出來）
+      if (!_isMelaPresent()) return false;
       // 檢查三種訓練各做過至少一次（透過 exp）
       const hasAGI = (p.exp?.AGI || 0) > 0;
       const hasDEX = (p.exp?.DEX || 0) > 0;

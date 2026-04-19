@@ -672,6 +672,15 @@ player.wounds.head = null | { severity:1-3, daysElapsed } | { special:'concussio
 | < 20 | 就寢 mood −5 / hp −3 |
 | < 10 | 就寢 mood −8 / hp −5 |
 
+### 🆕 Vital 上限公式（2026-04-19）
+
+| 數值 | 公式 | CON 10 | CON 20 | CON 30 |
+|---|---|---|---|---|
+| `hpMax` | `hpBase(80) + 2 × CON` | 100 | 120 | 140 |
+| `staminaMax` | `50 + 5 × CON` | **100** | **150** | **200** |
+
+升 CON 同時增 HP 上限 + stamina 上限。花 EXP 升 CON 是最佳投資。
+
 ### EXP 升級公式
 
 ```

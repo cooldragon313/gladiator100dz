@@ -4603,6 +4603,14 @@ const Game = (() => {
     ['head','torso','arms','legs','mind'].forEach(part => {
       if (p.wounds[part] === undefined) p.wounds[part] = null;
     });
+    // 🆕 2026-04-19：staminaMax 連動 CON 重算（舊存檔可能是 100 固定）
+    if (typeof Stats.eff === 'function') {
+      const targetStaminaMax = 50 + Math.round(5 * Stats.eff('CON'));
+      if (p.staminaMax !== targetStaminaMax) {
+        p.staminaMax = targetStaminaMax;
+        p.stamina = Math.min(p.stamina, p.staminaMax);
+      }
+    }
     // 🆕 2026-04-19 強迫症系統（v5→v6 欄位）
     if (!p.compulsion || typeof p.compulsion !== 'object') {
       p.compulsion = {
