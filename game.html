@@ -3507,7 +3507,9 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100px;   /* 🆕 加高讓泡泡有空間顯示 */
+  min-height: 100px;    /* 對話泡泡最少要多大 */
+  max-height: 180px;    /* 🆕 2026-04-20 限制中間空間 — 避免玩家對手間距過大 */
+  /* 調整建議：留對話空間就 160-200；若要完全緊湊可設 120；更寬鬆 220+ */
 }
 .battle-v2 .bt-stage-vs {
   font-size: 48px;
