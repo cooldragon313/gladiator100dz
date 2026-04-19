@@ -208,6 +208,98 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       2026-04-19 三大系統：讀書 + 出生特性 + 傷勢
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">FEATURE</span>
+      <span class="version-title">三位一體：讀書系統 / 出生特性擲骰 / 傷勢系統（Phase A）</span>
+      <span class="version-date">2026-04-19</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>讀書系統</strong> <span class="file-tag">books.js / reading.js</span>
+          — 5 類書本（識字 / 傳記 / 技能 / 藍圖 / 藏寶圖），13 本種子書完整定義。
+          見識數值（discernment）累積影響訓練 EXP +10~50% & 讀書速度倍率。
+          書櫃上限 5 本，睡前自動讀取（專心書優先，貪多嚼不爛 debuff）。
+          傻福三階段漸進：完整（0-4 見識）→ 半醒（5-9）→ 清醒（10+），
+          半醒 NPC 警告 + 二選一停留路徑（粗識文字特性）。
+          起手書按 origin 差異化：沒落騎士《家傳劍譜》/ 貴族《商賈帳本》/
+          信徒《殉道聖者》/ 手工匠《草藥配方集》。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>出生特性擲骰系統</strong> <span class="file-tag">birth_traits.js / character_roll.js</span>
+          — 5 軸互斥（智力 / 體質 / 運勢 / 心性 / 天賦）× 正負稀有各 1% 獨立擲骰。
+          15 新稀有特性（genius / dullard_lucky / ironclad / fortunate / blessed / born_warrior 等，
+          各有反面）。角色生成新畫面「命運之骰」顯示擲骰結果，玩家可重擲 2 次或接受。
+          屬性 base ±2 隨機骰（非全屬 10 開局）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>傷勢系統</strong> <span class="file-tag">wounds.js</span>
+          — 4 部位（head / torso / arms / legs）× 3 級嚴重度（輕/中/重），獨立於 ailments。
+          屬性減免（head→WIL, torso→CON, arms→STR, legs→AGI）自動整合到 Stats.eff()。
+          開場 15% 擲傷 + 嚴重度骰（輕 60% / 中 30% / 重 10%），紅光震動 + 部位化回憶對白矩陣（origin × 部位 32 變化）。
+          低體力訓練擲新傷（體力分層：30-50 → 5% 輕傷；&lt;5 → 65% 中/重傷）。
+          有傷練對應部位觸發「好痛」：輕 30% / 中 60% / 重 90%，失訓練 + 震動 + 扣 HP + 機率升級傷勢。
+          自癒週期：輕 4 天 / 中 15 天（治療後 7 天）/ 重永久。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text"><strong>老默三階段暗示 → 密醫引薦</strong> <span class="file-tag">doctor_events.js</span>
+          — Stage 1 首次診到重傷「這傷我只能止血，深處的治不了」；
+          Stage 2 重傷 10 天後 + 玩家仍訓練 → 「等你準備好，我有個朋友」；
+          Stage 3 後 5 天 → 拿到密醫紙條（personalItem: black_doc_contact）。
+          自然癒合重傷路徑：WIL ≥ 20 + 老默好感 ≥ 80 + 養傷 30 天 → 重傷降中傷 + 獲得鐵意志/不屈之身特性。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text"><strong>8 origins 擴展</strong> <span class="file-tag">origins.js</span>
+          — 從 2 origins 擴到 8（ruinedKnight / beggar / artisan / criminal / gambler / believer 新增）。
+          各有 openingNarrative、initialNpcAffection、statMod、startingTraits、startingBooks。
+          被抓過程傷害 + 傷勢部位依 origin 加權（農家軀幹多 / 乞丐腿多 / 信徒頭多 / 沒落騎士手臂多）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text"><strong>15+ 新特性定義</strong> <span class="file-tag">config.js</span>
+          — 軸組稀有 10（5 正 / 5 負）+ 讀書衍生 4（cunning / faithful / brave / partial_literate）+ 傻福衍生。
+          Effects.apply 支援新 type: <code>discernment</code>。
+          Stats 新增 helper: <code>modDiscernment / getDullardStageMult / getReadingSpeedMult / getDiscernmentExpMult</code>。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text"><strong>角色頁新增兩區塊 + 命運之骰 modal</strong> <span class="file-tag">game.html</span>
+          — 角色頁右欄加「傷勢」與「書櫃」兩區塊（有內容才顯示）。書櫃列每本書進度條、見識等級、專心書標記。
+          命運之骰 modal 顯示六維 + 出生特性 + 重擲計數。
+          震動 + 紅光動畫 CSS（<code>.bt-flash-red</code> / <code>.bt-shake</code>）供受傷回饋共用。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text"><strong>4 份設計文件</strong> <span class="file-tag">docs/</span>
+          — <code>systems/reading.md</code>（讀書系統完整規範）、
+          <code>systems/books-catalog.md</code>（13 本種子書目錄）、
+          <code>systems/wounds.md</code>（傷勢系統 + 密醫路線 + 自然癒合 + 結局分支）、
+          <code>systems/traits.md</code>（更新加入出生軸組 + 傻福三階段 + 特性轉化）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">FIX</span>
+        <span class="change-text"><strong>新遊戲 traits 重置</strong> — 原本預設 <code>traits:['kindness']</code>
+          會讓所有 origin 都有 kindness（包括貴族 / 罪犯）。改為空陣列，完全由 applyOrigin 決定。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text"><strong>存檔遷移 v5 → v6</strong> <span class="file-tag">main.js _applySavePayload</span>
+          — 舊存檔讀入時自動補齊 <code>discernment / bookshelf / focusBookId / readBooks / dullardStage / weaponInventory / wounds</code> 欄位預設值。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
        2026-04-18 抓老鼠夜間任務（第一個 night-event 範本）
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">

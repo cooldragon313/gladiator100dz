@@ -33,7 +33,9 @@
    - 改 NPC 對白先看這份，確保語氣一致
 3b. **`docs/quests/*.md`** — 🆕 D.28：每個任務的完整設計書（觸發 / 階段 / 門檻 / 對白 / 獎勵 / flag）
    - 目前已建：mela-rat（抓老鼠任務）
-3c. **`docs/systems/*.md`** — 🆕 D.28：系統規範（night-events, multi-check-quest）
+3c. **`docs/systems/*.md`** — 🆕 D.28：系統規範（night-events, multi-check-quest, **reading**, **books-catalog**, **wounds**, traits, origins, timeline, battle-*, npc-growth）
+   - 🆕 **reading.md / books-catalog.md**（2026-04-19）：讀書系統 + 五類書本 + 見識數值 + 傻福三階段交互
+   - 🆕 **wounds.md**（2026-04-19）：4 部位 × 3 級傷勢系統 + 低體力擲傷 + 好痛觸發 + 老默三階段 → 密醫引薦
 3d. **`docs/philosophy/*.md`** — 🆕 D.28：設計哲學（numbers-hiding）
 4. **`changelog.html`** — 版本記錄與歷次 commit 摘要
 5. **`NOTES.md`** — 🆕 手機草稿本。使用者會在手機上寫未整理的想法到底部「待整理」區。
@@ -106,8 +108,28 @@
 | 分房 flag | `separated_from_olan` | orlan_events.js |
 | 偷藥替罪 flag | `shared_olans_punishment` | orlan_events.js |
 | 告發 flag | `betrayed_olan`（不可逆）| orlan_events.js |
+| 🆕 見識 | `player.discernment` | reading.md / books.js（待建）|
+| 🆕 書櫃 | `player.bookshelf[]`（上限 5）| reading.md / books.js（待建）|
+| 🆕 專心書 | `player.focusBookId` | reading.md |
+| 🆕 已讀清單 | `player.readBooks[]` | reading.md |
+| 🆕 傻福階段 | `player.dullardStage`（0/1/2）| traits.md 傻福三階段 |
+| 🆕 文字書 | 識字本 / 傳記類（推進傻福衰退）| books-catalog.md |
+| 🆕 非文字書 | 技能 / 藍圖 / 地圖（不影響傻福）| books-catalog.md |
+| 🆕 貪多嚼不爛 | 書櫃 ≥ 3 本未設專心 → 進度 ×0.7 | reading.md |
+| 🆕 粗識文字 | 特性 `partialLiterate`（傻福半醒停留）| traits.md |
+| 🆕 半醒拒絕 flag | `refused_awakening` | reading.md |
+| 🆕 清醒觸發 flag | `dullard_awakened` | reading.md |
+| 🆕 傷勢系統 | `player.wounds` | wounds.js |
+| 🆕 四部位 | head / torso / arms / legs | wounds.md |
+| 🆕 三級嚴重度 | severity:1/2/3（輕/中/重）| wounds.js |
+| 🆕 好痛觸發 | `Wounds.checkTrainingPain(attr)` | wounds.js |
+| 🆕 低體力擲傷 | `Wounds.rollLowStaminaInjury(attr)` | wounds.js |
+| 🆕 傷勢減免 | `Wounds.getAttrPenalty(attr)`（整合到 Stats.eff）| wounds.js, stats.js |
+| 🆕 密醫紙條 | `got_black_doc_contact` + personalItem `black_doc_contact` | doctor_events.js |
+| 🆕 老默三階段 | `doctor_saw_severe_wound` → `doctor_hinted_black_doc` → `got_black_doc_contact` | doctor_events.js |
+| 🆕 自然癒合 flag | `natural_recovery_triggered_{part}` | wounds.js |
 
-**Flag 命名規範**：`{主題}_{事件}_{狀態}` — 例：`olan_apothecary_resolved`、`doctor_visit_today`
+**Flag 命名規範**：`{主題}_{事件}_{狀態}` — 例：`olan_apothecary_resolved`、`doctor_visit_today`、`read_book_<id>`、`knows_blueprint_<id>`
 
 ### ⚠️ Debug 工具清單（上線前必須移除或鎖管理員）
 
@@ -373,6 +395,10 @@ save_system → testbattle → battle → actions → main
 
 ## 🔄 最近重要變更
 
+- **2026-04-19**：傷勢系統上線（wounds.md）— 4 部位 × 3 級嚴重度 / 開場 15% 擲傷 + 紅光震動 + origin×部位回憶矩陣 / 低體力擲新傷 + 有傷練對應部位觸發「好痛」/ 老默三階段暗示 → 密醫紙條（Phase A 完）
+- **2026-04-19**：讀書系統上線（reading.md + books-catalog.md）— 5 類 13 本種子書、見識數值公式、書櫃 5 本容量、傻福三階段漸進、起手書按 origin 差異化、睡前讀書事件、角色頁書櫃區塊
+- **2026-04-19**：出生特性軸組系統（traits.md）— 5 軸互斥（智力 / 體質 / 運勢 / 心性 / 天賦）+ 各軸正負稀有特性 1% 獨立擲骰 + 重擲 2 次 + 特性轉化（天才→心力交瘁 / 鐵人→殘軀 / 神眷→神棄 / 神眷可後天獲得）
+- **2026-04-19**：8 origins 擴展（origins.js）— farmBoy/nobleman/ruinedKnight/beggar/artisan/criminal/gambler/believer，各有起手書與 NPC 好感設定
 - **2026-04-16**：D.22 醫生老默 + 治療系統（新 NPC + DialogueModal 18 句 + 四種傷勢差異化治療 + 藥房懸念橋接）
 - **2026-04-16**：D.21b 奧蘭脊椎升級 + 藥房懸念完整鏈 + 道德光譜 UI
 - **2026-04-16**：D.21 對話系統 + 晨思系統（DialogueModal L2 + MorningThoughts 30 條 + Stage.playMorning 雞鳴過場 + 奧蘭 Day 1 升級）

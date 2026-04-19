@@ -115,17 +115,37 @@ const Stats = (() => {
     // 🆕 Phase 1-D: 就寢狀態追蹤
     insomniaStreak:    0,  // 連續失眠天數（≥2 觸發失眠症）
     normalSleepStreak: 0,  // 連續正常睡眠天數（≥3 解除失眠症）
+
+    // 🆕 2026-04-19: 讀書系統（reading.md）
+    discernment:  0,       // 見識數值（永久累積，文字書 +1~3）
+    bookshelf:    [],      // 未讀書陣列 [{id, progress, nights}]，上限 5
+    focusBookId:  null,    // 專心書 ID，null = 無
+    readBooks:    [],      // 已讀過的書 ID 清單
+    dullardStage: 0,       // 傻福階段（0=完整 / 1=半醒 / 2=清醒）
+    weaponInventory: [],   // 武器持有清單（之前已散在 main.js，這裡統一初始化）
+
+    // 🆕 2026-04-19: 傷勢系統（wounds.md）
+    wounds: {
+      head:  null,   // null | { severity:1-3, source, daysElapsed, cameFromCombat }
+      torso: null,
+      arms:  null,
+      legs:  null,
+    },
   };
 
   // Effective attr = base + equipment bonus + buff bonus - stamina penalty
   // 🆕 D.6 v2：最終值強制整數（Math.round），任何小數來源（舊 delta、buff、計算誤差）
   //            都會在這裡被扁平化。所有下游呼叫者（六角形/升級卡/calcDerived/戰鬥）都拿整數。
   function eff(attr) {
+    // 🆕 2026-04-19：傷勢減免（Wounds 系統）
+    const woundPen = (typeof Wounds !== 'undefined' && Wounds.getAttrPenalty)
+                       ? Wounds.getAttrPenalty(attr) : 0;
     return Math.round(
       player[attr]
       + (player.eqBonus[attr]      || 0)
       + (player.buffBonus[attr]    || 0)
       - (player.staminaPenalty[attr] || 0)
+      - woundPen
     );
   };
 
@@ -393,6 +413,17 @@ const Stats = (() => {
       });
     }
 
+    // 🆕 2026-04-19 起手書（讀書系統）
+    if (Array.isArray(o.startingBooks) && typeof Books !== 'undefined') {
+      if (!Array.isArray(player.bookshelf)) player.bookshelf = [];
+      o.startingBooks.forEach(bookId => {
+        const def = Books.get && Books.get(bookId);
+        if (def && !player.bookshelf.some(b => b.id === bookId)) {
+          player.bookshelf.push({ id: bookId, progress: 0, nights: def.nights });
+        }
+      });
+    }
+
     // 重算屬性上限（CON 改了會影響 hpMax）
     player.hpMax = player.hpBase + Math.round(2 * eff('CON'));
     player.hp    = player.hpMax;   // 新遊戲起手滿血
@@ -436,6 +467,75 @@ const Stats = (() => {
     if (el) el.textContent = val + ' 枚';
     const csEl = document.getElementById('cs-money');
     if (csEl) csEl.textContent = val;
+  }
+
+  // ── 🆕 見識系統（讀書 2026-04-19） ─────────────
+  /**
+   * 修改見識數值。推進傻福階段 + 觸發階段切換事件。
+   * @param {number} delta 增量（通常正值）
+   * @returns {object} { newStage, stageChanged }
+   */
+  function modDiscernment(delta) {
+    if (typeof delta !== 'number' || delta === 0) return { newStage: player.dullardStage, stageChanged: false };
+    const before = player.discernment || 0;
+    const after  = Math.max(0, Math.round(before + delta));
+    player.discernment = after;
+
+    // 檢查傻福階段切換（僅對擁有 dullard_lucky 特性者）
+    const hasDullard = Array.isArray(player.traits) && player.traits.includes('dullard_lucky');
+    let newStage = player.dullardStage || 0;
+    let stageChanged = false;
+    if (hasDullard) {
+      let targetStage = newStage;
+      if (after >= 10) targetStage = 2;
+      else if (after >= 5) targetStage = 1;
+      else targetStage = 0;
+      if (targetStage !== newStage) {
+        player.dullardStage = targetStage;
+        newStage = targetStage;
+        stageChanged = true;
+      }
+    }
+
+    // 見識閥值提示（addLog）
+    const thresholds = [3, 5, 8, 12];
+    thresholds.forEach(t => {
+      if (before < t && after >= t && typeof addLog === 'function') {
+        addLog(`✦ 見識 +${t}：你感覺思路清晰了一些。`, '#88aacc', false, false);
+      }
+    });
+
+    return { newStage, stageChanged };
+  }
+
+  /**
+   * 查傻福階段對應的效果倍率。
+   */
+  function getDullardStageMult() {
+    const stage = player.dullardStage || 0;
+    if (stage === 0) return { expMult: 0.85, dodgeChance: 0.20, critBonus: 0.15, luckRollTake: 3 };
+    if (stage === 1) return { expMult: 0.95, dodgeChance: 0.10, critBonus: 0.05, luckRollTake: 2 };
+    return { expMult: 1.00, dodgeChance: 0,    critBonus: 0,    luckRollTake: 1 };
+  }
+
+  /**
+   * 查見識對讀書速度的倍率。
+   */
+  function getReadingSpeedMult() {
+    const d = player.discernment || 0;
+    return Math.max(0.4, 1 - d * 0.03);
+  }
+
+  /**
+   * 查見識對訓練 EXP 的加成倍率。
+   */
+  function getDiscernmentExpMult() {
+    const d = player.discernment || 0;
+    if (d >= 12) return 1.50;
+    if (d >= 8)  return 1.35;
+    if (d >= 5)  return 1.20;
+    if (d >= 3)  return 1.10;
+    return 1.00;
   }
 
   // ── 🆕 經驗值系統（D.6 Phase 3 實作） ──────────────
@@ -664,6 +764,10 @@ const Stats = (() => {
     modAttr,
     modMoney,      // 🆕 D.1.6
     modExp,        // 🆕 D.6
+    modDiscernment,         // 🆕 2026-04-19 讀書
+    getDullardStageMult,    // 🆕 2026-04-19 讀書
+    getReadingSpeedMult,    // 🆕 2026-04-19 讀書
+    getDiscernmentExpMult,  // 🆕 2026-04-19 讀書
     modSp,         // 🆕 D.6
     expToNext,           // 🆕 D.6 升級曲線查詢
     spendExpOnAttr,      // 🆕 D.6 v2 花 EXP 升屬性

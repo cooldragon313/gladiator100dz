@@ -1765,6 +1765,17 @@ const Game = (() => {
     Flags.unset('hector_harass_today');
   }, 19);
 
+  // 🆕 2026-04-19 傷勢每日推進（自癒 / 自然癒合檢查）
+  DayCycle.onDayStart('woundsDailyTick', () => {
+    if (typeof Wounds !== 'undefined' && Wounds.onDayStart) {
+      try { Wounds.onDayStart(); } catch (e) { console.error('[Wounds]', e); }
+    }
+    // 累加密醫暗示後的天數（用於 Stage 3 觸發）
+    if (typeof Flags !== 'undefined' && Flags.has('doctor_hinted_black_doc') && !Flags.has('got_black_doc_contact')) {
+      Flags.increment('days_since_black_doc_hint', 1);
+    }
+  }, 15);
+
   // 赫克托 Day 8 試探事件（他推你一下看你反應）
   DayCycle.onDayStart('hectorDay8', (newDay) => {
     if (newDay !== 8 || Flags.has('hector_day8_done')) return;
@@ -2396,6 +2407,25 @@ const Game = (() => {
         renderAll();
         return;
       }
+
+      // ── 🆕 2026-04-19：傷勢「好痛」觸發檢查 ──
+      const trainingAttr = (act.effects || []).find(e => (e.type === 'attr' || e.type === 'exp'))?.key;
+      if (trainingAttr && typeof Wounds !== 'undefined') {
+        const painResult = Wounds.checkTrainingPain(trainingAttr);
+        if (painResult && painResult.painTriggered) {
+          // 訓練失敗：扣時間 + 扣體力，不得 EXP
+          Stats.modVital('stamina', -act.staminaCost);
+          if (act.foodCost) Stats.modVital('food', -act.foodCost);
+          Stats.advanceTime(act.slots * SLOT_DUR);
+          _resolveNonTrainingSlots();
+          autoSave('action');
+          renderAll();
+          return;
+        }
+
+        // ── 🆕 低體力訓練時擲新傷勢 ──
+        Wounds.rollLowStaminaInjury(trainingAttr);
+      }
     }
 
     // ══════════════════════════════════════════════════
@@ -2431,6 +2461,25 @@ const Game = (() => {
         thresholdMult *= 0.75;
         addLog('🫙 肚子開始咕嚕叫，注意力難以集中。', '#aa7733', false);
         thresholdDesc += '（飢餓 ×0.75）';
+      }
+
+      // ── 🆕 2026-04-19：傷勢對訓練 EXP 的影響 ──
+      const trainingAttr2 = (act.effects || []).find(e => (e.type === 'attr' || e.type === 'exp'))?.key;
+      if (trainingAttr2 && typeof Wounds !== 'undefined') {
+        const expDec = Wounds.getTrainExpMultDec(trainingAttr2);
+        if (expDec > 0) {
+          thresholdMult *= (1 - expDec);
+          thresholdDesc += `（帶傷 ×${(1 - expDec).toFixed(2)}）`;
+        }
+      }
+
+      // ── 🆕 2026-04-19：見識訓練 EXP 加成 ──
+      if (typeof Stats.getDiscernmentExpMult === 'function') {
+        const dMult = Stats.getDiscernmentExpMult();
+        if (dMult > 1.0) {
+          thresholdMult *= dMult;
+          thresholdDesc += `（見識 ×${dMult.toFixed(2)}）`;
+        }
       }
     }
 
@@ -3044,6 +3093,11 @@ const Game = (() => {
   function _sleepEndDayBody(forcedSleepType) {
     const p = Stats.player;
 
+    // 🆕 2026-04-19：睡前讀書（書櫃有書就推進進度）
+    if (typeof Reading !== 'undefined' && Reading.tryBedtime) {
+      try { Reading.tryBedtime(); } catch (e) { console.error('[Reading]', e); }
+    }
+
     // 🆕 D.12: 就寢前先掃描 NPC 故事事件（夜間共鳴）
     _scanStoryEvents();
 
@@ -3409,6 +3463,14 @@ const Game = (() => {
     _renderScars();
     _renderAilments();
     _renderMoralSpectrum();   // 🆕 D.21 Option C：道德光譜
+    // 🆕 2026-04-19 傷勢
+    if (typeof Wounds !== 'undefined' && Wounds.renderWoundsList) {
+      try { Wounds.renderWoundsList('cs-wounds-list'); } catch (e) { console.error('[Wounds]', e); }
+    }
+    // 🆕 2026-04-19 書櫃
+    if (typeof Reading !== 'undefined' && Reading.renderBookshelf) {
+      try { Reading.renderBookshelf('cs-bookshelf'); } catch (e) { console.error('[Reading]', e); }
+    }
     _renderSkills();
     _renderPeopleTab();
   }
@@ -4404,6 +4466,21 @@ const Game = (() => {
     if (p.religion === undefined) p.religion = null;
     if (p.faction  === undefined) p.faction  = null;
 
+    // 🆕 2026-04-19 讀書系統（v5→v6 欄位）
+    if (p.discernment  === undefined) p.discernment  = 0;
+    if (!Array.isArray(p.bookshelf))  p.bookshelf    = [];
+    if (p.focusBookId  === undefined) p.focusBookId  = null;
+    if (!Array.isArray(p.readBooks))  p.readBooks    = [];
+    if (p.dullardStage === undefined) p.dullardStage = 0;
+    if (!Array.isArray(p.weaponInventory)) p.weaponInventory = [];
+    // 🆕 2026-04-19 傷勢系統（v5→v6 欄位）
+    if (!p.wounds || typeof p.wounds !== 'object') {
+      p.wounds = { head:null, torso:null, arms:null, legs:null };
+    }
+    ['head','torso','arms','legs'].forEach(part => {
+      if (p.wounds[part] === undefined) p.wounds[part] = null;
+    });
+
     // GameState
     if (data.gameState) {
       GameState.loadFrom(data.gameState);
@@ -4614,7 +4691,7 @@ const Game = (() => {
         origin:null, facility:null, religion:null, faction:null,
         // 其他
         affection:{ master:0, officer:0, blacksmith:0, cook:0 },
-        achievements:[], traits:['kindness'], title:null, fameBase:0,
+        achievements:[], traits:[], title:null, fameBase:0,  // 🆕 2026-04-19 特性由 applyOrigin + 擲骰決定，不再預設 kindness
         // 🆕 Phase 1-D 病痛/睡眠追蹤
         ailments:[], insomniaStreak:0, normalSleepStreak:0,  // 不再預設失眠，靠連續壞睡自然觸發
         // 🆕 D.12 故事揭露系統：清空已觸發記錄
@@ -4628,6 +4705,11 @@ const Game = (() => {
           arenaWins:0, arenaLosses:0,
           sRankCount:0, aRankCount:0, totalTicks:0, winStreak:0,
         },
+        // 🆕 2026-04-19 讀書系統
+        discernment:0, bookshelf:[], focusBookId:null, readBooks:[],
+        dullardStage:0, weaponInventory:[],
+        // 🆕 2026-04-19 傷勢系統
+        wounds: { head:null, torso:null, arms:null, legs:null },
       });
       Flags.clear();          // 清空所有故事旗標
       GameState.reset();       // 🆕 D.1.12: 清空 session state
@@ -5009,9 +5091,17 @@ const Game = (() => {
     const originId = _selectedOrigin;
     const o = Origins[originId];
 
-    // 開場動畫已在 _playOpeningCinematic 處理，這裡直接進入遊戲
+    // 開場動畫已在 _playOpeningCinematic 處理
     Stats.applyOrigin(originId);
-    _enterNewGame();
+
+    // 🆕 2026-04-19：擲骰畫面（屬性變動 + 出生特性 + 2 次重擲 + 被抓受傷）
+    if (typeof CharacterRoll !== 'undefined') {
+      CharacterRoll.start(originId, () => {
+        _enterNewGame();
+      });
+    } else {
+      _enterNewGame();
+    }
   }
 
   /** 新遊戲真正開始（rollNPCs、Day 1 起床演出、resolve meal、save、render） */

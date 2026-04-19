@@ -2129,6 +2129,219 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 }
 #cs-pets-list .cs-equip-row { opacity: .5; }
 
+/* ══ 🆕 2026-04-19 傷勢系統 ══════════════════ */
+#cs-wounds-list { margin-top: 4px; display: flex; flex-direction: column; gap: 4px; }
+.wound-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 4px 8px;
+  background: #0a0806;
+  border-left: 3px solid var(--border);
+  font-size: 13px;
+}
+.wound-row.severity-light  { border-left-color: #d4a068; color: #d4a068; }
+.wound-row.severity-medium { border-left-color: #cc7733; color: #e6a77a; }
+.wound-row.severity-severe { border-left-color: #cc3333; color: #e67777; background: #180808; }
+.wound-part { font-weight: 600; min-width: 40px; }
+.wound-sev  { flex: 1; }
+.wound-days { font-size: 11px; color: var(--text-dim); }
+
+/* 震動 + 紅閃（被攻擊/受傷回饋）*/
+@keyframes bt-flash-red-kf {
+  0%, 100% { box-shadow: inset 0 0 0 0 rgba(204,51,51,0); }
+  30%, 60% { box-shadow: inset 0 0 60px 20px rgba(204,51,51,0.7); }
+}
+@keyframes bt-shake-kf {
+  0%, 100% { transform: translate(0,0); }
+  10% { transform: translate(-6px, -2px); }
+  20% { transform: translate(6px, 2px); }
+  30% { transform: translate(-5px, 3px); }
+  40% { transform: translate(5px, -3px); }
+  50% { transform: translate(-4px, -1px); }
+  60% { transform: translate(4px, 2px); }
+  70% { transform: translate(-2px, 1px); }
+  80% { transform: translate(2px, -1px); }
+  90% { transform: translate(-1px, 0); }
+}
+.bt-flash-red { animation: bt-flash-red-kf 0.6s ease-in-out; }
+.bt-shake     { animation: bt-shake-kf 0.7s ease-in-out; }
+
+/* ══ 🆕 2026-04-19 書櫃（讀書系統）══════════════════ */
+#cs-bookshelf {
+  margin-top: 4px;
+  font-size: 13px;
+}
+.bookshelf-header {
+  display: flex; justify-content: space-between;
+  align-items: center;
+  padding: 4px 6px 6px;
+  font-size: 12px;
+  color: var(--text-dim);
+  border-bottom: 1px dashed var(--border);
+}
+.bs-discernment strong { color: #88aacc; font-size: 14px; }
+.bs-capacity { color: var(--text-dim); }
+.bookshelf-empty {
+  padding: 8px; color: var(--text-dim);
+  font-style: italic; text-align: center;
+}
+.bookshelf-list { margin-top: 6px; display: flex; flex-direction: column; gap: 6px; }
+.bookshelf-item {
+  padding: 6px 8px;
+  background: #0a0806;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+.bookshelf-item.is-focus {
+  border-color: #88aacc;
+  background: #0f1218;
+  box-shadow: 0 0 4px rgba(136,170,204,.3);
+}
+.bookshelf-item.is-locked { opacity: 0.55; }
+.bs-book-title {
+  font-weight: 600;
+  color: #d4c68a;
+  margin-bottom: 2px;
+}
+.bs-book-flavor {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-style: italic;
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+.bs-book-progress {
+  display: flex; align-items: center; gap: 6px;
+  margin-bottom: 4px;
+}
+.bs-progress-bar {
+  flex: 1;
+  height: 6px;
+  background: #1a1510;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.bs-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #665544, #88aacc);
+  transition: width 0.3s;
+}
+.bs-progress-text {
+  font-size: 10px;
+  color: var(--text-dim);
+  min-width: 70px;
+  text-align: right;
+}
+.bs-book-locked {
+  font-size: 11px;
+  color: #aa8866;
+  font-style: italic;
+  margin-bottom: 4px;
+}
+.bs-focus-btn {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  cursor: pointer;
+  border-radius: 2px;
+}
+.bs-focus-btn:hover { border-color: #88aacc; color: #88aacc; }
+.bookshelf-item.is-focus .bs-focus-btn {
+  border-color: #88aacc;
+  color: #88aacc;
+}
+.bookshelf-warning {
+  margin-top: 8px;
+  padding: 4px 6px;
+  background: #2a1f0f;
+  border-left: 3px solid #cc7733;
+  font-size: 11px;
+  color: #cc9966;
+}
+
+/* ══ 🆕 2026-04-19 角色擲骰畫面 ══════════════════ */
+.char-roll-box {
+  max-width: 620px;
+  padding: 20px 22px 18px;
+}
+.char-roll-intro {
+  text-align: center;
+  color: var(--text-dim);
+  font-style: italic;
+  margin-bottom: 18px;
+}
+.char-roll-section {
+  margin-bottom: 16px;
+}
+.char-roll-sec-title {
+  font-size: 14px;
+  color: #d4c68a;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 3px;
+}
+.char-roll-stats {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+.char-roll-stat {
+  background: #0a0806;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 8px 4px;
+  text-align: center;
+}
+.crs-key {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+.crs-val {
+  font-size: 22px;
+  font-weight: 600;
+  color: #d4c68a;
+}
+.char-roll-none {
+  padding: 10px;
+  color: var(--text-dim);
+  font-style: italic;
+  text-align: center;
+  background: #0a0806;
+  border: 1px dashed var(--border);
+  border-radius: 3px;
+}
+.char-roll-trait {
+  padding: 8px 10px;
+  background: #0a0806;
+  border-left: 4px solid var(--border);
+  border-radius: 2px;
+  margin-bottom: 6px;
+}
+.char-roll-trait.positive { border-left-color: #88cc77; }
+.char-roll-trait.negative { border-left-color: #cc7733; }
+.crt-name {
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+.char-roll-trait.positive .crt-name { color: #aaddaa; }
+.char-roll-trait.negative .crt-name { color: #e6a77a; }
+.crt-desc {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+.char-roll-reroll-info {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 12px;
+  margin-top: 10px;
+}
+.char-roll-reroll-info strong { color: #d4c68a; }
+
 /* ── 🆕 階段 B: 當前狀態 ── */
 .cs-state-row {
   display: flex; align-items: center; gap: 14px;
@@ -4162,6 +4375,14 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
         <div class="cs-subsection-title">護符</div>
         <div id="cs-amulets-grid" class="cs-amulet-grid"></div>
 
+        <!-- 🆕 2026-04-19 傷勢（wounds 系統）-->
+        <div class="cs-subsection-title">傷勢</div>
+        <div id="cs-wounds-list"></div>
+
+        <!-- 🆕 2026-04-19 書櫃（讀書系統）-->
+        <div class="cs-subsection-title">書櫃</div>
+        <div id="cs-bookshelf"></div>
+
         <!-- 寵物 -->
         <div class="cs-subsection-title">寵物</div>
         <div id="cs-pets-list"></div>
@@ -4439,6 +4660,11 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 <script src="skill.js"></script>
 <script src="ending.js"></script>
 <script src="save_system.js"></script>
+<script src="wounds.js"></script>
+<script src="books.js"></script>
+<script src="birth_traits.js"></script>
+<script src="reading.js"></script>
+<script src="character_roll.js"></script>
 <script src="測試頁面/testbattle.js"></script>
 <script src="battle.js"></script>
 <script src="actions.js"></script>

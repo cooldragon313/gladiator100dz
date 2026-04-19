@@ -104,6 +104,11 @@ const Effects = (() => {
           s.push(`SP${delta > 0 ? '+' : ''}${delta}`);
         }
         break;
+      case 'discernment':
+        if (typeof delta === 'number' && delta > 0) {
+          s.push(`見識+${delta}`);
+        }
+        break;
       case 'affection': {
         const npc = (typeof teammates !== 'undefined') ? teammates.getNPC(eff.key) : null;
         const name = npc?.name || eff.key;
@@ -196,6 +201,14 @@ const Effects = (() => {
 
       case 'sp':
         Stats.modSp(delta);
+        _addSummary(ctx, eff, delta);
+        break;
+
+      // ── 🆕 見識（讀書系統 2026-04-19）─────────────
+      case 'discernment':
+        if (typeof Stats.modDiscernment === 'function') {
+          Stats.modDiscernment(delta);
+        }
         _addSummary(ctx, eff, delta);
         break;
 

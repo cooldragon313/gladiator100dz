@@ -335,6 +335,96 @@ const Config = (() => {
       moralAxis: 'patience', moralSide: 'negative',
       desc: '看到就想動手，聽到就想反擊。還沒學會停下來。',
     },
+
+    // ══════════════════════════════════════════════════
+    // 🆕 2026-04-19 出生特性（軸組互斥，1% 獨立擲骰）
+    // ── 智力軸 / 體質軸 / 運勢軸 / 心性軸 / 天賦軸
+    // ══════════════════════════════════════════════════
+
+    // ── 智力軸 ─────────────────────────────
+    genius: {
+      id: 'genius', name: '天才', category: 'positive',
+      birthAxis: 'intelligence', birthSide: 'positive', isRare: true,
+      desc: '大腦比一般人快兩拍。訓練 EXP +15%，WIL +2，能看懂複雜對話，讀書吸收更快。',
+    },
+    dullard_lucky: {
+      id: 'dullard_lucky', name: '傻人傻福', category: 'positive',
+      birthAxis: 'intelligence', birthSide: 'positive', isRare: true,
+      desc: '你笑嘻嘻的走過這世界。訓練慢（EXP −15%）、不識字、WIL −2，但 LUK 三取最高、奇遇 +80%、笑躲攻擊 20%、暴擊 +15%、永不絕望。',
+    },
+    dull: {
+      id: 'dull', name: '愚鈍', category: 'negative',
+      birthAxis: 'intelligence', birthSide: 'negative', isRare: true,
+      desc: '腦袋轉得慢。訓練 EXP −10%、WIL −3、難以識字、對話選項減少。',
+    },
+
+    // ── 體質軸 ─────────────────────────────
+    ironclad: {
+      id: 'ironclad', name: '鐵人', category: 'positive',
+      birthAxis: 'constitution', birthSide: 'positive', isRare: true,
+      desc: '生來就是硬殼子。CON +3、HP 上限 +15%、疾病抗性 +50%、受傷不留疤。',
+    },
+    sickly: {
+      id: 'sickly', name: '病弱', category: 'negative',
+      birthAxis: 'constitution', birthSide: 'negative', isRare: true,
+      desc: '從小就容易病。CON −3、疾病抗性 −50%、隨機患病機率 +30%。',
+    },
+
+    // ── 運勢軸 ─────────────────────────────
+    fortunate: {
+      id: 'fortunate', name: '福星高照', category: 'positive',
+      birthAxis: 'luck', birthSide: 'positive', isRare: true,
+      desc: 'LUK +3、奇遇事件觸發率 +50%、受傷時 20% 機率減輕為輕傷。',
+    },
+    cursed: {
+      id: 'cursed', name: '厄運之子', category: 'negative',
+      birthAxis: 'luck', birthSide: 'negative', isRare: true,
+      desc: 'LUK −3、奇遇事件觸發率 −50%、暴擊受傷機率 +10%。',
+    },
+
+    // ── 心性軸 ─────────────────────────────
+    blessed: {
+      id: 'blessed', name: '神眷之子', category: 'positive',
+      birthAxis: 'spirit', birthSide: 'positive', isRare: true,
+      desc: '冥冥中有人看著你。好感倍率 ×1.2、mood 下限 +10、絕望抵抗。道德崩壞可能失去。',
+    },
+    shadowed: {
+      id: 'shadowed', name: '暗影纏身', category: 'negative',
+      birthAxis: 'spirit', birthSide: 'negative', isRare: true,
+      desc: '黑影跟著你。好感倍率 ×0.8、mood 下限 −10、信徒與神職者怕你。',
+    },
+
+    // ── 天賦軸 ─────────────────────────────
+    born_warrior: {
+      id: 'born_warrior', name: '天生戰士', category: 'positive',
+      birthAxis: 'gift', birthSide: 'positive', isRare: true,
+      desc: '血液裡就有戰鬥的節奏。戰鬥首回合 ATK +20%、怯戰抵抗、戰鬥 EXP +10%。',
+    },
+    cowardly: {
+      id: 'cowardly', name: '膽小如鼠', category: 'negative',
+      birthAxis: 'gift', birthSide: 'negative', isRare: true,
+      desc: '打鬥時手發抖。戰鬥首回合 ATK −10%、受傷時可能失控逃跑。',
+    },
+
+    // ══════════════════════════════════════════════════
+    // 🆕 2026-04-19 讀書系統衍生特性
+    // ══════════════════════════════════════════════════
+    cunning: {
+      id: 'cunning', name: '狡智', category: 'positive',
+      desc: '讀過奧德修斯的故事後學會不用拳頭也能贏。對話選項 +1、故事揭露線索 +1。',
+    },
+    faithful: {
+      id: 'faithful', name: '虔誠', category: 'positive',
+      desc: '相信更大的東西。mood 下限 +5、神殿事件獎勵 ×1.5。',
+    },
+    brave: {
+      id: 'brave', name: '勇敢', category: 'positive',
+      desc: '面對死亡不退一步。戰鬥首回合 ATK +10%、抵抗絕望。',
+    },
+    partial_literate: {
+      id: 'partial_literate', name: '粗識文字', category: 'positive',
+      desc: '讀過點書但沒讀透。解鎖少數文字對話選項。傻福玩家半醒期選擇停留獲得。',
+    },
   };
 
   // ══════════════════════════════════════════════════

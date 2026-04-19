@@ -35,7 +35,11 @@ const DoctorEvents = (() => {
     if (!p || p.day < 10) return false;
     if (typeof Flags === 'undefined') return false;
     if (_lastVisitDay === p.day) return false;       // 今天已訪問過
-    if (!Array.isArray(p.ailments) || p.ailments.length === 0) return false;
+
+    // 🆕 2026-04-19：ailments 或 wounds 都可觸發訪視
+    const hasAilment = Array.isArray(p.ailments) && p.ailments.length > 0;
+    const hasWound   = (typeof Wounds !== 'undefined') && Wounds.hasAnyWound();
+    if (!hasAilment && !hasWound) return false;
 
     // 第一次保證觸發；之後 35% 機率
     const firstVisit = !Flags.has('met_doctor');
@@ -89,7 +93,7 @@ const DoctorEvents = (() => {
       onComplete: () => {
         Flags.set('met_doctor', true);
         teammates.modAffection('doctorMo', +5);
-        _openTreatmentChoice();
+        _tryWoundHintsThenTreat();
       },
     });
   }
@@ -119,7 +123,99 @@ const DoctorEvents = (() => {
     }
 
     DialogueModal.play(introLines, {
-      onComplete: () => _openTreatmentChoice(),
+      onComplete: () => _tryWoundHintsThenTreat(),
+    });
+  }
+
+  // ══════════════════════════════════════════════════
+  // 🆕 2026-04-19 重傷三階段暗示 → 密醫引薦
+  // ══════════════════════════════════════════════════
+  function _tryWoundHintsThenTreat() {
+    if (typeof Wounds === 'undefined') { _openTreatmentChoice(); return; }
+    const p = Stats.player;
+    const severeCount = Wounds.countBySeverity(3);
+
+    // Stage 3: 密醫引薦（條件：已有 doctor_hinted_black_doc flag + 之後至少 5 天）
+    if (Flags.has('doctor_hinted_black_doc') && !Flags.has('got_black_doc_contact')) {
+      const sinceHint = Flags.get('days_since_black_doc_hint') || 0;
+      if (sinceHint >= 5) {
+        _playBlackDocReferral();
+        return;
+      }
+    }
+
+    // Stage 2: 觀察期暗示（重傷 + 已有重傷 10+ 天 + 尚未觸發 Stage 2）
+    if (severeCount > 0 && !Flags.has('doctor_hinted_black_doc')) {
+      const hasLongSevereWound = Wounds.PARTS.some(part => {
+        const w = Wounds.getWound(part);
+        return w && w.severity === 3 && w.daysElapsed >= 10;
+      });
+      if (hasLongSevereWound) {
+        _playObservationHint();
+        return;
+      }
+    }
+
+    // Stage 1: 首次重傷提醒（若今天第一次看到玩家有重傷）
+    if (severeCount > 0 && !Flags.has('doctor_saw_severe_wound')) {
+      Flags.set('doctor_saw_severe_wound', true);
+      _playFirstSevereWarning();
+      return;
+    }
+
+    // 無暗示 → 直接治療
+    _openTreatmentChoice();
+  }
+
+  function _playFirstSevereWarning() {
+    DialogueModal.play([
+      { speaker: '老默', text: '……讓我看看。' },
+      { text: '他的手指按壓你的傷口。你倒抽一口氣。' },
+      { speaker: '老默', text: '這傷我只能幫你止血。' },
+      { speaker: '老默', text: '深處的問題——骨頭錯位、神經壞了——' },
+      { speaker: '老默', text: '我治不了。' },
+      { text: '他沒抬頭，繼續處理你的傷口。' },
+    ], { onComplete: () => _openTreatmentChoice() });
+  }
+
+  function _playObservationHint() {
+    Flags.set('doctor_hinted_black_doc', true);
+    Flags.set('days_since_black_doc_hint', 0);
+    DialogueModal.play([
+      { speaker: '老默', text: '……你還在練。' },
+      { speaker: '老默', text: '忍著痛也練。' },
+      { text: '他第一次正眼看你。眼裡有點什麼。' },
+      { speaker: '老默', text: '我看得出來。你不是放棄的人。' },
+      { speaker: '老默', text: '等你準備好——我有個朋友。' },
+      { speaker: '老默', text: '住在城南巷子裡。' },
+      { text: '你想問什麼，但他又低下頭繼續處理草藥。' },
+    ], { onComplete: () => _openTreatmentChoice() });
+  }
+
+  function _playBlackDocReferral() {
+    Flags.set('got_black_doc_contact', true);
+    DialogueModal.play([
+      { speaker: '老默', text: '那個朋友——' },
+      { speaker: '老默', text: '他不是醫生。' },
+      { speaker: '老默', text: '他做的事，神看了會皺眉。' },
+      { text: '他從懷裡摸出一張摺好的紙條，放在桌上。' },
+      { speaker: '老默', text: '但他能讓你重新跑、重新揮劍。' },
+      { speaker: '老默', text: '代價是——你不會再是原本的你。' },
+      { speaker: '老默', text: '自己決定。我只能帶你到這裡。' },
+      { text: '你收起那張紙條。上面寫著城南某條巷子的暗號。' },
+    ], {
+      onComplete: () => {
+        if (typeof addLog === 'function') {
+          addLog('✦ 獲得物品：密醫紙條（城南接頭暗號）', '#aa88cc', true, true);
+        }
+        // 加入個人物品
+        const p = Stats.player;
+        if (!Array.isArray(p.personalItems)) p.personalItems = [];
+        if (p.personalItems.length < 6 && !p.personalItems.includes('black_doc_contact')) {
+          p.personalItems.push('black_doc_contact');
+        }
+        _openTreatmentChoice();
+      }
     });
   }
 
