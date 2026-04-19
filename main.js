@@ -1409,6 +1409,22 @@ const Game = (() => {
     doctorMo: { line: '老默恰好經過，他沒停下——但他的眼睛笑了一下。',   color: '#b0a080' },
   };
 
+  /**
+   * 🆕 2026-04-19 偷懶被抓鞭刑特效：紅光 + 震動 + HP -5 + 音效
+   */
+  function _playWhipPunishment() {
+    // 紅光閃爍 + 震動
+    if (typeof _flashStageRed === 'function') _flashStageRed();
+    if (typeof _shakeGameRoot === 'function') _shakeGameRoot();
+    // 音效（用現有 injury synth）
+    if (typeof SoundManager !== 'undefined' && SoundManager.playSynth) {
+      try { SoundManager.playSynth('injury'); } catch (e) { /* ignore */ }
+    }
+    // HP 扣 5
+    Stats.modVital('hp', -5);
+    addLog('💥 咻——！鞭子抽在你背上。（❤️ -5）', '#cc3333', true, true);
+  }
+
   function _handleSlacking() {
     const teamIds = Array.isArray(currentNPCs?.teammates) ? currentNPCs.teammates : [];
     const audIds  = Array.isArray(currentNPCs?.audience)  ? currentNPCs.audience  : [];
@@ -1421,6 +1437,10 @@ const Game = (() => {
       // 有權威 NPC 在場 → 直接扣
       // 同時把心情加成減半（被瞪哪有心情爽）
       Stats.modVital('mood', -8);   // 抵銷 effects 加的 +15 之中的 8
+      // 🆕 有敵意 watcher（非 ally）時 → 鞭刑
+      const hostileWatcher = watchers.some(id => !_SLACKING_WATCHERS[id].isAlly);
+      if (hostileWatcher) _playWhipPunishment();
+
       watchers.forEach(id => {
         const rule = _SLACKING_WATCHERS[id];
         if (rule.affDelta) teammates.modAffection(id, rule.affDelta);
@@ -1455,6 +1475,8 @@ const Game = (() => {
       const angryMood = Math.round(rule.moodHit * 1.3);
       teammates.modAffection(caught, angryAff);
       Stats.modVital('mood', angryMood);
+      // 🆕 2026-04-19 被巡邏抓包 → 鞭刑特效
+      _playWhipPunishment();
       addLog('【被抓包】' + rule.line, rule.color, true, true);
       addLog(`你以為沒人在——但你錯了。額外扣心情與好感。`, '#cc5533', true, false);
     } else {
