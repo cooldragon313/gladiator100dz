@@ -668,7 +668,8 @@ const Game = (() => {
         onComplete: () => {
           Battle.start('trialSol',
             () => _solDeathScene(),
-            () => _trialPlayerLostToSol()   // 🆕 D.28：輸了 → 玩家被拖走，索爾活下來
+            () => _trialPlayerLostToSol(),
+            { sparring: true }   // 🆕 2026-04-20 劇情戰鬥 — 關閉斬首面板（結果由劇本決定）
           );
         },
       });
@@ -739,7 +740,7 @@ const Game = (() => {
         { text: '場邊走出一個你沒見過的人。身上的傷疤比你的鍛鍊還多。' },
       ], {
         onComplete: () => {
-          Battle.start('trialVeteran',   // 更強的對手（劊子手）
+          Battle.start('trialVeteran',   // 更強的對手（劊子手）— 🆕 2026-04-20 加 sparring:true 關斬首面板
             () => {
               // 贏了：三人都活
               DialogueModal.play([
@@ -811,7 +812,8 @@ const Game = (() => {
                   renderAll();
                 },
               });
-            }
+            },
+            { sparring: true }   // 🆕 2026-04-20 劇情戰鬥 — 關斬首面板
           );
         },
       });
@@ -841,7 +843,8 @@ const Game = (() => {
               if (typeof Endings !== 'undefined' && Endings.deathEnding) {
                 Endings.deathEnding(Stats.player.name);
               }
-            }
+            },
+            { sparring: true }   // 🆕 2026-04-20 劇情戰鬥 — 關斬首面板
           );
         },
       });

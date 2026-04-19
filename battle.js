@@ -29,8 +29,8 @@ const Battle = (() => {
   let _playerAtb = 0;   // 0–100, fills each tick
   let _enemyAtb  = 0;
 
-  // ATB tick thresholds for rating (100ms ticks)
-  const RATING_TICKS = { S: 60, A: 100, B: 120 };
+  // ATB tick thresholds for rating (🆕 2026-04-20: 50ms ticks，數值 ×2 保持時間標準不變)
+  const RATING_TICKS = { S: 120, A: 200, B: 240 };
 
   // ── Crowd mood config ────────────────────────────────────
   const CROWD_MOOD_CFG = {
@@ -1503,7 +1503,8 @@ const Battle = (() => {
     _stopAtbLoop();
     _playerAtb = 0;
     _enemyAtb  = 0;
-    _atbLoop   = setInterval(_atbTick, 100);
+    // 🆕 2026-04-20：ATB 速度 ×2（100ms → 50ms）戰鬥節奏加快
+    _atbLoop   = setInterval(_atbTick, 50);
   }
 
   function _stopAtbLoop() {
