@@ -291,16 +291,17 @@ const BirthTraits = (() => {
 
   function _baseLossByOrigin(originId) {
     // 被抓過程的基礎 HP / food / mood 損失（與傷勢獨立）
+    // 🆕 2026-04-19：mood 全面 ×0.6（避免開局卡 ≤30 懲罰區螺旋下降）
     switch (originId) {
-      case 'farmBoy':       return { hp: 10, food: 20, mood: 25 };
-      case 'nobleman':      return { hp:  8, food: 15, mood: 40 };
-      case 'ruinedKnight':  return { hp: 15, food: 10, mood: 20 };
-      case 'beggar':        return { hp:  5, food: 25, mood: 15 };
-      case 'artisan':       return { hp:  8, food: 15, mood: 20 };
-      case 'criminal':      return { hp: 10, food: 10, mood: 10 };
-      case 'gambler':       return { hp:  8, food: 18, mood: 25 };
-      case 'believer':      return { hp:  6, food: 15, mood: 15 };
-      default:              return { hp: 10, food: 15, mood: 20 };
+      case 'farmBoy':       return { hp: 10, food: 20, mood: 15 };
+      case 'nobleman':      return { hp:  8, food: 15, mood: 25 };
+      case 'ruinedKnight':  return { hp: 15, food: 10, mood: 12 };
+      case 'beggar':        return { hp:  5, food: 25, mood: 10 };
+      case 'artisan':       return { hp:  8, food: 15, mood: 12 };
+      case 'criminal':      return { hp: 10, food: 10, mood:  6 };
+      case 'gambler':       return { hp:  8, food: 18, mood: 15 };
+      case 'believer':      return { hp:  6, food: 15, mood: 10 };
+      default:              return { hp: 10, food: 15, mood: 12 };
     }
   }
 

@@ -38,7 +38,8 @@ const ACTIONS = {
     fields: 'any',
     effects: [
       { type: 'vital', key: 'stamina', delta: 15 },
-      { type: 'vital', key: 'mood',    delta: 15 },
+      // 🆕 2026-04-19：偷懶 mood 恢復不受低心情 ×0.75 懲罰（恢復類動作的鐵則）
+      { type: 'vital', key: 'mood',    delta: 15, skipMoodMult: true },
     ],
     _isSlacking: true,   // main.js 依此判定額外的抓包/扣分邏輯
   },
@@ -58,7 +59,7 @@ const ACTIONS = {
     // 🆕 D.26：訓練本身是被迫勞動，會扣心情
     effects: [
       { type: 'exp',   key: 'STR',  delta: 8  },
-      { type: 'vital', key: 'mood', delta: -3 },
+      { type: 'vital', key: 'mood', delta: -2 },
     ],
     eventPool: ['overseerWatch', 'trainingInjury'],
     injuryPart: '手臂',
@@ -70,7 +71,7 @@ const ACTIONS = {
     fields: ['stdTraining'],
     effects: [
       { type: 'exp',   key: 'DEX',  delta: 8  },
-      { type: 'vital', key: 'mood', delta: -3 },
+      { type: 'vital', key: 'mood', delta: -2 },
     ],
     eventPool: ['overseerWatch', 'trainingInjury'],
     injuryPart: '手部',
@@ -82,7 +83,7 @@ const ACTIONS = {
     fields: ['stdTraining'],
     effects: [
       { type: 'exp',   key: 'CON',  delta: 8  },
-      { type: 'vital', key: 'mood', delta: -3 },
+      { type: 'vital', key: 'mood', delta: -2 },
     ],
     eventPool: ['overseerWatch', 'trainingInjury'],
     injuryPart: '軀幹',
@@ -94,7 +95,7 @@ const ACTIONS = {
     fields: ['stdTraining'],
     effects: [
       { type: 'exp',   key: 'AGI',  delta: 8  },
-      { type: 'vital', key: 'mood', delta: -3 },
+      { type: 'vital', key: 'mood', delta: -2 },
     ],
     eventPool: ['overseerWatch', 'trainingInjury'],
     injuryPart: '腿部',

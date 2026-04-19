@@ -151,9 +151,10 @@ const Effects = (() => {
     if (eff.ifNot  && typeof Flags !== 'undefined' &&  Flags.has(eff.ifNot))  return;
 
     // ── 心情倍率（只作用於正向 delta） ─────────────
+    // 🆕 2026-04-19：支援 eff.skipMoodMult（偷懶等恢復類動作不受低心情懲罰）
     const moodMult = ctx.moodMult || 1.0;
     let delta = eff.delta;
-    if (typeof delta === 'number' && delta > 0 && moodMult !== 1.0) {
+    if (typeof delta === 'number' && delta > 0 && moodMult !== 1.0 && !eff.skipMoodMult) {
       delta = delta * moodMult;
     }
 

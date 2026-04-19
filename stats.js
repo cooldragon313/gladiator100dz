@@ -305,6 +305,14 @@ const Stats = (() => {
     const before = player[key];
     player[key] = Math.max(0, Math.min(player[maxKey] || 100, Math.round(player[key] + delta)));
 
+    // 🆕 2026-04-19：傻福玩家「永不絕望」— mood 下限 20（傻福階段 0-1 時生效）
+    if (key === 'mood' && Array.isArray(player.traits) && player.traits.includes('dullard_lucky')) {
+      const stage = player.dullardStage || 0;
+      if (stage < 2) {   // 清醒後失去此保護
+        player[key] = Math.max(20, player[key]);
+      }
+    }
+
     // 🆕 D.20：HP 即將歸零時嘗試觸發奧蘭生死關頭援手
     //   條件由 OrlanEvents.tryDeathSave 內部檢查（aff ≥ 80 + merciful/kindness）
     //   若成功會把 HP 補回 30 並設 player_was_nearly_dead flag

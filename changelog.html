@@ -208,6 +208,71 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       2026-04-19 開場 mood 平衡 + 奧蘭 CANON 補記
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">BALANCE</span>
+      <span class="version-title">開場 mood 大調 + CANON.md 單一事實源</span>
+      <span class="version-date">2026-04-19</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-fix">FIX</span>
+        <span class="change-text"><strong>被抓 mood 損失全面 -40%</strong> <span class="file-tag">birth_traits.js</span>
+          — 避免開局 mood 25 卡 ≤30 懲罰區螺旋下墜：
+          farmBoy 25→15 / nobleman 40→25 / gambler 25→15 等。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">FIX</span>
+        <span class="change-text"><strong>夜間靠牆恢復 +mood 3 → 5</strong> <span class="file-tag">config.js</span>
+          — 被動恢復更有感，讓玩家不靠偷懶也能勉強回血。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">FIX</span>
+        <span class="change-text"><strong>偷懶 mood 不受 ×0.75 懲罰</strong> <span class="file-tag">actions.js + effect_dispatcher.js</span>
+          — 新 <code>eff.skipMoodMult</code> 欄位。soloThink 加上此 flag，
+          +15 mood 在低心情時仍完整給足（不再被打折到 +11）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">FIX</span>
+        <span class="change-text"><strong>訓練動作 mood -3 → -2</strong> <span class="file-tag">actions.js</span>
+          — 所有訓練動作心情扣減減輕，日累積從 -12 降到 -8。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>傻福「永不絕望」實作</strong> <span class="file-tag">stats.js modVital</span>
+          — 擁有 dullard_lucky 特性 + dullardStage < 2 時，mood 自動 clamp 到 ≥ 20。
+          以前只是特性描述，現在實際生效（清醒後失去此保護）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>docs/CANON.md 單一事實源</strong>
+          — 時間線、角色年齡、誰知道什麼、關係歷史。
+          跟 CODEX.md 分工（CODEX 存規則，CANON 存事實）。
+          AI 強制規則：寫新對白/事件前必查 CANON，不得 extrapolate 時間年齡。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text"><strong>奧蘭時間線修正</strong> <span class="file-tag">CANON.md + orlan.md</span>
+          — 刪除「訓練場 2 年」錯誤 extrapolate，
+          改為「Day 0 跟玩家同一天抵達訓練場」（原始設定）。
+          CANON 補記「Day 1 主動隱瞞主人家 6 年過去」— 解釋「磨坊裡來的」是簡化版實話，
+          不是說謊，Day 40+ 才揭露真相。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text"><strong>main.js 奧蘭 Day 1 沙洗對白</strong>
+          — 「我也不知道」→「我也不知道細節。但我有聽過。我有幾個舊朋友 — 晚點我探探看。」
+          暗示老僕人人脈，為 Phase 2 情報網絡鋪路。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
        2026-04-19 世界觀大擴充（Phase 2 準備）
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">

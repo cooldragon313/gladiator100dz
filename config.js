@@ -201,7 +201,7 @@ const Config = (() => {
     MEAL_MOOD_GAIN:    2,
     // 晚間休息自動恢復量
     REST_STAMINA_GAIN: 10,
-    REST_MOOD_GAIN:     3,
+    REST_MOOD_GAIN:     5,   // 🆕 2026-04-19：3→5（被動恢復更有感）
     // 夜間睡覺
     SLEEP_STAMINA_GAIN: 45,   // 🆕 D.26：移除「休息」動作後微調補償
     SLEEP_MOOD_GAIN:     5,
