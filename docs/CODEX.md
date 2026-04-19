@@ -151,6 +151,20 @@
 
 **新增或調整 origin 必看**：[`docs/systems/origin-design-spec.md`](systems/origin-design-spec.md)
 
+---
+
+### F. 世界觀系統文件（新 Phase 2 設計稿）
+
+| 文件 | 內容 |
+|---|---|
+| [`docs/systems/mansion-geography.md`](systems/mansion-geography.md) | 大宅地理規範 — 主人家 + 訓練場**同座建築複合**，正門/側門/共用中段 |
+| [`docs/systems/master-family-spec.md`](systems/master-family-spec.md) | 訓練所家庭通用規範 — archetype 模板、家族動力、檢查清單 |
+| [`docs/systems/found-family.md`](systems/found-family.md) | 新家人系統 — NPC 以家人稱呼確認關係的儀式 |
+| [`docs/characters/livia.md`](characters/livia.md) | 主人娘 Livia（隱形善意源頭，Phase 2/3 登場）|
+| [`docs/characters/marcus.md`](characters/marcus.md) | 少爺 Marcus（真正反派，殘忍沙包型，Phase 2 登場）|
+
+**阿圖斯家族配置**：阿圖斯（冷血商人）/ Livia（善良資助者）/ Marcus（殘忍施虐者）
+
 包含：
 - 完整欄位清單 + 範例
 - statMod 平衡原則（總和 ±4 / 至少 1 個負值）

@@ -392,5 +392,6 @@ const BirthTraits = (() => {
     categoryOf,
     applyRoll,
     applyCaptureInjury,
+    _getMemoryLine,    // 🆕 暴露供 main.js _getStructuredWound 使用
   };
 })();

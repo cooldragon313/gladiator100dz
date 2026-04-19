@@ -31,6 +31,7 @@
 3a. **`docs/DIALOGUE-MAP.md`** — 🆕 D.28：**對白位置總索引**。查某段對白在哪裡先看這份。
 3a1. **`docs/characters/*.md`** — 🆕 D.28：每個 NPC 的完整檔案（愛憎 / 對話風格 / 特性反應 / 招牌動作 / 程式碼指標）
    - 目前已建：orlan / melaKook / cassius / hector / doctorMo / officer / masterArtus / sol
+   - 🆕 **livia**（主人娘，Phase 2/3 登場）/ **marcus**（少爺，Phase 2 登場）
    - 改 NPC 對白先看這份，確保語氣一致
 3b. **`docs/quests/*.md`** — 🆕 D.28：每個任務的完整設計書（觸發 / 階段 / 門檻 / 對白 / 獎勵 / flag）
    - 目前已建：mela-rat（抓老鼠任務）
@@ -39,6 +40,9 @@
    - 🆕 **wounds.md**（2026-04-19）：4 部位 × 3 級傷勢系統 + 低體力擲傷 + 好痛觸發 + 老默三階段 → 密醫引薦
    - 🆕 **compulsion.md**（2026-04-19）：4 種訓練強迫症（力/敏/韌/禪癮）+ 連 5 天養成 + 夜間選擇 + 20 天解除
    - 🆕 **origin-design-spec.md**（2026-04-19）：**新增 origin 必看** — 完整欄位 / statMod 平衡 / 起手書原則 / 被抓損失 / 受傷權重 / 回憶對白矩陣 / 未來擴充（起手技能 + 專屬事件）/ 檢查清單
+   - 🆕 **mansion-geography.md**（2026-04-19）：大宅地理 — 主人家 + 訓練場**同座建築**，正門/側門/共用中段
+   - 🆕 **master-family-spec.md**（2026-04-19）：訓練所家庭通用規範 — archetype 模板，每個訓練所 = 一個家族故事
+   - 🆕 **found-family.md**（2026-04-19）：新家人系統 — NPC 以家人稱呼確認關係的儀式（奧蘭=兄弟/梅拉=母/卡西烏斯=師⋯）
 3d. **`docs/philosophy/*.md`** — 🆕 D.28：設計哲學（numbers-hiding）
 4. **`changelog.html`** — 版本記錄與歷次 commit 摘要
 5. **`NOTES.md`** — 🆕 手機草稿本。使用者會在手機上寫未整理的想法到底部「待整理」區。
@@ -410,6 +414,7 @@ save_system → testbattle → battle → actions → main
 
 ## 🔄 最近重要變更
 
+- **2026-04-19**：世界觀大擴充（Phase 2 準備）— 新增文件：mansion-geography.md（大宅+訓練場同座建築）/ master-family-spec.md（訓練所家族通用規範）/ found-family.md（新家人儀式系統）/ livia.md（主人娘）/ marcus.md（少爺）。重寫 orlan.md 背景三段式（磨坊子→阿圖斯家傭人→被 Marcus 告發偷錢→Livia 求情降級訓練場）。整合 Day 1 開場（受傷演出合進 wakeup 不重播）。替換磨劍事件為沙地畫磨坊（避免無武器矛盾）。orlan_letter 加「主人傳信？這不像是大人的做法」暗示 Livia 管道。
 - **2026-04-19**：出生特性三層擲骰（birth_traits.js）— 原本只骰稀有 1%，擴充為稀有/罕見 3%/常見 10% 三層獨立擲骰。擲骰畫面分三層顯示。新 origin 設計規範 `docs/systems/origin-design-spec.md` — 新增 origin 必看。
 - **2026-04-19**：強迫症系統上線（compulsion.md）— 4 種訓練強迫症（力/敏/韌/禪癮）/ 連 5 天同訓練養成 + Day 3-4 警告 / 三層獎懲（做 mood+3 / 夜補做 mood+5 / 拒絕 mood-5~-15 累進 + 失眠）/ 20 天不做可解除 / 夜間 slot 7 優先級鏈（任務 > 強迫症 > 休息）/ 負面特性改紅色顯示
 - **2026-04-19**：傷勢系統上線（wounds.md）— 4 部位 × 3 級嚴重度 / 開場 15% 擲傷 + 紅光震動 + origin×部位回憶矩陣 / 低體力擲新傷 + 有傷練對應部位觸發「好痛」/ 老默三階段暗示 → 密醫紙條（Phase A 完）

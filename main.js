@@ -5203,6 +5203,39 @@ const Game = (() => {
   //   對應設計：docs/quests/day1-opening.md
   //   現階段只做 farmBoy 路徑（kindness + diligence）
   // ══════════════════════════════════════════════════
+  /**
+   * 🆕 2026-04-19：取得當前最嚴重的結構化傷勢（for Day 1 wakeup 演出整合）
+   *   回傳 null 或 { part, partName, severity, sevName, memoryLine }
+   */
+  function _getStructuredWound(p) {
+    if (!p || !p.wounds || typeof Wounds === 'undefined') return null;
+    const partNames = { head:'頭部', torso:'軀幹', arms:'手臂', legs:'腿部' };
+    const sevNames = { 1:'輕傷', 2:'中傷', 3:'重傷' };
+
+    let worst = null, worstSev = 0;
+    Wounds.PARTS.forEach(part => {
+      const w = p.wounds[part];
+      if (w && w.severity > worstSev) {
+        worst = part;
+        worstSev = w.severity;
+      }
+    });
+    if (!worst) return null;
+
+    // 取回憶句：用 birth_traits.js 的 origin × 部位矩陣
+    let memoryLine = '你記不清楚怎麼傷的。只記得很痛。';
+    if (typeof BirthTraits !== 'undefined' && BirthTraits._getMemoryLine) {
+      memoryLine = BirthTraits._getMemoryLine(p.origin, worst) || memoryLine;
+    }
+    return {
+      part: worst,
+      partName: partNames[worst] || '身體',
+      severity: worstSev,
+      sevName: sevNames[worstSev] || '傷',
+      memoryLine,
+    };
+  }
+
   async function _playDay1WakeUp(onComplete) {
     const p = Stats.player;
     const origin = p?.origin || 'farmBoy';
@@ -5213,17 +5246,40 @@ const Game = (() => {
     if (typeof Stage !== 'undefined') await Stage.closeEyes();
 
     // ── 場景 1：牢房感官（夏日清晨，黑幕中）──
+    // 🆕 2026-04-19：整合受傷演出。有結構化傷勢（15%）時在翻身時觸發紅光 + 回憶
+    const woundInfo = _getStructuredWound(p);   // { part, severity, memoryLine } | null
     await new Promise(resolve => {
-      DialogueModal.play([
+      const lines = [
         { text: '（雞啼。遠遠一聲。）' },
         { text: '（夏天的悶——空氣還沒動。）' },
         { text: '（你的後頸都是汗。）' },
         { text: '（你舔了舔嘴唇——甜的。是血。）' },
         { text: '（你的牙齒有一顆在晃。）' },
         { text: '（你翻身——身上每個關節都痛。）' },
-        { text: '（昨晚的瘀青還在，有些還腫。）' },
-        { text: '（天色才剛亮。不知為何就要起床了。）' },
-      ], { onComplete: resolve });
+      ];
+      if (woundInfo) {
+        // 有結構化傷勢 — 插入紅光 + 回憶
+        lines.push(
+          { text: '（⋯⋯！）' },
+          { text: `（劇痛從${woundInfo.partName}傳來。你倒抽一口氣。）` },
+          { text: '（馬的⋯⋯想起來了。）' },
+          { text: `（${woundInfo.memoryLine}）` },
+        );
+        if (woundInfo.severity >= 2) {
+          lines.push({ text: `（這${woundInfo.partName}${woundInfo.sevName}⋯⋯沒幾天不會好。）` });
+        }
+        if (woundInfo.severity === 3) {
+          lines.push({ text: `（也許⋯⋯永遠都好不了了。）` });
+        }
+        // 觸發紅光 + 震動
+        _flashStageRed && _flashStageRed();
+        _shakeGameRoot && _shakeGameRoot();
+      } else {
+        // 沒結構化傷勢 — 保留原本瘀青敘述
+        lines.push({ text: '（昨晚的瘀青還在，有些還腫。）' });
+      }
+      lines.push({ text: '（天色才剛亮。不知為何就要起床了。）' });
+      DialogueModal.play(lines, { onComplete: resolve });
     });
 
     // ── 場景 2：獄卒踢門 ──

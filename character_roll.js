@@ -161,10 +161,11 @@ const CharacterRoll = (() => {
     if (_currentRoll) {
       BirthTraits.applyRoll(_currentRoll.stats, _currentRoll.traits);
     }
-    // 播放被抓受傷敘事
-    _playCaptureInjury(() => {
-      if (typeof _onComplete === 'function') _onComplete();
-    });
+    // 🆕 2026-04-19：不再在這裡演獨立的受傷敘事
+    //   改為：直接套用傷勢資料（HP/food/mood/wound），演出整合進 _playDay1WakeUp
+    //   這樣避免「受傷演出 → 起床演出」連播兩次「我好痛」的重複感
+    BirthTraits.applyCaptureInjury(_originId);
+    if (typeof _onComplete === 'function') _onComplete();
   }
 
   /**

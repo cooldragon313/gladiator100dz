@@ -208,6 +208,85 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       2026-04-19 世界觀大擴充（Phase 2 準備）
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">DESIGN</span>
+      <span class="version-title">世界觀大擴充 — 主人家族 + 新家人系統 + 奧蘭背景重寫</span>
+      <span class="version-date">2026-04-19</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text"><strong>大宅地理 + 訓練所家族通用規範</strong> <span class="file-tag">docs/systems/</span>
+          — <code>mansion-geography.md</code>：主人家 + 訓練場**同座建築複合**（正門/側門/共用中段）。
+          <code>master-family-spec.md</code>：訓練所家族通用設計規範，主/妻/兒女 archetype 模板。
+          每個訓練所 = 一個家族故事。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>主人娘 Livia（善良資助者）</strong> <span class="file-tag">docs/characters/livia.md</span>
+          — 訓練所所有善意的**隱形源頭**。透過梅拉暗助奴隸 / 寄藥給奧蘭家 / 信件網絡。
+          公開端莊，私下柔軟。以為「救了奧蘭」，卻不知訓練場 = 慢性死刑（悲劇 core）。
+          Phase 2/3 登場，Phase 1 透過敘述埋伏筆。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>少爺 Marcus（殘忍施虐者）</strong> <span class="file-tag">docs/characters/marcus.md</span>
+          — <strong>真正的反派</strong>。愛下訓練場打沙包、羞辱奴隸。**奧蘭被降級的真正原因**
+          （奧蘭偷他錢給妹買藥，Marcus 想殺他，被 Livia 求情救下）。
+          對玩家 kindness/merciful 敵視，對 cruel 有危險的欣賞。Phase 2 登場。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>新家人儀式系統</strong> <span class="file-tag">docs/systems/found-family.md</span>
+          — NPC 在高好感時以**家人稱呼**確認關係：
+          奧蘭「兄弟」/ 梅拉「孩子」/ 卡西烏斯「我的學生」/ 老默點頭 / 塔倫長官「小子」/ Livia「孩子」。
+          一次性儀式，永久改變對白。未來結局：**「新家人結局」**（擁有 3+ 家人）。
+          Phase 2 實作，Phase 1 埋伏筆。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text"><strong>奧蘭背景重寫</strong> <span class="file-tag">docs/characters/orlan.md + npc.js</span>
+          — 從「被家裡賣的」改為完整**三段式**：
+          磨坊子（12 歲前）→ 阿圖斯家傭人（12-17）→ 偷 Marcus 錢被發現 / Livia 求情降級訓練場（17+）。
+          解釋所有原本模糊的設定（識字 / 笨拙 / 藥房熟悉 / 家書通道 / 畫不出磨坊）。
+          訓練場 2 年至今 19 歲。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text"><strong>整合開場演出</strong> <span class="file-tag">main.js _playDay1WakeUp + character_roll.js</span>
+          — 拆掉獨立的受傷演出（以前「accept 擲骰」後播一次 → 接著 Day 1 wakeup 再播一次「牙齒晃 / 瘀青」= 重複感）。
+          改為整合：受傷資料直接套用，wakeup 場景 1 依 <code>player.wounds</code> 狀態決定是否插入紅光+震動+回憶。
+          無傷玩家 85% 體驗保持原本敘述；有傷玩家 15% 在「翻身」時觸發受傷高潮。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">FIX</span>
+        <span class="change-text"><strong>磨劍事件替換</strong> <span class="file-tag">npc.js orlan_draws_mill</span>
+          — 原 <code>orlan_clumsy_sharpen</code> 假設玩家有武器（「他手裡握著你的劍」），無武器時敘述矛盾。
+          替換為「沙地畫磨坊」事件 — 奧蘭用樹枝畫磨坊但記不完整（離家 10+ 年）。
+          無道具依賴、詩意更重、埋 Phase 2 重複事件伏筆（直到 Day 70+ 才畫出完整磨坊）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text"><strong>orlan_letter flavor 加暗示</strong> <span class="file-tag">npc.js</span>
+          — 通用結尾多一句「（主人傳信？⋯⋯這不像是大人的做法。）」
+          — 暗示 Livia 的隱形管道，為 Phase 2 揭露鋪路。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text"><strong>同步文件</strong>
+          — masterArtus.md / melaKook.md 加入家族連結段。
+          CODEX.md 新增「世界觀系統文件」章節。CLAUDE.md 術語索引更新。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
        2026-04-19 奧蘭家書事件 + 情緒倍率系統
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">
