@@ -27,6 +27,7 @@
    - ⚠️ **「X 做完了嗎」→ 只看頂部進度總表**。其他章節的 checkbox 都是歷史快照。
 2. **`HISTORY.md`** — 已實作系統的歷史細節、已廢棄設計的考古紀錄。一般開發不需要讀。
 3. **`docs/CONTENT-TEMPLATES.md`** — 新 NPC / 武器 / 訓練所等內容創作模板（原 D.11）。
+3-0. **`docs/CODEX.md`** — 🆕 **完整字典（2026-04-19）**：特性/書本/origin/傷勢/見識/旗標/數字速查表一份搞定。查「某個特性效果是什麼」「某本書門檻多少」「某 flag 做什麼用」先看這份。
 3a. **`docs/DIALOGUE-MAP.md`** — 🆕 D.28：**對白位置總索引**。查某段對白在哪裡先看這份。
 3a1. **`docs/characters/*.md`** — 🆕 D.28：每個 NPC 的完整檔案（愛憎 / 對話風格 / 特性反應 / 招牌動作 / 程式碼指標）
    - 目前已建：orlan / melaKook / cassius / hector / doctorMo / officer / masterArtus / sol
