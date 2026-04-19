@@ -126,6 +126,83 @@ const DYNAMIC_BETS = [
 
 ---
 
+## 🆕 2026-04-20 逐步揭露系統（Progressive Reveal）
+
+對於**大事件**，百日條支持**分階段揭露**。玩家慢慢從流言拼湊真相。
+
+### 資料結構擴充
+
+```js
+{
+  day: 49,
+  id: 'blood_feast',
+  name: '血戰宴會',
+  revealType: 'progressive',          // 🆕 逐步揭露
+  revealStages: [
+    {
+      day: 30,
+      flag: 'rumor_blood_feast_stage1',
+      displayName: '???（宴會？）',
+      triggerBy: 'blacksmith_talk',    // 葛拉好感 ≥ 40 時的對話
+      rumor: '聽說大人要辦宴會 — 有貴族要來。',
+    },
+    {
+      day: 40,
+      flag: 'rumor_blood_feast_stage2',
+      displayName: '血腥的宴會',
+      triggerBy: 'doctor_or_mela',
+      rumor: '好像要派一個戰士上場給貴族看。',
+    },
+    {
+      day: 45,
+      flag: 'rumor_blood_feast_stage3',
+      displayName: '血戰宴會 — 快步馬爾斯',
+      triggerBy: 'orlan_talk',
+      rumor: '聽說「快步馬爾斯」要出場 — 20 年前的明星。',
+    },
+  ],
+  finalName: '血戰宴會',                // Day 49 當天固定名稱
+}
+```
+
+### 百日條顯示邏輯
+
+```
+Day 1-29：        ???
+Day 30+ stage1： ???（宴會？）
+Day 40+ stage2： 🩸 血腥的宴會
+Day 45+ stage3： ⚔ 血戰宴會 — 快步馬爾斯
+Day 49 觸發：    完整事件
+```
+
+### 流言觸發時機
+
+每個 stage 的 `triggerBy` 指向**何時會聽到流言**：
+- `blacksmith_talk` — 葛拉好感達標時下次互動
+- `doctor_or_mela` — 醫療或用餐時其中一方說
+- `orlan_talk` — 晚上奧蘭講悄悄話
+
+流言**必定觸發**（滿條件就給），不靠機率 — 保證玩家能解鎖揭露。
+
+### 未滿條件怎麼辦
+
+若到 Day 40 玩家還沒葛拉好感 40 → 觸發**保底流言**：
+- Day 40 某個路人奴隸說「最近大人好像有貴客⋯⋯」
+- 至少給 stage1 揭露，避免 Day 49 完全措手不及
+
+### 適用事件（當前）
+
+- **Day 49 血戰宴會**（見 `docs/quests/blood-feast.md`）
+
+### 未來可套用
+
+- 主人兒子 Marcus 下訓練場（某日）
+- 主人暗殺計畫事件
+- 奧蘭密謀逃脫（若解鎖）
+- 新家人儀式某些場合
+
+---
+
 ## UI 變化（百日條）
 
 ### 現有
