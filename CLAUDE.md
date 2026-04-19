@@ -35,7 +35,7 @@
    - 🆕 **livia**（主人娘，Phase 2/3 登場）/ **marcus**（少爺，Phase 2 登場）
    - 改 NPC 對白先看這份，確保語氣一致
 3b. **`docs/quests/*.md`** — 🆕 D.28：每個任務的完整設計書（觸發 / 階段 / 門檻 / 對白 / 獎勵 / flag）
-   - 目前已建：mela-rat（抓老鼠任務）
+   - 目前已建：mela-rat（抓老鼠任務）/ day1-opening（Day 1 開場）/ **day5-sand-wash**（Day 5 沙洗，2026-04-19）
 3c. **`docs/systems/*.md`** — 🆕 D.28：系統規範（night-events, multi-check-quest, **reading**, **books-catalog**, **wounds**, **compulsion**, traits, origins, timeline, battle-*, npc-growth）
    - 🆕 **reading.md / books-catalog.md**（2026-04-19）：讀書系統 + 五類書本 + 見識數值 + 傻福三階段交互
    - 🆕 **wounds.md**（2026-04-19）：4 部位 × 3 級傷勢系統 + 低體力擲傷 + 好痛觸發 + 老默三階段 → 密醫引薦
