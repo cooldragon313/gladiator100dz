@@ -389,6 +389,12 @@ save_system → testbattle → battle → actions → main
 ## 📝 文件更新規則
 
 - **CLAUDE.md**（本檔）：長期穩定的約定與習慣。更新頻率低，穩定度高。
+- **⭐ docs/CODEX.md**：**完整字典** — 所有精緻做的東西（特性/書/origin/傷勢/見識/病痛/強迫症/旗標/數字速查）。
+  - 🚨 **強制規則（2026-04-19 定）**：**新增任何系統 / 特性 / 書 / origin / flag / 數字公式，必須同步更新 CODEX.md**。
+  - 這是單一事實源（Single Source of Truth）— 玩家、AI、開發者查東西都看這份。
+  - AI 主動規則：寫新 `xxx.js` 模組或改動 `config.js TRAIT_DEFS` / `books.js` / `origins.js` / `wounds.js` 等資料時，
+    **commit 前自動更新 CODEX.md 對應章節**，不用等使用者說。
+  - 同步順序：程式碼 → 對應 `docs/systems/{name}.md` → CODEX.md 字典 → CLAUDE.md 術語
 - **DESIGN.md**：設計規格與決策。更新頻率中。
 - **changelog.html**：每次功能/修正的歷史紀錄。**每次中型以上改動都要自動補上**
   （新系統 / 新模組 / 新事件 / UI 重構 / 平衡調整等）。
