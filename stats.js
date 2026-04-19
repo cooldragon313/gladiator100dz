@@ -329,6 +329,7 @@ const Stats = (() => {
 
     // 🆕 奧蘭第二百次跌倒旗標：HP ≤ 20% 時，給你一次「想起他」的站起來機會
     //   條件：flag saw_olan_persist + HP 剛從 >20% 跌到 ≤20% + 未用過
+    //   2026-04-20：強化演出（分段 log + 褪色 → 金色 / 音效 / 延遲避免 battle 衝突）
     if (key === 'hp' && typeof Flags !== 'undefined'
         && Flags.has('saw_olan_persist') && !Flags.has('olan_persist_used')
         && player[key] > 0 && player[key] <= player[maxKey] * 0.2
@@ -336,11 +337,29 @@ const Stats = (() => {
       Flags.set('olan_persist_used', true);
       // HP 回復到 30%
       player[key] = Math.round(player[maxKey] * 0.3);
-      if (typeof addLog === 'function') {
-        addLog('你膝蓋一軟，準備倒下——', '#8899aa', false);
-        addLog('你想起奧蘭的背影。第一百次。第二百次。他每次都站了回去。', '#e8d070', true, true);
-        addLog('你咬牙站了起來。', '#d9a84f', true, true);
-      }
+
+      // 延遲 100ms 避免與 battle frame 衝突
+      setTimeout(() => {
+        if (typeof SoundManager !== 'undefined' && SoundManager.playSynth) {
+          try { SoundManager.playSynth('sleep'); } catch (e) { /* ignore */ }
+        }
+        if (typeof addLog === 'function') {
+          addLog('', '#333', false, false);
+          addLog('⋯⋯你膝蓋一軟。沙子貼上你的臉。', '#6a5a5a', true, false);
+          addLog('你要倒下了。', '#6a5a5a', true, false);
+          addLog('', '#333', false, false);
+          addLog('但你聽見聲音 —— 不是現在的。', '#8b9ab8', true, false);
+          addLog('奧蘭站起來的聲音。那種笨拙的、緩慢的。', '#8b9ab8', true, false);
+          addLog('第一百次。第兩百次。', '#d4c27a', true, true);
+          addLog('', '#333', false, false);
+          addLog('「妹妹等他活著。」', '#d4af37', true, true);
+          addLog('「你 — 你還在等誰？」', '#d4af37', true, true);
+          addLog('', '#333', false, false);
+          addLog('你不知道答案。但你的身體知道。', '#e8d070', true, false);
+          addLog('✦ 你咬牙站了起來。', '#e8d070', true, true);
+          addLog('', '#333', false, false);
+        }
+      }, 100);
     }
 
     if (key === 'stamina') updateStaminaPenalty();
