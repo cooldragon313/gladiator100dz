@@ -3401,8 +3401,8 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   background-size: cover;
   background-position: center;
   background-color: #1a0f08;
-  min-height: 280px;
-  max-height: 40vh;
+  min-height: 400px;   /* 🆕 2026-04-20 從 280 拉高 */
+  max-height: 55vh;    /* 🆕 從 40vh 拉高（避免敵方 slot 被下面欄位遮住）*/
   display: flex;
   flex-direction: column;
   justify-content: space-between;
