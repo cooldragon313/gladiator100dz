@@ -103,12 +103,12 @@ const Stats = (() => {
 
     // ── Achievements & Traits ──
     achievements: [],      // 已解鎖成就 ID 陣列
-    traits:       ['kindness'],             // 已激活特性 ID 陣列（positive/negative）
+    traits:       [],                       // 🆕 2026-04-19：由 applyOrigin 決定，不預設 kindness
     // 🆕 D.6 v2: 已習得技能 ID 陣列（含被動與主動，被動自動生效）
     learnedSkills: [],
     // 🆕 D.12: 已觸發的 story reveal ID 陣列（防止 onceOnly 事件重複）
     seenReveals:  [],
-    ailments:     ['insomnia_disorder'],   // 🆕 Phase 1-D: 當前病痛 ID 陣列（見 Config.AILMENT_DEFS）
+    ailments:     [],                      // 🆕 2026-04-19：預設空（失眠症改為起手 5% 擲）— 病痛保留給 Phase 2 中毒/流血等非傷狀態
     title:        null,    // 額外稱號（字串 or null）
     fameBase:     0,       // 每場競技場獲勝的額外固定名聲
 
@@ -125,11 +125,13 @@ const Stats = (() => {
     weaponInventory: [],   // 武器持有清單（之前已散在 main.js，這裡統一初始化）
 
     // 🆕 2026-04-19: 傷勢系統（wounds.md）
+    //   null | { severity:1-3, source, daysElapsed } | { special:'xxx', source, daysElapsed }
     wounds: {
-      head:  null,   // null | { severity:1-3, source, daysElapsed, cameFromCombat }
+      head:  null,
       torso: null,
       arms:  null,
       legs:  null,
+      mind:  null,   // 🆕 精神傷（失眠/憂鬱）
     },
 
     // 🆕 2026-04-19: 強迫症系統（compulsion.md）

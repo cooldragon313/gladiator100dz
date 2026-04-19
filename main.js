@@ -202,6 +202,32 @@ const Game = (() => {
   // 舞台視覺函式（D.8b / D.8c）
   // ══════════════════════════════════════════════════════
 
+  /**
+   * 🆕 2026-04-19：訓練 EXP 獲得時跳對應屬性 emoji
+   *   emoji 數 = ceil(expGain / 10), 上限 5
+   *   size = 20 + (count-1) × 5 → 20/25/30/35/40
+   */
+  const _EXP_EMOJI_MAP = { STR:'💪', DEX:'🎯', CON:'🛡', AGI:'👟', WIL:'🧠', LUK:'🍀' };
+  function _showExpEmoji(attr, expGain) {
+    if (!expGain || expGain <= 0) return;
+    const emoji = _EXP_EMOJI_MAP[attr];
+    if (!emoji) return;
+    const count = Math.min(5, Math.max(1, Math.ceil(expGain / 10)));
+    const size = 15 + count * 5;  // 20, 25, 30, 35, 40
+    const stage = document.getElementById('stage-center') || document.getElementById('scene-view');
+    if (!stage) return;
+
+    const div = document.createElement('div');
+    div.className = 'exp-emoji-effect';
+    div.style.fontSize = size + 'px';
+    // 小幅隨機位移避免重疊
+    const dx = Math.floor(Math.random() * 30) - 15;
+    div.style.marginLeft = dx + 'px';
+    div.innerHTML = emoji.repeat(count);
+    stage.appendChild(div);
+    setTimeout(() => { if (stage.contains(div)) stage.removeChild(div); }, 1600);
+  }
+
   /** 動作特效文字浮現在 #stage-center 上方 */
   function _showActionEffect(name, mult) {
     const layer = document.getElementById('action-fx-layer');
@@ -2614,6 +2640,16 @@ const Game = (() => {
     });
     // 🆕 D.6 v2：訓練只累積 EXP，不自動升級。升級請到角色頁手動花 EXP。
 
+    // 🆕 2026-04-19 訓練成功跳 EXP emoji 特效（依實際 gain 計算數量/大小）
+    if (hasAttrEffect) {
+      (act.effects || []).forEach(eff => {
+        if ((eff.type === 'exp' || eff.type === 'attr') && eff.key && typeof eff.delta === 'number' && eff.delta > 0) {
+          const finalGain = eff.delta * finalSynergyMult * moodMult;
+          _showExpEmoji(eff.key, finalGain);
+        }
+      });
+    }
+
     // 🆕 2026-04-19 強迫症：訓練成功後觸發養成/滿足計數
     if (hasAttrEffect && trainedAttr && typeof Compulsion !== 'undefined') {
       try { Compulsion.onTraining(trainedAttr); } catch (e) { console.error('[Compulsion]', e); }
@@ -4533,11 +4569,11 @@ const Game = (() => {
     if (!Array.isArray(p.readBooks))  p.readBooks    = [];
     if (p.dullardStage === undefined) p.dullardStage = 0;
     if (!Array.isArray(p.weaponInventory)) p.weaponInventory = [];
-    // 🆕 2026-04-19 傷勢系統（v5→v6 欄位）
+    // 🆕 2026-04-19 傷勢系統（v5→v6 欄位 / v6→v7 加 mind）
     if (!p.wounds || typeof p.wounds !== 'object') {
-      p.wounds = { head:null, torso:null, arms:null, legs:null };
+      p.wounds = { head:null, torso:null, arms:null, legs:null, mind:null };
     }
-    ['head','torso','arms','legs'].forEach(part => {
+    ['head','torso','arms','legs','mind'].forEach(part => {
       if (p.wounds[part] === undefined) p.wounds[part] = null;
     });
     // 🆕 2026-04-19 強迫症系統（v5→v6 欄位）
@@ -4777,8 +4813,8 @@ const Game = (() => {
         // 🆕 2026-04-19 讀書系統
         discernment:0, bookshelf:[], focusBookId:null, readBooks:[],
         dullardStage:0, weaponInventory:[],
-        // 🆕 2026-04-19 傷勢系統
-        wounds: { head:null, torso:null, arms:null, legs:null },
+        // 🆕 2026-04-19 傷勢系統（含 mind 部位）
+        wounds: { head:null, torso:null, arms:null, legs:null, mind:null },
         // 🆕 2026-04-19 強迫症系統
         compulsion: {
           buildUp:  { STR:0, AGI:0, CON:0, WIL:0 },
@@ -5204,36 +5240,63 @@ const Game = (() => {
   //   現階段只做 farmBoy 路徑（kindness + diligence）
   // ══════════════════════════════════════════════════
   /**
-   * 🆕 2026-04-19：取得當前最嚴重的結構化傷勢（for Day 1 wakeup 演出整合）
-   *   回傳 null 或 { part, partName, severity, sevName, memoryLine }
+   * 🆕 2026-04-19：取得開場受傷狀態（for Day 1 wakeup 演出整合）
+   *   回傳 null（無傷）或 { hasWounds:true, lines:[...] }
+   *   lines 是已經預組好的對白陣列，wakeup 直接插入即可
    */
   function _getStructuredWound(p) {
     if (!p || !p.wounds || typeof Wounds === 'undefined') return null;
-    const partNames = { head:'頭部', torso:'軀幹', arms:'手臂', legs:'腿部' };
-    const sevNames = { 1:'輕傷', 2:'中傷', 3:'重傷' };
+    const partNames = Wounds.PART_NAMES;
+    const sevNames = Wounds.SEVERITY_NAMES;
+    const SPECIAL_LINES = {
+      concussion:    '（你的視野晃了。腦子裡嗡嗡響。這他媽頭裡面怎了？）',
+      achilles_tear: '（你要站起來 — 腳跟一陣劇痛。你幾乎跪下。這腳⋯⋯斷了嗎？）',
+      insomnia:      '（你已經兩天沒闔眼了。每個聲音都在耳裡放大。手指在抖。）',
+      depression:    '（你醒著。但什麼都提不起勁。胸口像壓著石頭。起床幹嘛？什麼都沒意思。）',
+    };
 
-    let worst = null, worstSev = 0;
+    // 蒐集所有受傷部位（一般 + 特殊）
+    const woundedParts = [];
     Wounds.PARTS.forEach(part => {
       const w = p.wounds[part];
-      if (w && w.severity > worstSev) {
-        worst = part;
-        worstSev = w.severity;
+      if (!w) return;
+      woundedParts.push({ part, w });
+    });
+    if (woundedParts.length === 0) return null;
+
+    // 先觸發紅光震動（只一次）
+    const lines = [
+      { text: '（⋯⋯！）' },
+      { text: '（劇痛。你差點倒下。）' },
+      { text: '（馬的⋯⋯想起來了。）' },
+    ];
+
+    // 每個傷一行對白（特殊傷用專屬 / 一般傷用 origin 回憶）
+    woundedParts.forEach(({ part, w }) => {
+      if (w.special) {
+        lines.push({ text: SPECIAL_LINES[w.special] || `（${Wounds.SPECIAL_DEFS[w.special]?.name}⋯⋯）` });
+      } else {
+        const memoryLine = (typeof BirthTraits !== 'undefined' && BirthTraits._getMemoryLine)
+          ? BirthTraits._getMemoryLine(p.origin, part)
+          : '你記不清。只記得很痛。';
+        const partName = partNames[part] || '身體';
+        const sevName = sevNames[w.severity] || '傷';
+        lines.push({ text: `（${memoryLine}）` });
+        if (w.severity >= 2) {
+          lines.push({ text: `（這${partName}${sevName}⋯⋯沒幾天不會好。）` });
+        }
       }
     });
-    if (!worst) return null;
 
-    // 取回憶句：用 birth_traits.js 的 origin × 部位矩陣
-    let memoryLine = '你記不清楚怎麼傷的。只記得很痛。';
-    if (typeof BirthTraits !== 'undefined' && BirthTraits._getMemoryLine) {
-      memoryLine = BirthTraits._getMemoryLine(p.origin, worst) || memoryLine;
+    // 傷多的話給個收尾
+    if (woundedParts.length >= 2) {
+      lines.push({ text: '（⋯⋯全身上下沒幾個好地方。）' });
     }
-    return {
-      part: worst,
-      partName: partNames[worst] || '身體',
-      severity: worstSev,
-      sevName: sevNames[worstSev] || '傷',
-      memoryLine,
-    };
+    if (woundedParts.some(x => x.w.special)) {
+      lines.push({ text: '（這傷⋯⋯也許永遠好不了了。）' });
+    }
+
+    return { hasWounds: true, lines };
   }
 
   async function _playDay1WakeUp(onComplete) {
@@ -5246,8 +5309,8 @@ const Game = (() => {
     if (typeof Stage !== 'undefined') await Stage.closeEyes();
 
     // ── 場景 1：牢房感官（夏日清晨，黑幕中）──
-    // 🆕 2026-04-19：整合受傷演出。有結構化傷勢（15%）時在翻身時觸發紅光 + 回憶
-    const woundInfo = _getStructuredWound(p);   // { part, severity, memoryLine } | null
+    // 🆕 2026-04-19：整合受傷演出。有結構化傷勢時在翻身時觸發紅光 + 多傷對白
+    const woundInfo = _getStructuredWound(p);   // null | { hasWounds:true, lines:[...] }
     await new Promise(resolve => {
       const lines = [
         { text: '（雞啼。遠遠一聲。）' },
@@ -5257,20 +5320,9 @@ const Game = (() => {
         { text: '（你的牙齒有一顆在晃。）' },
         { text: '（你翻身——身上每個關節都痛。）' },
       ];
-      if (woundInfo) {
-        // 有結構化傷勢 — 插入紅光 + 回憶
-        lines.push(
-          { text: '（⋯⋯！）' },
-          { text: `（劇痛從${woundInfo.partName}傳來。你倒抽一口氣。）` },
-          { text: '（馬的⋯⋯想起來了。）' },
-          { text: `（${woundInfo.memoryLine}）` },
-        );
-        if (woundInfo.severity >= 2) {
-          lines.push({ text: `（這${woundInfo.partName}${woundInfo.sevName}⋯⋯沒幾天不會好。）` });
-        }
-        if (woundInfo.severity === 3) {
-          lines.push({ text: `（也許⋯⋯永遠都好不了了。）` });
-        }
+      if (woundInfo && woundInfo.hasWounds) {
+        // 插入所有傷的對白（已在 _getStructuredWound 預組好）
+        lines.push(...woundInfo.lines);
         // 觸發紅光 + 震動
         _flashStageRed && _flashStageRed();
         _shakeGameRoot && _shakeGameRoot();

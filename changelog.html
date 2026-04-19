@@ -208,6 +208,74 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       2026-04-19 wound 系統大擴 + EXP emoji 訓練特效
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">FEATURE</span>
+      <span class="version-title">wound 系統擴充（mind 部位 + 4 特殊傷）+ EXP emoji 特效</span>
+      <span class="version-date">2026-04-19</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>wounds 加第 5 部位：mind（精神）</strong> <span class="file-tag">wounds.js</span>
+          — 原 4 部位 + 新 mind（精神傷）。mind 對所有訓練 EXP 扣減（不只對應部位）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>4 特殊傷（永久類）</strong> <span class="file-tag">wounds.js SPECIAL_DEFS</span>
+          — <code>concussion</code> 腦震盪（head, WIL−8 / 讀書失效）/
+          <code>achilles_tear</code> 阿基里斯腱撕裂（legs, AGI−8 / 永久）/
+          <code>insomnia</code> 失眠症（mind, 夜間恢復崩壞）/
+          <code>depression</code> 憂鬱症（mind, mood 上限 −15）。
+          特殊傷覆蓋同部位的一般傷，通常需要改造人。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text"><strong>起手擲傷全部統一到 wound 系統</strong> <span class="file-tag">birth_traits.js applyCaptureInjury</span>
+          — 16 種傷（12 一般 + 4 特殊）各獨立 3% 擲骰。
+          期望 0.48 傷 / 玩家，~39% 玩家起手帶傷，~9% 帶 2+ 傷。
+          <strong>殘廢開局</strong>是特意設計 — 為未來改造人線伏筆。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text"><strong>ailments 系統改角色</strong> <span class="file-tag">stats.js</span>
+          — 原 <code>ailments: ['insomnia_disorder']</code> 100% 起手 → <code>ailments: []</code> 預設空。
+          ailments 保留給 Phase 2 的非傷狀態（中毒 / 流血 / 瘟疫等）。
+          失眠症 / 憂鬱症已改由 wound 系統的特殊傷處理。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text"><strong>Day 1 wakeup 多傷對白</strong> <span class="file-tag">main.js _getStructuredWound</span>
+          — 起手多個傷時，每個傷各一行對白。特殊傷用專屬敘述：
+          <code>concussion</code>「這他媽頭裡面怎了？」/
+          <code>achilles_tear</code>「這腳⋯⋯斷了嗎？」/
+          <code>insomnia</code>「兩天沒闔眼了」/
+          <code>depression</code>「胸口壓著石頭」。
+          2+ 傷加「全身沒幾個好地方」；含特殊傷加「也許永遠好不了」。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text"><strong>訓練 EXP emoji 特效</strong> <span class="file-tag">main.js _showExpEmoji</span>
+          — 訓練成功跳對應屬性 emoji（💪 STR / 🎯 DEX / 🛡 CON / 👟 AGI / 🧠 WIL / 🍀 LUK）。
+          emoji 數量與大小隨 EXP gain 增加：1-10 → 1 個 20px / 11-20 → 2 個 25px / ... 41+ → 5 個 40px。
+          不顯示數字，純視覺回饋 1.5 秒彈跳動畫。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text"><strong>文件同步</strong>
+          — CODEX.md 傷勢字典加第 5 部位 + 4 特殊傷表。
+          CANON.md 加「起手傷勢系統」章節。
+          save migration：v6→v7 自動補 <code>wounds.mind</code> 欄位。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
        2026-04-19 開場 mood 平衡 + 奧蘭 CANON 補記
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">

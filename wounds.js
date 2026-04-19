@@ -22,8 +22,8 @@ const Wounds = (() => {
   // 常數
   // ══════════════════════════════════════════════════
 
-  const PARTS = ['head', 'torso', 'arms', 'legs'];
-  const PART_NAMES = { head: '頭部', torso: '軀幹', arms: '手臂', legs: '腿部' };
+  const PARTS = ['head', 'torso', 'arms', 'legs', 'mind'];  // 🆕 2026-04-19 加 mind 部位（精神傷）
+  const PART_NAMES = { head: '頭部', torso: '軀幹', arms: '手臂', legs: '腿部', mind: '精神' };
 
   /**
    * 部位 → 主要屬性減免
@@ -34,6 +34,50 @@ const Wounds = (() => {
     torso: { CON: true },
     arms:  { STR: true },
     legs:  { AGI: true },
+    mind:  { WIL: true },   // 精神傷也影響 WIL
+  };
+
+  /**
+   * 🆕 2026-04-19 特殊傷（比重傷更重的永久類傷，通常需要改造人）
+   *   資料格式：player.wounds.{part} = { special: 'concussion' }
+   *   取代原 ailment 系統（concussion/achilles_tear/insomnia/depression）
+   */
+  const SPECIAL_DEFS = {
+    concussion: {
+      id: 'concussion',
+      name: '腦震盪',
+      part: 'head',
+      statPenalty: { WIL: 8 },
+      expMultDec: 0.40,    // 訓練 EXP ×0.6
+      desc: '頭部重擊，視野晃動，思考遲鈍。讀書失效。',
+    },
+    achilles_tear: {
+      id: 'achilles_tear',
+      name: '阿基里斯腱撕裂',
+      part: 'legs',
+      statPenalty: { AGI: 8 },
+      expMultDec: 0.50,    // AGI 訓練 ×0.5
+      desc: '腳跟的傷讓你幾乎跪下。跑動完全失效。',
+    },
+    insomnia: {
+      id: 'insomnia',
+      name: '失眠症',
+      part: 'mind',
+      statPenalty: {},
+      expMultDec: 0.15,    // 所有訓練 ×0.85（疲勞）
+      desc: '長期失眠傷及神經。夜間恢復崩壞。',
+      passiveOnRest: { stamina: -3, mood: -3 },
+      sleepStaminaMax: 15,
+    },
+    depression: {
+      id: 'depression',
+      name: '憂鬱症',
+      part: 'mind',
+      statPenalty: {},
+      expMultDec: 0.10,    // 所有訓練 ×0.9
+      moodCapReduce: 15,
+      desc: '深層的黑暗蔓延整個精神。mood 上限降低。',
+    },
   };
 
   /**
@@ -71,7 +115,7 @@ const Wounds = (() => {
   function ensureInit(p) {
     const player = p || Stats.player;
     if (!player.wounds || typeof player.wounds !== 'object') {
-      player.wounds = { head: null, torso: null, arms: null, legs: null };
+      player.wounds = { head: null, torso: null, arms: null, legs: null, mind: null };
     }
     PARTS.forEach(part => {
       if (player.wounds[part] === undefined) player.wounds[part] = null;
@@ -134,6 +178,45 @@ const Wounds = (() => {
     if (typeof Stats.renderAll === 'function') Stats.renderAll();
 
     return wound;
+  }
+
+  /**
+   * 🆕 2026-04-19 施加特殊傷（concussion/achilles_tear/insomnia/depression）
+   */
+  function inflictSpecial(specialId, opts = {}) {
+    const def = SPECIAL_DEFS[specialId];
+    if (!def) return null;
+    ensureInit();
+    const p = Stats.player;
+    const part = def.part;
+
+    // 若該部位已有特殊傷且同類 → 不重疊
+    const existing = p.wounds[part];
+    if (existing && existing.special === specialId) return existing;
+
+    // 特殊傷覆蓋一般傷（特殊更嚴重）
+    const wound = {
+      special: specialId,
+      source: opts.source || 'unknown',
+      daysElapsed: 0,
+    };
+    p.wounds[part] = wound;
+
+    if (typeof Stats.renderAll === 'function') Stats.renderAll();
+    return wound;
+  }
+
+  /**
+   * 取得部位傷勢的完整效果定義（一般 + 特殊通用介面）
+   */
+  function getWoundEffect(part) {
+    ensureInit();
+    const w = Stats.player.wounds[part];
+    if (!w) return null;
+    if (w.special) {
+      return { type: 'special', ...SPECIAL_DEFS[w.special] };
+    }
+    return { type: 'normal', severity: w.severity };
   }
 
   /**
@@ -272,6 +355,15 @@ const Wounds = (() => {
     PARTS.forEach(part => {
       const w = p.wounds[part];
       if (!w) return;
+      // 🆕 特殊傷：使用 SPECIAL_DEFS.statPenalty
+      if (w.special) {
+        const sdef = SPECIAL_DEFS[w.special];
+        if (sdef && sdef.statPenalty && sdef.statPenalty[attr]) {
+          total += sdef.statPenalty[attr];
+        }
+        return;
+      }
+      // 一般傷
       const map = PART_STAT_MOD[part];
       if (map && map[attr]) {
         total += SEVERITY_STAT_DEC[w.severity] || 0;
@@ -283,6 +375,8 @@ const Wounds = (() => {
   /**
    * 取得訓練某屬性的 EXP 倍率扣減。
    * 若該屬性對應部位有傷，回傳扣減比例（0~1）。
+   * 🆕 特殊傷也納入計算（用 SPECIAL_DEFS.expMultDec）。
+   * 🆕 mind 部位（insomnia/depression）對所有訓練都扣減。
    */
   function getTrainExpMultDec(attr) {
     const parts = TRAIN_PART_MAP[attr];
@@ -290,12 +384,29 @@ const Wounds = (() => {
     ensureInit();
     const p = Stats.player;
     let maxDec = 0;
+
+    // 一般傷 × 部位對應
     parts.forEach(part => {
       const w = p.wounds[part];
       if (!w) return;
-      const dec = SEVERITY_EXP_DEC[w.severity] || 0;
+      let dec = 0;
+      if (w.special) {
+        const sdef = SPECIAL_DEFS[w.special];
+        dec = sdef?.expMultDec || 0;
+      } else {
+        dec = SEVERITY_EXP_DEC[w.severity] || 0;
+      }
       if (dec > maxDec) maxDec = dec;
     });
+
+    // 🆕 mind 傷對所有訓練都扣減（失眠/憂鬱）
+    const mindW = p.wounds.mind;
+    if (mindW && mindW.special) {
+      const sdef = SPECIAL_DEFS[mindW.special];
+      const mindDec = sdef?.expMultDec || 0;
+      if (mindDec > maxDec) maxDec = mindDec;
+    }
+
     return maxDec;
   }
 
@@ -506,6 +617,18 @@ const Wounds = (() => {
     let html = '';
     active.forEach(part => {
       const w = p.wounds[part];
+      // 🆕 特殊傷顯示
+      if (w.special) {
+        const sdef = SPECIAL_DEFS[w.special];
+        const name = sdef?.name || w.special;
+        html += `<div class="wound-row severity-severe">`;
+        html += `<span class="wound-part">${PART_NAMES[part]}</span>`;
+        html += `<span class="wound-sev">【${name}】</span>`;
+        html += `<span class="wound-days">${w.daysElapsed || 0} 天</span>`;
+        html += `</div>`;
+        return;
+      }
+      // 一般傷
       const sevClass = ['', 'light', 'medium', 'severe'][w.severity];
       html += `<div class="wound-row severity-${sevClass}">`;
       html += `<span class="wound-part">${PART_NAMES[part]}</span>`;
@@ -524,12 +647,15 @@ const Wounds = (() => {
     PARTS,
     PART_NAMES,
     SEVERITY_NAMES,
+    SPECIAL_DEFS,                     // 🆕
     TRAIN_PART_MAP,
     ensureInit,
     getWound,
+    getWoundEffect,                   // 🆕
     hasAnyWound,
     countBySeverity,
     inflict,
+    inflictSpecial,                   // 🆕
     upgradeSeverity,
     heal,
     onDayStart,

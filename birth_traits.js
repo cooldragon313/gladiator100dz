@@ -235,18 +235,17 @@ const BirthTraits = (() => {
   /**
    * 套用被抓受傷（角色生成結尾）。
    *
-   * 擲骰邏輯：
-   *   總命中率 15%
-   *     → 嚴重度：輕傷 60% / 中傷 30% / 重傷 10%
-   *     → 部位：依 origin 有微量偏好，基本隨機
-   *     → HP/food/mood 小幅損失（固定）
-   * 沒命中 → 只有小幅 food/mood 損失，不受傷
+   * 🆕 2026-04-19：全新擲骰（16 種傷獨立 3% 擲）
+   *   一般傷：4 部位 × 3 級 = 12 種
+   *   特殊傷：concussion / achilles_tear / insomnia / depression = 4 種
+   *   每種獨立 3% 機率 → 期望 ~0.48 / 玩家，可能多個一起中
    *
    * @param {string} originId
-   * @returns {object} { injured, part, severity, memoryLine }
+   * @returns {object} { injured, wounds:[...], hpLoss, foodLoss, moodLoss }
    */
   function applyCaptureInjury(originId) {
     const p = Stats.player;
+    const INDEP_PROB = 0.03;
 
     // 基礎損失（每個人都有，被抓過程本來就累）
     const loss = _baseLossByOrigin(originId);
@@ -254,35 +253,39 @@ const BirthTraits = (() => {
     p.food = Math.max(5,  p.food - loss.food);
     p.mood = Math.max(5,  p.mood - loss.mood);
 
-    // 擲傷勢骰
-    const hit = Math.random() < 0.15;
-    if (!hit) {
-      return { injured: false };
+    if (typeof Wounds === 'undefined') {
+      return { injured: false, wounds: [], ...loss };
     }
 
-    // 嚴重度：輕 60 / 中 30 / 重 10
-    const roll = Math.random();
-    let severity = 1;
-    if (roll < 0.10) severity = 3;
-    else if (roll < 0.40) severity = 2;
-    else severity = 1;
+    const inflicted = [];
 
-    // 部位：依 origin 加權，但隨機為主
-    const part = _rollInjuryPart(originId);
+    // 一般傷：4 部位 × 3 級，各 3% 獨立擲
+    const normalParts = ['head', 'torso', 'arms', 'legs'];
+    normalParts.forEach(part => {
+      [1, 2, 3].forEach(severity => {
+        if (Math.random() < INDEP_PROB) {
+          // 若同部位已有傷，取較嚴重
+          const cur = p.wounds[part];
+          if (cur && !cur.special && cur.severity >= severity) return;
+          Wounds.inflict(part, severity, { source: 'capture' });
+          inflicted.push({ type: 'normal', part, severity });
+        }
+      });
+    });
 
-    // 施加傷勢（由 Wounds 模組統一處理）
-    if (typeof Wounds !== 'undefined') {
-      Wounds.inflict(part, severity, { source: 'capture' });
-    }
-
-    // 回憶對白一句（依 origin × 部位）
-    const memoryLine = _getMemoryLine(originId, part);
+    // 特殊傷：4 種各 3% 獨立擲
+    Object.keys(Wounds.SPECIAL_DEFS || {}).forEach(specialId => {
+      if (Math.random() < INDEP_PROB) {
+        const sdef = Wounds.SPECIAL_DEFS[specialId];
+        // 若該部位已有傷（不論普通或特殊），特殊傷優先覆蓋
+        Wounds.inflictSpecial(specialId, { source: 'capture' });
+        inflicted.push({ type: 'special', part: sdef.part, specialId, name: sdef.name });
+      }
+    });
 
     return {
-      injured: true,
-      part,
-      severity,
-      memoryLine,
+      injured: inflicted.length > 0,
+      wounds: inflicted,
       hpLoss: loss.hp,
       foodLoss: loss.food,
       moodLoss: loss.mood,

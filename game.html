@@ -602,6 +602,27 @@ html, body {
   white-space: nowrap;
   line-height: 1;
 }
+
+/* 🆕 2026-04-19 訓練 EXP emoji 特效 */
+@keyframes exp-emoji-pop {
+  0%   { opacity: 0; transform: translate(-50%, -30%) scale(0.5); }
+  20%  { opacity: 1; transform: translate(-50%, -60%) scale(1.1); }
+  40%  { opacity: 1; transform: translate(-50%, -80%) scale(1.0); }
+  80%  { opacity: 1; transform: translate(-50%, -120%) scale(1.0); }
+  100% { opacity: 0; transform: translate(-50%, -160%) scale(0.8); }
+}
+.exp-emoji-effect {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+  pointer-events: none;
+  animation: exp-emoji-pop 1.5s ease-out forwards;
+  white-space: nowrap;
+  line-height: 1;
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,.6));
+}
 /* 等級：普通（1人以下） */
 .fx-normal {
   font-size: clamp(22px,3vw,34px);

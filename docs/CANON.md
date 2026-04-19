@@ -10,6 +10,21 @@
 
 ---
 
+## 🩸 起手傷勢系統（2026-04-19 重整）
+
+**全部傷統一到 wounds 系統**（不再用 ailments 給起手）：
+
+- 5 部位（head / torso / arms / legs / **mind**）
+- 12 種一般傷（4 部位 × 3 級）+ 4 種特殊傷（concussion / achilles_tear / insomnia / depression）
+- 每種獨立 3% 擲骰 → 期望 ~0.48 / 玩家
+- ~39% 玩家起手有某種傷，~9% 有 2+ 個傷
+
+詳細見 `docs/CODEX.md § 傷勢字典`。
+
+`player.ailments` 保留給 Phase 2 的**非傷狀態**（中毒 / 流血 / 瘟疫 / 病痛）— 起手預設**空**。
+
+---
+
 ## 📅 時間線（相對遊戲 Day 0）
 
 | 事件 | 相對時間 | 說明 |
