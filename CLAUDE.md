@@ -28,6 +28,7 @@
 2. **`HISTORY.md`** — 已實作系統的歷史細節、已廢棄設計的考古紀錄。一般開發不需要讀。
 3. **`docs/CONTENT-TEMPLATES.md`** — 新 NPC / 武器 / 訓練所等內容創作模板（原 D.11）。
 3-0. **`docs/CODEX.md`** — 🆕 **完整字典（2026-04-19）**：特性/書本/origin/傷勢/見識/旗標/數字速查表一份搞定。查「某個特性效果是什麼」「某本書門檻多少」「某 flag 做什麼用」先看這份。
+3-0b. **`docs/CANON.md`** — 🆕 **故事事實單一事實源（2026-04-19）**：時間線、角色年齡、誰知道什麼、關係歷史。**寫新對白/事件前必查**。跟 CODEX 分工：CODEX 存規則，CANON 存事實。
 3a. **`docs/DIALOGUE-MAP.md`** — 🆕 D.28：**對白位置總索引**。查某段對白在哪裡先看這份。
 3a1. **`docs/characters/*.md`** — 🆕 D.28：每個 NPC 的完整檔案（愛憎 / 對話風格 / 特性反應 / 招牌動作 / 程式碼指標）
    - 目前已建：orlan / melaKook / cassius / hector / doctorMo / officer / masterArtus / sol
@@ -400,6 +401,11 @@ save_system → testbattle → battle → actions → main
   - AI 主動規則：寫新 `xxx.js` 模組或改動 `config.js TRAIT_DEFS` / `books.js` / `origins.js` / `wounds.js` 等資料時，
     **commit 前自動更新 CODEX.md 對應章節**，不用等使用者說。
   - 同步順序：程式碼 → 對應 `docs/systems/{name}.md` → CODEX.md 字典 → CLAUDE.md 術語
+- **⭐ docs/CANON.md**：**故事事實單一事實源** — 時間線、年齡、誰知道什麼、關係歷史。
+  - 🚨 **強制規則（2026-04-19 定）**：**寫新對白 / 新事件 / 新 storyReveal 前必查 CANON**。
+  - 發現未決事實（某角色幾歲？認識幾年？）→ **問使用者，不得 extrapolate**
+  - 這是避免「每次都要補丁拯救」的核心工具 — 新事實寫完立刻同步 CANON。
+  - CANON 衝突處理：CANON 是源頭，程式碼與其他 md 向 CANON 對齊。
 - **DESIGN.md**：設計規格與決策。更新頻率中。
 - **changelog.html**：每次功能/修正的歷史紀錄。**每次中型以上改動都要自動補上**
   （新系統 / 新模組 / 新事件 / UI 重構 / 平衡調整等）。
