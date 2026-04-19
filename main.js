@@ -5106,6 +5106,9 @@ const Game = (() => {
 
   /** 新遊戲真正開始（rollNPCs、Day 1 起床演出、resolve meal、save、render） */
   function _enterNewGame() {
+    // 🆕 2026-04-19 修 bug：強制重置 _lastNPCRollDay，避免上次遊戲的 module state
+    //   讓 rollDailyNPCs 誤判「今天已 roll」→ 導致 Day 1 沒隊友沒觀眾
+    _lastNPCRollDay = -1;
     rollDailyNPCs();
     renderAll();
 
