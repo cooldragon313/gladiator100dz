@@ -514,15 +514,17 @@ const teammates = (() => {
     sol: {
       id: 'sol', name: '索爾',
       role: 'teammate',
-      title: '沉默的大個子',
-      desc: '跟你同一天被押進來的人。農夫出身，身體很厚實，但眼神空洞。他幾乎不說話。',
+      title: '沉默的瘸子',
+      desc: '跟你同一天被押進來的人。28 歲，農夫出身。右腿瘸了——舊傷。他幾乎不說話。脖子上掛著一塊歪歪斜斜的木牌，像是小孩刻的。',
       baseAffection: 15,
       personality: 'loner',
       favoredAttr: 'CON',
       likedTraits:    { reliable:2, patient:2, humble:1 },
       dislikedTraits: { cruel:2, prideful:1 },
       arriveDay: 1,
-      // Day 5 之後不再出現（alive 設為 false）
+      // 🆕 2026-04-20：主人刻意買來當 Day 5 沙洗祭品。他自己知道。
+      // 28 歲（不可塑）+ 瘸子（戰力不行）+ 女兒 D（5-7 歲）= 沒有投資價值。
+      // 詳見 docs/characters/sol.md 與 docs/quests/day5-sand-wash.md
     },
 
     // ── 赫克托（訓練所惡人・算計型反派） ──────────────

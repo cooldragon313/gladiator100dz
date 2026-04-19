@@ -515,18 +515,57 @@ const Game = (() => {
     addLog(`\n【第 ${Stats.player.day} 天 · ${ev.name}】`, '#e8c870', true);
     showToast(`第 ${Stats.player.day} 天 ── ${ev.name}`, 5000);
 
+    // 🆕 2026-04-20：Day 5 重寫為公開處決儀式
+    //   主題：震撼教育 / 命是主人的 / 沒有投資價值 = 淘汰
+    //   阿圖斯首次登場（陽台）/ 老鳥先清 / 索爾被指定
     const introLines = [
-      { text: '訓練場的沙地今天格外安靜。' },
-      { text: '長官站在場中央。主人坐在觀台上。' },
-      { text: '所有人被叫到場邊排成一列。' },
-      { speaker: '塔倫長官', text: '今天的考驗規則很簡單。' },
-      { text: '他環視一圈。目光冰冷。' },
-      { speaker: '塔倫長官', text: '三個人進去——' },
-      { speaker: '塔倫長官', text: '只有兩個人出來。' },
-      { text: '你感覺到旁邊奧蘭的手在發抖。' },
-      { text: '另一邊，索爾一動不動地站著。' },
-      { text: '他看了你一眼。那個眼神——跟昨晚遞給你乾肉時一模一樣。' },
-      { speaker: '塔倫長官', text: '你們三個。上來。' },
+      { text: '訓練場中央。清晨。' },
+      { text: '（你跟奧蘭、索爾被推到中央。）' },
+      { text: '（但不只你們三個。）' },
+      { text: '（場邊還有五、六個老鳥被押過來——身上有傷，昨晚挨過打。）' },
+      { text: '（其他奴隸幾十個，圍成一圈。靜默。）' },
+
+      { speaker: '塔倫長官', text: '今天是新人的第五天。' },
+      { speaker: '塔倫長官', text: '阿圖斯大人說——沒有人有資格混飯吃。' },
+      { text: '（他的目光掃過全場。）' },
+      { speaker: '塔倫長官', text: '每過一段時間，我會淘汰不值得養的。' },
+      { speaker: '塔倫長官', text: '今天，輪到這幾個。' },
+
+      { text: '（你這時才懂——你們是被當例子的。）' },
+
+      // ─── 阿圖斯首次登場（陽台）───
+      { text: '（你第一次抬頭看陽台。）' },
+      { text: '（他站在那裡。）' },
+      { text: '（一個高大的身影。手裡拿著酒杯。）' },
+      { text: '（臉看不清——陽光太強。）' },
+      { text: '（他沒說話。只是看著。）' },
+
+      { speaker: '塔倫長官', text: '大人說——這幾個老的，時間到了。' },
+      { text: '（5-6 個老鳥被侍從帶走。沒有掙扎。他們早就知道。）' },
+
+      { text: '（你聽見木牌撞擊的聲音。索爾的掛件。）' },
+      { text: '（他的手在胸前握緊那塊木牌。）' },
+
+      { text: '（然後塔倫轉向你們。）' },
+
+      { speaker: '塔倫長官', text: '新人——' },
+      { text: '（他抬頭看陽台，等指示。）' },
+      { text: '（阿圖斯的目光從酒杯上方掃過你們三人。）' },
+      { text: '（停在索爾身上——1 秒。）' },
+      { text: '（然後移開。）' },
+
+      { speaker: '塔倫長官', text: '索爾。出局。' },
+
+      { text: '（沒有理由。沒有解釋。）' },
+      { text: '（大人判斷——這個不值得繼續養。）' },
+
+      { text: '（索爾沒反應。他早就知道。）' },
+      { text: '（他低頭看自己的瘸腿一眼——像是跟它道別。）' },
+
+      { speaker: '塔倫長官', text: '剩下兩個——你們決定誰動手。' },
+      { speaker: '塔倫長官', text: '打贏的留。打輸的——也一起走。' },
+      { speaker: '塔倫長官', text: '這是給所有人看的。' },
+      { speaker: '塔倫長官', text: '你們的命，是主人的。' },
     ];
 
     DialogueModal.play(introLines, {
@@ -612,12 +651,19 @@ const Game = (() => {
     Flags.set('trial_completed', true);
 
     if (choiceId === 'fight_sol') {
-      // A：你 vs 索爾 → 索爾是農夫體格，比你稍強
+      // A：你 vs 索爾 → 索爾是農夫體格 + 瘸腿，比你稍強但不強太多
+      // 🆕 2026-04-20：戰前對白加看瘸腿暗示（他知道自己是祭品）
       DialogueModal.play([
         { text: '你握緊武器走上沙地。' },
         { text: '索爾站在你對面。他沒有躲閃的意思。' },
         { speaker: '索爾', text: '……好好打。' },
-        { text: '那是他對你說的最後一句話。' },
+        { text: '（他說話時，視線不自覺地落在自己右腿上。）' },
+        { text: '（那條永遠好不了的瘸腿。）' },
+        { text: '（他笑了一下——沒到眼睛。）' },
+        { speaker: '索爾', text: '……我走得比你們所有人都慢。' },
+        { speaker: '索爾', text: '該是時候了。' },
+        { text: '（你突然懂了——他一直都知道。）' },
+        { text: '（他一進這裡，就是這個結局。）' },
       ], {
         onComplete: () => {
           Battle.start('trialSol',
@@ -715,9 +761,56 @@ const Game = (() => {
               });
             },
             () => {
-              // 輸了：你重傷 + 索爾還是被處決
-              _solDies('你倒在地上。長官搖了搖頭——然後看向索爾。「可惜。」');
-              Stats.modVital('hp', -40);
+              // 🆕 2026-04-20 heroic 輸路徑完整重寫：你盡力了但世界不給機會
+              DialogueModal.play([
+                { text: '你的膝蓋先倒下。' },
+                { text: '沙子進了你的眼睛。' },
+                { text: '（你還活著。但你輸了。）' },
+
+                { speaker: '塔倫長官', text: '……有膽識。' },
+                { speaker: '塔倫長官', text: '但只有膽識，救不了誰。' },
+
+                { text: '（他走到索爾面前。）' },
+                { text: '（索爾沒有抵抗——但他看了你一眼。）' },
+                { speaker: '索爾', text: '……你盡力了。' },
+                { text: '（那是他留給你的最後一句話。）' },
+
+                { text: '（劍光閃過。索爾倒下。）' },
+
+                { text: '（你看著天空。）' },
+                { text: '（你流淚了——但你說不清是因為什麼。）' },
+                { text: '（你為一個認識五天的人流淚。）' },
+
+                { text: '（奧蘭衝過來。他的手摸到你的臉——冷的。）' },
+                { speaker: '奧蘭', text: '……活下去。' },
+                { speaker: '奧蘭', text: '你得替他活下去。' },
+              ], {
+                onComplete: () => {
+                  // 數值後果（參見 docs/quests/day5-sand-wash.md）
+                  Stats.modVital('hp',   -30);
+                  Stats.modVital('mood', -30);
+                  Stats.modFame(+3);          // 長官記得膽識
+                  // 頭部中傷（結構化傷勢）
+                  if (typeof Wounds !== 'undefined' && Wounds.inflict) {
+                    Wounds.inflict('head', 2, { source: 'heroic_trial_failed' });
+                  }
+                  // NPC 好感變動
+                  if (typeof teammates !== 'undefined') {
+                    teammates.modAffection('orlan',   +10);  // 感激你替他扛
+                    teammates.modAffection('officer',  -5);  // 輸了畢竟輸了
+                  }
+                  // 道德軸
+                  if (typeof Moral !== 'undefined') {
+                    Moral.push('reliability', 'positive', { weight: 2 });
+                  }
+                  // 伏筆 flag（未來 NPC 事件呼應）
+                  Flags.set('heroic_trial_failed', true);
+
+                  // 索爾死（觸發掛件、alive=false 等）
+                  _solDies('索爾倒在你眼前。你沒能救他。');
+                  renderAll();
+                },
+              });
             }
           );
         },
@@ -814,7 +907,21 @@ const Game = (() => {
         addLog('——索爾已死。', '#663344', true, true);
         if (typeof SoundManager !== 'undefined') SoundManager.playSynth('sleep');  // 沉重的低音
 
-        renderAll();
+        // 🆕 2026-04-20 撿拾掛件演出（A-贏 路徑 fancy 版）
+        setTimeout(() => {
+          DialogueModal.play([
+            { text: '（你走到索爾身邊。）' },
+            { text: '（他的手裡——木牌。）' },
+            { text: '（女兒刻的。歪歪斜斜。「D」字樣。）' },
+            { text: '（你接過。）' },
+            { text: '（它比看起來重得多。）' },
+          ], {
+            onComplete: () => {
+              _grantSolAmulet();
+              renderAll();
+            },
+          });
+        }, 800);
       },
     });
   }
@@ -869,7 +976,27 @@ const Game = (() => {
     }
     Flags.set('sol_dead', true);
     Flags.set('sol_died_day', Stats.player.day);
+    _grantSolAmulet();   // 🆕 2026-04-20 索爾死 → 獲得女兒掛件
     renderAll();
+  }
+
+  /**
+   * 🆕 2026-04-20：索爾死後獲得女兒的掛件（+LUK 1 永久）
+   *   設計哲學: LUK 在主人面前一文不值 — 索爾戴著這個沒逃過死
+   *   你繼承他的愛跟運氣，也繼承他的處境（Day 49 血戰再迴響主題）
+   */
+  function _grantSolAmulet() {
+    const p = Stats.player;
+    if (Flags.has('has_sol_amulet')) return;   // 避免重複給
+    Flags.set('has_sol_amulet', true);
+    if (!Array.isArray(p.personalItems)) p.personalItems = [];
+    if (p.personalItems.length < 6 && !p.personalItems.includes('sol_amulet')) {
+      p.personalItems.push('sol_amulet');
+    }
+    // 永久 +1 LUK（女兒的祝福）
+    p.LUK = (p.LUK || 10) + 1;
+    addLog('✦ 你獲得了：女兒的掛件（LUK +1）', '#d4af37', true, true);
+    addLog('「一塊歪歪斜斜的木牌。女兒刻的。」', '#a89070', false, false);
   }
 
   function _showTimelineBattleBtn(ev) {
