@@ -211,7 +211,7 @@
 | **背景角鬥士** | background_gladiators.js | `BackgroundGladiators.rollDaily(day, weight)` | 碎念 + 八卦 + 協力 |
 | **奧蘭事件** | orlan_events.js | `OrlanEvents.tryDeathSave()` | Day 30/60/85 脊椎事件 + 生死援手 |
 | **醫生事件** | doctor_events.js | `DoctorEvents.tryVisit()` | 自動觸發，差異化治療 |
-| **抓老鼠任務** | quests/mela_rat_quest.js | `MelaRatQuest.tryOffer()` / `playTonight()` | 🆕 D.28：白天接、晚上做、3 段判定 |
+| **抓老鼠任務** | src/quests/mela_rat_quest.js | `MelaRatQuest.tryOffer()` / `playTonight()` | 🆕 D.28：白天接、晚上做、3 段判定 |
 | **NPC 反應（情緒回聲）** | npc_reactions.js | `NPCReactions.pickDaily(day)` | Day 5/60/85 大選擇後隔日清晨 NPC 輪流表態 |
 | **NPC 衝突事件** | npc_conflicts.js | `NPCConflicts.pickDaily(day)` | 6 個選邊站事件（赫克特/奧蘭/長官/老默/梅拉） |
 | **結局判定器** | ending.js | `Endings.pickAndPlay(survived)` | 8 種結局：依 flags/屬性/特性自動判定 |
@@ -268,17 +268,36 @@
   - 好感變動自動乘愛憎倍率（淨分 ±3 → ×1.5~×0.3）
   - 在 `teammates.modAffection` 內部統一處理
 
-### 模組相依
-載入順序（見 game.html bottom）：
+### 模組相依（2026-04-20 Phase 2 重組後）
+
+**資料夾結構**（所有 JS 在 `src/` 下）：
 ```
-config → stage → choice_modal → flags → origins → i18n → game_state → sound →
+src/
+├── core/       config, flags, game_state, day_cycle, effect_dispatcher, stats, save_system
+├── ui/         stage, choice_modal, dialogue_modal, help_modal, sound, i18n
+├── systems/    moral, morning_thoughts, wounds, compulsion, reading, birth_traits, tutorial_hints
+├── npc/        npc, background_gladiators, orlan_events, doctor_events, npc_reactions, npc_conflicts
+├── content/    origins, fields, events, item, weapons, armors, enemy, books, skill
+├── battle/     battle, testbattle
+├── actions/    actions, train
+├── quests/     mela_rat_quest
+└── (root)      character_roll, ending, main
+```
+
+**載入順序**（見 game.html bottom，保持原順序，只改路徑）：
+```
 config → stage → choice_modal → dialogue_modal → flags → origins → i18n →
 game_state → sound → day_cycle → effect_dispatcher → stats → moral →
 morning_thoughts → fields → npc → background_gladiators → orlan_events →
-events → item → weapons → armors → enemy → train → skill → ending →
-save_system → testbattle → battle → actions → main
+doctor_events → npc_reactions → npc_conflicts → tutorial_hints → help_modal →
+mela_rat_quest → events → item → weapons → armors → enemy → train → skill →
+ending → save_system → wounds → compulsion → books → birth_traits → reading →
+character_roll → testbattle → battle → actions → main
 ```
-新增模組要注意放在依賴它的模組之前。
+新增模組要注意放在依賴它的模組之前。新增 JS 檔案時：
+- 選對子資料夾（core/ui/systems/npc/content/battle/actions/quests）
+- 在 game.html 對應位置加 `<script src="src/XXX/yourfile.js">`
+- 更新本區的載入順序（如果順序有影響）
 
 ### 場景架構
 - **訓練場是唯一場景**（Phase 1-J 重構後）

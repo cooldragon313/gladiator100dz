@@ -738,9 +738,9 @@ player.wounds.head = null | { severity:1-3, daysElapsed } | { special:'concussio
 | 書本定義 | `books.js:BOOK_DEFS` | 13 本種子書 |
 | Origin 定義 | `origins.js:Origins` | 8 origins |
 | 武器資料 | `weapons.js:Weapons` | 裝備 picker 用 |
-| 武器戰鬥資料 | `測試頁面/testbattle.js:TB_WEAPONS` | 戰鬥引擎用（待統一）|
+| 武器戰鬥資料 | `src/battle/testbattle.js:TB_WEAPONS` | 戰鬥引擎用（待統一）|
 | 護甲資料 | `armors.js:Armors` | 盾牌 + 護甲 |
-| 敵人資料 | `測試頁面/testbattle.js:TB_ENEMIES` | 4 個現有敵人 |
+| 敵人資料 | `src/battle/testbattle.js:TB_ENEMIES` | 4 個現有敵人 |
 
 ### 系統模組
 

@@ -121,6 +121,16 @@ const TutorialHints = (() => {
       ],
     },
 
+    // ── 首次 CON 升級 → 體力上限連動（內心獨白，跨訓練所通用） ──
+    {
+      id: 'first_stamina_grow',
+      condition: () => (typeof Flags !== 'undefined') && Flags.has('con_ever_raised'),
+      lines: [
+        { speaker: '你', text: '（好像……練著練著，體力比以前多了？）' },
+        { speaker: '你', text: '（或許，還能再增加？）' },
+      ],
+    },
+
     // ── 首次 NPC 好感 >= 30 → 協力機制（卡西烏斯） ──
     {
       id: 'first_aff_30',

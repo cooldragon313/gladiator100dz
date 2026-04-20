@@ -629,6 +629,7 @@ const Stats = (() => {
     if (attr === 'CON') {
       player.hpMax      = player.hpBase + Math.round(2 * eff('CON'));
       player.staminaMax = 50 + Math.round(5 * eff('CON'));
+      if (typeof Flags !== 'undefined') Flags.set('con_ever_raised', true);
     }
     return true;
   }
