@@ -37,6 +37,7 @@
 ### 戰鬥與競技
 | 檔案 | 主題 |
 |---|---|
+| [battle-system.md](systems/battle-system.md) | 🆕 戰鬥公式總覽 + 武器/護甲資料 + BB 式擴充評估 |
 | [arena-system.md](systems/arena-system.md) | 競技場派遣制、對手池、赫克托黑市、戰敗死亡 |
 | [battle-density.md](systems/battle-density.md) | 戰鬥密度設計 |
 | [battle-screen-rework.md](systems/battle-screen-rework.md) | 戰鬥畫面重構紀錄 |
@@ -82,6 +83,7 @@
 | 卡西烏斯 | [cassius.md](characters/cassius.md) | 老手戰友（故事深）|
 | 赫克托 | [hector.md](characters/hector.md) | 老油條（黑市情報販）|
 | 索爾 | [sol.md](characters/sol.md) | Day 5 沙洗被選中（28 歲瘸子）|
+| **葛拉** | [blacksmithGra.md](characters/blacksmithGra.md) | 🆕 鐵匠（50+ 歲、打鐵 30 年、那根鐵條）|
 
 ### 訓練所權威
 | NPC | 檔案 | 角色 |
@@ -107,6 +109,7 @@
 | [mela-rat.md](quests/mela-rat.md) | 不定 | 梅拉抓老鼠（白天接、晚上做、3 段判定）|
 | [day5-sand-wash.md](quests/day5-sand-wash.md) | Day 5 | 沙洗公開處決儀式 |
 | [blood-feast.md](quests/blood-feast.md) | Day 49 | 血戰宴會 + T5 訓練所升級門檻 |
+| [blacksmith-gra.md](quests/blacksmith-gra.md) | Day 5-100 持續 | 🆕 鐵匠葛拉 8 階段任務 + 武器耐久/升級系統 |
 
 ---
 

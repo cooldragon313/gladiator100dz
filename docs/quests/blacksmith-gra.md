@@ -1,0 +1,371 @@
+# 鐵匠葛拉 · 任務設計書
+
+> 葛拉是訓練場的鐵匠，玩家**武器/護甲升級與維護**的核心入口。
+> 設計日期：2026-04-22
+> 關聯系統：[battle-system.md](../systems/battle-system.md) § 8（武器耐久度）+ § 4（護甲 tier）
+> 角色檔：[characters/blacksmithGra.md](../characters/blacksmithGra.md)（待建）
+> 程式位置：`src/content/weapons.js` / `src/content/armors.js` / `src/npc/blacksmith_events.js`（待建）
+
+---
+
+## § 1 核心定位
+
+### 葛拉在遊戲中的三個角色
+
+1. **武器升級供應商**（tier 1 → 5）
+2. **護甲打造者**（皮甲/板甲系列）
+3. **維修服務**（武器耐久度 / 損壞修復）
+
+### 跟其他黑市系統的分工（2026-04-20 決議）
+
+| 類別 | NPC | 服務 |
+|---|---|---|
+| **合法武器/護甲打造 + 修繕** | **葛拉** | 光明正大 |
+| 二手雜貨 / 稀有秘法 | 黑鬍子（未建）| 黑市 |
+| 改造醫療 / 興奮劑 | 密醫（未建）| 地下 |
+| 戰鬥情報 / 下毒 | 赫克托（已建）| 非法 |
+
+葛拉**只管正途**——你跟他的關係建立在**技藝尊重**，不是交易互利。
+
+---
+
+## § 2 階段總表（100 天節奏）
+
+| 階段 | Day | 觸發 | 產出 | 狀態 |
+|---|---|---|---|---|
+| **0. 存在感** | Day 1-5 | 背景 NPC，偶爾出現觀眾 | 無（鋪陳）| ✅ 已實作 |
+| **1. 初見邀請** | Day 5-15 | 累積 3 次葛拉在場練 STR | 解鎖 flag `gra_invited_to_forge` | ✅ 已實作（事件 [events.js:542](../../src/content/events.js)） |
+| **2. 首件護甲** | Day ~15 | 好感 20 + 戰鬥受傷 ≥ 1 次 | **皮甲 T1**（DEF 3）| ⬜ 待建 |
+| **3. 武器修繕首次** | Day ~20 | 武器 dura < 50% | 免費修 1 次（好感門票）| ⬜ 待建 |
+| **4. 武器升級 T2** | Day ~30 | 競技場 3 勝 或 好感 30 + 付金 | 當前武器 **tier +1**（T1→T2）| ⬜ 待建 |
+| **5. 秘法事件** | 隨機 | 玩家帶秘法 / 特殊材料 | 獨特武器（雙刃 / 獸革等）| ⬜ 待建 |
+| **6. 武器升級 T3** | Day ~55 | 好感 50 + 競技場 5 勝 + 付金 | 武器 **tier +2**（可命名）| ⬜ 待建 |
+| **7. 護甲升級或切換** | Day ~70 | 讀過鍛造書 + 好感 40 + 屬性門檻 | **皮 T3 / 板 T1** 擇一 | ⬜ 待建 |
+| **8. 傳家武器** | 隱藏 | 好感 80 + 神眷 or 鐵人特性 | **tier 4 劇情武器** | ⬜ 待建 |
+
+---
+
+## § 3 事件模板（可重用）
+
+### 模板 A：`smith_milestone` — 葛拉主動送裝備
+
+**用途**：階段 2（首件護甲）、階段 4/6（武器升級）、階段 8（傳家武器）
+
+**結構**：
+1. 葛拉派人或晨起時玩家被召喚到鍛造坊
+2. Stage.playEvent 小過場
+3. DialogueModal 3-5 行對話
+4. 產出入 `weaponInventory` / `armorInventory`
+5. log 寫入 + 好感 +5
+
+**範例對話**（階段 2 首件護甲）：
+```
+侍從（清晨）：葛拉找你。說——你連件護甲都沒有就上場，他看不下去。
+
+[Stage.playEvent：鍛造坊紅光閃爍]
+
+葛拉（沒抬頭，繼續敲鐵）：坐下。
+葛拉：你昨天被打成那樣，主人還留著你——我猜他沒注意。
+葛拉：這件皮甲是我多打的。拿去吧。
+葛拉：別說是我給的。
+```
+
+**效果**：
+- `Stats.player.armorInventory.push({id: 'leatherArmor', tier: 1})`
+- `teammates.modAffection('blacksmithGra', +5)`
+- `addLog('⚔ 你得到了皮甲 T1。', '#c8a060', true, true)`
+
+### 模板 B：`smith_repair` — 修繕/升級
+
+**用途**：階段 3（修繕）、階段 4/6（升級）
+
+**結構**：
+1. 玩家武器 dura 低或達升級條件 → 事件自動觸發
+2. ChoiceModal：「找葛拉」/「不用」
+3. 選「找葛拉」→ DialogueModal
+4. 付金 / 消耗好感 / 等 1 日
+5. 武器 dura 回滿或 tier +1
+
+**範例**（階段 3 首次修繕）：
+```
+（你的長劍開始搖晃，刃上有幾條細小的裂縫。）
+
+[ChoiceModal]
+▸ 去找葛拉看看
+▸ 撐著用
+
+【選項 A】
+葛拉：你這把劍快斷了。
+葛拉：這次我免費。下次你得付錢——別讓我覺得我看錯人。
+葛拉：明天來拿。
+
+（dura 回滿 / 下一日戰鬥前取回）
+```
+
+### 模板 C：`smith_blueprint` — 秘法打造
+
+**用途**：階段 5
+
+**結構**：
+1. 玩家背包有 `blueprints[X]` 或特殊材料
+2. 帶到鍛造坊 → 自動觸發
+3. DialogueModal 展示秘法
+4. 產出獨特裝備
+
+**範例**（斷刃重生）：
+```
+（你拿出那張皺皺的圖紙。葛拉眼神亮了一下。）
+
+葛拉：這個？……你哪來的。
+葛拉：（他沒讓你回答。）
+葛拉：我試試。給我三天。
+
+【三天後】
+葛拉：拿去。
+葛拉：兩把破劍熔在一起——你別小看這東西。
+葛拉：能用比長劍短的時間，砍出長劍的分量。
+
+（獲得【雙刃短劍】twinblade，tier 2 獨特）
+```
+
+---
+
+## § 4 武器系列 × Tier（葛拉提供）
+
+### 標準武器 tier 升級路線
+
+玩家起始武器（Day 3 裝備庫發）→ 葛拉升 T2 → 升 T3。
+
+| 武器 | T1 | T2（葛拉） | T3（葛拉） | T4（傳家）| T5（未來擴充）|
+|---|---|---|---|---|---|
+| 匕首 | 普通匕首 | 尖刃匕首 | 鋼刺匕首 | 影刀 | 夜毒刃 |
+| 短劍 | 普通短劍 | 精鐵短劍 | 鍛造短劍 | 葛拉之劍 | 傳說劍 |
+| 長槍 | 普通長槍 | 鐵頭長槍 | 鋼尖長槍 | 穿雲槍 | 破軍槍 |
+| 長劍 | 普通長劍 | 精鐵長劍 | 鍛造長劍 | 葛拉雙手劍 | 龍吟劍 |
+| 長槌 | 普通長槌 | 鐵頭長槌 | 鍛造長槌 | 巨錘 | 碎山槌 |
+| 重斧 | 普通重斧 | 精鐵重斧 | 鍛造重斧 | 裂盾斧 | 血斧 |
+
+**每 tier 數值提升**（大約）：
+- ATK / PEN / ACC / CRT 各 +1~2
+- `durabilityMax` +10~15（見 battle-system.md § 8.1）
+- 價格 × 2~3
+
+### 護甲系列（葛拉主打）
+
+| 類型 | T1 | T2 | T3 | T4 | T5 |
+|---|---|---|---|---|---|
+| **皮系**（葛拉主業）| 皮甲（起始）| 加厚皮甲 | 鉚釘皮甲 | 獸革甲 | 龍皮甲 |
+| **板系**（葛拉進階）| 鐵片甲 | 鎖鏈甲 | 鍛鐵板甲 | 鐵板甲 | 玄鐵甲 |
+
+**布系不由葛拉負責**（玩家可穿但葛拉不打，黑市/主人賞賜取得）。
+
+---
+
+## § 5 秘法池（階段 5 用）
+
+特殊設計圖 / 材料，來源多元，帶到葛拉轉化為獨特裝備：
+
+| 秘法 | 來源 | 葛拉產出 | 效果 |
+|---|---|---|---|
+| 斷刃重生 | 書本 `books.js` 已掛勾 | **雙刃短劍**（tier 2 獨特）| 雙持 + 副手 ATK 維持 0.7（不 ×0.5）|
+| 獸皮鞣製 | 打獵事件（未建）| **獸革甲**（皮 T4）| EVA +1、AGI +1 |
+| 玄鐵配方 | 地下室探索（未建）| **玄鐵劍**（tier 4 武器）| PEN +10 外加成 |
+| 龍鱗標本 | 百日祭前某 Boss 掉落 | **龍鱗甲**（板 T5） | 永久 |
+| 絲綢商信物 | 黑鬍子交易 | **絲紋輕衣**（布 T5） | EVA cap 提 100（破表）|
+
+**設計原則**：
+- 秘法是**獨特稀有物**（1-2 個 / 遊戲流程）
+- **不強制**（玩家可能一個都沒拿到）
+- 葛拉打造時**消耗**秘法（不能重做）
+
+---
+
+## § 6 修繕服務（葛拉核心經濟迴圈）
+
+### 修繕定價
+
+`修繕成本 = 武器 / 護甲 price × 30%`
+
+| 武器 | price | 修一次 |
+|---|---|---|
+| 匕首 | 40 | 12 金 |
+| 短劍 | 55 | 16 金 |
+| 長劍 | 100 | 30 金 |
+| 重斧 | 110 | 33 金 |
+
+### 好感折扣
+
+| 葛拉好感 | 折扣 / 福利 |
+|---|---|
+| < 20 | 全額付費，排隊等 3 天 |
+| 20-40 | 全額，1 天取 |
+| 40-60 | 8 折，1 天取 |
+| **60+** | 每 10 天**免費修 1 次**，其他 5 折 |
+| **80+** | 隨時修，免費 |
+
+### 葛拉的職業道德
+
+- **不修玩家偷來的武器**（flag `stolen_weapon`）
+- **主人送的武器免費修**（葛拉尊重主人）
+- 不賣武器給**未學流派**的玩家（擔心他糟蹋好器）
+
+---
+
+## § 7 葛拉的愛憎（回顧 npc.js:852-863）
+
+```js
+likedTraits:    { diligence:3, patient:2, humble:2 }
+dislikedTraits: { prideful:3, opportunist:2, impulsive:1 }
+```
+
+### 對玩家行為的反應
+
+| 玩家行為 | 葛拉反應 |
+|---|---|
+| 連續訓練 STR 不偷懶 | 好感 +1（看到了）|
+| 武器壞 3 次內來修 | 好感 +2（負責任）|
+| 競技場 S 評 | 好感 +3（手藝沒白費）|
+| 炫耀裝備 | 好感 -2（匠人最討厭浮誇）|
+| 偷竊被抓 | 好感 -5（誠信是底線）|
+| 跟赫克托打黑市武器 | 好感 -3（瞧不起投機）|
+
+---
+
+## § 8 觸發條件總表（實作用）
+
+每個階段的 `tryTrigger` 條件：
+
+```js
+// 階段 2 首件護甲
+condition: (p) => {
+  return !Flags.has('gra_gave_first_armor')
+    && teammates.getAffection('blacksmithGra') >= 20
+    && p.combatStats.arenaLosses >= 1
+    && p.day >= 12;
+}
+
+// 階段 3 首次修繕
+condition: (p) => {
+  const currentWeapon = findInvById(p.weaponInventory, p.equippedWeapon);
+  return currentWeapon
+    && currentWeapon.durability < currentWeapon.durabilityMax * 0.5
+    && !Flags.has('gra_first_repair');
+}
+
+// 階段 4 武器 T2 升級
+condition: (p) => {
+  return !Flags.has('gra_weapon_t2')
+    && (p.combatStats.arenaWins >= 3
+        || teammates.getAffection('blacksmithGra') >= 30)
+    && p.money >= 30
+    && p.day >= 25;
+}
+
+// 階段 5 秘法打造
+condition: (p) => {
+  return Array.isArray(p.blueprints) && p.blueprints.length > 0
+    && Flags.has('gra_invited_to_forge');
+}
+
+// 階段 6 武器 T3
+condition: (p) => {
+  return !Flags.has('gra_weapon_t3')
+    && Flags.has('gra_weapon_t2')
+    && teammates.getAffection('blacksmithGra') >= 50
+    && p.combatStats.arenaWins >= 5
+    && p.money >= 80
+    && p.day >= 50;
+}
+
+// 階段 7 護甲升級/切換
+condition: (p) => {
+  return !Flags.has('gra_armor_t3')
+    && teammates.getAffection('blacksmithGra') >= 40
+    && Flags.has('read_book_forging')
+    && p.day >= 60;
+}
+
+// 階段 8 傳家武器（隱藏）
+condition: (p) => {
+  return !Flags.has('gra_heirloom')
+    && teammates.getAffection('blacksmithGra') >= 80
+    && (p.traits.includes('divine_blessing') || p.traits.includes('iron_body'));
+}
+```
+
+---
+
+## § 9 跟武器耐久度系統的整合
+
+### 戰鬥結束後
+
+每場戰鬥：每次揮擊按 [battle-system.md § 8.1](../systems/battle-system.md) 公式扣 durability。
+戰鬥結束 UI 顯示「裝備狀況」：
+- 如果主武器 dura < 50% → log「你的 [武器名] 看來需要修了」
+- 如果主武器 dura = 0 → log「你的 [武器名] 損壞了！」+ weapon 標 `broken: true`
+
+### 前往葛拉的引流
+
+- 裝備欄顯示紅色耐久條時 → 下次訓練動作結束有 10% 機率觸發「葛拉在旁邊看你武器」事件
+- 事件內容：「葛拉看了你武器一眼，搖搖頭走開。」（暗示玩家該去找他）
+- 首次觸發後設 flag，之後不重複
+
+### 武器損壞後的戰鬥
+
+損壞武器仍可用但：
+- ATK × 0.7
+- PEN × 0.5
+- 失去 special（first_strike / concuss 等）
+- 下次戰鬥一樣走這規則
+
+→ 直到玩家找葛拉修繕，才恢復正常。
+
+---
+
+## § 10 實作順序（配合階段 1-8）
+
+### Sprint 1：基礎框架
+1. `src/npc/blacksmith_events.js` 模組
+2. 每階段 `tryTrigger` + 對應事件
+3. `armorInventory` 欄位（類似 weaponInventory）加進 Stats.player
+4. game_state 加 `blueprints` 陣列
+
+### Sprint 2：維修系統
+1. 武器 durability 欄位初始化 + 戰鬥扣損
+2. 損壞狀態的 ATK/PEN/special 修正
+3. 葛拉修繕 ChoiceModal
+4. UI：裝備欄耐久條
+
+### Sprint 3：升級系統
+1. 階段 4/6 武器升級事件
+2. weapon tier 欄位遷移
+3. tier 2-3 武器資料表補齊
+
+### Sprint 4：護甲擴充
+1. 12 件新護甲加入 armors.js
+2. 對應測試 testbattle.js 對齊
+3. 階段 2/7 護甲事件
+
+### Sprint 5：秘法 + 傳家
+1. blueprints 池設計
+2. 階段 5 秘法事件
+3. 階段 8 傳家武器（隱藏）
+
+---
+
+## § 11 剩下待寫的相關文件
+
+- [characters/blacksmithGra.md](../characters/blacksmithGra.md) — 角色檔（對話風格、背景、招牌動作）
+- CANON.md 加葛拉歷史（打鐵 30 年、為什麼被困在訓練場）
+- books.js 加「鍛造入門」書（階段 7 門票）
+
+---
+
+## § 12 待決定（寫完設計書後討論）
+
+1. **秘法池**現有 5 個夠嗎？還是要更多（8-10 個）？
+2. **修繕價格 30% price** 合理嗎？（100 金武器修 30 金）
+3. **葛拉的「職業道德」**（拒修偷來武器）要不要做？
+4. **階段 8 傳家武器**的名字 + 數值要在這裡定還是留到實作時？
+5. **T4 / T5 武器完全由葛拉負責**OK 嗎？還是主人恩賜 T5？
+6. **葛拉每 10 天免費修 1 次**實作上要不要加 cooldown？
