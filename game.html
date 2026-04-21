@@ -3531,28 +3531,23 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   filter: grayscale(1);
   pointer-events: none;
 }
-.battle-v2 .bt-slot-face {
-  font-size: 28px;
-  text-align: center;
-  line-height: 1;
-  margin-bottom: 2px;
-}
+.battle-v2 .bt-slot-face { display: none; }
 .battle-v2 .bt-slot-name {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
-  color: #e8d070;
+  color: #f0dc88;
   text-align: center;
   letter-spacing: .06em;
-  margin-bottom: 4px;
+  margin-bottom: 5px;
 }
-.battle-v2 .bt-card-enemy .bt-slot-name { color: #ff9966; }
-.battle-v2 .bt-slot-bars { display: flex; flex-direction: column; gap: 3px; }
+.battle-v2 .bt-card-enemy .bt-slot-name { color: #ffb080; }
+.battle-v2 .bt-slot-bars { display: flex; flex-direction: column; gap: 4px; }
 .battle-v2 .bt-slot .bt-bar-label {
-  font-size: 11px; color: #887766;
+  font-size: 13px; color: #aa9977;
   display: flex; justify-content: space-between;
 }
-.battle-v2 .bt-slot .bt-bar-track { height: 8px; }
-.battle-v2 .bt-slot .bt-atb-track { height: 4px; }
+.battle-v2 .bt-slot .bt-bar-track { height: 10px; }
+.battle-v2 .bt-slot .bt-atb-track { height: 5px; }
 
 /* ── Stage middle (VFX + speech) ── */
 .battle-v2 .bt-stage-mid {
@@ -3643,10 +3638,12 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   flex-shrink: 0;
 }
 
-/* ── Speech bubble (stage middle) ── */
+/* ── Speech bubble (anchored near speaker's row edge, pointing toward VS) ── */
 .battle-v2 .bt-speech {
   position: absolute;
-  padding: 8px 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 18px;
   background: rgba(22, 16, 8, 0.95);
   border: 2px solid var(--gold);
   border-radius: 6px;
@@ -3659,8 +3656,10 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   pointer-events: none;
   box-shadow: 0 4px 16px rgba(0,0,0,.6), 0 0 12px rgba(212,175,55,.3);
 }
-.battle-v2 .bt-speech.side-player { left: 15%; }
-.battle-v2 .bt-speech.side-enemy  { right: 15%; }
+/* 玩家排（上）→ 泡泡貼底邊往下冒 */
+.battle-v2 .bt-row-player .bt-speech { top: 100%; margin-top: 4px; }
+/* 敵人排（下）→ 泡泡貼頂邊往上冒 */
+.battle-v2 .bt-row-enemy  .bt-speech { bottom: 100%; margin-bottom: 4px; }
 @keyframes bt-speech-pop {
   from { opacity: 0; transform: translateY(8px) scale(0.8); }
   to   { opacity: 1; transform: translateY(0) scale(1); }

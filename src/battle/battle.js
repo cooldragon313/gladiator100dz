@@ -298,16 +298,15 @@ const Battle = (() => {
     ],
   };
   function _showSpeech(side, type) {
-    const stageMid = document.getElementById('bt-stage-mid');
-    if (!stageMid) return;
+    const rowId = side === 'player' ? 'bt-row-player' : 'bt-row-enemy';
+    const row = document.getElementById(rowId);
+    if (!row) return;
     const pool = _SPEECH_POOL[type] || _SPEECH_POOL.attack;
     const line = pool[Math.floor(Math.random() * pool.length)];
     const bubble = document.createElement('div');
     bubble.className = 'bt-speech side-' + side;
     bubble.textContent = line;
-    bubble.style.top = '50%';
-    bubble.style.transform = 'translateY(-50%)';
-    stageMid.appendChild(bubble);
+    row.appendChild(bubble);
     setTimeout(() => { if (bubble.parentNode) bubble.remove(); }, 1800);
   }
 
