@@ -2735,6 +2735,33 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   border-color: #607080;
   color: #a8b8c8;
 }
+/* 傷勢・輕傷 — 暖琥珀 */
+.trait-wound-light {
+  background: rgba(160,100,20,0.15);
+  border-color: #a06818;
+  color: #d4a060;
+}
+/* 傷勢・中傷 — 深橙 */
+.trait-wound-medium {
+  background: rgba(180,70,10,0.18);
+  border-color: #b04010;
+  color: #e07840;
+}
+/* 傷勢・重傷 — 血橙 */
+.trait-wound-severe {
+  background: rgba(160,30,10,0.22);
+  border-color: #aa2008;
+  color: #e85030;
+}
+/* 傷勢・特殊傷（腦震盪/憂鬱症等）— 深紅脈動 */
+.trait-wound-special {
+  background: #1a0808;
+  border-color: #991010;
+  color: #ff4444;
+  font-weight: 700;
+  animation: ailment-pulse 2.4s ease-in-out infinite;
+}
+
 /* 病痛 — 暗紅脈動 */
 .trait-ailment {
   background: #1e0808;
@@ -4481,6 +4508,7 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
           <div id="cs-traits-list"></div>
           <div id="cs-scars-list"></div>
           <div id="cs-ailments-list"></div>
+          <div id="cs-wounds-list"></div>
         </div>
 
         <!-- 🆕 D.21 Option C：道德光譜（D.19 滑動窗口視覺化） -->
@@ -4507,10 +4535,6 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
         <!-- 護符 -->
         <div class="cs-subsection-title">護符</div>
         <div id="cs-amulets-grid" class="cs-amulet-grid"></div>
-
-        <!-- 🆕 2026-04-19 傷勢（wounds 系統）-->
-        <div class="cs-subsection-title">傷勢</div>
-        <div id="cs-wounds-list"></div>
 
         <!-- 🆕 2026-04-19 書櫃（讀書系統）-->
         <div class="cs-subsection-title">書櫃</div>

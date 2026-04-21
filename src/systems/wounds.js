@@ -608,33 +608,31 @@ const Wounds = (() => {
 
     const active = PARTS.filter(part => p.wounds[part]);
     if (active.length === 0) {
-      el.style.display = 'none';
+      el.style.display = 'contents';
       el.innerHTML = '';
       return;
     }
 
-    el.style.display = '';
+    el.style.display = 'contents';
     let html = '';
     active.forEach(part => {
       const w = p.wounds[part];
-      // 🆕 特殊傷顯示
       if (w.special) {
         const sdef = SPECIAL_DEFS[w.special];
         const name = sdef?.name || w.special;
-        html += `<div class="wound-row severity-severe">`;
-        html += `<span class="wound-part">${PART_NAMES[part]}</span>`;
-        html += `<span class="wound-sev">【${name}】</span>`;
-        html += `<span class="wound-days">${w.daysElapsed || 0} 天</span>`;
-        html += `</div>`;
+        const desc = sdef?.desc || '';
+        html += `<span class="trait-tag trait-wound-special" title="${desc}">`;
+        html += `<span class="trait-prefix">⚠</span>${name}`;
+        html += `</span>`;
         return;
       }
-      // 一般傷
       const sevClass = ['', 'light', 'medium', 'severe'][w.severity];
-      html += `<div class="wound-row severity-${sevClass}">`;
-      html += `<span class="wound-part">${PART_NAMES[part]}</span>`;
-      html += `<span class="wound-sev">${SEVERITY_NAMES[w.severity]}</span>`;
-      html += `<span class="wound-days">${w.daysElapsed} 天</span>`;
-      html += `</div>`;
+      const sevName  = SEVERITY_NAMES[w.severity];
+      const partName = PART_NAMES[part];
+      const tooltip  = `${partName}・${sevName}（${w.daysElapsed} 天）`;
+      html += `<span class="trait-tag trait-wound-${sevClass}" title="${tooltip}">`;
+      html += `<span class="trait-prefix">🩹</span>${partName}・${sevName}`;
+      html += `</span>`;
     });
     el.innerHTML = html;
   }
