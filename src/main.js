@@ -3318,6 +3318,10 @@ const Game = (() => {
       if (typeof DoctorEvents !== 'undefined' && DoctorEvents.tryVisit) {
         try { DoctorEvents.tryVisit(); } catch (e) { console.error('[Doctor]', e); }
       }
+      // 鐵匠葛拉事件（首件護甲三幕）
+      if (typeof BlacksmithEvents !== 'undefined' && BlacksmithEvents.tryFirstArmor) {
+        try { BlacksmithEvents.tryFirstArmor(); } catch (e) { console.error('[Blacksmith]', e); }
+      }
       _uiLocked = false;   // 🆕 晨起演出全部完成，解鎖 UI
     } else {
       _sleepEndDayBody(sleepType);
@@ -3325,6 +3329,9 @@ const Game = (() => {
       _flushDialogues();
       if (typeof DoctorEvents !== 'undefined' && DoctorEvents.tryVisit) {
         try { DoctorEvents.tryVisit(); } catch (e) { console.error('[Doctor]', e); }
+      }
+      if (typeof BlacksmithEvents !== 'undefined' && BlacksmithEvents.tryFirstArmor) {
+        try { BlacksmithEvents.tryFirstArmor(); } catch (e) { console.error('[Blacksmith]', e); }
       }
       _uiLocked = false;   // 🆕 解鎖
     }
@@ -3971,7 +3978,8 @@ const Game = (() => {
       return [...shields, ...oneHanders];
     }
     if (source === 'chest') {
-      return Object.values(Armors).filter(a => a.type !== 'shield' && a.id !== 'rags');
+      const inv = Array.isArray(p.armorInventory) ? p.armorInventory : [];
+      return inv.map(e => Armors[e.id]).filter(Boolean);
     }
     // helmet / arms / legs — 尚無資料表
     return [];
@@ -5036,7 +5044,7 @@ const Game = (() => {
         },
         // 🆕 2026-04-19 讀書系統
         discernment:0, bookshelf:[], focusBookId:null, readBooks:[],
-        dullardStage:0, weaponInventory:[],
+        dullardStage:0, weaponInventory:[], armorInventory:[{id:'rags'}],
         // 🆕 2026-04-19 傷勢系統（含 mind 部位）
         wounds: { head:null, torso:null, arms:null, legs:null, mind:null },
         // 🆕 2026-04-19 強迫症系統

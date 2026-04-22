@@ -123,6 +123,7 @@ const Stats = (() => {
     readBooks:    [],      // 已讀過的書 ID 清單
     dullardStage: 0,       // 傻福階段（0=完整 / 1=半醒 / 2=清醒）
     weaponInventory: [],   // 武器持有清單（之前已散在 main.js，這裡統一初始化）
+    armorInventory:  [{ id: 'rags' }],  // 護甲持有清單（起始：破布）
 
     // 🆕 2026-04-19: 傷勢系統（wounds.md）
     //   null | { severity:1-3, source, daysElapsed } | { special:'xxx', source, daysElapsed }

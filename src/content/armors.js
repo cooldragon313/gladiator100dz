@@ -15,6 +15,18 @@ const Armors = {
     eqBonus: { DEF: 12, SPD: 0 },
     price: 40,
   },
+  thickLeather: {
+    id: 'thickLeather', name: '加厚皮甲', type: 'light',
+    desc: '多層鞣製皮革壓合，比普通皮甲吸衝擊。葛拉打的。',
+    eqBonus: { DEF: 18, SPD: -1 },
+    price: 70,
+  },
+  studdedLeather: {
+    id: 'studdedLeather', name: '鉚釘皮甲', type: 'light',
+    desc: '皮革上釘了鐵釘，兼顧防禦與輕便。能看出打造者的心思。',
+    eqBonus: { DEF: 24, SPD: -2 },
+    price: 110,
+  },
   chainmail: {
     id: 'chainmail', name: '鏈甲', type: 'medium',
     desc: '由鐵環編織而成，比皮甲堅固，但重量也更大。',
