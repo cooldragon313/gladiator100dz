@@ -279,6 +279,10 @@ const Stage = (() => {
     await _nextPaint();
     overlay.classList.add('visible');
 
+    // 🆕 2026-04-22: 內容高度超過容器時，切換成底部對齊 + 自動滾動
+    const needsScroll = overlay.scrollHeight > overlay.clientHeight;
+    if (needsScroll) overlay.classList.add('overflow');
+
     // 標題和 icon 先出現
     await _wait(300);
 
@@ -286,6 +290,10 @@ const Stage = (() => {
     const lineEls = overlay.querySelectorAll('.opening-line');
     for (const el of lineEls) {
       el.classList.add('shown');
+      // 🆕 新行顯示後自動滾動到該行（若有溢出）
+      if (needsScroll) {
+        el.scrollIntoView({ block: 'end', behavior: 'smooth' });
+      }
       await _wait(900);
     }
 
@@ -294,6 +302,7 @@ const Stage = (() => {
 
     // 淡出
     overlay.classList.remove('visible');
+    overlay.classList.remove('overflow');   // 🆕 清除 overflow 狀態
     await _wait(OPENING_FADE_OUT_MS);
     overlay.innerHTML = '';
   }

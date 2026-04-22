@@ -1696,6 +1696,12 @@ html, body {
   pointer-events: none;
   opacity: 0;
   transition: opacity 600ms ease;
+  overflow-y: auto;          /* 🆕 2026-04-22: 內容溢出時可滾動 */
+  scroll-behavior: smooth;
+}
+/* 🆕 2026-04-22: 內容多時從底部對齊，讓新行從下方推入 */
+#stage-opening.overflow {
+  justify-content: flex-end;
 }
 #stage-opening.visible { opacity: 1; }
 .opening-line {

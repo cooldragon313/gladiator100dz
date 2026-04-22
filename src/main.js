@@ -1407,7 +1407,7 @@ const Game = (() => {
     if (p.day >= 20) { wNightmare += 8; wNormal -= 5; }
     if (p.day >= 50) { wNightmare += 7; wNormal -= 5; }
 
-    if (hasInsomniaDisorder) { wInsomnia += 25; wNormal -= 20; }
+    if (hasInsomniaDisorder) { wInsomnia += 15; wNormal -= 10; }
 
     // 🆕 WIL Tier 1：意志力抵抗失眠
     //   WIL 高 → insomnia 權重降低、normal 權重提高
@@ -1493,9 +1493,9 @@ const Game = (() => {
     const immunityUntil = (typeof Flags !== 'undefined') ? Flags.get('insomnia_immunity_until', -1) : -1;
     const inImmunity = typeof immunityUntil === 'number' && p.day <= immunityUntil;
 
-    if (p.insomniaStreak >= 2 && !p.ailments.includes('insomnia_disorder') && !inImmunity) {
+    if (p.insomniaStreak >= 4 && !p.ailments.includes('insomnia_disorder') && !inImmunity) {
       p.ailments.push('insomnia_disorder');
-      addLog('⚕ 連續兩夜無法充分休息——你感覺到某種根深蒂固的疲憊在蔓延。【失眠症】發作。', '#ff6868', true, true);
+      addLog('⚕ 連續四夜無法充分休息——你感覺到某種根深蒂固的疲憊在蔓延。【失眠症】發作。', '#ff6868', true, true);
     }
     if (p.normalSleepStreak >= 3 && p.ailments.includes('insomnia_disorder')) {
       p.ailments = p.ailments.filter(a => a !== 'insomnia_disorder');
