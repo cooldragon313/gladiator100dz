@@ -29,62 +29,39 @@ const TBC = {
 };
 
 // ═══════════════════════════════════════════════════════
-// 2. WEAPONS
+// 2-3. WEAPONS / ARMORS / SHIELDS — 2026-04-23 統一事實源
 // ═══════════════════════════════════════════════════════
-const TB_WEAPONS = {
-  // ── 空手 ──────────────────────────────────────────────
-  // 🆕 D.28：空手不再 0 攻擊。基礎拳腳能造成傷害，但遠不如武器。
-  //         讓沒武器的初期戰鬥不會完全打不贏。
-  fists:      { name:'空手',   type:'unarmed', route:'rage',  twoHanded:false,
-                ATK:4,  ACC:5,  CRT:3,  CDMG:8,  SPD:5,   PEN:0,
-                swingTime:1,  hitParts:['身體'],           special:'none' },
-
-  // ── 單手武器 ──────────────────────────────────────────
-  dagger:     { name:'匕首',   type:'blade1h', route:'focus', twoHanded:false,
-                ATK:4,  ACC:8,  CRT:12, CDMG:20, SPD:12,  PEN:2,
-                swingTime:2,  hitParts:['頸部','身體'],    special:'none' },
-
-  hammer:     { name:'槌',     type:'blunt1h', route:'rage',  twoHanded:false,
-                ATK:12, ACC:2,  CRT:-2, CDMG:0,  SPD:-3,  PEN:10,
-                swingTime:5,  hitParts:['頭','手'],        special:'none' },
-
-  shortSword: { name:'短劍',   type:'blade1h', route:'fury',  twoHanded:false,
-                ATK:8,  ACC:5,  CRT:4,  CDMG:8,  SPD:2,   PEN:4,
-                swingTime:3,  hitParts:['身體'],           special:'none' },
-
-  // ── 雙手武器 ──────────────────────────────────────────
-  spear:      { name:'長槍',   type:'polearm', route:'focus', twoHanded:true,
-                ATK:10, ACC:6,  CRT:2,  CDMG:5,  SPD:6,   PEN:12,
-                swingTime:4,  hitParts:['身體','腳'],      special:'first_strike' },
-
-  longSword:  { name:'長劍',   type:'blade2h', route:'fury',  twoHanded:true,
-                ATK:16, ACC:3,  CRT:4,  CDMG:10, SPD:-3,  PEN:5,
-                swingTime:5,  hitParts:['身體','頭'],      special:'none' },
-
-  warHammer:  { name:'長槌',   type:'blunt2h', route:'rage',  twoHanded:true,
-                ATK:18, ACC:0,  CRT:0,  CDMG:0,  SPD:-8,  PEN:15,
-                swingTime:8,  hitParts:['頭','身體'],      special:'concuss' },
-
-  heavyAxe:   { name:'重斧',   type:'heavy2h', route:'rage',  twoHanded:true,
-                ATK:20, ACC:-5, CRT:2,  CDMG:15, SPD:-10, PEN:8,
-                swingTime:9,  hitParts:['身體','手'],      special:'none' },
+// 資料從 src/content/weapons.js 和 src/content/armors.js 讀取
+// 修改武器/護甲/盾數值請改那兩個檔案，不要改本檔
+//
+// TB_WEAPONS 直接指向 Weapons 物件
+// TB_ARMORS  = Armors 中 type !== 'shield' 的子集 + 'none'
+// TB_SHIELDS = Armors 中 type === 'shield' 的子集 + 'none'
+// ═══════════════════════════════════════════════════════
+const TB_WEAPONS = (typeof Weapons !== 'undefined') ? Weapons : {
+  fists: { name:'空手', type:'unarmed', route:'rage', twoHanded:false,
+           ATK:4, ACC:5, CRT:3, CDMG:8, SPD:5, PEN:0, swingTime:1, hitParts:['身體'], special:'none' }
 };
 
-// ═══════════════════════════════════════════════════════
-// 3. ARMORS
-// ═══════════════════════════════════════════════════════
-const TB_ARMORS = {
-  rags:      { name:'破布',   DEF:0,  SPD:0,   EVA:0  },
-  leather:   { name:'皮甲',   DEF:4,  SPD:0,   EVA:0  },
-  chainmail: { name:'鏈甲',   DEF:8,  SPD:-2,  EVA:-2 },
-  ironPlate: { name:'鐵板甲', DEF:14, SPD:-6,  EVA:-4 },
-};
+const TB_ARMORS  = (() => {
+  const m = { none: { name:'無', DEF:0, SPD:0, EVA:0 } };
+  if (typeof Armors !== 'undefined') {
+    Object.entries(Armors).forEach(([id, a]) => {
+      if (a.type !== 'shield') m[id] = a;
+    });
+  }
+  return m;
+})();
 
-const TB_SHIELDS = {
-  none:       { name:'無',   BLK:0,  DEF:0,  SPD:0  },
-  woodShield: { name:'木盾', BLK:5,  DEF:2,  SPD:0  },
-  ironShield: { name:'鐵盾', BLK:9,  DEF:4,  SPD:-2 },
-};
+const TB_SHIELDS = (() => {
+  const m = { none: { name:'無', BLK:0, DEF:0, SPD:0 } };
+  if (typeof Armors !== 'undefined') {
+    Object.entries(Armors).forEach(([id, a]) => {
+      if (a.type === 'shield') m[id] = a;
+    });
+  }
+  return m;
+})();
 
 // ═══════════════════════════════════════════════════════
 // 4. AMULETS
@@ -176,7 +153,7 @@ const TB_ENEMIES = {
   trialVeteran: {
     name:'無名老兵', title:'劊子手',
     STR:18, DEX:14, CON:18, AGI:12, WIL:14, LUK:10, hpBase:75,
-    weaponId:'shortSword', armorId:'leather', shieldId:'none',
+    weaponId:'shortSword', armorId:'leatherArmor', shieldId:'none',
     traitId:'none',
     ai:'normal', passive:null, specialCD:99,
     fame:15, intimidation:0.03,
@@ -197,7 +174,7 @@ const TB_ENEMIES = {
   gladiatorB: {
     name:'黑面鬥士', title:'中階角鬥士',
     STR:16, DEX:14, CON:16, AGI:12, WIL:12, LUK:10, hpBase:60,
-    weaponId:'shortSword', armorId:'leather', shieldId:'none',
+    weaponId:'shortSword', armorId:'leatherArmor', shieldId:'none',
     traitId:'none',
     ai:'normal', passive:null, specialCD:99,
     fame:20, intimidation:0.02,
@@ -207,7 +184,7 @@ const TB_ENEMIES = {
   arenaVet: {
     name:'競技場老手', title:'資深鬥士',
     STR:22, DEX:18, CON:20, AGI:16, WIL:15, LUK:12, hpBase:70,
-    weaponId:'shortSword', armorId:'leather', shieldId:'woodShield',
+    weaponId:'shortSword', armorId:'leatherArmor', shieldId:'woodShield',
     traitId:'none',
     ai:'normal', passive:null, specialCD:99,
     fame:35, intimidation:0.04,
@@ -223,7 +200,7 @@ const TB_ENEMIES = {
   morras_ironarm: {
     name:'烏勒克', title:'「鐵臂」',
     STR:14, DEX:8,  CON:14, AGI:7,  WIL:11, LUK:5, hpBase:55,
-    weaponId:'hammer', armorId:'leather', shieldId:'none',
+    weaponId:'hammer', armorId:'leatherArmor', shieldId:'none',
     traitId:'none',
     ai:'normal', passive:null, specialCD:99,
     fame:22, intimidation:0.03,
@@ -245,7 +222,7 @@ const TB_ENEMIES = {
   bandit_fang: {
     name:'葛雷德', title:'「毒牙」',
     STR:13, DEX:10, CON:12, AGI:11, WIL:8,  LUK:6, hpBase:48,
-    weaponId:'heavyAxe', armorId:'leather', shieldId:'none',
+    weaponId:'heavyAxe', armorId:'leatherArmor', shieldId:'none',
     traitId:'none',
     ai:'normal', passive:null, specialCD:99,
     fame:0, intimidation:0.05,
@@ -267,7 +244,7 @@ const TB_ENEMIES = {
   tiger_striped: {
     name:'斑虎', title:'山林大虎',
     STR:18, DEX:12, CON:16, AGI:14, WIL:5,  LUK:8, hpBase:75,
-    weaponId:'fists', armorId:'leather', shieldId:'none',   // fists 代表爪；暫用 leather 表獸皮
+    weaponId:'fists', armorId:'leatherArmor', shieldId:'none',   // fists 代表爪；暫用 leather 表獸皮
     traitId:'none',
     ai:'normal', passive:null, specialCD:99,
     fame:0, intimidation:0.10,
@@ -304,7 +281,7 @@ const TB_ENEMIES = {
   seira: {
     name:'賽拉', title:'幻影・快手刺客',
     STR:15, DEX:45, CON:14, AGI:44, WIL:35, LUK:38, hpBase:55,
-    weaponId:'dagger', armorId:'leather', shieldId:'none',
+    weaponId:'dagger', armorId:'leatherArmor', shieldId:'none',
     traitId:'none',
     ai:'boss_seira', passive:'firstCrit', specialCD:3,
     fame:75, intimidation:0.10,

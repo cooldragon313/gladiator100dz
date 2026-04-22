@@ -507,18 +507,19 @@ wear = 1 × armorTypeMult × weaponMismatchMult
 
 ## § 9 現有系統的問題 / 統一 TODO
 
-### 9.1 雙武器表要合併
+### 9.1 雙武器表合併 ✅ 2026-04-23 完成
 
-`TB_WEAPONS` 和 `Weapons` 兩張表**數字幾乎一樣**，但分散兩個檔案。
-建議：合併成單一 `Weapons` 表，戰鬥引擎從這裡讀，顯示層也從這裡讀。
+`src/content/weapons.js` 現為**單一事實源**（flat 結構）。
+`TB_WEAPONS` 在 testbattle.js 開頭 alias 到 `Weapons`。
+所有戰鬥欄位（route/swingTime/special/twoHanded/hitParts）加入。
 
-### 9.2 雙護甲表要合併
+### 9.2 雙護甲表合併 ✅ 2026-04-23 完成
 
-`armors.js` 的 DEF 是 0 / 12 / 22 / 38
-`testbattle.js` 的 DEF 是 0 / 4 / 8 / 14
-
-**兩邊差 3 倍**，哪個是對的？戰鬥實際用的是 testbattle.js 的小數字。
-`armors.js` 的數字只在角色頁顯示，**沒進戰鬥**（現況 bug）。
+`src/content/armors.js` 為**單一事實源**（flat 結構）。
+DEF 值統一為**戰鬥尺度**（0/4/8/14），**不是**原顯示尺度（0/12/22/38）。
+新增 thickLeather（葛拉線 T2）/ studdedLeather（葛拉線 T3）。
+`TB_ARMORS` / `TB_SHIELDS` 在 testbattle.js 分流 alias（按 type 欄位）。
+舊 bug 修復：main.js / testbattle.js 的 'leather' → 'leatherArmor'（id 統一）。
 
 ### 9.3 BODY_PARTS_BY_TYPE 不全
 

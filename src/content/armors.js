@@ -1,56 +1,87 @@
 /**
- * armors.js — Armor and shield definitions
+ * armors.js — 護甲 / 盾 單一事實源（2026-04-23 統一後）
+ *
+ * 結構為 flat（所有戰鬥欄位直接在物件上，不再用 eqBonus 包）：
+ *   - 護甲：DEF, SPD, EVA
+ *   - 盾：BLK, DEF, SPD
+ *   - 共通：id, name, type, desc, price
+ *
+ * testbattle.js 的 TB_ARMORS / TB_SHIELDS 會 alias 到本檔（見 testbattle.js 開頭）。
+ *
+ * type 欄位用途：
+ *   - 'cloth' / 'leather' / 'plate'：護甲類型（對應 battle-system.md § 4 三類）
+ *   - 'shield'：盾牌（會被 alias 分流到 TB_SHIELDS）
+ *
+ * 2026-04-23 重點改動：
+ *   - DEF 數值統一用**戰鬥引擎尺度**（0/4/8/14），非原 armors.js 顯示尺度（0/12/22/38）
+ *   - 新增 thickLeather / studdedLeather 兩件葛拉打造的皮甲
+ *   - 移除 .eqBonus 包裝
+ *
+ * 擴充：三類 × 5 tier 完整系統見 docs/systems/battle-system.md § 4（待實作）
  */
 const Armors = {
-  // ── Body armors ──
+
+  // ── 布系 ──────────────────────────────────────────────
   rags: {
-    id: 'rags', name: '破布', type: 'light',
+    id: 'rags', name: '破布',
+    type: 'cloth',
+    DEF: 0, SPD: 0, EVA: 0,
     desc: '遮體而已，沒有任何防護效果。',
-    eqBonus: { DEF: 0 },
     price: 0,
   },
+
+  // ── 皮系 ──────────────────────────────────────────────
   leatherArmor: {
-    id: 'leatherArmor', name: '皮甲', type: 'light',
+    id: 'leatherArmor', name: '皮甲',
+    type: 'leather',
+    DEF: 4, SPD: 0, EVA: 0,
     desc: '輕便的皮革護甲，不妨礙移動。',
-    eqBonus: { DEF: 12, SPD: 0 },
     price: 40,
   },
   thickLeather: {
-    id: 'thickLeather', name: '加厚皮甲', type: 'light',
+    id: 'thickLeather', name: '加厚皮甲',
+    type: 'leather',
+    DEF: 6, SPD: 0, EVA: 0,
     desc: '多層鞣製皮革壓合，比普通皮甲吸衝擊。葛拉打的。',
-    eqBonus: { DEF: 18, SPD: -1 },
     price: 70,
   },
   studdedLeather: {
-    id: 'studdedLeather', name: '鉚釘皮甲', type: 'light',
+    id: 'studdedLeather', name: '鉚釘皮甲',
+    type: 'leather',
+    DEF: 10, SPD: -1, EVA: 0,
     desc: '皮革上釘了鐵釘，兼顧防禦與輕便。能看出打造者的心思。',
-    eqBonus: { DEF: 24, SPD: -2 },
     price: 110,
   },
+
+  // ── 板系 ──────────────────────────────────────────────
   chainmail: {
-    id: 'chainmail', name: '鏈甲', type: 'medium',
+    id: 'chainmail', name: '鏈甲',
+    type: 'plate',
+    DEF: 8, SPD: -2, EVA: -2,
     desc: '由鐵環編織而成，比皮甲堅固，但重量也更大。',
-    eqBonus: { DEF: 22, SPD: -5 },
     price: 80,
   },
   ironPlate: {
-    id: 'ironPlate', name: '鐵板甲', type: 'heavy',
+    id: 'ironPlate', name: '鐵板甲',
+    type: 'plate',
+    DEF: 14, SPD: -6, EVA: -4,
     desc: '幾乎刀槍不入，但你每走一步都像拖著鐵錨。',
-    eqBonus: { DEF: 38, SPD: -15, EVA: -10 },
     price: 150,
   },
 
-  // ── Shields (contribute BLK bonus) ──
+  // ── 盾牌 ──────────────────────────────────────────────
   woodShield: {
-    id: 'woodShield', name: '木盾', type: 'shield',
+    id: 'woodShield', name: '木盾',
+    type: 'shield',
+    BLK: 5, DEF: 2, SPD: 0,
     desc: '乾燥的木頭做成的盾牌，兩三下就可能碎裂。',
-    eqBonus: { BLK: 10, DEF: 5 },
     price: 20,
   },
   ironShield: {
-    id: 'ironShield', name: '鐵盾', type: 'shield',
+    id: 'ironShield', name: '鐵盾',
+    type: 'shield',
+    BLK: 9, DEF: 4, SPD: -2,
     desc: '厚實的鐵盾，擋住重擊的同時你的手臂也在顫抖。',
-    eqBonus: { BLK: 22, DEF: 10, SPD: -3 },
     price: 70,
   },
 };

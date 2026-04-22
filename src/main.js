@@ -3442,7 +3442,7 @@ const Game = (() => {
       statsMin: 20, statsMax: 25,
       hpMin: 60, hpMax: 80,
       weaponPool: ['shortSword', 'hammer', 'dagger', 'spear'],
-      armorPool:  ['leather', 'rags'],
+      armorPool:  ['leatherArmor', 'rags'],
       shieldPool: ['woodShield', 'none'],
       fameMin: 6, fameMax: 14,
       titleStr: '角鬥士',
@@ -3453,7 +3453,7 @@ const Game = (() => {
       statsMin: 25, statsMax: 30,
       hpMin: 80, hpMax: 100,
       weaponPool: ['shortSword', 'spear', 'dagger', 'heavyAxe', 'longSword'],
-      armorPool:  ['chainmail', 'leather'],
+      armorPool:  ['chainmail', 'leatherArmor'],
       shieldPool: ['ironShield', 'woodShield', 'none'],
       fameMin: 10, fameMax: 20,
       titleStr: '老手鬥士',
@@ -6574,12 +6574,16 @@ const Game = (() => {
         if (weaponId) {
           Stats.player.equippedWeapon = weaponId;
           const w = Weapons[weaponId];
-          if (w && w.eqBonus) {
-            // 🆕 快拿獎勵：武器等級 +1 → eqBonus 各項額外 +20%
+          if (w) {
+            // 🆕 快拿獎勵：武器等級 +1 → 各戰鬥屬性額外 +20%
+            // 2026-04-23 統一後武器為 flat 結構，直接讀取 w.ATK 等欄位
             const tier = Flags.get('weapon_bonus_tier', 0);
             const mult = 1 + tier * 0.2;   // +1 = ×1.2
-            Object.keys(w.eqBonus).forEach(k => {
-              Stats.player.eqBonus[k] = (Stats.player.eqBonus[k] || 0) + Math.round(w.eqBonus[k] * mult);
+            const STAT_KEYS = ['ATK','ACC','CRT','CDMG','SPD','PEN'];
+            STAT_KEYS.forEach(k => {
+              if (typeof w[k] === 'number') {
+                Stats.player.eqBonus[k] = (Stats.player.eqBonus[k] || 0) + Math.round(w[k] * mult);
+              }
             });
           }
           const tierLabel = Flags.get('weapon_bonus_tier', 0) > 0 ? ' +1' : '';
