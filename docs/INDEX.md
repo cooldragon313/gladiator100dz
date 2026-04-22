@@ -52,7 +52,8 @@
 | [reading.md](systems/reading.md) | 讀書系統 + 見識 + 傻福三階段 |
 | [books-catalog.md](systems/books-catalog.md) | 5 類書本目錄 |
 | [wounds.md](systems/wounds.md) | 4 部位 × 3 級傷勢 + 密醫引薦 |
-| [compulsion.md](systems/compulsion.md) | 4 種訓練強迫症 |
+| [fervor.md](systems/fervor.md) | 🆕 訓練狂熱 + 屬性突破儀式（取代強迫症）|
+| [compulsion.md](systems/compulsion.md) | ⚠️ 已廢棄 — 舊強迫症設計，看歷史用 |
 | [npc-growth.md](systems/npc-growth.md) | NPC 成長系統 |
 
 ### 世界觀與關係
