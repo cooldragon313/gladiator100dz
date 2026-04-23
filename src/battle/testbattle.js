@@ -318,9 +318,10 @@ function TB_calcDerived(unit) {
 
   let ATK  = Math.round(1.5*aS + 0.5*aD + w.ATK  + (af.ATK||0));
   let DEF  = Math.round(1.5*aC + 0.5*aS + ar.DEF + sh.DEF);
-  let ACC  = Math.min(100, Math.round(60 + 0.5*aD + 0.25*aL + (w.ACC||0) + (af.ACC||0)));
-  let CRT  = Math.min(75,  Math.round(0.25*aD + 0.5*aL + w.CRT + (af.CRT||0)));
-  let CDMG = Math.min(300, Math.round(150 + 0.5*aD + 0.25*aL + 0.5*aW + (w.CDMG||0) + (af.CDMG||0)));
+  let ACC  = Math.min(92, Math.round(60 + 0.5*aD + 0.25*aL + (w.ACC||0) + (af.ACC||0)));
+  // 🆕 2026-04-23 Sprint 2：CRT cap 75 → 95
+  let CRT  = Math.min(95,  Math.round(0.25*aD + 0.5*aL + w.CRT + (af.CRT||0)));
+  let CDMG = Math.min(300, Math.round(150 + 0.5*aD + 0.3*aL + 0.5*aW + (w.CDMG||0) + (af.CDMG||0)));
   let PEN  = Math.min(75,  Math.round(0.5*aD + 0.5*aS + w.PEN + (af.PEN||0)));
   let BLK  = Math.min(75,  Math.round(0.5*aC + sh.BLK + (af.BLK||0)));          // 格擋觸發率%
   let BpWr = Math.min(85,  Math.round(0.5*aS + sh.BLK * 1.5 + (af.BpWr||0)));  // 格擋減傷率%
@@ -331,9 +332,36 @@ function TB_calcDerived(unit) {
   if (isDualWield && offW) {
     ATK += Math.round(offW.ATK * 0.5);   // 副手 ATK × 50%
     ACC  = Math.max(0, ACC - 5);          // 精度分散
-    SPD -= 3;                              // 協調困難
+    SPD -= 5;                              // 🆕 Sprint 2: -3 → -5（協調困難）
+    EVA  = Math.max(0, EVA - 3);           // 🆕 Sprint 2：雙持 EVA -3（身體忙碌）
     BLK  = 0;                              // 雙持無法格擋
     BpWr = 0;
+  }
+
+  // 🆕 2026-04-23 Sprint 2：拿盾 EVA = 0（格擋流 vs 閃避流二擇）
+  //   設計依據：battle-system.md § 2 和 § 4
+  //   拿盾的人靠格擋不靠閃避，EVA 歸零強制流派分化
+  if (isOffhandShield) {
+    EVA = 0;
+    SPD -= 4;   // 單盾流派負重加速減（battle-system.md § 2.2）
+  }
+
+  // 🆕 2026-04-23 Sprint 2：四流派預設加成
+  //   單手（無副手非雙手武器）→ ACC/SPD/EVA 加成（機動優勢）
+  //   雙手武器 → ACC/SPD 減，CRT 加成（穩準狠）
+  //   （盾與雙持已在上方處理）
+  if (!isOffhandShield && !isDualWield) {
+    if (!w.twoHanded) {
+      // 單手
+      ACC += 5;
+      SPD += 1;
+      EVA += 2;
+    } else {
+      // 雙手
+      ACC  = Math.max(0, ACC - 5);
+      SPD -= 3;
+      CRT  = Math.min(95, CRT + 5);
+    }
   }
 
   // HP = 固定底數 + CON×2 + 護符加成
@@ -523,25 +551,33 @@ function TB_attack(atk, def, state, opts={}) {
   // ── Raw damage ──
   let raw = aS.ATK * TB_rnd(0.88, 1.12);
 
-  // Pen
-  let penPct = TB_clamp(aS.PEN / 150, 0, 0.65);
+  // Pen（2026-04-23 Sprint 2：cap 0.65 → 0.75 對應 CRT/PEN 上限統一調）
+  let penPct = TB_clamp(aS.PEN / 150, 0, 0.75);
   if (atk.passive === 'armorPierce40') penPct = TB_clamp(penPct + 0.40, 0, 0.85);
 
   let effDef = dS.DEF * (1 - penPct);
   let net = Math.max(1, raw - effDef);
 
-  if (result.crit) net = Math.round(net * (aS.CDMG / 100));
+  // 🆕 2026-04-23 Sprint 2：爆擊公式 net × (CDMG/100) → net × (1 + CDMG/100)
+  //   舊公式 CDMG 150 = 1.5 倍（50% bonus），新公式 CDMG 150 = 2.5 倍（150% bonus）
+  //   爆擊流專精回報提高（搭配 CRT cap 95）
+  if (result.crit) net = Math.round(net * (1 + aS.CDMG / 100));
 
   // ── Block ──
+  // 🆕 2026-04-23 Sprint 2：新格擋公式
+  //   BLK = 觸發率%（0-75）、BpWr = 減傷%（0-85）
+  //   爆擊時 BLK × 0.5 觸發、BpWr × 0.5 減傷 = 爆擊天然破格擋
   if (dS.BLK > 0) {
-    const blockEff = result.crit ? dS.BLK * 0.3 : dS.BLK * 0.7;
-    if (net <= dS.BLK) {
+    const blkTrigger = result.crit ? dS.BLK * 0.5 : dS.BLK;
+    const blockRoll  = Math.random() * 100;
+    if (blockRoll < blkTrigger) {
       result.blocked = true;
-      net = Math.max(0, net - blockEff);
+      const bpWrEff = result.crit ? dS.BpWr * 0.5 : dS.BpWr;
+      net = Math.max(1, Math.round(net * (1 - bpWrEff / 100)));
       if (def.gaugeRoute === 'fury') TB_gainGauge(def, TBC.GAUGE_GAIN.fury.block, result, 'def');
-    } else {
-      net -= blockEff * 0.5;
-      if (def.gaugeRoute === 'fury') TB_gainGauge(def, TBC.GAUGE_GAIN.fury.absorb, result, 'def');
+    } else if (def.gaugeRoute === 'fury') {
+      // 擋空也算部分吸收，鼓勵盾流累儀表
+      TB_gainGauge(def, TBC.GAUGE_GAIN.fury.absorb, result, 'def');
     }
   }
 

@@ -1522,9 +1522,16 @@ const Battle = (() => {
   // ══════════════════════════════════════════════════════
   // ATB LOOP
   // ══════════════════════════════════════════════════════
+  // 🆕 2026-04-23 Sprint 2：攻速公式
+  //   - SPD 保底 max(8, SPD) → max(12, SPD)（避免重裝流 SPD 負到爆）
+  //   - 舊共用 cap 6.5 → 每武器獨立 cap（weapon.cap 欄位）
+  //     匕首 cap 10（500ms）、長槌 cap 3（1667ms）、長劍 cap 6（833ms）等
+  //     對應 battle-system.md § 7.1 各武器極限速度表
   function _calcFillRate(unit) {
-    const sw = (TB_WEAPONS[unit.weaponId] || {}).swingTime || 5;
-    return Math.min(6.5, Math.max(8, unit.derived.SPD) / sw);
+    const w = TB_WEAPONS[unit.weaponId] || {};
+    const sw = w.swingTime || 5;
+    const weaponCap = (typeof w.cap === 'number') ? w.cap : 6.5;
+    return Math.min(weaponCap, Math.max(12, unit.derived.SPD) / sw);
   }
 
   function _startAtbLoop() {
