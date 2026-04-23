@@ -616,7 +616,10 @@ const DoctorEvents = (() => {
   function _performWoundHeal(part) {
     const p = Stats.player;
     const w = p.wounds && p.wounds[part];
-    if (!w || w.special) return;
+    if (!w || w.special) {
+      addLog('——（找不到對應傷勢。）', '#cc3333', true, true);
+      return;
+    }
 
     const { cost, free } = _calcWoundCost(w.severity);
     if ((p.money || 0) < cost) {
@@ -625,14 +628,37 @@ const DoctorEvents = (() => {
       return;
     }
 
-    // 扣錢
+    // 🆕 2026-04-23：治療**立刻套用**（不等對白結束），避免對白中斷時治療失效
+    //   對白純粹戲劇演出，數值變動先處理掉
     if (cost > 0) Stats.modMoney(-cost);
-    // 若使用免費額度，更新下次免費日
     if (free) Flags.set('doctor_next_free_day', p.day + 7);
 
     const partName = Wounds.PART_NAMES[part];
     const sevName  = Wounds.SEVERITY_NAMES[w.severity];
     const origSev  = w.severity;
+
+    // 🆕 立刻套用治療結果（不等對白）
+    let resultText;
+    if (origSev === 1) {
+      Wounds.heal(part);
+      resultText = `✦ ${partName}${sevName}痊癒了。`;
+    } else if (origSev === 2) {
+      Flags.set('wound_treated_' + part, true);
+      w.daysElapsed = 0;
+      resultText = `✦ ${partName}處理完畢，7 天內應該會好。`;
+    } else {
+      w.severity = 2;
+      w.daysElapsed = 0;
+      resultText = `✦ ${partName}重傷已控制住，降為中傷。`;
+    }
+
+    // 進場 log — 確認治療流程有啟動
+    addLog(`⚕ 你去找老默治療${partName}。`, '#aaaa88', false, false);
+
+    // 時間 + 好感立刻結算
+    teammates.modAffection('doctorMo', +3);
+    const timeCost = origSev === 3 ? 90 : origSev === 2 ? 60 : 30;
+    Stats.advanceTime(timeCost);
 
     // 取對應部位 × 嚴重度對白
     const lines = _getWoundDialogue(part, origSev).slice();
@@ -644,32 +670,17 @@ const DoctorEvents = (() => {
       lines.push({ speaker: '老默', text: '這次不收你的。別養成習慣。' });
     }
 
-    // 依嚴重度處理（在對白結束後套，讓對白結束那刻治療才「生效」）
-    const applyTreatment = () => {
-      let resultText;
-      if (origSev === 1) {
-        Wounds.heal(part);
-        resultText = `✦ ${partName}${sevName}痊癒了。`;
-      } else if (origSev === 2) {
-        Flags.set('wound_treated_' + part, true);
-        w.daysElapsed = 0;
-        resultText = `✦ ${partName}處理完畢，7 天內應該會好。`;
-      } else {
-        w.severity = 2;
-        w.daysElapsed = 0;
-        resultText = `✦ ${partName}重傷已控制住，降為中傷。`;
-      }
+    // 對話播完後：播音效 + 結果 log + render
+    DialogueModal.play(lines, {
+      onComplete: () => {
+        if (typeof SoundManager !== 'undefined') SoundManager.playSynth('acquire');
+        addLog(resultText, '#88cc77', true, true);
+        if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
+      },
+    });
 
-      if (typeof SoundManager !== 'undefined') SoundManager.playSynth('acquire');
-      addLog(resultText, '#88cc77', true, true);
-      teammates.modAffection('doctorMo', +3);
-      // 時間成本（重傷 = 90min、中傷 60、輕傷 30）
-      const timeCost = origSev === 3 ? 90 : origSev === 2 ? 60 : 30;
-      Stats.advanceTime(timeCost);
-      if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
-    };
-
-    DialogueModal.play(lines, { onComplete: applyTreatment });
+    // 即使對白失敗或跳過，先 render 一次（避免數值變但畫面不變）
+    if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
   }
 
   // ══════════════════════════════════════════════════
