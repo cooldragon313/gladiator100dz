@@ -137,7 +137,7 @@ const Compulsion = (() => {
   //   新流程：畫面震動 → DialogueModal 連續 4 行內心獨白 → 特性 popup
   const _MONOLOGUE = {
     STR: [
-      { text: '（你的掌心還記得那塊石頭的重量。）' },
+      { text: '（手上彷彿還記得昨天推得那塊石頭的重量。）' },
       { text: '（連續幾天舉石——今天沒碰，手就是癢。）' },
       { text: '（你發現自己無意識地握緊拳頭，又放開。）' },
       { text: '（不然趁睡前再去推兩下好了⋯⋯）' },
@@ -150,14 +150,14 @@ const Compulsion = (() => {
     ],
     CON: [
       { text: '（肩膀習慣了那份重量——今天沒扛。）' },
-      { text: '（你的身體像少了什麼支撐。）' },
-      { text: '（你伸手摸向肩膀，下意識的。）' },
+      { text: '（身體像少了什麼支撐。）' },
+      { text: '（摸了下肩膀，下意識的。）' },
       { text: '（不然趁睡前去扛一下⋯⋯一下就好。）' },
     ],
     WIL: [
       { text: '（連續幾天打坐。今天沒坐。）' },
       { text: '（腦袋嗡嗡的，呼吸找不到節奏。）' },
-      { text: '（你想起盤腿那個姿勢——身體在催。）' },
+      { text: '（我需要冷靜一下了。）' },
       { text: '（不然趁睡前坐一會兒⋯⋯好好整理一下。）' },
     ],
   };
@@ -175,6 +175,15 @@ const Compulsion = (() => {
     const attrName = NAME_OF[attr];
 
     const finishPopup = () => {
+      // 🆕 2026-04-23：負面特性音效（「登登」錯誤感）+ popup
+      if (typeof SoundManager !== 'undefined') SoundManager.playSynth('debuff');
+      if (typeof DialogueModal !== 'undefined') {
+        DialogueModal.play([
+          { text: '▼ 獲得負面特性' },
+          { text: `【${traitName}】` },
+          { text: `你的${attrName}訓練已成為一種戒不掉的習慣。` },
+        ]);
+      }
       if (typeof addLog === 'function') {
         addLog(`▼ 你獲得了新的特性：【${traitName}】`, '#e68080', true, true);
         addLog(`你的${attrName}訓練已成為一種戒不掉的習慣。`, '#c878a0', false, false);

@@ -1022,6 +1022,18 @@ const Game = (() => {
     }
     // 永久 +1 LUK（女兒的祝福）
     p.LUK = (p.LUK || 10) + 1;
+
+    // 🆕 2026-04-23：獲得物品 popup + 音效（升級版反饋）
+    if (typeof SoundManager !== 'undefined') SoundManager.playSynth('acquire');
+    if (typeof DialogueModal !== 'undefined') {
+      DialogueModal.play([
+        { text: '✦ 獲得物品' },
+        { text: '【女兒的掛件】' },
+        { text: '（一塊歪歪斜斜的木牌。女兒刻的「D」字。）' },
+        { text: '永久 LUK +1' },
+      ]);
+    }
+
     addLog('✦ 你獲得了：女兒的掛件（LUK +1）', '#d4af37', true, true);
     addLog('「一塊歪歪斜斜的木牌。女兒刻的。」', '#a89070', false, false);
   }

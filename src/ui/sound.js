@@ -416,6 +416,40 @@ const SoundManager = (() => {
       o.start(now);
       o.stop(now + 0.65);
     },
+
+    // 🆕 2026-04-23：獲得正面物品（三音上行大調琶音 C5→E5→G5）
+    //   類似 RPG 獲得道具的「叮咚！」清脆感
+    acquire: (ctx, vol) => {
+      const now = ctx.currentTime;
+      [523, 659, 784].forEach((freq, i) => {
+        const o = ctx.createOscillator();
+        o.type = 'sine';
+        o.frequency.value = freq;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(vol * 0.14, now + i * 0.08);
+        g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.42);
+        o.connect(g).connect(ctx.destination);
+        o.start(now + i * 0.08);
+        o.stop(now + i * 0.08 + 0.45);
+      });
+    },
+
+    // 🆕 2026-04-23：獲得負面物品 / 特性（兩聲降調「登登」方波）
+    //   類似遊戲「wrong answer」的提示錯誤感
+    debuff: (ctx, vol) => {
+      const now = ctx.currentTime;
+      [392, 294].forEach((freq, i) => {   // G4 → D4 降小五度
+        const o = ctx.createOscillator();
+        o.type = 'square';
+        o.frequency.value = freq;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(vol * 0.10, now + i * 0.18);
+        g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.18 + 0.25);
+        o.connect(g).connect(ctx.destination);
+        o.start(now + i * 0.18);
+        o.stop(now + i * 0.18 + 0.28);
+      });
+    },
   };
 
   // ══════════════════════════════════════════════════
