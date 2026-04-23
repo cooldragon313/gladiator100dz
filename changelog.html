@@ -208,6 +208,65 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       2026-04-23 赫克托 Phase 1 — Day 1 笑臉/臭臉分岔
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">FEATURE</span>
+      <span class="version-title">赫克托劇情 Phase 1 — Day 1 玩家選笑臉/臭臉 → 雙路線分岔</span>
+      <span class="version-date">2026-04-23</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>新模組 hector_events.js</strong> <span class="file-tag">src/npc/hector_events.js</span>
+          — 統一管理赫克托事件線，取代 main.js 舊散落實作。
+          公開 API：<code>showDay1Choice</code> / <code>tryFriendlyHint</code> / <code>tryHarassment</code>。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>Day 1 走廊分岔 ChoiceModal</strong> <span class="file-tag">main.js _playDay1WakeUp</span>
+          — 赫克特自介完後，玩家二選一：
+          「笑臉點頭」→ flag <code>hector_friendly_path</code> + 好感 +5；
+          「臭臉滾開啦」→ flag <code>hector_hostile_path</code> + 好感 −10 + 震動。
+          resultDialogue 接上赫克特的反應對白（兩條路線口氣不同）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>笑臉路線：示好事件池（Day 2-12）</strong> 8+1 條
+          — 帶遊戲教學暗示（長官/卡西烏斯/梅拉/葛拉/老默/主人派遣/睡眠/莫拉斯）。
+          觸發率 25%/天、最多 1/天、已播不重複。
+          10% 機率替換為「塞糖」特別版（money +3 + 好感 +8）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>臭臉路線：騷擾事件池（Day 2-30）</strong> 6 事件擴寫
+          — 麵包 / 沙袋 / 撞肩 / 嘲諷 / 水壺 / 踩腳。
+          每個都有 DialogueModal 震動 + 主角心想（「這混蛋又來小動作」）。
+          觸發率 Day 2-5: 28%，Day 6+: 20%。
+          踩腳事件 40% 機率彈反抗 ChoiceModal（回瞪 / 忍 / 推開）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">CLEANUP</span>
+        <span class="change-text"><strong>廢棄舊事件</strong> <span class="file-tag">main.js</span>
+          — 刪除 <code>_tryHectorHarassment</code>（短 log 無演出）/ <code>hectorDay8</code>（撞肩試探）/
+          <code>hectorDay15</code>（賣情報）/ <code>hectorFestival</code>（Day 25 嫁禍）。
+          後三者改到 Phase 2-3 按路線重建。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text"><strong>Flag 新增</strong>
+          — <code>hector_friendly_path</code> / <code>hector_hostile_path</code>（Day 1 分岔）/
+          <code>hector_hint_today</code> / <code>hector_harass_today</code>（每日清）/
+          <code>hector_hint_*_done</code> / <code>hector_*_played</code>（事件去重）。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
        2026-04-19 wound 系統大擴 + EXP emoji 訓練特效
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">

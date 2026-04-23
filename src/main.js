@@ -1928,56 +1928,8 @@ const Game = (() => {
     }
   }
 
-  // ══════════════════════════════════════════════════
-  // 🆕 赫克托日常騷擾（訓練後隨機觸發）
-  // ══════════════════════════════════════════════════
-  function _tryHectorHarassment() {
-    const p = Stats.player;
-    if (p.day < 2) return;  // Day 1 他第一次出現在走廊已演過
-    const hectorPresent = [...(currentNPCs.teammates || [])].includes('hector');
-    if (!hectorPresent) return;
-    if (Flags.has(`hector_harass_today`)) return;
-
-    // 每天最多騷擾一次
-    const roll = Math.random();
-    // 🆕 D.28：Day 2-5 用 35% 比較密、Day 6+ 回到 18%
-    const threshold = (p.day <= 5) ? 0.35 : 0.18;
-    if (roll >= threshold) return;
-
-    Flags.set('hector_harass_today', true);
-
-    const events = [
-      {
-        text: '你的麵包不見了。你看見赫克托在角落舔手指——他對你笑了。',
-        effects: () => { Stats.modVital('food', -10); Stats.modVital('mood', -5); },
-      },
-      {
-        text: '有人故意踢翻你旁邊的沙袋。你回頭——赫克托在遠處吹口哨。',
-        effects: () => { Stats.modVital('mood', -5); },
-      },
-      {
-        text: '訓練的時候赫克托從後面撞了你一下。「喔不好意思。」他完全不像不好意思。',
-        effects: () => { Stats.modVital('mood', -8); },
-      },
-      {
-        text: '赫克托經過你旁邊，小聲說：「你今天練得不錯。可惜——不夠格。」',
-        effects: () => { Stats.modVital('mood', -5); },
-      },
-      {
-        text: '你發現你的水壺被人動過。水還在，但嚐起來有沙子的味道。赫克托在遠處看著你喝。',
-        effects: () => { Stats.modVital('mood', -8); Stats.modVital('food', -5); },
-      },
-    ];
-
-    const ev = events[Math.floor(Math.random() * events.length)];
-    addLog(ev.text, '#aa7755', true, false);
-    ev.effects();
-  }
-
-  // 每天清除赫克托騷擾 flag
-  DayCycle.onDayStart('clearHectorHarass', () => {
-    Flags.unset('hector_harass_today');
-  }, 19);
+  // 🗑️ 2026-04-23：舊 _tryHectorHarassment + clearHectorHarass 搬到
+  //     src/npc/hector_events.js（依 hector_friendly_path / hector_hostile_path 分岔）
 
   // 🆕 2026-04-19 傷勢每日推進（自癒 / 自然癒合檢查）
   DayCycle.onDayStart('woundsDailyTick', () => {
@@ -1990,165 +1942,11 @@ const Game = (() => {
     }
   }, 15);
 
-  // 赫克托 Day 8 試探事件（他推你一下看你反應）
-  DayCycle.onDayStart('hectorDay8', (newDay) => {
-    if (newDay !== 8 || Flags.has('hector_day8_done')) return;
-    Flags.set('hector_day8_done', true);
-
-    // 🆕 D.28：撞擊分為「前奏」+「撞擊（震動 + HP-3 + 音效）」+「後續對話」
-    _pendingDialogues.push({
-      id: 'hector_day8_test_pre',
-      lines: [
-        { text: '訓練結束的時候，赫克托走過來。' },
-        { text: '他加快腳步——' },
-      ],
-      onComplete: () => {
-        // ⚡ 撞擊瞬間
-        _shakeGameRoot();
-        _flashStageRed();
-        if (typeof SoundManager !== 'undefined') SoundManager.playSynth('sword_swing');
-        Stats.modVital('hp', -3);
-        addLog('（赫克托的肩膀狠狠撞在你身上。）', '#cc5533', true, true);
-        renderAll();
-        // 稍等一下再接後續對話（讓震動跟 UI 更新同步）
-        setTimeout(() => {
-          DialogueModal.play([
-            { text: '——肩膀重重撞在你身上！' },
-            { text: '你踉蹌了兩步。耳朵嗡嗡響。' },
-            { speaker: '赫克托', text: '喔。沒看到你。' },
-            { text: '他沒有道歉的意思。他在等你的反應。' },
-          ], { onComplete: () => { _showHectorDay8Choice(); } });
-        }, 280);
-      },
-    });
-  }, 27);
-
-  // 🆕 D.28：赫克托 Day 8 試探的選項（拆成獨立函式方便引用）
-  function _showHectorDay8Choice() {
-    ChoiceModal.show({
-          id: 'hector_test',
-          icon: '💢',
-          title: '赫克托在試探你',
-          body: '他站在你面前，嘴角掛著笑。整個訓練場都在看。',
-          forced: true,
-          choices: [
-            {
-              id: 'push_back',
-              label: '推回去',
-              hint: '你不是好惹的。',
-              effects: [
-                { type:'vital', key:'mood', delta:5 },
-                { type:'affection', key:'hector', delta:8 },
-                { type:'moral', axis:'pride', side:'negative' },
-              ],
-              resultLog: '你用力推了他一把。他踉蹌退了兩步——然後笑了。「嗯。有點意思。」他轉身走了。',
-              logColor: '#c8a060',
-            },
-            {
-              id: 'ignore',
-              label: '無視他',
-              hint: '不值得跟這種人計較。',
-              effects: [
-                { type:'moral', axis:'patience', side:'positive' },
-                { type:'affection', key:'hector', delta:-5 },
-              ],
-              resultLog: '你繼續走。赫克托在背後哼了一聲。「無聊。」但他記住了你——不好惹，也不好玩。',
-              logColor: '#8899aa',
-            },
-            {
-              id: 'fight',
-              label: '一拳揍他',
-              hint: '用行動告訴他你是誰。',
-              effects: [
-                { type:'vital', key:'stamina', delta:-10 },
-                { type:'affection', key:'hector', delta:15 },
-                { type:'affection', key:'officer', delta:-5 },
-                { type:'moral', axis:'patience', side:'negative' },
-              ],
-              resultLog: '你的拳頭砸在他下巴上。他摔了一跤。爬起來的時候居然笑得更開心了。「哈！你比我想的有趣多了。」監督官遠遠看了一眼，搖了搖頭。',
-              logColor: '#cc7744',
-            },
-          ],
-        });
-  }
-
-  // 赫克托 Day 15 交易登門（他主動找上你）
-  DayCycle.onDayStart('hectorDay15', (newDay) => {
-    if (newDay !== 15 || Flags.has('hector_day15_done')) return;
-    Flags.set('hector_day15_done', true);
-    const p = Stats.player;
-
-    _pendingDialogues.push({
-      id: 'hector_day15_trade',
-      lines: [
-        { text: '訓練後赫克托擋住你的去路。' },
-        { speaker: '赫克托', text: '嘿，新人。聽說你快上場了。' },
-        { speaker: '赫克托', text: '我知道你下一場對手的弱點。' },
-        { text: '他湊近，聲音壓低。' },
-        { speaker: '赫克托', text: '二十個銅幣。換一條命。我覺得划算。' },
-        { text: '你看著他。你知道他可能是真的——也可能根本是胡扯。' },
-      ],
-      onComplete: () => {
-        const choices = [
-          {
-            id: 'buy',
-            label: '買情報（20 金）',
-            hint: '也許有用……也許被他賣了兩次。',
-            requireMinAttr: { LUK: 1 },
-          },
-          {
-            id: 'refuse',
-            label: '不用',
-            effects: [
-              { type:'affection', key:'hector', delta:-5 },
-            ],
-            resultLog: '你搖頭走開。「你會後悔的。」他在背後笑。他很享受你可能後悔的樣子。',
-            logColor: '#8899aa',
-          },
-          {
-            id: 'threaten',
-            label: '揍他一拳',
-            hint: '讓他知道威脅不了你。',
-            effects: [
-              { type:'vital', key:'stamina', delta:-8 },
-              { type:'affection', key:'hector', delta:8 },
-              { type:'moral', axis:'patience', side:'negative' },
-            ],
-            resultLog: '你一拳揍在他臉上。他摔坐在地上，擦了擦嘴角的血——然後笑了。「哈。真有你的。」他從此比較少惹你。',
-            logColor: '#cc7744',
-          },
-        ];
-
-        ChoiceModal.show({
-          id: 'hector_day15',
-          icon: '🐍',
-          title: '赫克托想做生意',
-          body: '他手心朝上，在等你的決定。',
-          forced: false,
-          choices,
-        }, {
-          onChoose: (choiceId) => {
-            if (choiceId === 'buy') {
-              if ((Stats.player.money || 0) < 20) {
-                addLog('你沒有 20 金。赫克托：「喔，你沒錢？那去訓練吧新人。」', '#8899aa', true, true);
-                return;
-              }
-              Stats.modMoney(-20);
-              // 50% 真情報、50% 假情報（他同時賣給對手）
-              const isReal = Math.random() < 0.50;
-              if (isReal) {
-                Flags.set('hector_tip_real');
-                addLog('赫克托收下錢。「下一場對手有舊傷在右膝——往那邊打。」（下次競技場暴擊率 +15%）', '#c8a060', true, true);
-              } else {
-                Flags.set('hector_tip_fake');
-                addLog('赫克托收下錢。他告訴你一個「弱點」。三天後你才會知道——他同時把你的弱點賣給了對手。', '#8899aa', true, true);
-              }
-            }
-          },
-        });
-      },
-    });
-  }, 26);
+  // 🗑️ 2026-04-23：舊 hectorDay8（撞肩試探）/ hectorDay15（賣情報）已廢棄
+  //     改為 hector_events.js 的笑臉/臭臉雙路線：
+  //       - Day 8 撞肩 → § 5.2 仇恨撞擊（aff ≤ -30 觸發，Phase 2）
+  //       - Day 15 賣情報 → § 4.3 莫拉斯對打前觸發（Phase 2）
+  //     Phase 1 暫不接，Phase 2 在 hector_events.js 補。
 
   // 赫克托 Day 40 受傷（你可以選擇救不救）
   DayCycle.onDayStart('hectorDay40', (newDay) => {
@@ -2214,70 +2012,9 @@ const Game = (() => {
     });
   }, 26);
 
-  // 赫克托 Day 25 秋祭嫁禍
-  DayCycle.onDayStart('hectorFestival', (newDay) => {
-    if (newDay !== 25 || Flags.has('hector_festival_done')) return;
-    // 只在秋祭事件之後觸發（等 Day 25 主事件結束）
-    if (!Flags.has('day25_done')) return;
-    Flags.set('hector_festival_done', true);
-
-    _pendingDialogues.push({
-      id: 'hector_festival_frame',
-      lines: [
-        { text: '秋祭結束後，你回到牢房。' },
-        { text: '侍從攔住你。' },
-        { speaker: '侍從', text: '你的床上發現了這個。' },
-        { text: '他手裡拿著一個不屬於你的錢袋。你從沒見過。' },
-        { speaker: '侍從', text: '這是誰的？' },
-        { text: '你看見赫克托站在走廊盡頭。他背對著你。肩膀在微微抖動——他在笑。' },
-      ],
-      onComplete: () => {
-        ChoiceModal.show({
-          id: 'hector_frame',
-          icon: '💰',
-          title: '不是你的錢袋',
-          body: '侍從在等你解釋。赫克托在走廊盡頭。',
-          forced: true,
-          choices: [
-            {
-              id: 'take_blame',
-              label: '吞下來（「是我的。」）',
-              effects: [
-                { type:'affection', key:'masterArtus', delta:-8 },
-                { type:'vital', key:'mood', delta:-15 },
-                { type:'moral', axis:'reliability', side:'positive' },
-              ],
-              resultLog: '你把罪吞了。侍從收走錢袋。你被罰了一頓飯。赫克托第二天走過你身邊，輕聲說：「聰明。」你不知道那是讚美還是嘲笑。',
-              logColor: '#8899aa',
-            },
-            {
-              id: 'blame_hector',
-              label: '指認赫克托',
-              effects: [
-                { type:'affection', key:'hector', delta:-20 },
-                { type:'moral', axis:'loyalty', side:'positive' },
-              ],
-              resultLog: '你指向走廊。「問他。」侍從帶走了赫克托。他被罰了。三天後他回來了——看你的眼神變了。不是恨，是計算。',
-              logColor: '#cc7744',
-            },
-            {
-              id: 'collude',
-              label: '走向赫克托（「分我一半。」）',
-              hint: '你決定用他的方式跟他打交道。',
-              effects: [
-                { type:'affection', key:'hector', delta:20 },
-                { type:'money', delta:15 },
-                { type:'moral', axis:'loyalty', side:'negative' },
-                { type:'moral', axis:'reliability', side:'negative' },
-              ],
-              resultLog: '你走到赫克托面前。他轉過身——笑容不見了。他認真地看了你一眼。然後從口袋裡掏出幾個銅幣塞進你手裡。「歡迎上船。」',
-              logColor: '#aa7733',
-            },
-          ],
-        });
-      },
-    });
-  }, 26);
+  // 🗑️ 2026-04-23：舊 hectorFestival（Day 25 秋祭嫁禍）已廢棄
+  //     改為 hector_events.js § 5.4 嫁禍事件（臭臉路線、aff ≤ -20、Day ≥ 20、移除 day25_done 依賴）
+  //     Phase 3 在 hector_events.js 補（含「痛扁他」私戰選項）。
 
   /**
    * 🆕 D.21 Option A：奧蘭藥房懸念觸發
@@ -2940,8 +2677,11 @@ const Game = (() => {
     //   第二次起，梅拉看到你練 AGI/DEX/WIL 也可能重新提議
     _tryMouseQuest(trainedAttr);
 
-    // 🆕 赫克托日常騷擾（隨機觸發）
-    _tryHectorHarassment();
+    // 🆕 2026-04-23：赫克托事件分岔（笑臉示好 / 臭臉騷擾）
+    if (typeof HectorEvents !== 'undefined') {
+      HectorEvents.tryFriendlyHint();
+      HectorEvents.tryHarassment();
+    }
 
     // 🆕 D.21 Option A：奧蘭藥房懸念事件（隨機觸發）
     _tryOrlanApothecarySighting();
@@ -5689,9 +5429,8 @@ const Game = (() => {
         { speaker: '赫克特', text: '別緊張嘛。我叫赫克特。' },
         { speaker: '赫克特', text: '這裡不難混——只要跟對人。' },
         { speaker: '赫克特', text: '有什麼不懂的，問我就對了。' },
-        { text: '（他拍了拍你肩膀，往前走了。）' },
-        { text: '（你心裡有點⋯⋯暖？）' },
-        { text: '（好像終於有人願意對你好。）' },
+        { text: '（這人是怎樣？）' },
+        { text: '（他等你的反應。）' },
       ], { onComplete: resolve });
     });
 
@@ -5699,6 +5438,15 @@ const Game = (() => {
     Flags.set('met_blood_wolf_day1', true);
     // 記錄赫克特 Day 1 的假善意（未來揭穿時可引用）
     Flags.set('hector_fake_friendly_day1', true);
+
+    // 🆕 2026-04-23：玩家選擇 — 笑臉點頭 / 臭臉拒絕（分岔點）
+    await new Promise(resolve => {
+      if (typeof HectorEvents !== 'undefined' && HectorEvents.showDay1Choice) {
+        HectorEvents.showDay1Choice(resolve);
+      } else {
+        resolve();
+      }
+    });
 
     // ── 場景 3.5b：特性即時互動（遇到達吉）──
     await new Promise(resolve => {
