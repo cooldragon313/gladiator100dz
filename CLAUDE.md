@@ -372,6 +372,7 @@ character_roll → testbattle → battle → actions → main
 8. **不要自動 `git push`**（除非使用者明確說要推）
 9. **不要加 emoji 到代碼**（除非使用者明確要求或是既有 convention）
 10. **不要建立 documentation 檔案**（除非使用者要求；DESIGN.md / CLAUDE.md / changelog.html 例外）
+11. **不要寫沒反饋的選擇事件**（2026-04-23 鐵律）——有 choices 的事件**每個選項都要**有 NPC 回應對白 + 視覺特效（震動/閃光/音效其一），不能選完只 log 一行就結束。詳見 [docs/CONTENT-TEMPLATES.md](docs/CONTENT-TEMPLATES.md) 第 8 條「選擇事件反饋鐵律」。
 
 ---
 
