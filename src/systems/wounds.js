@@ -600,6 +600,29 @@ const Wounds = (() => {
   // UI 渲染
   // ══════════════════════════════════════════════════
 
+  // 🆕 2026-04-23：計算癒合進度敘述
+  //   回傳：「X 天後自癒」/「需治療」等給 tooltip 用
+  function _getProgressText(part, w) {
+    if (!w) return '';
+    if (w.severity === 1) {
+      const remain = Math.max(0, 4 - (w.daysElapsed || 0));
+      return remain > 0 ? `${remain} 天後自癒` : '即將痊癒';
+    }
+    if (w.severity === 2) {
+      const treated = (typeof Flags !== 'undefined') && Flags.has('wound_treated_' + part);
+      const threshold = treated ? 7 : 15;
+      const remain = Math.max(0, threshold - (w.daysElapsed || 0));
+      const stateText = treated ? '治療中' : '未治療';
+      if (remain > 0) return `${stateText}・${remain} 天後自癒`;
+      return '即將痊癒';
+    }
+    // 重傷
+    const days = w.daysElapsed || 0;
+    if (days >= 20) return '需要手術（找老默）';
+    if (days >= 10) return `重傷 ${days} 天・找老默`;
+    return `重傷 ${days} 天・不會自癒`;
+  }
+
   function renderWoundsList(containerId) {
     const el = document.getElementById(containerId);
     if (!el) return;
@@ -629,9 +652,15 @@ const Wounds = (() => {
       const sevClass = ['', 'light', 'medium', 'severe'][w.severity];
       const sevName  = SEVERITY_NAMES[w.severity];
       const partName = PART_NAMES[part];
-      const tooltip  = `${partName}・${sevName}（${w.daysElapsed} 天）`;
+      // 🆕 2026-04-23：tooltip 含進度敘述
+      const progress = _getProgressText(part, w);
+      const tooltip  = `${partName}・${sevName}（${w.daysElapsed} 天）\n${progress}`;
+      // 🆕 在標籤上顯示簡短進度（重傷玩家最需要看到）
+      const shortProgress = w.severity === 3
+        ? (w.daysElapsed >= 20 ? ' 💉' : '')   // 手術可用時加針頭圖示
+        : '';
       html += `<span class="trait-tag trait-wound-${sevClass}" title="${tooltip}">`;
-      html += `<span class="trait-prefix">🩹</span>${partName}・${sevName}`;
+      html += `<span class="trait-prefix">🩹</span>${partName}・${sevName}${shortProgress}`;
       html += `</span>`;
     });
     el.innerHTML = html;

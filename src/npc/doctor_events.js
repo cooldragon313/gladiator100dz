@@ -129,11 +129,16 @@ const DoctorEvents = (() => {
 
   // ══════════════════════════════════════════════════
   // 🆕 2026-04-19 重傷三階段暗示 → 密醫引薦
+  // 🆕 2026-04-23 加：手術路線優先判斷（軌 2）
   // ══════════════════════════════════════════════════
   function _tryWoundHintsThenTreat() {
     if (typeof Wounds === 'undefined') { _openTreatmentChoice(); return; }
     const p = Stats.player;
     const severeCount = Wounds.countBySeverity(3);
+
+    // 🆕 2026-04-23 軌 2：手術路線
+    //   條件：重傷 ≥ 20 天 + 老默好感 ≥ 40 + 該部位還沒被 offered
+    if (_trySurgeryOffer()) return;
 
     // Stage 3: 密醫引薦（條件：已有 doctor_hinted_black_doc flag + 之後至少 5 天）
     if (Flags.has('doctor_hinted_black_doc') && !Flags.has('got_black_doc_contact')) {
@@ -165,6 +170,120 @@ const DoctorEvents = (() => {
 
     // 無暗示 → 直接治療
     _openTreatmentChoice();
+  }
+
+  // ══════════════════════════════════════════════════
+  // 🆕 2026-04-23 軌 2：手術路線
+  //   條件：任一部位重傷 ≥ 20 天 + 老默好感 ≥ 40 + 尚未對該部位 offered
+  //   選擇：接受 → 部位對應屬性永久 -3 + 重傷消失 + 疤痕特性
+  //         拒絕 → 可之後再來，走 _openTreatmentChoice
+  // ══════════════════════════════════════════════════
+  const PART_TO_ATTR = { head: 'WIL', torso: 'CON', arms: 'STR', legs: 'AGI' };
+
+  function _trySurgeryOffer() {
+    const p = Stats.player;
+    const aff = teammates.getAffection('doctorMo');
+    if (aff < 40) return false;
+
+    // 找到符合條件的部位
+    let targetPart = null;
+    Wounds.PARTS.forEach(part => {
+      if (targetPart) return;
+      const w = Wounds.getWound(part);
+      if (!w || w.special) return;
+      if (w.severity !== 3) return;
+      if (w.daysElapsed < 20) return;
+      if (Flags.has('surgery_offered_' + part)) return;
+      targetPart = part;
+    });
+    if (!targetPart) return false;
+
+    Flags.set('surgery_offered_' + targetPart, true);
+    _playSurgeryOffer(targetPart);
+    return true;
+  }
+
+  function _playSurgeryOffer(part) {
+    const partName = Wounds.PART_NAMES[part];
+    const attr = PART_TO_ATTR[part];
+    const cost = 30;
+
+    DialogueModal.play([
+      { speaker: '老默', text: `你那${partName}——` },
+      { text: '（他壓低聲音，確認門外沒有人。）' },
+      { speaker: '老默', text: '不會自己好。我看了二十天了。' },
+      { speaker: '老默', text: '我可以動手術。' },
+      { speaker: '老默', text: '但你得接受——刀是冷的，留下來的疤也冷。' },
+      { speaker: '老默', text: `你的${attr}永遠會差一截。但傷會消。` },
+    ], {
+      onComplete: () => _showSurgeryChoice(part, attr, partName, cost),
+    });
+  }
+
+  function _showSurgeryChoice(part, attr, partName, cost) {
+    const p = Stats.player;
+    const canAfford = (p.money || 0) >= cost;
+
+    ChoiceModal.show({
+      id: 'doctor_surgery_' + part,
+      icon: '🔪',
+      title: '手術',
+      body: `老默可以替你動刀處理${partName}的重傷。\n付 ${cost} 金。${attr} 永久 -3。但傷會消失。`,
+      forced: true,
+      choices: [
+        {
+          id: 'accept',
+          label: `動刀（${cost} 金、${attr} -3）`,
+          hint:  canAfford ? '一勞永逸' : `錢不夠（需 ${cost}、你有 ${p.money || 0}）`,
+          _disabled: !canAfford,
+          effects: [],
+          resultDialogue: [
+            { text: '（他把你按住桌上。）' },
+            { text: '（刀的觸感——冷、短、直接。）' },
+            { text: '（然後是長長的縫合。）' },
+            { text: '（你出來的時候外面天黑了。傷沒了。但你知道那裡永遠會痛。）' },
+          ],
+          resultEffect: 'red-flash',
+        },
+        {
+          id: 'decline',
+          label: '不要',
+          hint:  '寧願硬扛下去',
+          effects: [],
+          resultLog: '你搖頭。老默沒追問——他可以等。',
+          logColor:  '#9a8c6a',
+        },
+      ],
+    }, {
+      onChoose: (choiceId) => {
+        if (choiceId === 'accept' && canAfford) {
+          _performSurgery(part, attr, cost);
+        }
+      },
+    });
+  }
+
+  function _performSurgery(part, attr, cost) {
+    const p = Stats.player;
+    Stats.modMoney(-cost);
+    // 扣屬性
+    p[attr] = Math.max(1, (p[attr] || 10) - 3);
+    // 清傷
+    Wounds.heal(part);
+    // 給疤痕特性
+    if (!Array.isArray(p.scars)) p.scars = [];
+    const scarId = `scar_${part}_surgery`;
+    if (!p.scars.includes(scarId)) p.scars.push(scarId);
+
+    teammates.modAffection('doctorMo', +5);
+    Flags.set('had_surgery_' + part, true);
+    Stats.advanceTime(240);  // 4 小時
+
+    if (typeof addLog === 'function') {
+      addLog(`🔪 手術完成。${Wounds.PART_NAMES[part]}重傷消失、${attr} -3、獲得疤痕。`, '#cc7744', true, true);
+    }
+    if (typeof SoundManager !== 'undefined') SoundManager.playSynth('acquire');
+    if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
   }
 
   function _playFirstSevereWarning() {
@@ -220,28 +339,101 @@ const DoctorEvents = (() => {
   }
 
   // ══════════════════════════════════════════════════
-  // 開啟治療選擇（列出所有 ailment 讓玩家挑）
+  // 🆕 2026-04-23：付費治療系統（軌 1）
+  // ══════════════════════════════════════════════════
+  //
+  // 傷勢費用表（依嚴重度）
+  //   輕傷  5 金 → 立刻痊癒
+  //   中傷 15 金 → 進入加速期（7 天自癒，設 wound_treated_{part} flag）
+  //   重傷 40 金 → 降級為中傷（severity-- 且 daysElapsed 重置）
+  //
+  // 好感折扣
+  //   < 40: 全額
+  //   40-59: 8 折
+  //   60-79: 5 折
+  //   80+: 5 折 + 每 7 天免費 1 次
+  //
+  const WOUND_COST = { 1: 5, 2: 15, 3: 40 };
+
+  function _calcWoundCost(severity) {
+    const aff = (typeof teammates !== 'undefined' && teammates.getAffection)
+                  ? teammates.getAffection('doctorMo') : 0;
+    const base = WOUND_COST[severity] || 0;
+
+    // 每 7 天免費 1 次（好感 80+）
+    if (aff >= 80) {
+      const p = Stats.player;
+      const nextFreeDay = Flags.get('doctor_next_free_day', 0);
+      if (p.day >= nextFreeDay) return { cost: 0, free: true };
+    }
+
+    let mult = 1.0;
+    if (aff >= 60) mult = 0.5;
+    else if (aff >= 40) mult = 0.8;
+    return { cost: Math.round(base * mult), free: false };
+  }
+
+  // ══════════════════════════════════════════════════
+  // 開啟治療選擇（ailments + wounds 都能治）
   // ══════════════════════════════════════════════════
   function _openTreatmentChoice() {
     const p = Stats.player;
-    const list = (p.ailments || []).slice();
-    if (list.length === 0) {
+
+    // 收集所有可治項目
+    const ailments = (p.ailments || []).slice();
+    const woundsList = [];
+    if (typeof Wounds !== 'undefined' && p.wounds) {
+      Wounds.PARTS.forEach(part => {
+        const w = p.wounds[part];
+        if (w && !w.special && w.severity >= 1 && w.severity <= 3) {
+          woundsList.push({ part, severity: w.severity });
+        }
+      });
+    }
+
+    if (ailments.length === 0 && woundsList.length === 0) {
       addLog('——老默皺了皺眉：「你沒有需要處理的傷勢。」', '#9a8c6a', true, true);
       return;
     }
 
-    const choices = list.map(aId => {
+    const choices = [];
+
+    // Ailment 選項（維持原本免費治療）
+    ailments.forEach(aId => {
       const def = (Config.AILMENT_DEFS && Config.AILMENT_DEFS[aId]) || { name: aId, desc: '' };
-      return {
-        id: 'heal_' + aId,
+      choices.push({
+        id: 'heal_ailment_' + aId,
         label: '治療【' + def.name + '】',
         hint:  def.desc || '',
-        effects: [],   // 實際治療在 onChoose 執行，因為要從 ailments 陣列刪
-        // 注意：沒有 type:'ailment_remove' 這個 dispatcher 類型，所以用 callback
-      };
+        effects: [],
+      });
     });
 
-    // 加一個「不用了」選項
+    // 🆕 Wound 選項（付費）
+    const playerMoney = p.money || 0;
+    woundsList.forEach(({ part, severity }) => {
+      const partName = Wounds.PART_NAMES[part];
+      const sevName  = Wounds.SEVERITY_NAMES[severity];
+      const { cost, free } = _calcWoundCost(severity);
+      const canAfford = playerMoney >= cost;
+      const costLabel = free ? '（免費・好感優待）' : `${cost} 金`;
+
+      // 顯示效果預期
+      let effectText = '';
+      if (severity === 1) effectText = '→ 立刻痊癒';
+      else if (severity === 2) effectText = '→ 加速癒合（7 天內）';
+      else effectText = '→ 降為中傷（可再付費治）';
+
+      choices.push({
+        id: 'heal_wound_' + part,
+        label: `治療【${partName}・${sevName}】· ${costLabel}`,
+        hint:  canAfford ? effectText : `錢不夠（需 ${cost}、你有 ${playerMoney}）`,
+        effects: [],
+        _disabled: !canAfford,   // 標記無法選（顯示層處理）
+      });
+    });
+
+    // 「不用了」
     choices.push({
       id: 'decline',
       label: '不用了',
@@ -257,14 +449,87 @@ const DoctorEvents = (() => {
       id: 'doctor_treatment',
       icon: '⚕',
       title: '老默沉默地等你做決定',
-      body: '你身上的問題不只一個。他只能處理一個——說吧。',
+      body: `你身上的問題不只一個。他只能處理一個——說吧。\n（你有 ${playerMoney} 金）`,
       forced: true,
       choices,
     }, {
       onChoose: (choiceId) => {
         if (choiceId === 'decline') return;
-        const ailmentId = choiceId.replace(/^heal_/, '');
-        _performHeal(ailmentId);
+        if (choiceId.startsWith('heal_ailment_')) {
+          const aId = choiceId.replace('heal_ailment_', '');
+          _performHeal(aId);
+        } else if (choiceId.startsWith('heal_wound_')) {
+          const part = choiceId.replace('heal_wound_', '');
+          _performWoundHeal(part);
+        }
+      },
+    });
+  }
+
+  // ══════════════════════════════════════════════════
+  // 🆕 2026-04-23：傷勢治療（付費扣錢 + 嚴重度處理）
+  // ══════════════════════════════════════════════════
+  function _performWoundHeal(part) {
+    const p = Stats.player;
+    const w = p.wounds && p.wounds[part];
+    if (!w || w.special) return;
+
+    const { cost, free } = _calcWoundCost(w.severity);
+    if ((p.money || 0) < cost) {
+      addLog('——錢不夠。老默沒說話，只是把器械放回桌上。', '#cc5555', true, true);
+      return;
+    }
+
+    // 扣錢
+    if (cost > 0) Stats.modMoney(-cost);
+    // 若使用免費額度，更新下次免費日
+    if (free) Flags.set('doctor_next_free_day', p.day + 7);
+
+    const partName = Wounds.PART_NAMES[part];
+    const sevName  = Wounds.SEVERITY_NAMES[w.severity];
+    const origSev  = w.severity;
+
+    // 依嚴重度處理
+    let resultText;
+    if (origSev === 1) {
+      Wounds.heal(part);
+      resultText = `✦ ${partName}${sevName}痊癒了。`;
+    } else if (origSev === 2) {
+      Flags.set('wound_treated_' + part, true);
+      w.daysElapsed = 0;   // 重置計數，從 0 開始跑 7 天
+      resultText = `✦ ${partName}處理完畢，7 天內應該會好。`;
+    } else {
+      // 重傷 → 降為中傷
+      w.severity = 2;
+      w.daysElapsed = 0;
+      resultText = `✦ ${partName}重傷已控制住，降為中傷。`;
+    }
+
+    // 對話
+    const lines = [
+      { speaker: '老默', text: `${partName}。讓我看看。` },
+      { text: '（他的手指冰冷但精準。按壓、拉伸、判斷。）' },
+      { speaker: '老默', text: origSev === 3
+          ? '這傷不輕。我先穩住，不會再惡化——但要完全好還得再來。'
+          : origSev === 2
+            ? '還算及時。包紮好，幾天就能用。'
+            : '小傷。弄乾淨，今天晚上就會好。' },
+    ];
+
+    if (cost > 0 && !free) {
+      lines.push({ speaker: '老默', text: `${cost} 金。不用謝。` });
+    } else if (free) {
+      lines.push({ speaker: '老默', text: '這次不收你的。別養成習慣。' });
+    }
+
+    DialogueModal.play(lines, {
+      onComplete: () => {
+        if (typeof SoundManager !== 'undefined') SoundManager.playSynth('acquire');
+        addLog(resultText, '#88cc77', true, true);
+        teammates.modAffection('doctorMo', +3);
+        // 扣時間
+        Stats.advanceTime(60);
+        if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
       },
     });
   }
