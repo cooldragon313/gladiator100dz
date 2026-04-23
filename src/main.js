@@ -6732,6 +6732,9 @@ const Game = (() => {
     loadGameFromSlot,
     testChoice,
     skipToDay,    // 🆕 Debug 用
+    // 🆕 2026-04-23：視覺特效公開 API（供 ChoiceModal、狂熱獲得等使用）
+    flashStageRed: _flashStageRed,
+    shakeGameRoot: _shakeGameRoot,
   };
 })();
 

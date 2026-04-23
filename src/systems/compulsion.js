@@ -132,17 +132,65 @@ const Compulsion = (() => {
     }
   }
 
+  // 🆕 2026-04-23：戲劇化獲得流程（震動 + 內心獨白 + 特性 popup）
+  //   原流程只有兩行 log，玩家無感。
+  //   新流程：畫面震動 → DialogueModal 連續 4 行內心獨白 → 特性 popup
+  const _MONOLOGUE = {
+    STR: [
+      { text: '（你的手又在空中比劃那個握把的角度。）' },
+      { text: '（連續幾天舉石——今天沒碰，手指就癢。）' },
+      { text: '（你聽見自己在數：十⋯⋯二十⋯⋯）' },
+      { text: '（不然趁睡前再去推兩下好了⋯⋯）' },
+    ],
+    AGI: [
+      { text: '（連續跑了幾天。今天沒跑。）' },
+      { text: '（你的腿在酸，不是累——是癢。）' },
+      { text: '（你發現自己在原地踏步，停不下來。）' },
+      { text: '（不然趁睡前再去跑一趟好了⋯⋯）' },
+    ],
+    CON: [
+      { text: '（肩膀習慣了那份重量——今天沒扛。）' },
+      { text: '（你的身體像少了什麼支撐。）' },
+      { text: '（你伸手摸向肩膀，下意識的。）' },
+      { text: '（不然趁睡前去扛一下⋯⋯一下就好。）' },
+    ],
+    WIL: [
+      { text: '（連續幾天打坐。今天沒坐。）' },
+      { text: '（腦袋嗡嗡的，呼吸找不到節奏。）' },
+      { text: '（你想起盤腿那個姿勢——身體在催。）' },
+      { text: '（不然趁睡前坐一會兒⋯⋯好好整理一下。）' },
+    ],
+  };
+
   function _grantAddict(attr) {
     const p = Stats.player;
     const traitId = TRAIT_OF[attr];
     if (!Array.isArray(p.traits)) p.traits = [];
-    if (!p.traits.includes(traitId)) {
-      p.traits.push(traitId);
-      const def = (typeof Config !== 'undefined') ? Config.TRAIT_DEFS[traitId] : null;
-      if (def && typeof addLog === 'function') {
-        addLog(`▼ 你獲得了新的特性：【${def.name}】`, '#e68080', true, true);
-        addLog(`你的${NAME_OF[attr]}訓練已成為一種戒不掉的習慣。`, '#c878a0', false, false);
+    if (p.traits.includes(traitId)) return;
+
+    // 加特性
+    p.traits.push(traitId);
+    const def = (typeof Config !== 'undefined') ? Config.TRAIT_DEFS[traitId] : null;
+    const traitName = def ? def.name : traitId;
+    const attrName = NAME_OF[attr];
+
+    const finishPopup = () => {
+      if (typeof addLog === 'function') {
+        addLog(`▼ 你獲得了新的特性：【${traitName}】`, '#e68080', true, true);
+        addLog(`你的${attrName}訓練已成為一種戒不掉的習慣。`, '#c878a0', false, false);
       }
+    };
+
+    // 視覺特效：震動（暗示這是身體層級的事）
+    const Game_ = (typeof Game !== 'undefined') ? Game : null;
+    if (Game_ && typeof Game_.shakeGameRoot === 'function') Game_.shakeGameRoot();
+
+    // 獨白：4 行內心戲
+    const lines = _MONOLOGUE[attr] || [];
+    if (lines.length > 0 && typeof DialogueModal !== 'undefined') {
+      DialogueModal.play(lines, { onComplete: finishPopup });
+    } else {
+      finishPopup();
     }
   }
 

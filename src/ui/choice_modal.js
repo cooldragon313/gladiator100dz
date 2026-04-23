@@ -7,6 +7,8 @@
  *   - 效果 / 旗標寫入 / 敘事結果 log
  *   - 加權隨機結果（rolls）
  *   - forced: 強制選擇，無法關閉
+ *   - 🆕 2026-04-23 反饋鐵律欄位：resultDialogue / resultEffect
+ *     （見 docs/CONTENT-TEMPLATES.md 第 8 條）
  *
  * 使用範例：
  *   ChoiceModal.show({
@@ -52,6 +54,16 @@
  *   grantItem        — 選完後給的道具（留給 D.14）
  *   resultLog        — 選完後的 log 文字（若有 rolls 則改用 rolls[i].log）
  *   logColor         — log 顏色
+ *   🆕 resultDialogue — 選完後 NPC 回應對白 [{speaker,text},...]（播 DialogueModal）
+ *                       有此欄位時 resultLog 會在對白結束後才寫
+ *   🆕 resultEffect   — 選完後的視覺特效 'shake' / 'red-flash' / 'shake-and-flash'
+ *                       也可直接傳 CSS class（會加到 #game-root 500ms）
+ *
+ * 反饋鐵律（2026-04-23）：每個 choice 必須至少給一層反饋：
+ *   - resultDialogue（NPC 回應，最重要）
+ *   - resultEffect（視覺特效）
+ *   - resultLog（敘事 log，最低標）
+ * 詳見 docs/CONTENT-TEMPLATES.md 第 8 條。
  */
 const ChoiceModal = (() => {
   let _activeEvent  = null;
@@ -203,18 +215,6 @@ const ChoiceModal = (() => {
       Effects.apply(resolved.effects, { source: 'choice:' + (_activeEvent.id || '') + ':' + (choice.id || '') });
     }
 
-    // 寫 log
-    const logText  = resolved.log || resolved.resultLog || choice.resultLog;
-    const logColor = resolved.logColor || choice.logColor || _activeEvent.logColor || '#e8d070';
-    if (logText) {
-      if (typeof Game !== 'undefined' && Game.addLog) {
-        Game.addLog(logText, logColor, true, true);
-      } else if (typeof addLog === 'function') {
-        // fallback（main.js 內部）
-        addLog(logText, logColor, true, true);
-      }
-    }
-
     // 設 flag
     if (choice.flagSet && typeof Flags !== 'undefined') {
       Flags.set(choice.flagSet, true);
@@ -223,14 +223,66 @@ const ChoiceModal = (() => {
     // 關閉 modal
     _close();
 
-    // 回呼
-    if (typeof onChoose === 'function') {
-      try { onChoose(choice.id, resolved); } catch (e) { console.error('[ChoiceModal] onChoose error', e); }
-    }
+    // 🆕 2026-04-23 反饋鐵律（CONTENT-TEMPLATES.md 第 8 條）
+    //   順序：視覺特效 → 對白 → resultLog → onChoose → renderAll
+    const fx              = resolved.resultEffect || choice.resultEffect;
+    const resultDialogue  = resolved.resultDialogue || choice.resultDialogue;
+    const logText         = resolved.log || resolved.resultLog || choice.resultLog;
+    const logColor        = resolved.logColor || choice.logColor || _activeEvent.logColor || '#e8d070';
 
-    // 重新渲染遊戲 UI
-    if (typeof Game !== 'undefined' && Game.renderAll) {
-      Game.renderAll();
+    // 視覺特效（立即）
+    if (fx) _applyResultEffect(fx);
+
+    const writeLogAndFinish = () => {
+      if (logText) {
+        if (typeof Game !== 'undefined' && Game.addLog) {
+          Game.addLog(logText, logColor, true, true);
+        } else if (typeof addLog === 'function') {
+          addLog(logText, logColor, true, true);
+        }
+      }
+      if (typeof onChoose === 'function') {
+        try { onChoose(choice.id, resolved); } catch (e) { console.error('[ChoiceModal] onChoose error', e); }
+      }
+      if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
+    };
+
+    // 對白（有就播完再寫 log）
+    if (Array.isArray(resultDialogue) && resultDialogue.length > 0 && typeof DialogueModal !== 'undefined') {
+      DialogueModal.play(resultDialogue, { onComplete: writeLogAndFinish });
+    } else {
+      writeLogAndFinish();
+    }
+  }
+
+  // 🆕 2026-04-23 視覺特效派發器
+  //   支援的 fx 值：
+  //     'shake' | 'shake-pain'  → 全畫面震動
+  //     'red-flash' | 'stage-red-flash' → scene-view 紅光
+  //   未來新增：直接在這裡加 case 或傳入自訂 CSS class
+  function _applyResultEffect(fx) {
+    if (!fx) return;
+    const Game_ = (typeof Game !== 'undefined') ? Game : null;
+    switch (fx) {
+      case 'shake':
+      case 'shake-pain':
+        if (Game_ && Game_.shakeGameRoot) Game_.shakeGameRoot();
+        break;
+      case 'red-flash':
+      case 'stage-red-flash':
+        if (Game_ && Game_.flashStageRed) Game_.flashStageRed();
+        break;
+      case 'shake-and-flash':
+        if (Game_ && Game_.shakeGameRoot) Game_.shakeGameRoot();
+        if (Game_ && Game_.flashStageRed) Game_.flashStageRed();
+        break;
+      default:
+        // 直接當 CSS class 用（加到 game-root，500ms 後移除）
+        const root = document.getElementById('game-root');
+        if (root) {
+          root.classList.add(fx);
+          setTimeout(() => root.classList.remove(fx), 500);
+        }
     }
   }
 
