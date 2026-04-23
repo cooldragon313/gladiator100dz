@@ -208,6 +208,47 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       2026-04-24 老默治療真 bug 修正（bare addLog ReferenceError）
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag fix">FIX</span>
+      <span class="version-title">老默治療流程徹底修好 — bare <code>addLog</code> 在 IIFE 外部會 throw</span>
+      <span class="version-date">2026-04-24</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-fix">BUG</span>
+        <span class="change-text"><strong>根因（node 驗證）</strong>
+          — <code>main.js</code> 裡 <code>addLog</code> 定義在
+          <code>const Game = (() =&gt; {...})()</code> 閉包內，<strong>不是全域函式</strong>。
+          外部模組直接寫 <code>addLog(...)</code> 會丟 <code>ReferenceError</code>，
+          被 ChoiceModal 的 <code>onChoose</code> try/catch 吞掉 → 前端看就是「選了沒反應」。
+          前兩次「修好了」只動對白順序，真正 throw 的那行（進場 log）從沒碰到。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">FIX</span>
+        <span class="change-text"><strong>doctor_events.js 全面改用 _log 助手</strong> <span class="file-tag">src/npc/doctor_events.js</span>
+          — 新 <code>_log(text, color, important)</code> 走 <code>Game.addLog</code> +
+          <code>typeof addLog === 'function'</code> fallback。
+          <code>_performWoundHeal</code> / <code>_performHeal</code> 全部 bare
+          <code>addLog</code> 換成 <code>_log</code>。
+          扣錢 / 改傷勢 / render 先跑完再播對白（對白失敗也不影響結果）。
+          加 <code>console.log</code> 追蹤點方便除錯。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DOC</span>
+        <span class="change-text"><strong>CLAUDE.md 加入 addLog scope 警告</strong>
+          — 新增「🚫 不要做」規則：<strong>外部模組禁用 bare <code>addLog</code></strong>，
+          必須走 <code>Game.addLog</code> 或 <code>typeof</code> 守衛，避免同 bug 復發。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
        2026-04-23 赫克托 Phase 1 — Day 1 笑臉/臭臉分岔
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">

@@ -373,6 +373,7 @@ character_roll → testbattle → battle → actions → main
 9. **不要加 emoji 到代碼**（除非使用者明確要求或是既有 convention）
 10. **不要建立 documentation 檔案**（除非使用者要求；DESIGN.md / CLAUDE.md / changelog.html 例外）
 11. **不要寫沒反饋的選擇事件**（2026-04-23 鐵律）——有 choices 的事件**每個選項都要**有 NPC 回應對白 + 視覺特效（震動/閃光/音效其一），不能選完只 log 一行就結束。詳見 [docs/CONTENT-TEMPLATES.md](docs/CONTENT-TEMPLATES.md) 第 8 條「選擇事件反饋鐵律」。
+12. **不要在 main.js 外直接呼叫 bare `addLog(...)`**（2026-04-24 鐵律）——`addLog` 定義在 `const Game = (() => {...})()` 閉包裡，**不是全域函式**。外部模組（`src/npc/*.js`、`src/systems/*.js` 等）直接寫 `addLog(...)` 會丟 `ReferenceError`，通常被上游 try/catch 吞掉 → 前端看就是「某動作按下去沒反應」。**正確寫法**：走 `Game.addLog(text, color, italic, flash)`，或守衛 `if (typeof addLog === 'function') addLog(...)`。這曾讓老默治療流程壞掉 3 次才找到根因。
 
 ---
 
