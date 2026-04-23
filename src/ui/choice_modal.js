@@ -175,16 +175,21 @@ const ChoiceModal = (() => {
     if (bodyEl)  bodyEl.innerHTML = (eventData.body || '').replace(/\n/g, '<br>');
 
     // 渲染選項按鈕
+    // 🆕 2026-04-23：_disabled 真正禁用（不可點、半透明、游標 not-allowed）
     const optionsEl = document.getElementById('choice-options');
     if (optionsEl) {
-      optionsEl.innerHTML = _activeChoices.map((c, idx) => `
-        <button class="choice-option" data-idx="${idx}">
+      optionsEl.innerHTML = _activeChoices.map((c, idx) => {
+        const disabled = c._disabled ? ' disabled style="opacity:0.45;cursor:not-allowed;"' : '';
+        return `
+        <button class="choice-option" data-idx="${idx}"${disabled}>
           <div class="choice-option-label">${c.label || '—'}</div>
           ${c.hint ? `<div class="choice-option-hint">${c.hint}</div>` : ''}
         </button>
-      `).join('');
+      `;
+      }).join('');
       optionsEl.querySelectorAll('.choice-option').forEach(btn => {
         btn.addEventListener('click', () => {
+          if (btn.disabled) return;   // 🆕 _disabled 按鈕點擊無效
           const idx = parseInt(btn.dataset.idx, 10);
           _handleChoice(idx, opts.onChoose);
         });

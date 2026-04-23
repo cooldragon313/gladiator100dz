@@ -467,8 +467,152 @@ const DoctorEvents = (() => {
   }
 
   // ══════════════════════════════════════════════════
-  // 🆕 2026-04-23：傷勢治療（付費扣錢 + 嚴重度處理）
+  // 🆕 2026-04-23：傷勢治療（付費扣錢 + 戲劇化對白 + 震動）
+  //   對白依部位 × 嚴重度分版本
+  //   重傷治療最戲劇化：4 連痛叫 + 大震動，體現降級過程的痛
   // ══════════════════════════════════════════════════
+
+  // 痛叫行助手（speaker=主角，帶 shake effect）
+  const _PAIN = (text, big=false) =>
+    ({ speaker: '主角', text, effect: big ? 'shake-big' : 'shake' });
+
+  // 對白池：[part][severity] → lines[]
+  const _WOUND_DIALOGUES = {
+    arms: {
+      1: [
+        { speaker: '老默', text: '把袖子捲起來。' },
+        { text: '（他的手指掃過你手臂的擦傷，一圈藥粉、一層紗布。）' },
+        { speaker: '老默', text: '擦破皮而已。下次別這麼粗心。' },
+      ],
+      2: [
+        { speaker: '老默', text: '把袖子捲起來。我看看。' },
+        { text: '（他按壓腫起的地方。）' },
+        _PAIN('痛!'),
+        { speaker: '老默', text: '嗯。裡面有血腫。我要放出來。' },
+        _PAIN('痛~~'),
+        { speaker: '老默', text: '綁帶纏緊了。七天內別出力。' },
+      ],
+      3: [
+        { speaker: '老默', text: '我幫你把繃帶打開看。' },
+        _PAIN('痛~'),
+        { speaker: '老默', text: '嗯⋯⋯傷得不輕。我先清洗一下。' },
+        _PAIN('痛~~'),
+        { speaker: '老默', text: '看來骨頭歪了。我幫你歸位。咬著這個。' },
+        _PAIN('痛!'),
+        _PAIN('痛痛痛!'),
+        _PAIN('啊啊啊啊啊——!!!', true),
+        { speaker: '老默', text: '固定好了。' },
+        { speaker: '老默', text: '手臂暫時別用力。要完全好還得再來一次。' },
+      ],
+    },
+    legs: {
+      1: [
+        { speaker: '老默', text: '腿——坐。' },
+        { text: '（他蹲下來，輕輕擦過你小腿的擦傷。）' },
+        { speaker: '老默', text: '小傷。走路注意點。' },
+      ],
+      2: [
+        { speaker: '老默', text: '坐。把腿伸直。' },
+        { text: '（他的手指順著膝蓋往下探。）' },
+        _PAIN('啊!'),
+        { speaker: '老默', text: '韌帶扭了。還好骨頭沒事。' },
+        { speaker: '老默', text: '我幫你貼膏藥——會燙。' },
+        _PAIN('痛~'),
+        { speaker: '老默', text: '三天別走太遠。' },
+      ],
+      3: [
+        { speaker: '老默', text: '腿——讓我看膝蓋。' },
+        { text: '（他脫掉舊綁帶。）' },
+        _PAIN('痛!'),
+        { speaker: '老默', text: '血淤在裡面。我先放出來。' },
+        _PAIN('啊~'),
+        { speaker: '老默', text: '現在把骨頭歸位。咬著這塊布。' },
+        _PAIN('唔!'),
+        _PAIN('唔唔!!'),
+        _PAIN('啊啊啊啊啊——!!!', true),
+        { speaker: '老默', text: '上夾板了。' },
+        { speaker: '老默', text: '三天別走路。不然白治。' },
+      ],
+    },
+    torso: {
+      1: [
+        { speaker: '老默', text: '衣服掀開。' },
+        { text: '（他替你上藥、換繃帶。）' },
+        { speaker: '老默', text: '表皮而已。注意別感染。' },
+      ],
+      2: [
+        { speaker: '老默', text: '衣服掀開。' },
+        { text: '（他把耳朵貼在你胸前聽。）' },
+        { speaker: '老默', text: '肋骨有裂。不嚴重。' },
+        { speaker: '老默', text: '深呼吸。' },
+        _PAIN('呼⋯⋯痛!'),
+        { speaker: '老默', text: '我把綁帶纏緊。' },
+        { speaker: '老默', text: '七天內別深呼吸、別笑、別咳嗽。' },
+      ],
+      3: [
+        { speaker: '老默', text: '衣服全掀開。我聽聽。' },
+        { text: '（他把耳朵貼在你胸前，很久。）' },
+        { speaker: '老默', text: '三根肋骨斷了。其中一根歪進去了。' },
+        { speaker: '老默', text: '我要把它扶出來。準備好。' },
+        { speaker: '主角', text: '⋯⋯準備好了。' },
+        { speaker: '老默', text: '吸一口氣。' },
+        _PAIN('啊!'),
+        { speaker: '老默', text: '再一口。' },
+        _PAIN('啊啊!'),
+        { speaker: '老默', text: '最後——' },
+        _PAIN('啊啊啊啊啊——!!!', true),
+        { speaker: '老默', text: '綁帶纏緊了。' },
+        { speaker: '老默', text: '七天內不要笑、不要咳、不要打噴嚏。' },
+      ],
+    },
+    head: {
+      1: [
+        { speaker: '老默', text: '讓我看看。' },
+        { text: '（他擦過你額頭的擦傷。）' },
+        { speaker: '老默', text: '沒事。注意別沾水。' },
+      ],
+      2: [
+        { speaker: '老默', text: '讓我看眼睛。' },
+        { text: '（他用手指檢查你瞳孔。）' },
+        { speaker: '老默', text: '頭暈不暈?' },
+        { speaker: '主角', text: '⋯⋯有點。' },
+        { speaker: '老默', text: '輕微腦震盪。我給你草藥。' },
+        { speaker: '老默', text: '頭上這口子要縫。' },
+        _PAIN('痛~'),
+        { speaker: '老默', text: '三天內別晃。' },
+      ],
+      3: [
+        { speaker: '老默', text: '讓我看眼睛。' },
+        { text: '（他用手指撐開你眼皮，拿燈照過去。）' },
+        { speaker: '老默', text: '瞳孔反應不對。你記得今天是幾號嗎?' },
+        { speaker: '主角', text: '⋯⋯' },
+        { speaker: '老默', text: '沒事。我知道了。' },
+        { speaker: '老默', text: '頭骨凹陷了一塊。我要把它頂回去。' },
+        _PAIN('什麼?'),
+        { speaker: '老默', text: '忍著。' },
+        _PAIN('啊!'),
+        _PAIN('啊啊!'),
+        _PAIN('啊啊啊啊——!!!', true),
+        { speaker: '老默', text: '好了。縫起來。' },
+        { speaker: '老默', text: '三天內絕對不要晃腦袋。' },
+      ],
+    },
+    // 精神傷（mind）用預設 fallback
+  };
+
+  function _getWoundDialogue(part, severity) {
+    const byPart = _WOUND_DIALOGUES[part];
+    if (byPart && byPart[severity]) return byPart[severity];
+    // Fallback（主要給 mind 部位）
+    const partName = Wounds.PART_NAMES[part] || part;
+    const sevName  = Wounds.SEVERITY_NAMES[severity] || '傷勢';
+    return [
+      { speaker: '老默', text: `${partName}。讓我看看。` },
+      { text: '（他熟練地處理了傷口。）' },
+      { speaker: '老默', text: `${sevName}。好了。` },
+    ];
+  }
+
   function _performWoundHeal(part) {
     const p = Stats.player;
     const w = p.wounds && p.wounds[part];
@@ -476,7 +620,8 @@ const DoctorEvents = (() => {
 
     const { cost, free } = _calcWoundCost(w.severity);
     if ((p.money || 0) < cost) {
-      addLog('——錢不夠。老默沒說話，只是把器械放回桌上。', '#cc5555', true, true);
+      addLog(`——錢不夠（需 ${cost} 金）。老默把器械放回桌上，沒說話。`, '#cc3333', true, true);
+      if (typeof SoundManager !== 'undefined') SoundManager.playSynth('debuff');
       return;
     }
 
@@ -489,49 +634,42 @@ const DoctorEvents = (() => {
     const sevName  = Wounds.SEVERITY_NAMES[w.severity];
     const origSev  = w.severity;
 
-    // 依嚴重度處理
-    let resultText;
-    if (origSev === 1) {
-      Wounds.heal(part);
-      resultText = `✦ ${partName}${sevName}痊癒了。`;
-    } else if (origSev === 2) {
-      Flags.set('wound_treated_' + part, true);
-      w.daysElapsed = 0;   // 重置計數，從 0 開始跑 7 天
-      resultText = `✦ ${partName}處理完畢，7 天內應該會好。`;
-    } else {
-      // 重傷 → 降為中傷
-      w.severity = 2;
-      w.daysElapsed = 0;
-      resultText = `✦ ${partName}重傷已控制住，降為中傷。`;
-    }
+    // 取對應部位 × 嚴重度對白
+    const lines = _getWoundDialogue(part, origSev).slice();
 
-    // 對話
-    const lines = [
-      { speaker: '老默', text: `${partName}。讓我看看。` },
-      { text: '（他的手指冰冷但精準。按壓、拉伸、判斷。）' },
-      { speaker: '老默', text: origSev === 3
-          ? '這傷不輕。我先穩住，不會再惡化——但要完全好還得再來。'
-          : origSev === 2
-            ? '還算及時。包紮好，幾天就能用。'
-            : '小傷。弄乾淨，今天晚上就會好。' },
-    ];
-
+    // 追加結算行（費用確認）
     if (cost > 0 && !free) {
       lines.push({ speaker: '老默', text: `${cost} 金。不用謝。` });
     } else if (free) {
       lines.push({ speaker: '老默', text: '這次不收你的。別養成習慣。' });
     }
 
-    DialogueModal.play(lines, {
-      onComplete: () => {
-        if (typeof SoundManager !== 'undefined') SoundManager.playSynth('acquire');
-        addLog(resultText, '#88cc77', true, true);
-        teammates.modAffection('doctorMo', +3);
-        // 扣時間
-        Stats.advanceTime(60);
-        if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
-      },
-    });
+    // 依嚴重度處理（在對白結束後套，讓對白結束那刻治療才「生效」）
+    const applyTreatment = () => {
+      let resultText;
+      if (origSev === 1) {
+        Wounds.heal(part);
+        resultText = `✦ ${partName}${sevName}痊癒了。`;
+      } else if (origSev === 2) {
+        Flags.set('wound_treated_' + part, true);
+        w.daysElapsed = 0;
+        resultText = `✦ ${partName}處理完畢，7 天內應該會好。`;
+      } else {
+        w.severity = 2;
+        w.daysElapsed = 0;
+        resultText = `✦ ${partName}重傷已控制住，降為中傷。`;
+      }
+
+      if (typeof SoundManager !== 'undefined') SoundManager.playSynth('acquire');
+      addLog(resultText, '#88cc77', true, true);
+      teammates.modAffection('doctorMo', +3);
+      // 時間成本（重傷 = 90min、中傷 60、輕傷 30）
+      const timeCost = origSev === 3 ? 90 : origSev === 2 ? 60 : 30;
+      Stats.advanceTime(timeCost);
+      if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
+    };
+
+    DialogueModal.play(lines, { onComplete: applyTreatment });
   }
 
   // ══════════════════════════════════════════════════

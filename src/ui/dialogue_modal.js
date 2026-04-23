@@ -111,6 +111,10 @@ const DialogueModal = (() => {
     const line = _lines[_lineIdx];
     if (!line) { _close(); return; }
 
+    // 🆕 2026-04-23：per-line effect（line.effect = 'shake' | 'shake-big' | 'red-flash'）
+    //   用於治療痛叫、撞擊等戲劇場面
+    _applyLineEffect(line.effect);
+
     const portraitEl = document.getElementById('dialogue-portrait');
     const speakerEl  = document.getElementById('dialogue-speaker');
     const textEl     = document.getElementById('dialogue-text');
@@ -263,6 +267,43 @@ const DialogueModal = (() => {
     if (!speaker) return '#2a2a2a';
     const initial = speaker.charAt(0);
     return SPEAKER_COLORS[initial] || '#2a3a3a';
+  }
+
+  // 🆕 2026-04-23：line.effect 支援
+  //   'shake' → Game.shakeGameRoot() 一般震動
+  //   'shake-big' → 三次連續震動，持續較久
+  //   'red-flash' → Game.flashStageRed() 紅光
+  //   'shake-and-flash' → 組合
+  //   其他字串 → 直接當 CSS class 加到 #game-root
+  function _applyLineEffect(fx) {
+    if (!fx) return;
+    const Game_ = (typeof Game !== 'undefined') ? Game : null;
+    if (!Game_) return;
+    switch (fx) {
+      case 'shake':
+        Game_.shakeGameRoot && Game_.shakeGameRoot();
+        break;
+      case 'shake-big':
+        if (Game_.shakeGameRoot) {
+          Game_.shakeGameRoot();
+          setTimeout(() => Game_.shakeGameRoot(), 180);
+          setTimeout(() => Game_.shakeGameRoot(), 360);
+        }
+        break;
+      case 'red-flash':
+        Game_.flashStageRed && Game_.flashStageRed();
+        break;
+      case 'shake-and-flash':
+        Game_.shakeGameRoot && Game_.shakeGameRoot();
+        Game_.flashStageRed && Game_.flashStageRed();
+        break;
+      default:
+        const root = document.getElementById('game-root');
+        if (root) {
+          root.classList.add(fx);
+          setTimeout(() => root.classList.remove(fx), 500);
+        }
+    }
   }
 
   return {
