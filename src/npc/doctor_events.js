@@ -26,6 +26,18 @@ const DoctorEvents = (() => {
   // 本模組私有：最近一次訪問的天數（取代 doctor_visit_today flag）
   let _lastVisitDay = -1;
 
+  // 🆕 2026-04-23 修：bare `addLog` 在 main.js IIFE 外部是 ReferenceError（會吞掉整個治療流程）
+  //   統一走 Game.addLog，fallback 到 typeof addLog === 'function'
+  function _log(text, color, important) {
+    if (typeof Game !== 'undefined' && Game.addLog) {
+      Game.addLog(text, color, true, !!important);
+    } else if (typeof addLog === 'function') {
+      addLog(text, color, true, !!important);
+    } else {
+      console.warn('[DoctorEvents] _log: no addLog available', text);
+    }
+  }
+
   // ══════════════════════════════════════════════════
   // 嘗試觸發醫療訪問
   // 呼叫時機：main.js 在 playMorning + flushDialogues 完成之後呼叫
@@ -279,9 +291,7 @@ const DoctorEvents = (() => {
     Flags.set('had_surgery_' + part, true);
     Stats.advanceTime(240);  // 4 小時
 
-    if (typeof addLog === 'function') {
-      addLog(`🔪 手術完成。${Wounds.PART_NAMES[part]}重傷消失、${attr} -3、獲得疤痕。`, '#cc7744', true, true);
-    }
+    _log(`🔪 手術完成。${Wounds.PART_NAMES[part]}重傷消失、${attr} -3、獲得疤痕。`, '#cc7744', true);
     if (typeof SoundManager !== 'undefined') SoundManager.playSynth('acquire');
     if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
   }
@@ -324,9 +334,7 @@ const DoctorEvents = (() => {
       { text: '你收起那張紙條。上面寫著城南某條巷子的暗號。' },
     ], {
       onComplete: () => {
-        if (typeof addLog === 'function') {
-          addLog('✦ 獲得物品：密醫紙條（城南接頭暗號）', '#aa88cc', true, true);
-        }
+        _log('✦ 獲得物品：密醫紙條（城南接頭暗號）', '#aa88cc', true);
         // 加入個人物品
         const p = Stats.player;
         if (!Array.isArray(p.personalItems)) p.personalItems = [];
@@ -392,7 +400,7 @@ const DoctorEvents = (() => {
     }
 
     if (ailments.length === 0 && woundsList.length === 0) {
-      addLog('——老默皺了皺眉：「你沒有需要處理的傷勢。」', '#9a8c6a', true, true);
+      _log('——老默皺了皺眉：「你沒有需要處理的傷勢。」', '#9a8c6a', true);
       return;
     }
 
@@ -614,30 +622,35 @@ const DoctorEvents = (() => {
   }
 
   function _performWoundHeal(part) {
+    console.log('[DoctorEvents] _performWoundHeal called for part:', part);
     const p = Stats.player;
     const w = p.wounds && p.wounds[part];
     if (!w || w.special) {
-      addLog('——（找不到對應傷勢。）', '#cc3333', true, true);
+      _log('——（找不到對應傷勢。）', '#cc3333', true);
       return;
     }
 
     const { cost, free } = _calcWoundCost(w.severity);
-    if ((p.money || 0) < cost) {
-      addLog(`——錢不夠（需 ${cost} 金）。老默把器械放回桌上，沒說話。`, '#cc3333', true, true);
+    const playerMoney = p.money || 0;
+    if (playerMoney < cost) {
+      _log(`——錢不夠（需 ${cost} 金）。老默把器械放回桌上，沒說話。`, '#cc3333', true);
       if (typeof SoundManager !== 'undefined') SoundManager.playSynth('debuff');
       return;
     }
 
-    // 🆕 2026-04-23：治療**立刻套用**（不等對白結束），避免對白中斷時治療失效
-    //   對白純粹戲劇演出，數值變動先處理掉
-    if (cost > 0) Stats.modMoney(-cost);
-    if (free) Flags.set('doctor_next_free_day', p.day + 7);
+    console.log(`[DoctorEvents] treating ${part}, sev=${w.severity}, cost=${cost}, free=${free}`);
 
     const partName = Wounds.PART_NAMES[part];
     const sevName  = Wounds.SEVERITY_NAMES[w.severity];
     const origSev  = w.severity;
 
-    // 🆕 立刻套用治療結果（不等對白）
+    // 🆕 2026-04-23：治療數值立刻套用（對白純粹戲劇演出）
+    if (cost > 0) {
+      const ok = Stats.modMoney(-cost);
+      console.log(`[DoctorEvents] modMoney(-${cost}) => ${ok}, money now = ${p.money}`);
+    }
+    if (free) Flags.set('doctor_next_free_day', p.day + 7);
+
     let resultText;
     if (origSev === 1) {
       Wounds.heal(part);
@@ -652,35 +665,36 @@ const DoctorEvents = (() => {
       resultText = `✦ ${partName}重傷已控制住，降為中傷。`;
     }
 
-    // 進場 log — 確認治療流程有啟動
-    addLog(`⚕ 你去找老默治療${partName}。`, '#aaaa88', false, false);
-
-    // 時間 + 好感立刻結算
+    // 時間 + 好感
     teammates.modAffection('doctorMo', +3);
     const timeCost = origSev === 3 ? 90 : origSev === 2 ? 60 : 30;
     Stats.advanceTime(timeCost);
 
-    // 取對應部位 × 嚴重度對白
-    const lines = _getWoundDialogue(part, origSev).slice();
+    // 進場 log — 確認治療流程已啟動（走 _log 避免 ReferenceError）
+    _log(`⚕ 你去找老默治療${partName}。`, '#aaaa88', false);
 
-    // 追加結算行（費用確認）
+    // 先 render 一次（讓金錢 / 傷勢格立刻更新）
+    if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
+
+    // 對白（對白失敗也不影響治療已完成的事實）
+    const lines = _getWoundDialogue(part, origSev).slice();
     if (cost > 0 && !free) {
       lines.push({ speaker: '老默', text: `${cost} 金。不用謝。` });
     } else if (free) {
       lines.push({ speaker: '老默', text: '這次不收你的。別養成習慣。' });
     }
 
-    // 對話播完後：播音效 + 結果 log + render
-    DialogueModal.play(lines, {
-      onComplete: () => {
-        if (typeof SoundManager !== 'undefined') SoundManager.playSynth('acquire');
-        addLog(resultText, '#88cc77', true, true);
-        if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
-      },
-    });
-
-    // 即使對白失敗或跳過，先 render 一次（避免數值變但畫面不變）
-    if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
+    if (typeof DialogueModal !== 'undefined') {
+      DialogueModal.play(lines, {
+        onComplete: () => {
+          if (typeof SoundManager !== 'undefined') SoundManager.playSynth('acquire');
+          _log(resultText, '#88cc77', true);
+          if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
+        },
+      });
+    } else {
+      _log(resultText, '#88cc77', true);
+    }
   }
 
   // ══════════════════════════════════════════════════
@@ -741,34 +755,32 @@ const DoctorEvents = (() => {
         ];
     }
 
+    // 🆕 2026-04-23：治療效果立刻套用（避免對白期間 throw 導致治療失效）
+    p.ailments.splice(idx, 1);
+    if (ailmentId === 'insomnia_disorder') {
+      p.insomniaStreak = 0;
+      p.normalSleepStreak = 0;
+    }
+    teammates.modAffection('doctorMo', +5);
+    if (typeof Stats.advanceTime === 'function') Stats.advanceTime(240);
+
+    // 先 render（數值變動立刻反映）
+    if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
+
     DialogueModal.play(lines, {
       onComplete: () => {
-        // 真正移除 ailment
-        p.ailments.splice(idx, 1);
-        // 對應 streak 重置
+        // 結果 log（放在 onComplete 是為了播完對白再報訊）
         if (ailmentId === 'insomnia_disorder') {
-          p.insomniaStreak = 0;
-          p.normalSleepStreak = 0;
           // 🆕 D.28：60% 根除（7 天免疫期）/ 40% 只是暫時壓制
           if (Math.random() < 0.60) {
             Flags.set('insomnia_immunity_until', p.day + 7);
-            addLog('⚕ 老默的藥很對症。你覺得頭腦清明——那種根深的疲憊消散了。', '#88d870', true, true);
+            _log('⚕ 老默的藥很對症。你覺得頭腦清明——那種根深的疲憊消散了。', '#88d870', true);
           } else {
-            addLog('⚕ 藥暫時壓住了症狀。但那種疲憊還在底層——希望夠撐。', '#c8a060', false);
+            _log('⚕ 藥暫時壓住了症狀。但那種疲憊還在底層——希望夠撐。', '#c8a060', false);
           }
         } else {
-          addLog(`⚕ 【${def.name}】已治癒。`, '#88d870', true, true);
+          _log(`⚕ 【${def.name}】已治癒。`, '#88d870', true);
         }
-
-        // 時間成本（半天 = 2 slots）— 如果有 advanceTime
-        if (typeof Stats.advanceTime === 'function') {
-          Stats.advanceTime(240);  // 240 min = 4 小時 = 2 slots
-        }
-
-        // 好感 +5
-        teammates.modAffection('doctorMo', +5);
-
-        // 重新渲染
         if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
       },
     });
