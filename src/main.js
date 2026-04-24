@@ -5434,7 +5434,7 @@ const Game = (() => {
         { text: '（他沒看你。你也沒敢看他太久。）' },
         { text: '（你只記住了那條黑鐵頸圈，跟他走路的背影。）' },
         { text: '（他走遠了——走廊裡的空氣才鬆開。）' },
-        // 赫克特假善意（反差伏筆）
+        // 赫克特的自來熟試探（Phase 1 設計：他對所有人都這麼起手，看玩家怎麼回應決定拉攏還是修理）
         { text: '（再走幾步，一個笑嘻嘻的男人靠過來。）' },
         { text: '（他的手拍了一下你肩膀——有點太熟了。）' },
         { speaker: '赫克特', text: '哎喲，新來的。' },
@@ -5448,8 +5448,9 @@ const Game = (() => {
 
     // 記錄玩家見過「血狼」伍爾克（未來對戰時引用）
     Flags.set('met_blood_wolf_day1', true);
-    // 記錄赫克特 Day 1 的假善意（未來揭穿時可引用）
-    Flags.set('hector_fake_friendly_day1', true);
+    // 2026-04-24：移除 hector_fake_friendly_day1 — audit 已標記「後續無引用」，
+    //   Phase 1 重寫後赫克特的友善/敵意由玩家選擇（hector_friendly_path / hector_hostile_path）
+    //   決定，不再是「預設假善意」的舊框架。
 
     // 🆕 2026-04-23：玩家選擇 — 笑臉點頭 / 臭臉拒絕（分岔點）
     await new Promise(resolve => {
