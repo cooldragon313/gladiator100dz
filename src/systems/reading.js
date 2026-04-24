@@ -17,6 +17,17 @@
  */
 const Reading = (() => {
 
+  // CLAUDE.md 第 12 條：bare addLog 在外部模組是 ReferenceError
+  function _log(text, color, important) {
+    if (typeof Game !== 'undefined' && Game.addLog) {
+      Game.addLog(text, color, true, !!important);
+    } else if (typeof addLog === 'function') {
+      addLog(text, color, true, !!important);
+    } else {
+      console.warn('[Reading] _log: no addLog available', text);
+    }
+  }
+
   // ═════════════════════════════════════════
   // 睡前讀書（主入口）
   // ═════════════════════════════════════════
@@ -57,14 +68,14 @@ const Reading = (() => {
 
     // 日誌
     const def = Books.get(targetBook);
-    if (def && typeof addLog === 'function') {
+    if (def) {
       if (result.blocked) {
         // 見識不足 — 不算讀（addLog 已在 books.js 處理）
       } else if (result.finished) {
-        addLog(`✨ 你讀完了《${def.name.replace(/[《》]/g, '')}》。`, '#ccaa55', true, true);
+        _log(`✨ 你讀完了《${def.name.replace(/[《》]/g, '')}》。`, '#ccaa55', true);
       } else {
         const percent = Math.round((result.newProgress / result.totalNights) * 100);
-        addLog(`📖 睡前讀《${def.name.replace(/[《》]/g, '')}》（${percent}%）`, '#88aacc', false, false);
+        _log(`📖 睡前讀《${def.name.replace(/[《》]/g, '')}》（${percent}%）`, '#88aacc', false);
       }
     }
 
@@ -148,9 +159,7 @@ const Reading = (() => {
           text: '繼續，我想看見這個世界',
           onSelect: () => {
             Flags.set('dullard_chose_continue', true);
-            if (typeof addLog === 'function') {
-              addLog('你決定繼續讀下去。', '#88aacc', false);
-            }
+            _log('你決定繼續讀下去。', '#88aacc', false);
           },
         },
         {
@@ -170,10 +179,8 @@ const Reading = (() => {
               p.traits.push('partial_literate');
             }
             Flags.set('refused_awakening', true);
-            if (typeof addLog === 'function') {
-              addLog('✦ 你獲得了新的特性：【粗識文字】', '#88cc77', true, true);
-              addLog('你決定停在這裡。', '#aaccaa', false);
-            }
+            _log('✦ 你獲得了新的特性：【粗識文字】', '#88cc77', true);
+            _log('你決定停在這裡。', '#aaccaa', false);
           },
         },
       ],
@@ -202,10 +209,8 @@ const Reading = (() => {
         // 加入識字 + WIL+2
         if (!p.traits.includes('literate')) p.traits.push('literate');
         p.WIL = (p.WIL || 10) + 2;
-        if (typeof addLog === 'function') {
-          addLog('✧ 你失去了特性：【傻人傻福】', '#8899aa', false);
-          addLog('✦ 你獲得了特性：【識字】，WIL +2', '#88cc77', true, true);
-        }
+        _log('✧ 你失去了特性：【傻人傻福】', '#8899aa', false);
+        _log('✦ 你獲得了特性：【識字】，WIL +2', '#88cc77', true);
       }
     });
   }

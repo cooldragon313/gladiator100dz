@@ -16,6 +16,17 @@
  */
 const Books = (() => {
 
+  // CLAUDE.md 第 12 條：bare addLog 在外部模組是 ReferenceError
+  function _log(text, color, important) {
+    if (typeof Game !== 'undefined' && Game.addLog) {
+      Game.addLog(text, color, true, !!important);
+    } else if (typeof addLog === 'function') {
+      addLog(text, color, true, !!important);
+    } else {
+      console.warn('[Books] _log: no addLog available', text);
+    }
+  }
+
   const BOOK_DEFS = {
 
     // ═════════════════════════════════════════
@@ -276,9 +287,7 @@ const Books = (() => {
     if (p.bookshelf.some(b => b.id === bookId)) return 'already_in_shelf';
     if (p.bookshelf.length >= 5) return 'full';
     p.bookshelf.push({ id: bookId, progress: 0, nights: def.nights });
-    if (typeof addLog === 'function') {
-      addLog(`📖 你獲得了《${def.name.replace(/[《》]/g, '')}》。`, '#99bbdd', true, true);
-    }
+    _log(`📖 你獲得了《${def.name.replace(/[《》]/g, '')}》。`, '#99bbdd', true);
     return 'added';
   }
 
@@ -315,9 +324,7 @@ const Books = (() => {
 
     // 見識門檻檢查（以防書被 grant 時沒檢查）
     if (!canRead(bookId)) {
-      if (typeof addLog === 'function') {
-        addLog(`《${BOOK_DEFS[bookId].name.replace(/[《》]/g, '')}》太深奧了，你還看不懂。`, '#aa8866', false);
-      }
+      _log(`《${BOOK_DEFS[bookId].name.replace(/[《》]/g, '')}》太深奧了，你還看不懂。`, '#aa8866', false);
       return { finished: false, blocked: true };
     }
 
@@ -380,17 +387,15 @@ const Books = (() => {
         if (!p.traits.includes(def.onRead.grantTrait)) {
           p.traits.push(def.onRead.grantTrait);
           const tdef = (typeof Config !== 'undefined' && Config.TRAIT_DEFS) ? Config.TRAIT_DEFS[def.onRead.grantTrait] : null;
-          if (tdef && typeof addLog === 'function') {
-            addLog(`✦ 你獲得了新的特性：【${tdef.name}】`, '#88cc77', true, true);
+          if (tdef) {
+            _log(`✦ 你獲得了新的特性：【${tdef.name}】`, '#88cc77', true);
           }
         }
       }
       // 授予技能
       if (def.onRead.grantSkill && typeof Stats.learnSkill === 'function') {
         Stats.learnSkill(def.onRead.grantSkill);
-        if (typeof addLog === 'function') {
-          addLog(`⚔ 你領悟了新招式。`, '#ccaa55', true, true);
-        }
+        _log(`⚔ 你領悟了新招式。`, '#ccaa55', true);
       }
       // 觸發後續事件（延遲 N 天內機率觸發）
       if (def.onRead.triggerEvent && typeof Flags !== 'undefined') {

@@ -18,6 +18,17 @@
  */
 const Wounds = (() => {
 
+  // CLAUDE.md 第 12 條：bare addLog 在外部模組是 ReferenceError
+  function _log(text, color, important) {
+    if (typeof Game !== 'undefined' && Game.addLog) {
+      Game.addLog(text, color, true, !!important);
+    } else if (typeof addLog === 'function') {
+      addLog(text, color, true, !!important);
+    } else {
+      console.warn('[Wounds] _log: no addLog available', text);
+    }
+  }
+
   // ══════════════════════════════════════════════════
   // 常數
   // ══════════════════════════════════════════════════
@@ -273,9 +284,7 @@ const Wounds = (() => {
 
       if (w.daysElapsed >= threshold) {
         heal(part);
-        if (typeof addLog === 'function') {
-          addLog(`✦ 你的${PART_NAMES[part]}${SEVERITY_NAMES[w.severity]}痊癒了。`, '#88cc77', true, true);
-        }
+        _log(`✦ 你的${PART_NAMES[part]}${SEVERITY_NAMES[w.severity]}痊癒了。`, '#88cc77', true);
       }
     });
 
@@ -330,8 +339,8 @@ const Wounds = (() => {
           if (!p.traits.includes(reward)) {
             p.traits.push(reward);
             const def = (typeof Config !== 'undefined') ? Config.TRAIT_DEFS[reward] : null;
-            if (def && typeof addLog === 'function') {
-              addLog(`✦ 你獲得了新的特性：【${def.name}】`, '#88cc77', true, true);
+            if (def) {
+              _log(`✦ 你獲得了新的特性：【${def.name}】`, '#88cc77', true);
             }
           }
           if (typeof Stats.renderAll === 'function') Stats.renderAll();
@@ -475,9 +484,7 @@ const Wounds = (() => {
     if (typeof DialogueModal !== 'undefined') {
       DialogueModal.play(lines.map(t => ({ text: t })), {});
     }
-    if (typeof addLog === 'function') {
-      addLog(`💥 你練傷了 — ${partName}${sevName}。`, '#cc3333', true, true);
-    }
+    _log(`💥 你練傷了 — ${partName}${sevName}。`, '#cc3333', true);
   }
 
   /**
@@ -547,11 +554,9 @@ const Wounds = (() => {
     if (typeof DialogueModal !== 'undefined' && lines.length > 0) {
       DialogueModal.play(lines.map(text => ({ text })), {});
     }
-    if (typeof addLog === 'function') {
-      addLog(`💥 你的${partName}${SEVERITY_NAMES[severity]}發作。這次訓練失敗了。`, '#cc3333', true, true);
-      if (upgraded) {
-        addLog(`⚠ 傷勢加重 → ${SEVERITY_NAMES[severity + 1] || '重傷'}`, '#cc3333', true, true);
-      }
+    _log(`💥 你的${partName}${SEVERITY_NAMES[severity]}發作。這次訓練失敗了。`, '#cc3333', true);
+    if (upgraded) {
+      _log(`⚠ 傷勢加重 → ${SEVERITY_NAMES[severity + 1] || '重傷'}`, '#cc3333', true);
     }
   }
 

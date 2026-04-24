@@ -9,6 +9,17 @@
  */
 const BlacksmithEvents = (() => {
 
+  // CLAUDE.md 第 12 條：bare addLog 在外部模組是 ReferenceError
+  function _log(text, color, important) {
+    if (typeof Game !== 'undefined' && Game.addLog) {
+      Game.addLog(text, color, true, !!important);
+    } else if (typeof addLog === 'function') {
+      addLog(text, color, true, !!important);
+    } else {
+      console.warn('[BlacksmithEvents] _log: no addLog available', text);
+    }
+  }
+
   // ══════════════════════════════════════════
   // 階段 2：首件護甲（三幕結構）
   // ══════════════════════════════════════════
@@ -125,9 +136,7 @@ const BlacksmithEvents = (() => {
     teammates.modAffection('blacksmithGra', +5);
     Flags.set('gra_first_armor', true);
 
-    if (typeof addLog === 'function') {
-      addLog(`你得到了【${armorName}】。`, '#c8a060', true, true);
-    }
+    _log(`你得到了【${armorName}】。`, '#c8a060', true);
   }
 
   // ══════════════════════════════════════════

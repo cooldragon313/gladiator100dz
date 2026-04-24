@@ -11,6 +11,18 @@
  * 載入順序：main.js 之前。依賴 Flags, Stats, DialogueModal, ChoiceModal, teammates, addLog
  */
 const MelaRatQuest = (() => {
+
+  // CLAUDE.md 第 12 條：bare addLog 在外部模組是 ReferenceError
+  function _log(text, color, important) {
+    if (typeof Game !== 'undefined' && Game.addLog) {
+      Game.addLog(text, color, true, !!important);
+    } else if (typeof addLog === 'function') {
+      addLog(text, color, true, !!important);
+    } else {
+      console.warn('[MelaRatQuest] _log: no addLog available', text);
+    }
+  }
+
   // ══════════════════════════════════════════════════
   // 門檻（內部用，玩家不可見）
   // ══════════════════════════════════════════════════
@@ -47,8 +59,8 @@ const MelaRatQuest = (() => {
       return;
     }
     if (typeof DialogueModal === 'undefined') {
-      // Fallback：沒 DialogueModal 就 addLog
-      lines.forEach(ln => addLog((ln.speaker ? `【${ln.speaker}】` : '') + (ln.text || ''), '#c8a060', false));
+      // Fallback：沒 DialogueModal 就 _log
+      lines.forEach(ln => _log((ln.speaker ? `【${ln.speaker}】` : '') + (ln.text || ''), '#c8a060', false));
       if (typeof onComplete === 'function') onComplete();
       return;
     }
@@ -498,17 +510,15 @@ const MelaRatQuest = (() => {
     const food = Math.max(1, Math.round(20 * percent / 100));
     const aff  = Math.max(1, Math.round(10 * percent / 100));
     // 🆕 敘述 log 先秀（讓玩家知道發生了什麼）
-    if (typeof addLog === 'function') {
-      let line;
-      if (percent <= 10) {
-        line = '（梅拉塞嘆了口氣，還是塞了一小塊麵包給你。）';
-      } else if (percent <= 40) {
-        line = '（梅拉塞搖搖頭，給了你一塊麵包跟一口湯。）「下次別再失手。」';
-      } else {
-        line = '（梅拉塞把一份完整的食物端給你。）「你差一點就成了——算你有心。」';
-      }
-      addLog(line, '#c8a060', false, true);
+    let line;
+    if (percent <= 10) {
+      line = '（梅拉塞嘆了口氣，還是塞了一小塊麵包給你。）';
+    } else if (percent <= 40) {
+      line = '（梅拉塞搖搖頭，給了你一塊麵包跟一口湯。）「下次別再失手。」';
+    } else {
+      line = '（梅拉塞把一份完整的食物端給你。）「你差一點就成了——算你有心。」';
     }
+    _log(line, '#c8a060', true);
     // 🆕 透過 Effects.apply 套用 + 自動 log 獎勵總結
     if (typeof Effects !== 'undefined') {
       Effects.apply([

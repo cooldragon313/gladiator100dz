@@ -15,6 +15,17 @@
  */
 const CharacterRoll = (() => {
 
+  // CLAUDE.md 第 12 條：bare addLog 在外部模組是 ReferenceError
+  function _log(text, color, important) {
+    if (typeof Game !== 'undefined' && Game.addLog) {
+      Game.addLog(text, color, true, !!important);
+    } else if (typeof addLog === 'function') {
+      addLog(text, color, true, !!important);
+    } else {
+      console.warn('[CharacterRoll] _log: no addLog available', text);
+    }
+  }
+
   let _originId = null;
   let _onComplete = null;
   let _rerollsLeft = 2;
@@ -184,9 +195,7 @@ const CharacterRoll = (() => {
       if (typeof DialogueModal !== 'undefined') {
         DialogueModal.play(lines, {
           onComplete: () => {
-            if (typeof addLog === 'function') {
-              addLog(`（❤️-${injury.hpLoss} · 🍖-${injury.foodLoss} · 💭-${injury.moodLoss}）`, '#887766', false, false);
-            }
+            _log(`（❤️-${injury.hpLoss} · 🍖-${injury.foodLoss} · 💭-${injury.moodLoss}）`, '#887766', false);
             if (typeof onDone === 'function') onDone();
           }
         });
@@ -225,9 +234,7 @@ const CharacterRoll = (() => {
       DialogueModal.play(lines, {
         onComplete: () => {
           // 日誌摘要
-          if (typeof addLog === 'function') {
-            addLog(`💥 ${partName}${sevName}（❤️-${injury.hpLoss} · 🍖-${injury.foodLoss} · 💭-${injury.moodLoss}）`, '#cc3333', true, true);
-          }
+          _log(`💥 ${partName}${sevName}（❤️-${injury.hpLoss} · 🍖-${injury.foodLoss} · 💭-${injury.moodLoss}）`, '#cc3333', true);
           if (typeof onDone === 'function') onDone();
         }
       });

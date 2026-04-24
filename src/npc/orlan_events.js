@@ -25,6 +25,20 @@
 const OrlanEvents = (() => {
 
   // ══════════════════════════════════════════════════
+  // CLAUDE.md 第 12 條：bare addLog 在外部模組是 ReferenceError
+  // 統一走 Game.addLog，fallback typeof addLog 檢查
+  // ══════════════════════════════════════════════════
+  function _log(text, color, important) {
+    if (typeof Game !== 'undefined' && Game.addLog) {
+      Game.addLog(text, color, true, !!important);
+    } else if (typeof addLog === 'function') {
+      addLog(text, color, true, !!important);
+    } else {
+      console.warn('[OrlanEvents] _log: no addLog available', text);
+    }
+  }
+
+  // ══════════════════════════════════════════════════
   // 🆕 D.21 helper：先播 DialogueModal 敘述 → 再開啟 ChoiceModal
   // 如果 DialogueModal 不存在就直接開 ChoiceModal（fallback）
   // ══════════════════════════════════════════════════
@@ -260,7 +274,7 @@ const OrlanEvents = (() => {
 
     // 已告發路線 — 奧蘭不會出現
     if (Flags.has('betrayed_olan')) {
-      addLog('侍從來通知你：昨晚奧蘭在牢裡被處決了。他沒留下任何話。', '#663344', true, true);
+      _log('侍從來通知你：昨晚奧蘭在牢裡被處決了。他沒留下任何話。', '#663344', true);
       // 移除 orlan teammates
       if (typeof teammates !== 'undefined' && teammates.getNPC('orlan')) {
         teammates.getNPC('orlan').alive = false;
@@ -389,15 +403,15 @@ const OrlanEvents = (() => {
     teammates.modAffection('orlan', +10);
 
     // 觸發敘述
-    addLog('—————————————————————', '#444', false);
-    addLog('你眼前一片漆黑。', '#8899aa', false);
-    addLog('你以為這就是結束。', '#8899aa', false);
-    addLog('—————————————————————', '#444', false);
-    addLog('你睜開眼。奧蘭的臉就在你上方，眉頭皺成一團，嘴唇在發抖。', '#d9a84f', true, true);
-    addLog('「……終於活了。」他說。聲音沙啞。「你這個混蛋，終於活了。」', '#e8d070', true, true);
-    addLog('你想笑，但胸口太痛。你只能看著他。', '#d9a84f', false);
-    addLog('他沒有鬆開握住你肩膀的手，很久。', '#c8a878', false);
-    addLog('—————————————————————', '#444', false);
+    _log('—————————————————————', '#444', false);
+    _log('你眼前一片漆黑。', '#8899aa', false);
+    _log('你以為這就是結束。', '#8899aa', false);
+    _log('—————————————————————', '#444', false);
+    _log('你睜開眼。奧蘭的臉就在你上方，眉頭皺成一團，嘴唇在發抖。', '#d9a84f', true);
+    _log('「……終於活了。」他說。聲音沙啞。「你這個混蛋，終於活了。」', '#e8d070', true);
+    _log('你想笑，但胸口太痛。你只能看著他。', '#d9a84f', false);
+    _log('他沒有鬆開握住你肩膀的手，很久。', '#c8a878', false);
+    _log('—————————————————————', '#444', false);
 
     return true;
   }
@@ -437,7 +451,7 @@ const OrlanEvents = (() => {
       const lastWord = accepted
         ? '「……告訴他，我替他走了一段。」'
         : '「……他會活下去的。那就夠了。」';
-      addLog(`前哨賽的消息傳回來——奧蘭沒能活著走出場。他最後說的是：${lastWord}`, '#663344', true, true);
+      _log(`前哨賽的消息傳回來——奧蘭沒能活著走出場。他最後說的是：${lastWord}`, '#663344', true);
     }, 20);
   }
 

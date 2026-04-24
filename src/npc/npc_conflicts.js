@@ -19,6 +19,18 @@
  *     由 main.js 串進 _pendingDialogues（晨起後播放對話 → 選擇）
  */
 const NPCConflicts = (() => {
+
+  // CLAUDE.md 第 12 條：bare addLog 在外部模組是 ReferenceError
+  function _log(text, color, important) {
+    if (typeof Game !== 'undefined' && Game.addLog) {
+      Game.addLog(text, color, true, !!important);
+    } else if (typeof addLog === 'function') {
+      addLog(text, color, true, !!important);
+    } else {
+      console.warn('[NPCConflicts] _log: no addLog available', text);
+    }
+  }
+
   // ══════════════════════════════════════════════════
   // Public: pickDaily
   // ══════════════════════════════════════════════════
@@ -70,8 +82,8 @@ const NPCConflicts = (() => {
     if (typeof Effects !== 'undefined' && Array.isArray(choice.effects)) {
       Effects.apply(choice.effects, {});
     }
-    if (choice.resultLog && typeof addLog === 'function') {
-      addLog(choice.resultLog, choice.logColor || '#c8a060', false, false);
+    if (choice.resultLog) {
+      _log(choice.resultLog, choice.logColor || '#c8a060', false);
     }
   }
 

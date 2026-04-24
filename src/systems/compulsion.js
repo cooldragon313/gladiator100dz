@@ -25,6 +25,17 @@
  */
 const Compulsion = (() => {
 
+  // CLAUDE.md 第 12 條：bare addLog 在外部模組是 ReferenceError
+  function _log(text, color, important) {
+    if (typeof Game !== 'undefined' && Game.addLog) {
+      Game.addLog(text, color, true, !!important);
+    } else if (typeof addLog === 'function') {
+      addLog(text, color, true, !!important);
+    } else {
+      console.warn('[Compulsion] _log: no addLog available', text);
+    }
+  }
+
   const ATTRS = ['STR', 'AGI', 'CON', 'WIL'];
   const TRAIT_OF = {
     STR: 'STR_addict',
@@ -106,9 +117,7 @@ const Compulsion = (() => {
       // 擁有後「連續不做」計數歸零
       c.absent[traitId] = 0;
       c.anxiety[traitId] = 0;
-      if (typeof addLog === 'function') {
-        addLog(`（${NAME_OF[attr]}訓練讓你覺得踏實。mood +3）`, '#887766', false, false);
-      }
+      _log(`（${NAME_OF[attr]}訓練讓你覺得踏實。mood +3）`, '#887766', false);
       return;
     }
 
@@ -117,13 +126,9 @@ const Compulsion = (() => {
 
     // 警告期對白
     if (c.buildUp[attr] === WARN_START) {
-      if (typeof addLog === 'function') {
-        addLog(`（你開始覺得沒練${NAME_OF[attr]}會不自在⋯⋯）`, '#aa7733', false, false);
-      }
+      _log(`（你開始覺得沒練${NAME_OF[attr]}會不自在⋯⋯）`, '#aa7733', false);
     } else if (c.buildUp[attr] === BUILDUP_DAYS - 1) {
-      if (typeof addLog === 'function') {
-        addLog(`（你的身體在催促你回到${NAME_OF[attr]}訓練場。）`, '#cc7733', true, false);
-      }
+      _log(`（你的身體在催促你回到${NAME_OF[attr]}訓練場。）`, '#cc7733', true);
     }
 
     // 達 5 天 → 獲得強迫症
@@ -184,10 +189,8 @@ const Compulsion = (() => {
           { text: `你的${attrName}訓練已成為一種戒不掉的習慣。` },
         ]);
       }
-      if (typeof addLog === 'function') {
-        addLog(`▼ 你獲得了新的特性：【${traitName}】`, '#e68080', true, true);
-        addLog(`你的${attrName}訓練已成為一種戒不掉的習慣。`, '#c878a0', false, false);
-      }
+      _log(`▼ 你獲得了新的特性：【${traitName}】`, '#e68080', true);
+      _log(`你的${attrName}訓練已成為一種戒不掉的習慣。`, '#c878a0', false);
     };
 
     // 視覺特效：震動（暗示這是身體層級的事）
@@ -232,9 +235,7 @@ const Compulsion = (() => {
 
           // 減輕閾值
           if (c.absent[traitId] === RELIEF_DAYS) {
-            if (typeof addLog === 'function') {
-              addLog(`（你感覺${NAME_OF[attr]}的焦慮慢慢淡了。）`, '#88aacc', false, false);
-            }
+            _log(`（你感覺${NAME_OF[attr]}的焦慮慢慢淡了。）`, '#88aacc', false);
           }
 
           // 完全解除
@@ -262,8 +263,8 @@ const Compulsion = (() => {
     if (idx >= 0) {
       p.traits.splice(idx, 1);
       const def = (typeof Config !== 'undefined') ? Config.TRAIT_DEFS[traitId] : null;
-      if (def && typeof addLog === 'function') {
-        addLog(`✦ 你克服了【${def.name}】。`, '#88cc77', true, true);
+      if (def) {
+        _log(`✦ 你克服了【${def.name}】。`, '#88cc77', true);
       }
       // 清空狀態
       const c = ensureInit();
@@ -388,10 +389,8 @@ const Compulsion = (() => {
     c.absent[traitId] = 0;
     c.anxiety[traitId] = 0;
 
-    if (typeof addLog === 'function') {
-      addLog(`💪 你回到訓練場補做${name}訓練。身體終於平靜下來。`, '#88aacc', true, true);
-      addLog(`（${attr} EXP +${baseExp} · mood +5 · stamina -15）`, '#887766', false, false);
-    }
+    _log(`💪 你回到訓練場補做${name}訓練。身體終於平靜下來。`, '#88aacc', true);
+    _log(`（${attr} EXP +${baseExp} · mood +5 · stamina -15）`, '#887766', false);
 
     // 補做時也要檢查傷勢（Wounds 系統）
     if (typeof Wounds !== 'undefined' && Wounds.rollLowStaminaInjury) {
@@ -410,20 +409,18 @@ const Compulsion = (() => {
     Stats.modVital('mood', -moodLoss);
 
     // 對白分層
-    if (typeof addLog === 'function') {
-      let line;
-      if (streak === 1) {
-        line = `（你躺在床上，腦中一直閃過${name}訓練場的畫面。mood -${moodLoss}）`;
-      } else if (streak === 2) {
-        line = `（你開始流汗。手不自覺地握拳又鬆開。mood -${moodLoss}）`;
-      } else {
-        line = `（焦慮像潮水拍打。你整夜無眠。mood -${moodLoss} / hp -10）`;
-      }
-      if (opts.preempted) {
-        line = '（你今晚另有要事。身體的焦躁只能硬壓下去。mood -' + moodLoss + '）';
-      }
-      addLog(line, '#c03838', true, false);
+    let line;
+    if (streak === 1) {
+      line = `（你躺在床上，腦中一直閃過${name}訓練場的畫面。mood -${moodLoss}）`;
+    } else if (streak === 2) {
+      line = `（你開始流汗。手不自覺地握拳又鬆開。mood -${moodLoss}）`;
+    } else {
+      line = `（焦慮像潮水拍打。你整夜無眠。mood -${moodLoss} / hp -10）`;
     }
+    if (opts.preempted) {
+      line = '（你今晚另有要事。身體的焦躁只能硬壓下去。mood -' + moodLoss + '）';
+    }
+    _log(line, '#c03838', true);
 
     // 連續 3 次 → 失眠症 + hp -10
     if (streak >= 3) {
@@ -432,9 +429,7 @@ const Compulsion = (() => {
       if (!Array.isArray(p.ailments)) p.ailments = [];
       if (!p.ailments.includes('insomnia_disorder')) {
         p.ailments.push('insomnia_disorder');
-        if (typeof addLog === 'function') {
-          addLog(`▼ 焦慮發作 — 你獲得【失眠症】。`, '#e68080', true, true);
-        }
+        _log(`▼ 焦慮發作 — 你獲得【失眠症】。`, '#e68080', true);
       }
     }
   }

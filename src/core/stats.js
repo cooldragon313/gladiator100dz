@@ -2,6 +2,18 @@
  * stats.js — Player statistics, calculations, and bar rendering
  */
 const Stats = (() => {
+
+  // CLAUDE.md 第 12 條：bare addLog 在外部模組是 ReferenceError
+  function _log(text, color, important) {
+    if (typeof Game !== 'undefined' && Game.addLog) {
+      Game.addLog(text, color, true, !!important);
+    } else if (typeof addLog === 'function') {
+      addLog(text, color, true, !!important);
+    } else {
+      console.warn('[Stats] _log: no addLog available', text);
+    }
+  }
+
   const player = {
     name: '無名',
     day:  1,
@@ -344,22 +356,20 @@ const Stats = (() => {
         if (typeof SoundManager !== 'undefined' && SoundManager.playSynth) {
           try { SoundManager.playSynth('sleep'); } catch (e) { /* ignore */ }
         }
-        if (typeof addLog === 'function') {
-          addLog('', '#333', false, false);
-          addLog('⋯⋯你膝蓋一軟。沙子貼上你的臉。', '#6a5a5a', true, false);
-          addLog('你要倒下了。', '#6a5a5a', true, false);
-          addLog('', '#333', false, false);
-          addLog('但你聽見聲音 —— 不是現在的。', '#8b9ab8', true, false);
-          addLog('奧蘭站起來的聲音。那種笨拙的、緩慢的。', '#8b9ab8', true, false);
-          addLog('第一百次。第兩百次。', '#d4c27a', true, true);
-          addLog('', '#333', false, false);
-          addLog('「妹妹等他活著。」', '#d4af37', true, true);
-          addLog('「你 — 你還在等誰？」', '#d4af37', true, true);
-          addLog('', '#333', false, false);
-          addLog('你不知道答案。但你的身體知道。', '#e8d070', true, false);
-          addLog('✦ 你咬牙站了起來。', '#e8d070', true, true);
-          addLog('', '#333', false, false);
-        }
+        _log('', '#333', false);
+        _log('⋯⋯你膝蓋一軟。沙子貼上你的臉。', '#6a5a5a', false);
+        _log('你要倒下了。', '#6a5a5a', false);
+        _log('', '#333', false);
+        _log('但你聽見聲音 —— 不是現在的。', '#8b9ab8', false);
+        _log('奧蘭站起來的聲音。那種笨拙的、緩慢的。', '#8b9ab8', false);
+        _log('第一百次。第兩百次。', '#d4c27a', true);
+        _log('', '#333', false);
+        _log('「妹妹等他活著。」', '#d4af37', true);
+        _log('「你 — 你還在等誰？」', '#d4af37', true);
+        _log('', '#333', false);
+        _log('你不知道答案。但你的身體知道。', '#e8d070', false);
+        _log('✦ 你咬牙站了起來。', '#e8d070', true);
+        _log('', '#333', false);
       }, 100);
     }
 
@@ -538,11 +548,11 @@ const Stats = (() => {
       }
     }
 
-    // 見識閥值提示（addLog）
+    // 見識閥值提示
     const thresholds = [3, 5, 8, 12];
     thresholds.forEach(t => {
-      if (before < t && after >= t && typeof addLog === 'function') {
-        addLog(`✦ 見識 +${t}：你感覺思路清晰了一些。`, '#88aacc', false, false);
+      if (before < t && after >= t) {
+        _log(`✦ 見識 +${t}：你感覺思路清晰了一些。`, '#88aacc', false);
       }
     });
 

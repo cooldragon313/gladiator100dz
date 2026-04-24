@@ -38,6 +38,17 @@
  */
 const Effects = (() => {
 
+  // CLAUDE.md 第 12 條：bare addLog 在外部模組是 ReferenceError
+  function _log(text, color, important) {
+    if (typeof Game !== 'undefined' && Game.addLog) {
+      Game.addLog(text, color, true, !!important);
+    } else if (typeof addLog === 'function') {
+      addLog(text, color, true, !!important);
+    } else {
+      console.warn('[Effects] _log: no addLog available', text);
+    }
+  }
+
   // ══════════════════════════════════════════════════
   // 主要入口
   // ══════════════════════════════════════════════════
@@ -61,8 +72,8 @@ const Effects = (() => {
     for (const eff of list) {
       applyOne(eff, ctx);
     }
-    if (!ctx.silent && summary.length > 0 && typeof addLog === 'function') {
-      addLog(`　（${summary.join(' · ')}）`, '#887766', false, false);
+    if (!ctx.silent && summary.length > 0) {
+      _log(`　（${summary.join(' · ')}）`, '#887766', false);
     }
     delete ctx._summary;
   }
@@ -249,15 +260,15 @@ const Effects = (() => {
           if (typeof Config !== 'undefined' && Config.TRAIT_DEFS) {
             result.added.forEach(tid => {
               const def = Config.TRAIT_DEFS[tid];
-              if (def && typeof addLog === 'function') {
+              if (def) {
                 const color = def.category === 'negative' ? '#cc7733' : '#88cc77';
-                addLog(`✦ 你獲得了新的特性：【${def.name}】`, color, true, true);
+                _log(`✦ 你獲得了新的特性：【${def.name}】`, color, true);
               }
             });
             result.removed.forEach(tid => {
               const def = Config.TRAIT_DEFS[tid];
-              if (def && typeof addLog === 'function') {
-                addLog(`✧ 你失去了特性：【${def.name}】`, '#8899aa', false);
+              if (def) {
+                _log(`✧ 你失去了特性：【${def.name}】`, '#8899aa', false);
               }
             });
           }
