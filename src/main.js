@@ -1259,6 +1259,34 @@ const Game = (() => {
     }
   }
 
+  // 🆕 2026-04-24 狂熱進度徽章（左上角金色框）
+  function _renderFervorBadge() {
+    if (typeof Fervor === 'undefined') return;
+    const view = document.getElementById('scene-view');
+    if (!view) return;
+    let badge = document.getElementById('fervor-badge');
+    const status = Fervor.getStatusForUI();
+    if (!status) {
+      if (badge) badge.remove();
+      return;
+    }
+    if (!badge) {
+      badge = document.createElement('div');
+      badge.id = 'fervor-badge';
+      view.appendChild(badge);
+    }
+    badge.classList.toggle('breakthrough', status.source === 'breakthrough');
+    const titleIcon = status.source === 'breakthrough' ? '🔥' : '⚡';
+    const hint = status.source === 'breakthrough'
+                   ? `突破 ${status.targetLevel} 的必經儀式`
+                   : `練${status.name} EXP +25%`;
+    badge.innerHTML = `
+      <div class="fervor-title">${titleIcon} ${status.name}狂熱</div>
+      <div class="fervor-progress">進度 ${status.progress} / ${status.target}</div>
+      <div class="fervor-hint">${hint}</div>
+    `;
+  }
+
   // 🆕 D.18 背景角鬥士小字條（右側疊層）
   function _renderBackgroundStrip() {
     if (typeof BackgroundGladiators === 'undefined') return;
@@ -2063,20 +2091,13 @@ const Game = (() => {
         const mealType = idx === 0 ? 'breakfast' : idx === 3 ? 'lunch' : 'dinner';
         _triggerMealEvent(mealType);
       } else if (type === 'rest') {
-        // 🆕 D.28：夜間事件窗口 — 優先級鏈（見 docs/systems/compulsion.md）
+        // 🆕 D.28：夜間事件窗口 — 優先級鏈
         //   1. 主線任務（抓老鼠 / 未來約會等）
-        //   2. 強迫症補做彈窗
-        //   3. 正常靠牆恢復
+        //   2. 正常靠牆恢復
+        //   🗑️ 2026-04-24：舊強迫症補做彈窗廢除（狂熱系統取代，不需夜間補做）
         if (typeof MelaRatQuest !== 'undefined' && MelaRatQuest.hasPending && MelaRatQuest.hasPending()) {
           MelaRatQuest.playTonight();
-          // 🆕 2026-04-19：被任務占用 → 強迫症當作「被迫拒絕」一次
-          if (typeof Compulsion !== 'undefined' && Compulsion.hasPendingTonight()) {
-            Compulsion.onNightPreempted();
-          }
           // 任務開始後 advance time 照常，任務內部會處理 flag
-        } else if (typeof Compulsion !== 'undefined' && Compulsion.hasPendingTonight()) {
-          // 🆕 2026-04-19：強迫症夜間補做彈窗
-          Compulsion.playNightChoice();
         } else {
           // 沒任務 → 走原本的靠牆恢復
           addLog('【傍晚】訓練結束，你靠在牆邊喘了口氣。', '#8899aa', true);
@@ -2553,6 +2574,23 @@ const Game = (() => {
     if (effectiveStaminaCost > 0) Stats.modVital('stamina', -effectiveStaminaCost);
     if ((act.foodCost || 0) > 0) Stats.modVital('food', -act.foodCost);
 
+    // 🆕 2026-04-24 狂熱（Fervor）效果（訓練動作才生效）
+    //   練對 → mood +5 / 額外 stamina -5
+    //   練錯 → mood -5 / 15% 擺爛（EXP ×0.5，由 effect_dispatcher 處理）
+    let fervorSlackHit = false;
+    if (hasAttrEffect && trainedAttr && typeof Fervor !== 'undefined' && Fervor.isActive()) {
+      const moodDelta = Fervor.getMoodDelta(trainedAttr);
+      if (moodDelta !== 0) Stats.modVital('mood', moodDelta);
+      const extraStam = Fervor.getExtraStaminaCost(trainedAttr);
+      if (extraStam > 0) Stats.modVital('stamina', -extraStam);
+      // 擺爛擲骰
+      if (Math.random() < Fervor.getSlackChance(trainedAttr)) {
+        fervorSlackHit = true;
+        const line = Fervor.getSlackLine();
+        if (line) addLog(line, '#8899aa', true, false);
+      }
+    }
+
     // 🆕 D.1.9: 統一效果處理器
     // 🆕 Phase 1-E: thresholdMult（心流/擺爛/飢餓）折入 synergyMult 一起傳入
     const finalSynergyMult = synergyMult * thresholdMult;
@@ -2562,22 +2600,26 @@ const Game = (() => {
       synergyMult: finalSynergyMult,
       currentNPCs,
       source: 'action:' + actionId,
+      fervorSlackHit,   // 讓 effect_dispatcher 把 EXP ×0.5
     });
     // 🆕 D.6 v2：訓練只累積 EXP，不自動升級。升級請到角色頁手動花 EXP。
 
     // 🆕 2026-04-19 訓練成功跳 EXP emoji 特效（依實際 gain 計算數量/大小）
     if (hasAttrEffect) {
+      const fervorMult = (typeof Fervor !== 'undefined' && Fervor.getExpMultiplier && trainedAttr)
+                           ? Fervor.getExpMultiplier(trainedAttr) : 1.0;
+      const slackMult  = fervorSlackHit ? 0.5 : 1.0;
       (act.effects || []).forEach(eff => {
         if ((eff.type === 'exp' || eff.type === 'attr') && eff.key && typeof eff.delta === 'number' && eff.delta > 0) {
-          const finalGain = eff.delta * finalSynergyMult * moodMult;
+          const finalGain = eff.delta * finalSynergyMult * moodMult * fervorMult * slackMult;
           _showExpEmoji(eff.key, finalGain);
         }
       });
     }
 
-    // 🆕 2026-04-19 強迫症：訓練成功後觸發養成/滿足計數
-    if (hasAttrEffect && trainedAttr && typeof Compulsion !== 'undefined') {
-      try { Compulsion.onTraining(trainedAttr); } catch (e) { console.error('[Compulsion]', e); }
+    // 🆕 2026-04-24 狂熱：訓練後記錄 + 觸發檢查（取代舊 Compulsion.onTraining）
+    if (hasAttrEffect && trainedAttr && typeof Fervor !== 'undefined') {
+      try { Fervor.onTraining(trainedAttr); } catch (e) { console.error('[Fervor]', e); }
     }
 
     // 🆕 D.26：偷懶放空的動態代價（在場扣好感 / 無人時 30% 被抓）
@@ -3124,9 +3166,9 @@ const Game = (() => {
       try { Reading.tryBedtime(); } catch (e) { console.error('[Reading]', e); }
     }
 
-    // 🆕 2026-04-19：強迫症日結（計算 absent / buildUp 重置 / 減輕或解除）
-    if (typeof Compulsion !== 'undefined' && Compulsion.onDayEnd) {
-      try { Compulsion.onDayEnd(); } catch (e) { console.error('[Compulsion]', e); }
+    // 🆕 2026-04-24：狂熱日結（修剪滑動窗口 / 冷卻判斷）
+    if (typeof Fervor !== 'undefined' && Fervor.onDayEnd) {
+      try { Fervor.onDayEnd(); } catch (e) { console.error('[Fervor]', e); }
     }
 
     // 🆕 D.12: 就寢前先掃描 NPC 故事事件（夜間共鳴）
@@ -3371,6 +3413,7 @@ const Game = (() => {
     _rebuildDayBar();   // 🆕 D.28：動態揭露 — 每次 render 都重建百日條
     renderSceneInfoBar();
     renderSceneView();
+    _renderFervorBadge();   // 🆕 2026-04-24 狂熱進度徽章（左上金框）
     renderNPCSlots();
     renderTimeSlots();
     renderLocationTabs();
@@ -4565,14 +4608,10 @@ const Game = (() => {
         p.stamina = Math.min(p.stamina, p.staminaMax);
       }
     }
-    // 🆕 2026-04-19 強迫症系統（v5→v6 欄位）
-    if (!p.compulsion || typeof p.compulsion !== 'object') {
-      p.compulsion = {
-        buildUp:  { STR:0, AGI:0, CON:0, WIL:0 },
-        didToday: { STR:false, AGI:false, CON:false, WIL:false },
-        absent:   { STR_addict:0, AGI_addict:0, CON_addict:0, WIL_addict:0 },
-        anxiety:  { STR_addict:0, AGI_addict:0, CON_addict:0, WIL_addict:0 },
-      };
+    // 🆕 2026-04-24 狂熱系統（取代舊強迫症 p.compulsion）
+    //   Fervor.ensureInit 會自動處理舊存檔遷移（p.compulsion → p.fervor + 清 _addict 特性）
+    if (typeof Fervor !== 'undefined' && Fervor.ensureInit) {
+      try { Fervor.ensureInit(p); } catch (e) { console.error('[Fervor] init', e); }
     }
 
     // GameState
@@ -4823,12 +4862,12 @@ const Game = (() => {
         dullardStage:0, weaponInventory:[], armorInventory:[{id:'rags'}],
         // 🆕 2026-04-19 傷勢系統（含 mind 部位）
         wounds: { head:null, torso:null, arms:null, legs:null, mind:null },
-        // 🆕 2026-04-19 強迫症系統
-        compulsion: {
-          buildUp:  { STR:0, AGI:0, CON:0, WIL:0 },
-          didToday: { STR:false, AGI:false, CON:false, WIL:false },
-          absent:   { STR_addict:0, AGI_addict:0, CON_addict:0, WIL_addict:0 },
-          anxiety:  { STR_addict:0, AGI_addict:0, CON_addict:0, WIL_addict:0 },
+        // 🆕 2026-04-24 狂熱系統（取代舊 compulsion）
+        fervor: {
+          active: null, source: null, progress: 0, target: 5,
+          targetLevel: null, startDay: null, naturalCooldownUntil: null,
+          trainingLog: { STR:[], AGI:[], CON:[], WIL:[] },
+          passedBreakthroughs: { STR:[], AGI:[], CON:[], WIL:[] },
         },
       });
       Flags.clear();          // 清空所有故事旗標

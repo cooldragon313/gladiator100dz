@@ -427,27 +427,31 @@ const Config = (() => {
     },
 
     // ══════════════════════════════════════════════════
-    // 🆕 2026-04-19 強迫症（連 5 天同訓練養成）
+    // 🆕 2026-04-24 狂熱（Fervor，取代舊 _addict 強迫症）
+    //   暫時性正面特性：狂熱結束時自動移除（temporary:true）
+    //   觸發：5 天內同屬性訓練 8 次（自然）/ 屬性 19→20 等瓶頸（儀式）
+    //   加成：練對屬性 EXP +25% / mood +5；練別的 mood -5 + 擺爛
+    //   結束：對應訓練累積 5 次
     // ══════════════════════════════════════════════════
-    STR_addict: {
-      id: 'STR_addict', name: '力癮', category: 'negative',
-      compulsionAttr: 'STR',
-      desc: '連續 5 天做力量訓練 → 養成。做該訓練 mood+3；沒做 → 夜間彈出選擇（補做 +mood+5，拒絕 mood-5 累進）。連續 20 天不做可解除。',
+    STR_fervor: {
+      id: 'STR_fervor', name: '力量狂熱', category: 'positive',
+      fervorAttr: 'STR', temporary: true,
+      desc: '你正在突破——力量訓練 EXP +25% / mood +5。練別屬性 mood -5 + 15% 擺爛。對應訓練累積 5 次結束。',
     },
-    AGI_addict: {
-      id: 'AGI_addict', name: '敏癮', category: 'negative',
-      compulsionAttr: 'AGI',
-      desc: '連續 5 天做步法訓練 → 養成。做該訓練 mood+3；沒做 → 夜間彈出選擇（補做 +mood+5，拒絕 mood-5 累進）。連續 20 天不做可解除。',
+    AGI_fervor: {
+      id: 'AGI_fervor', name: '步法狂熱', category: 'positive',
+      fervorAttr: 'AGI', temporary: true,
+      desc: '你正在突破——步法訓練 EXP +25% / mood +5。練別屬性 mood -5 + 15% 擺爛。對應訓練累積 5 次結束。',
     },
-    CON_addict: {
-      id: 'CON_addict', name: '韌癮', category: 'negative',
-      compulsionAttr: 'CON',
-      desc: '連續 5 天做耐力訓練 → 養成。做該訓練 mood+3；沒做 → 夜間彈出選擇（補做 +mood+5，拒絕 mood-5 累進）。連續 20 天不做可解除。',
+    CON_fervor: {
+      id: 'CON_fervor', name: '鐵耐狂熱', category: 'positive',
+      fervorAttr: 'CON', temporary: true,
+      desc: '你正在突破——耐力訓練 EXP +25% / mood +5。練別屬性 mood -5 + 15% 擺爛。對應訓練累積 5 次結束。',
     },
-    WIL_addict: {
-      id: 'WIL_addict', name: '禪癮', category: 'negative',
-      compulsionAttr: 'WIL',
-      desc: '連續 5 天做冥想訓練 → 養成。做該訓練 mood+3；沒做 → 夜間彈出選擇（補做 +mood+5，拒絕 mood-5 累進）。連續 20 天不做可解除。',
+    WIL_fervor: {
+      id: 'WIL_fervor', name: '禪定覺醒', category: 'positive',
+      fervorAttr: 'WIL', temporary: true,
+      desc: '你正在突破——冥想訓練 EXP +25% / mood +5。練別屬性 mood -5 + 15% 擺爛。對應訓練累積 5 次結束。',
     },
   };
 

@@ -319,6 +319,45 @@ html, body {
   50%      { transform: translate(-3px, 1px); }
 }
 
+/* 🆕 2026-04-24 狂熱徽章（疊在 scene-view 左上角，金色發光） */
+#fervor-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 26;
+  padding: 6px 10px;
+  background: linear-gradient(135deg, rgba(60,40,10,0.88), rgba(40,28,8,0.88));
+  border: 1px solid rgba(212,175,55,0.75);
+  border-radius: 5px;
+  font-size: 12px;
+  color: #e8d070;
+  box-shadow: 0 0 10px rgba(212,175,55,0.35), inset 0 0 6px rgba(212,175,55,0.15);
+  pointer-events: none;
+  letter-spacing: .04em;
+  min-width: 120px;
+}
+#fervor-badge .fervor-title {
+  font-size: 13px;
+  font-weight: bold;
+  color: #f4d870;
+  text-shadow: 0 0 4px rgba(212,175,55,0.5);
+  margin-bottom: 2px;
+}
+#fervor-badge .fervor-progress {
+  font-size: 11px;
+  color: #c8ae6a;
+}
+#fervor-badge .fervor-hint {
+  font-size: 10px;
+  color: #a89060;
+  font-style: italic;
+  margin-top: 1px;
+}
+#fervor-badge.breakthrough {
+  border-color: rgba(240,130,60,0.85);
+  box-shadow: 0 0 14px rgba(240,130,60,0.4), inset 0 0 6px rgba(240,130,60,0.2);
+}
+
 /* 🆕 D.18 背景角鬥士小字條（疊在 scene-view 右側） */
 #bg-gladiator-strip {
   position: absolute;

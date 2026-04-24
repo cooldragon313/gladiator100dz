@@ -39,7 +39,8 @@
 3c. **`docs/systems/*.md`** — 🆕 D.28：系統規範（night-events, multi-check-quest, **reading**, **books-catalog**, **wounds**, **compulsion**, traits, origins, timeline, battle-*, npc-growth）
    - 🆕 **reading.md / books-catalog.md**（2026-04-19）：讀書系統 + 五類書本 + 見識數值 + 傻福三階段交互
    - 🆕 **wounds.md**（2026-04-19）：4 部位 × 3 級傷勢系統 + 低體力擲傷 + 好痛觸發 + 老默三階段 → 密醫引薦
-   - 🆕 **compulsion.md**（2026-04-19）：4 種訓練強迫症（力/敏/韌/禪癮）+ 連 5 天養成 + 夜間選擇 + 20 天解除
+   - 🆕 **fervor.md**（2026-04-22 設計 / 2026-04-24 實作）：4 種訓練狂熱（力/敏/耐/禪）+ 自然觸發（5 天 8 次）/ 瓶頸儀式（20/30/.../100）+ 5 次結束。**取代舊 compulsion.md**
+   - 🗑️ **compulsion.md**：已廢棄（設計原稿保留為歷史紀錄），實作改為 Fervor
    - 🆕 **origin-design-spec.md**（2026-04-19）：**新增 origin 必看** — 完整欄位 / statMod 平衡 / 起手書原則 / 被抓損失 / 受傷權重 / 回憶對白矩陣 / 未來擴充（起手技能 + 專屬事件）/ 檢查清單
    - 🆕 **mansion-geography.md**（2026-04-19）：大宅地理 — 主人家 + 訓練場**同座建築**，正門/側門/共用中段
    - 🆕 **master-family-spec.md**（2026-04-19）：訓練所家庭通用規範 — archetype 模板，每個訓練所 = 一個家族故事
@@ -137,12 +138,13 @@
 | 🆕 密醫紙條 | `got_black_doc_contact` + personalItem `black_doc_contact` | doctor_events.js |
 | 🆕 老默三階段 | `doctor_saw_severe_wound` → `doctor_hinted_black_doc` → `got_black_doc_contact` | doctor_events.js |
 | 🆕 自然癒合 flag | `natural_recovery_triggered_{part}` | wounds.js |
-| 🆕 強迫症系統 | `player.compulsion` | compulsion.js |
-| 🆕 4 強迫症特性 | STR_addict/AGI_addict/CON_addict/WIL_addict（力/敏/韌/禪癮）| config.js / compulsion.md |
-| 🆕 強迫症養成 | 連 5 天同訓練 + Day 3/4 警告 | compulsion.js `onTraining` |
-| 🆕 夜間補做 | `Compulsion.hasPendingTonight()` + `playNightChoice()` | main.js slot 7 |
-| 🆕 被任務 preempt | `Compulsion.onNightPreempted()`（累進 +1）| main.js |
-| 🆕 強迫症解除 flag | `overcame_{id}` | compulsion.js |
+| 🆕 狂熱系統 | `player.fervor` / `Fervor.*` | compulsion.js（IIFE 名 Fervor）/ fervor.md |
+| 🆕 4 狂熱特性（正面暫時）| STR_fervor/AGI_fervor/CON_fervor/WIL_fervor | config.js / fervor.md |
+| 🆕 自然觸發 | 5 天內同屬性訓練 8 次 → 進入狂熱 | `Fervor.onTraining` |
+| 🆕 瓶頸觸發 | 屬性升到 20/30/.../100 強制一次狂熱 | `Fervor.checkBreakthroughNeeded` in `Stats.spendExpOnAttr` |
+| 🆕 狂熱加成 | 練對 EXP +25% / mood +5 / 練錯 mood -5 + 15% 擺爛 | `Fervor.getExpMultiplier` + `getMoodDelta` + `getSlackChance` |
+| 🆕 狂熱結束 | 對應訓練累積 5 次；自然 → 14 天冷卻 / 瓶頸 → `fervor_passed_{attr}_{level}` flag | compulsion.js `_complete` |
+| 🗑️ 舊強迫症 | `_addict` 特性 + `player.compulsion` — 已廢棄，存檔自動遷移 | — |
 
 **Flag 命名規範**：`{主題}_{事件}_{狀態}` — 例：`olan_apothecary_resolved`、`doctor_visit_today`、`read_book_<id>`、`knows_blueprint_<id>`
 
@@ -442,6 +444,8 @@ character_roll → testbattle → battle → actions → main
 
 ## 🔄 最近重要變更
 
+- **2026-04-24**：**狂熱系統落實**（fervor.md）— 取代舊 compulsion 強迫症。四個正面暫時特性 STR/AGI/CON/WIL_fervor；自然觸發（5 天內同屬性 8 次）+ 瓶頸觸發（屬性升到 20/30/.../100 強制）；練對 EXP +25% / mood +5，練錯 mood -5 + 15% 擺爛；5 次結束。主畫面左上金色徽章顯示進度。舊 `_addict` 特性 / `player.compulsion` 自動遷移清除。
+- **2026-04-24**：bare `addLog` 大清（CLAUDE.md 第 12 條鐵律）+ 老默治療 bug 根治 + Hector Phase 1 完成 + Day 1 開場大翻修
 - **2026-04-19**：世界觀大擴充（Phase 2 準備）— 新增文件：mansion-geography.md（大宅+訓練場同座建築）/ master-family-spec.md（訓練所家族通用規範）/ found-family.md（新家人儀式系統）/ livia.md（主人娘）/ marcus.md（少爺）。重寫 orlan.md 背景三段式（磨坊子→阿圖斯家傭人→被 Marcus 告發偷錢→Livia 求情降級訓練場）。整合 Day 1 開場（受傷演出合進 wakeup 不重播）。替換磨劍事件為沙地畫磨坊（避免無武器矛盾）。orlan_letter 加「主人傳信？這不像是大人的做法」暗示 Livia 管道。
 - **2026-04-19**：出生特性三層擲骰（birth_traits.js）— 原本只骰稀有 1%，擴充為稀有/罕見 3%/常見 10% 三層獨立擲骰。擲骰畫面分三層顯示。新 origin 設計規範 `docs/systems/origin-design-spec.md` — 新增 origin 必看。
 - **2026-04-19**：強迫症系統上線（compulsion.md）— 4 種訓練強迫症（力/敏/韌/禪癮）/ 連 5 天同訓練養成 + Day 3-4 警告 / 三層獎懲（做 mood+3 / 夜補做 mood+5 / 拒絕 mood-5~-15 累進 + 失眠）/ 20 天不做可解除 / 夜間 slot 7 優先級鏈（任務 > 強迫症 > 休息）/ 負面特性改紅色顯示

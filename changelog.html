@@ -208,6 +208,76 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       2026-04-24 狂熱系統（Fervor）落實 — 取代舊強迫症
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">FEATURE</span>
+      <span class="version-title">訓練狂熱系統（Fervor）— 正面獎勵取代舊強迫症懲罰</span>
+      <span class="version-date">2026-04-24</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text"><strong>Fervor 系統上線</strong> <span class="file-tag">src/systems/compulsion.js</span>
+          — 設計源自 <code>docs/systems/fervor.md</code>。舊「強迫症」是懲罰專精玩家（連 5 天訓練 → 負面特性 + 20 天才能解除），
+          跟「遊戲要你訓練」的哲學衝突。新設計把整個機制翻成正面獎勵 + 屬性突破儀式。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>4 個正面暫時特性</strong> <span class="file-tag">config.js TRAIT_DEFS</span>
+          — <code>STR_fervor</code> 力量狂熱 / <code>AGI_fervor</code> 步法狂熱 /
+          <code>CON_fervor</code> 鐵耐狂熱 / <code>WIL_fervor</code> 禪定覺醒。
+          <code>temporary: true</code> 標記——狂熱結束自動移除。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>兩軌觸發</strong>
+          — <strong>A 自然</strong>：5 天內同屬性訓練累積 8 次 → 進狂熱（獎勵專精）；結束後 14 天冷卻。
+          <strong>B 瓶頸</strong>：屬性要從 19→20 / 29→30 / ... / 99→100 必須通過一次狂熱（儀式）。
+          瓶頸檢查 hook 在 <code>Stats.spendExpOnAttr</code> 開頭，沒通過狂熱就擋下升級。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>狂熱期間效果</strong>
+          <span class="file-tag">effect_dispatcher.js + main.js doAction</span>
+          — 練對屬性：EXP ×1.25 / mood +5 / 額外 stamina -5 / 進度 +1。
+          練別屬性：mood -5 / 15% 機率擺爛（EXP ×0.5 + 吐槽 log）。
+          對應訓練累積 5 次結束狂熱。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text"><strong>主畫面狂熱徽章</strong> <span class="file-tag">game.html + main.js _renderFervorBadge</span>
+          — <code>scene-view</code> 左上金色發光框：「⚡ 力量狂熱 · 進度 3/5 · 練力量 EXP +25%」。
+          瓶頸觸發時切換為橘色外框（🔥 圖示 + 「突破 20 的必經儀式」）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text"><strong>觸發與結束演出</strong>
+          — 自然觸發：輕震動 + level_up 音效 + 3 句 DialogueModal 內心獨白。
+          瓶頸觸發：重震動 + acquire 音效 + 5 句儀式對白。
+          結束：acquire 音效 + log「那種癮頭散了——你感覺到——你真的變強了。」</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">MIGRATION</span>
+        <span class="change-text"><strong>舊存檔自動遷移</strong>
+          — <code>Fervor.ensureInit</code> 偵測到 <code>player.compulsion</code> 舊欄位 → 清掉、改初始化 <code>player.fervor</code>。
+          順便剝除 <code>player.traits</code> 中所有 <code>*_addict</code>。一次性、無痛。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">CLEANUP</span>
+        <span class="change-text"><strong>舊機制廢除</strong> <span class="file-tag">main.js</span>
+          — slot 7 夜間補做彈窗移除（狂熱不需要夜間補做）。
+          舊 <code>Compulsion.hasPendingTonight</code> / <code>playNightChoice</code> / <code>onNightPreempted</code> 保留為 no-op stub 向後相容。
+          <code>compulsion.md</code> 設計書已標註廢棄，指向 <code>fervor.md</code>。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
        2026-04-24 老默治療真 bug 修正（bare addLog ReferenceError）
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">

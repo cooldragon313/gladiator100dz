@@ -147,12 +147,18 @@ const Stats = (() => {
       mind:  null,   // 🆕 精神傷（失眠/憂鬱）
     },
 
-    // 🆕 2026-04-19: 強迫症系統（compulsion.md）
-    compulsion: {
-      buildUp:  { STR: 0, AGI: 0, CON: 0, WIL: 0 },       // 連續做天數
-      didToday: { STR: false, AGI: false, CON: false, WIL: false },
-      absent:   { STR_addict: 0, AGI_addict: 0, CON_addict: 0, WIL_addict: 0 },
-      anxiety:  { STR_addict: 0, AGI_addict: 0, CON_addict: 0, WIL_addict: 0 },
+    // 🆕 2026-04-24: 狂熱系統（fervor.md，取代舊 compulsion）
+    //   詳細欄位 + 舊存檔遷移見 src/systems/compulsion.js (Fervor.ensureInit)
+    fervor: {
+      active: null,            // 'STR'|'AGI'|'CON'|'WIL'|null
+      source: null,            // 'natural'|'breakthrough'|null
+      progress: 0,
+      target: 5,
+      targetLevel: null,
+      startDay: null,
+      naturalCooldownUntil: null,
+      trainingLog: { STR: [], AGI: [], CON: [], WIL: [] },
+      passedBreakthroughs: { STR: [], AGI: [], CON: [], WIL: [] },
     },
   };
 
@@ -631,6 +637,17 @@ const Stats = (() => {
     const cur  = player[attr] || 10;
     const cost = expToNext(cur);
     if ((player.exp[attr] || 0) < cost) return false;
+
+    // 🆕 2026-04-24：瓶頸狂熱（fervor.md）
+    //   屬性升到 20/30/40/.../100 必須通過一次狂熱儀式才能突破。
+    //   Fervor.checkBreakthroughNeeded 會決定要不要擋升級 + 觸發狂熱演出。
+    const targetLevel = cur + 1;
+    if (typeof Fervor !== 'undefined' && Fervor.checkBreakthroughNeeded) {
+      if (Fervor.checkBreakthroughNeeded(attr, targetLevel)) {
+        return false;   // 阻擋升級（狂熱演出已觸發 / 進行中）
+      }
+    }
+
     player.exp[attr] -= cost;
     player[attr]      = cur + 1;
 

@@ -176,6 +176,17 @@ const Effects = (() => {
     if ((eff.type === 'attr' || eff.type === 'exp') && typeof delta === 'number' && delta > 0) {
       const synergyMult = ctx.synergyMult || 1.0;
       delta = delta * synergyMult;
+
+      // 🆕 2026-04-24：狂熱加成（Fervor — 練對屬性 EXP +25%）
+      if (typeof Fervor !== 'undefined' && Fervor.getExpMultiplier && eff.key) {
+        const fervorMult = Fervor.getExpMultiplier(eff.key);
+        if (fervorMult !== 1.0) delta = delta * fervorMult;
+      }
+      // 🆕 2026-04-24：狂熱擺爛（練錯屬性 15% EXP ×0.5）
+      //   由 doAction 傳 ctx.fervorSlackHit = true 觸發（避免每個 effect 都 roll）
+      if (ctx.fervorSlackHit) {
+        delta = delta * 0.5;
+      }
     }
 
     // 最終 delta 四捨五入

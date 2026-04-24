@@ -1,29 +1,38 @@
 /**
- * compulsion.js — 訓練強迫症系統（2026-04-19）
+ * compulsion.js — 訓練狂熱系統（Fervor，2026-04-24 重寫）
  *
- * 設計對應：docs/systems/compulsion.md
+ * 設計對應：docs/systems/fervor.md
+ * 取代舊 compulsion（強迫症）— 舊版懲罰玩家專精，跟遊戲哲學衝突。
  *
- * 四種強迫症（連 5 天同訓練養成）：
- *   STR_addict 力癮 / AGI_addict 敏癮 / CON_addict 韌癮 / WIL_addict 禪癮
+ * 四種狂熱（正面暫時特性）：
+ *   STR_fervor 力量狂熱 / AGI_fervor 步法狂熱
+ *   CON_fervor 鐵耐狂熱 / WIL_fervor 禪定覺醒
  *
- * 機制三層獎懲：
- *   1. 白天做對應訓練 → mood +3（滿足）+ 訓練獎勵照給
- *   2. 當天沒做 → 夜間 slot 7 彈出選擇：
- *      [練] 補做訓練 + mood +5（無 NPC 加成）
- *      [不練] mood -5 × 累進（最多 -15，連續 3 次觸發失眠）
- *   3. 被主線任務 / 約會占用 slot 7 → 等同「被迫拒絕」累進
+ * 兩軌觸發：
+ *   A. 自然：5 天內同屬性訓練累積 8 次 → 進入狂熱（獎勵專精）
+ *   B. 瓶頸：屬性升到 20/30/40/50/60/70/80/90/100 必須通過一次狂熱（儀式）
  *
- * 解除條件：連續 10 天不做 → 減輕，20 天 → 完全解除
+ * 狂熱期間（訓練動作）：
+ *   - 練對屬性：EXP +25%、mood +5、stamina -5 額外、progress +1
+ *   - 練別屬性：mood -5、15% 擺爛（EXP ×0.5）、progress 不變
+ *
+ * 結束條件：對應屬性訓練累積 5 次
+ *   - 自然觸發：進入 14 天冷卻
+ *   - 瓶頸觸發：設 `fervor_passed_{attr}_{level}` flag，回升級動作
  *
  * 資料結構：
- *   player.compulsion = {
- *     buildUp:  { STR:N, AGI:N, CON:N, WIL:N },   // 養成階段連續做天數
- *     didToday: { STR:false, ... },                // 今日已做（晨起重置）
- *     absent:   { STR_addict:N, ... },             // 擁有後連續不做天數
- *     anxiety:  { STR_addict:N, ... },             // 夜間拒絕累進次數
+ *   player.fervor = {
+ *     active, source, progress, target, targetLevel, startDay,
+ *     naturalCooldownUntil,
+ *     trainingLog: { STR:[], AGI:[], CON:[], WIL:[] },
+ *     passedBreakthroughs: { STR:[], AGI:[], CON:[], WIL:[] },
  *   }
+ *
+ * 向後相容：同時 export `Compulsion` alias（main.js 舊呼叫點暫時還會用），
+ * 但 hasPendingTonight / playNightChoice / onNightPreempted 都改為 no-op
+ * （狂熱不需要夜間補做，結束條件改為訓練 5 次）。
  */
-const Compulsion = (() => {
+const Fervor = (() => {
 
   // CLAUDE.md 第 12 條：bare addLog 在外部模組是 ReferenceError
   function _log(text, color, important) {
@@ -32,436 +41,445 @@ const Compulsion = (() => {
     } else if (typeof addLog === 'function') {
       addLog(text, color, true, !!important);
     } else {
-      console.warn('[Compulsion] _log: no addLog available', text);
+      console.warn('[Fervor] _log: no addLog available', text);
     }
   }
 
   const ATTRS = ['STR', 'AGI', 'CON', 'WIL'];
+
   const TRAIT_OF = {
-    STR: 'STR_addict',
-    AGI: 'AGI_addict',
-    CON: 'CON_addict',
-    WIL: 'WIL_addict',
+    STR: 'STR_fervor',
+    AGI: 'AGI_fervor',
+    CON: 'CON_fervor',
+    WIL: 'WIL_fervor',
   };
-  const ATTR_OF = {
-    STR_addict: 'STR',
-    AGI_addict: 'AGI',
-    CON_addict: 'CON',
-    WIL_addict: 'WIL',
-  };
-  const NAME_OF = {
+
+  const ATTR_NAME = {
     STR: '力量',
+    AGI: '步法',
+    CON: '鐵耐',
+    WIL: '禪定',
+  };
+
+  const TRAIN_VERB = {
+    STR: '揮砍 / 舉石',
     AGI: '步法',
     CON: '耐力',
     WIL: '冥想',
   };
 
-  const BUILDUP_DAYS = 5;    // 連續多少天養成
-  const WARN_START = 3;      // 第 N 天開始警告
-  const RELIEF_DAYS = 10;    // 減輕所需天數
-  const REMOVE_DAYS = 20;    // 完全解除所需天數
+  // 自然觸發：WINDOW 天內累積 TRIGGER 次
+  const NATURAL_WINDOW  = 5;
+  const NATURAL_TRIGGER = 8;
+  // 結束：累積 TARGET 次對應訓練
+  const DEFAULT_TARGET  = 5;
+  // 自然觸發後冷卻天數
+  const NATURAL_COOLDOWN_DAYS = 14;
+  // 瓶頸門檻
+  const BREAKTHROUGH_LEVELS = [20, 30, 40, 50, 60, 70, 80, 90, 100];
 
   // ══════════════════════════════════════════════════
-  // 初始化 / 取得
+  // 初始化 + 舊存檔遷移
   // ══════════════════════════════════════════════════
 
   function ensureInit(p) {
     const player = p || Stats.player;
-    if (!player.compulsion || typeof player.compulsion !== 'object') {
-      player.compulsion = {
-        buildUp:  { STR: 0, AGI: 0, CON: 0, WIL: 0 },
-        didToday: { STR: false, AGI: false, CON: false, WIL: false },
-        absent:   { STR_addict: 0, AGI_addict: 0, CON_addict: 0, WIL_addict: 0 },
-        anxiety:  { STR_addict: 0, AGI_addict: 0, CON_addict: 0, WIL_addict: 0 },
-      };
+    if (!player) return null;
+
+    // 🆕 舊存檔遷移：player.compulsion → player.fervor（一次性）
+    if (player.compulsion && !player.fervor) {
+      _migrateFromCompulsion(player);
     }
-    // 缺欄位補齊
-    const c = player.compulsion;
-    if (!c.buildUp)  c.buildUp  = { STR:0, AGI:0, CON:0, WIL:0 };
-    if (!c.didToday) c.didToday = { STR:false, AGI:false, CON:false, WIL:false };
-    if (!c.absent)   c.absent   = { STR_addict:0, AGI_addict:0, CON_addict:0, WIL_addict:0 };
-    if (!c.anxiety)  c.anxiety  = { STR_addict:0, AGI_addict:0, CON_addict:0, WIL_addict:0 };
+
+    if (!player.fervor || typeof player.fervor !== 'object') {
+      player.fervor = _blankState();
+    }
+    const f = player.fervor;
+    // 補齊欄位（save schema 遷移安全）
+    if (!f.trainingLog) f.trainingLog = { STR:[], AGI:[], CON:[], WIL:[] };
+    if (!f.passedBreakthroughs) {
+      f.passedBreakthroughs = { STR:[], AGI:[], CON:[], WIL:[] };
+    }
     ATTRS.forEach(a => {
-      if (c.buildUp[a]  === undefined) c.buildUp[a]  = 0;
-      if (c.didToday[a] === undefined) c.didToday[a] = false;
-      if (c.absent[TRAIT_OF[a]]  === undefined) c.absent[TRAIT_OF[a]]  = 0;
-      if (c.anxiety[TRAIT_OF[a]] === undefined) c.anxiety[TRAIT_OF[a]] = 0;
+      if (!Array.isArray(f.trainingLog[a])) f.trainingLog[a] = [];
+      if (!Array.isArray(f.passedBreakthroughs[a])) f.passedBreakthroughs[a] = [];
     });
-    return c;
+    if (f.active === undefined) f.active = null;
+    if (f.source === undefined) f.source = null;
+    if (f.progress === undefined) f.progress = 0;
+    if (f.target === undefined) f.target = DEFAULT_TARGET;
+    if (f.targetLevel === undefined) f.targetLevel = null;
+    if (f.startDay === undefined) f.startDay = null;
+    if (f.naturalCooldownUntil === undefined) f.naturalCooldownUntil = null;
+    return f;
   }
 
-  function hasTrait(traitId) {
-    const p = Stats.player;
-    return Array.isArray(p.traits) && p.traits.includes(traitId);
+  function _blankState() {
+    return {
+      active: null,
+      source: null,
+      progress: 0,
+      target: DEFAULT_TARGET,
+      targetLevel: null,
+      startDay: null,
+      naturalCooldownUntil: null,
+      trainingLog: { STR:[], AGI:[], CON:[], WIL:[] },
+      passedBreakthroughs: { STR:[], AGI:[], CON:[], WIL:[] },
+    };
+  }
+
+  function _migrateFromCompulsion(player) {
+    // 丟掉舊資料（舊 _addict 特性一併清掉）
+    player.fervor = _blankState();
+    if (Array.isArray(player.traits)) {
+      const removed = [];
+      player.traits = player.traits.filter(t => {
+        const isAddict = /_addict$/.test(t);
+        if (isAddict) removed.push(t);
+        return !isAddict;
+      });
+      if (removed.length > 0) {
+        console.log('[Fervor] migrated: stripped legacy _addict traits:', removed);
+      }
+    }
+    delete player.compulsion;
   }
 
   // ══════════════════════════════════════════════════
-  // 訓練觸發（doAction 訓練成功時呼叫）
+  // 狀態查詢
+  // ══════════════════════════════════════════════════
+
+  function isActive() {
+    const f = ensureInit();
+    return !!(f && f.active);
+  }
+
+  function activeAttr() {
+    const f = ensureInit();
+    return f ? f.active : null;
+  }
+
+  function getState() {
+    return ensureInit();
+  }
+
+  // EXP 加成（effect_dispatcher 呼叫）
+  function getExpMultiplier(attr) {
+    const f = ensureInit();
+    if (!f || !f.active) return 1.0;
+    return (attr === f.active) ? 1.25 : 1.0;
+  }
+
+  // 心情變動（訓練動作呼叫，正值/負值依是否對應屬性）
+  function getMoodDelta(attr) {
+    const f = ensureInit();
+    if (!f || !f.active) return 0;
+    return (attr === f.active) ? +5 : -5;
+  }
+
+  // 額外體力消耗（練對屬性時）
+  function getExtraStaminaCost(attr) {
+    const f = ensureInit();
+    if (!f || !f.active) return 0;
+    return (attr === f.active) ? 5 : 0;
+  }
+
+  // 擺爛機率（練錯屬性時）
+  function getSlackChance(attr) {
+    const f = ensureInit();
+    if (!f || !f.active) return 0;
+    return (attr !== f.active) ? 0.15 : 0;
+  }
+
+  // 擺爛吐槽 log
+  const SLACK_LINES_BY_ATTR = {
+    STR: [
+      '（你抬手的時候手心癢——想再握一次那塊石頭。）',
+      '（你發現自己又在無意識握拳。）',
+    ],
+    AGI: [
+      '（你跑到一半停下來——腳底發癢，像在催你走另一條路。）',
+      '（你意識到自己在原地踏步。）',
+    ],
+    CON: [
+      '（肩膀少了那份重量。你摸了下，下意識的。）',
+      '（你發現自己在找東西扛。）',
+    ],
+    WIL: [
+      '（腦袋嗡嗡的。你想找個角落坐下來。）',
+      '（你意識到自己在練習的時候分神了——腦子想的是別的事。）',
+    ],
+  };
+
+  function getSlackLine() {
+    const f = ensureInit();
+    if (!f || !f.active) return null;
+    const pool = SLACK_LINES_BY_ATTR[f.active] || [];
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  // ══════════════════════════════════════════════════
+  // 訓練鉤子（doAction 成功後呼叫）
   // ══════════════════════════════════════════════════
 
   /**
    * 玩家做了 attr 訓練。
-   *   - 若已有對應強迫症 → mood +3（滿足）
-   *   - 養成階段：累加 buildUp，達 5 天獲得強迫症
-   *   - 標記 didToday = true
+   *   - 若狂熱對應該屬性 → progress +1；達 target 結束
+   *   - 若沒狂熱 → 記錄滑動窗口，檢查自然觸發
    */
   function onTraining(attr) {
     if (!ATTRS.includes(attr)) return;
-    const c = ensureInit();
-    c.didToday[attr] = true;
+    const f = ensureInit();
+    const p = Stats.player;
 
-    // 已擁有 → 滿足
-    const traitId = TRAIT_OF[attr];
-    if (hasTrait(traitId)) {
-      Stats.modVital('mood', +3);
-      // 擁有後「連續不做」計數歸零
-      c.absent[traitId] = 0;
-      c.anxiety[traitId] = 0;
-      _log(`（${NAME_OF[attr]}訓練讓你覺得踏實。mood +3）`, '#887766', false);
+    // 記滑動窗口
+    f.trainingLog[attr].push(p.day);
+    // 保留 NATURAL_WINDOW 天內的紀錄（含今天）
+    f.trainingLog[attr] = f.trainingLog[attr].filter(d => d >= p.day - NATURAL_WINDOW + 1);
+
+    // 有狂熱中
+    if (f.active) {
+      if (attr === f.active) {
+        // 練對 → 進度 +1
+        f.progress++;
+        _log(`⚡ 【${ATTR_NAME[f.active]}狂熱】 ${f.progress} / ${f.target}`, '#d4af37', false);
+        if (f.progress >= f.target) {
+          _complete();
+        }
+      }
+      // 練別屬性：effect_dispatcher 已經扣 mood/擺爛，這裡不重複
       return;
     }
 
-    // 養成階段
-    c.buildUp[attr]++;
-
-    // 警告期對白
-    if (c.buildUp[attr] === WARN_START) {
-      _log(`（你開始覺得沒練${NAME_OF[attr]}會不自在⋯⋯）`, '#aa7733', false);
-    } else if (c.buildUp[attr] === BUILDUP_DAYS - 1) {
-      _log(`（你的身體在催促你回到${NAME_OF[attr]}訓練場。）`, '#cc7733', true);
-    }
-
-    // 達 5 天 → 獲得強迫症
-    if (c.buildUp[attr] >= BUILDUP_DAYS && !hasTrait(traitId)) {
-      _grantAddict(attr);
+    // 無狂熱 → 檢查自然觸發（冷卻中不觸發）
+    if (_isInNaturalCooldown()) return;
+    if (f.trainingLog[attr].length >= NATURAL_TRIGGER) {
+      _trigger(attr, 'natural');
     }
   }
 
-  // 🆕 2026-04-23：戲劇化獲得流程（震動 + 內心獨白 + 特性 popup）
-  //   原流程只有兩行 log，玩家無感。
-  //   新流程：畫面震動 → DialogueModal 連續 4 行內心獨白 → 特性 popup
-  const _MONOLOGUE = {
-    STR: [
-      { text: '（手上彷彿還記得昨天推得那塊石頭的重量。）' },
-      { text: '（連續幾天舉石——今天沒碰，手就是癢。）' },
-      { text: '（你發現自己無意識地握緊拳頭，又放開。）' },
-      { text: '（不然趁睡前再去推兩下好了⋯⋯）' },
-    ],
-    AGI: [
-      { text: '（連續跑了幾天。今天沒跑。）' },
-      { text: '（你的腿在酸，不是累——是癢。）' },
-      { text: '（你發現自己在原地踏步，停不下來。）' },
-      { text: '（不然趁睡前再去跑一趟好了⋯⋯）' },
-    ],
-    CON: [
-      { text: '（肩膀習慣了那份重量——今天沒扛。）' },
-      { text: '（身體像少了什麼支撐。）' },
-      { text: '（摸了下肩膀，下意識的。）' },
-      { text: '（不然趁睡前去扛一下⋯⋯一下就好。）' },
-    ],
-    WIL: [
-      { text: '（連續幾天打坐。今天沒坐。）' },
-      { text: '（腦袋嗡嗡的，呼吸找不到節奏。）' },
-      { text: '（我需要冷靜一下了。）' },
-      { text: '（不然趁睡前坐一會兒⋯⋯好好整理一下。）' },
-    ],
-  };
+  function _isInNaturalCooldown() {
+    const f = ensureInit();
+    if (!f.naturalCooldownUntil) return false;
+    return (Stats.player.day < f.naturalCooldownUntil);
+  }
 
-  function _grantAddict(attr) {
+  // ══════════════════════════════════════════════════
+  // 觸發 / 結束
+  // ══════════════════════════════════════════════════
+
+  function _trigger(attr, source, targetLevel) {
+    const f = ensureInit();
     const p = Stats.player;
+    if (!ATTRS.includes(attr)) return;
+    if (f.active) return;  // 已有狂熱不重觸
+
+    f.active = attr;
+    f.source = source;
+    f.progress = 0;
+    f.target = DEFAULT_TARGET;
+    f.targetLevel = (source === 'breakthrough') ? targetLevel : null;
+    f.startDay = p.day;
+
+    // 加正面特性（暫時）
     const traitId = TRAIT_OF[attr];
     if (!Array.isArray(p.traits)) p.traits = [];
-    if (p.traits.includes(traitId)) return;
+    if (!p.traits.includes(traitId)) p.traits.push(traitId);
 
-    // 加特性
-    p.traits.push(traitId);
-    const def = (typeof Config !== 'undefined') ? Config.TRAIT_DEFS[traitId] : null;
-    const traitName = def ? def.name : traitId;
-    const attrName = NAME_OF[attr];
+    _playTriggerScene(attr, source, targetLevel);
+  }
 
-    const finishPopup = () => {
-      // 🆕 2026-04-23：負面特性音效（「登登」錯誤感）+ popup
-      if (typeof SoundManager !== 'undefined') SoundManager.playSynth('debuff');
-      if (typeof DialogueModal !== 'undefined') {
-        DialogueModal.play([
-          { text: '▼ 獲得負面特性' },
-          { text: `【${traitName}】` },
-          { text: `你的${attrName}訓練已成為一種戒不掉的習慣。` },
-        ]);
-      }
-      _log(`▼ 你獲得了新的特性：【${traitName}】`, '#e68080', true);
-      _log(`你的${attrName}訓練已成為一種戒不掉的習慣。`, '#c878a0', false);
-    };
-
-    // 視覺特效：震動（暗示這是身體層級的事）
+  function _playTriggerScene(attr, source, targetLevel) {
+    const name = ATTR_NAME[attr];
     const Game_ = (typeof Game !== 'undefined') ? Game : null;
-    if (Game_ && typeof Game_.shakeGameRoot === 'function') Game_.shakeGameRoot();
 
-    // 獨白：4 行內心戲
-    const lines = _MONOLOGUE[attr] || [];
-    if (lines.length > 0 && typeof DialogueModal !== 'undefined') {
-      DialogueModal.play(lines, { onComplete: finishPopup });
+    if (source === 'breakthrough') {
+      // 瓶頸觸發：重量級演出
+      if (Game_ && Game_.shakeGameRoot) Game_.shakeGameRoot();
+      if (typeof SoundManager !== 'undefined') SoundManager.playSynth('acquire');
+
+      const lines = [
+        { text: '你坐下，準備花 EXP 升級。' },
+        { text: '（但身體在抗拒。）' },
+        { text: '（你發現——不夠。）' },
+        { text: `（你缺的不是${name}，是某種「讓它屬於你」的過程。）` },
+        { text: `⚡ 【${name}狂熱】啟動——突破就差這幾次。` },
+      ];
+      if (typeof DialogueModal !== 'undefined') {
+        DialogueModal.play(lines, {
+          onComplete: () => {
+            _log(`⚡ 你進入【${name}狂熱】狀態（突破 ${targetLevel} 的必經儀式）。`, '#d4af37', true);
+            _log(`　練${name}：EXP +25% / mood +5 · 練別的：mood -5 + 擺爛機率`, '#887766', false);
+            if (Game_ && Game_.renderAll) Game_.renderAll();
+          },
+        });
+      }
     } else {
-      finishPopup();
+      // 自然觸發：輕演出
+      if (Game_ && Game_.shakeGameRoot) Game_.shakeGameRoot();
+      if (typeof SoundManager !== 'undefined') SoundManager.playSynth('level_up');
+
+      const lines = [
+        { text: '（你感覺到身體正在說什麼。）' },
+        { text: '（這幾天的訓練堆疊起來——你抓到什麼了。）' },
+        { text: `⚡ 【${name}狂熱】進入狀態。` },
+      ];
+      if (typeof DialogueModal !== 'undefined') {
+        DialogueModal.play(lines, {
+          onComplete: () => {
+            _log(`⚡ 你進入【${name}狂熱】狀態。`, '#d4af37', true);
+            _log(`　練${name}：EXP +25% / mood +5 · 練別的：mood -5 + 擺爛機率`, '#887766', false);
+            if (Game_ && Game_.renderAll) Game_.renderAll();
+          },
+        });
+      }
     }
   }
 
-  // ══════════════════════════════════════════════════
-  // 日結（sleepEndDay 呼叫）
-  // ══════════════════════════════════════════════════
-
-  /**
-   * 日結時呼叫：
-   *   - 養成階段：若當日沒做 → buildUp 歸零（連續中斷）
-   *   - 擁有強迫症：若當日沒做 → 夜間補做彈窗已在 slot 7 處理；這裡計算 absent（解除用）
-   *   - 重置 didToday（準備下一天）
-   */
-  function onDayEnd() {
-    const c = ensureInit();
-
-    ATTRS.forEach(attr => {
-      const traitId = TRAIT_OF[attr];
-      const didToday = c.didToday[attr];
-
-      if (hasTrait(traitId)) {
-        // 已擁有強迫症
-        if (didToday) {
-          // 今天做了 → 歸零 absent/anxiety（onTraining 已處理但保險）
-          c.absent[traitId] = 0;
-          c.anxiety[traitId] = 0;
-        } else {
-          // 今天沒做 → absent +1
-          c.absent[traitId]++;
-
-          // 減輕閾值
-          if (c.absent[traitId] === RELIEF_DAYS) {
-            _log(`（你感覺${NAME_OF[attr]}的焦慮慢慢淡了。）`, '#88aacc', false);
-          }
-
-          // 完全解除
-          if (c.absent[traitId] >= REMOVE_DAYS) {
-            _removeAddict(attr);
-          }
-        }
-      } else {
-        // 沒強迫症 — 沒做就 buildUp 歸零（連續中斷）
-        if (!didToday) {
-          c.buildUp[attr] = 0;
-        }
-      }
-
-      // 重置下一天
-      c.didToday[attr] = false;
-    });
-  }
-
-  function _removeAddict(attr) {
+  function _complete() {
+    const f = ensureInit();
     const p = Stats.player;
+    const attr = f.active;
+    const source = f.source;
+    const targetLevel = f.targetLevel;
+    const name = ATTR_NAME[attr];
+
+    // 移除特性
     const traitId = TRAIT_OF[attr];
-    if (!Array.isArray(p.traits)) return;
-    const idx = p.traits.indexOf(traitId);
-    if (idx >= 0) {
-      p.traits.splice(idx, 1);
-      const def = (typeof Config !== 'undefined') ? Config.TRAIT_DEFS[traitId] : null;
-      if (def) {
-        _log(`✦ 你克服了【${def.name}】。`, '#88cc77', true);
-      }
-      // 清空狀態
-      const c = ensureInit();
-      c.absent[traitId] = 0;
-      c.anxiety[traitId] = 0;
-      c.buildUp[attr] = 0;
-      Flags.set('overcame_' + traitId, true);
-    }
-  }
-
-  // ══════════════════════════════════════════════════
-  // 夜間補做彈窗（slot 7 = 20-22h）
-  // ══════════════════════════════════════════════════
-
-  /**
-   * 是否有待補做的強迫症（呼叫 playNightChoice 之前檢查）。
-   */
-  function hasPendingTonight() {
-    const c = ensureInit();
-    for (const attr of ATTRS) {
-      const traitId = TRAIT_OF[attr];
-      if (hasTrait(traitId) && !c.didToday[attr]) return true;
-    }
-    return false;
-  }
-
-  /**
-   * 取得今晚需要補做的第一個強迫症（多個的話只處理一個，其他累進焦慮）。
-   */
-  function getPendingAttr() {
-    const c = ensureInit();
-    for (const attr of ATTRS) {
-      const traitId = TRAIT_OF[attr];
-      if (hasTrait(traitId) && !c.didToday[attr]) return attr;
-    }
-    return null;
-  }
-
-  /**
-   * 彈出夜間選擇 ChoiceModal。
-   *   onComplete 會在玩家做完選擇後呼叫，讓 slot 7 外層繼續處理。
-   */
-  function playNightChoice(onComplete) {
-    const attr = getPendingAttr();
-    if (!attr) { if (onComplete) onComplete(); return; }
-    const traitId = TRAIT_OF[attr];
-    const name = NAME_OF[attr];
-    const c = ensureInit();
-
-    if (typeof ChoiceModal === 'undefined') {
-      // Fallback：自動選「不練」
-      _applyRefuse(attr);
-      if (onComplete) onComplete();
-      return;
+    if (Array.isArray(p.traits)) {
+      const idx = p.traits.indexOf(traitId);
+      if (idx >= 0) p.traits.splice(idx, 1);
     }
 
-    // 🆕 2026-04-19：對白改為玩家角色的內心獨白，移除後台數字
-    //   依 attr 微調用詞，讓每類訓練的「癮」有自己的語氣
-    const verbMap = {
-      STR: { do: '手癢了⋯⋯一個人我也要去練一下。',      refuse: '手癢不練，今晚可能難睡覺了。' },
-      AGI: { do: '腳停不下來。我去繞兩圈。',              refuse: '腳底發癢，壓也壓不住。' },
-      CON: { do: '肺裡滿滿的 — 得跑一跑才順。',           refuse: '身體裡有一股氣出不去。' },
-      WIL: { do: '腦子停不下來。去靜坐一下。',            refuse: '思緒像蚊子一樣叮著我。' },
-    };
-    const verbs = verbMap[attr] || verbMap.STR;
-
-    ChoiceModal.show({
-      id: 'compulsion_' + traitId,
-      icon: '💢',
-      title: `你的身體記得該做${name}訓練了`,
-      body: '你停在牢房裡。手指不自覺地動。',
-      forced: true,
-      choices: [
-        {
-          id: 'do_it',
-          label: '去練',
-          hint: `（${verbs.do}）`,
-          effects: [],
-        },
-        {
-          id: 'refuse',
-          label: '不練',
-          hint: `（${verbs.refuse}）`,
-          effects: [],
-        },
-      ],
-    }, {
-      onChoose: (cid) => {
-        if (cid === 'do_it') _applyDoIt(attr);
-        else                 _applyRefuse(attr);
-        if (onComplete) onComplete();
-      },
-    });
-  }
-
-  /**
-   * 被主線任務 / 約會占用 slot 7 → 算「被迫拒絕」（一次累進）。
-   * 由 slot 7 外層 preempt 時呼叫。
-   */
-  function onNightPreempted() {
-    const attr = getPendingAttr();
-    if (!attr) return;
-    _applyRefuse(attr, { preempted: true });
-  }
-
-  function _applyDoIt(attr) {
-    const p = Stats.player;
-    const name = NAME_OF[attr];
-    const traitId = TRAIT_OF[attr];
-
-    // 訓練獎勵：簡版 — 加對應屬性 EXP + mood +5
-    // 沒 NPC 加成（跟正常 doAction 的 synergy 不同）
-    // 使用一個固定值，跟基礎揮砍相當
-    const baseExp = 5;  // 約等於 delta 0.5 × 10 coeff
-    Stats.modExp(attr, baseExp);
-    Stats.modVital('mood', +5);
-    Stats.modVital('stamina', -15);  // 補做耗體力
-
-    // 記 didToday = true（避免日結再扣 absent）
-    const c = ensureInit();
-    c.didToday[attr] = true;
-    c.absent[traitId] = 0;
-    c.anxiety[traitId] = 0;
-
-    _log(`💪 你回到訓練場補做${name}訓練。身體終於平靜下來。`, '#88aacc', true);
-    _log(`（${attr} EXP +${baseExp} · mood +5 · stamina -15）`, '#887766', false);
-
-    // 補做時也要檢查傷勢（Wounds 系統）
-    if (typeof Wounds !== 'undefined' && Wounds.rollLowStaminaInjury) {
-      Wounds.rollLowStaminaInjury(attr);
-    }
-  }
-
-  function _applyRefuse(attr, opts = {}) {
-    const c = ensureInit();
-    const traitId = TRAIT_OF[attr];
-    const name = NAME_OF[attr];
-
-    c.anxiety[traitId]++;
-    const streak = c.anxiety[traitId];
-    const moodLoss = Math.min(15, 5 * streak);
-    Stats.modVital('mood', -moodLoss);
-
-    // 對白分層
-    let line;
-    if (streak === 1) {
-      line = `（你躺在床上，腦中一直閃過${name}訓練場的畫面。mood -${moodLoss}）`;
-    } else if (streak === 2) {
-      line = `（你開始流汗。手不自覺地握拳又鬆開。mood -${moodLoss}）`;
-    } else {
-      line = `（焦慮像潮水拍打。你整夜無眠。mood -${moodLoss} / hp -10）`;
-    }
-    if (opts.preempted) {
-      line = '（你今晚另有要事。身體的焦躁只能硬壓下去。mood -' + moodLoss + '）';
-    }
-    _log(line, '#c03838', true);
-
-    // 連續 3 次 → 失眠症 + hp -10
-    if (streak >= 3) {
-      Stats.modVital('hp', -10);
-      const p = Stats.player;
-      if (!Array.isArray(p.ailments)) p.ailments = [];
-      if (!p.ailments.includes('insomnia_disorder')) {
-        p.ailments.push('insomnia_disorder');
-        _log(`▼ 焦慮發作 — 你獲得【失眠症】。`, '#e68080', true);
+    // 瓶頸通過：設 flag + 紀錄
+    if (source === 'breakthrough' && targetLevel) {
+      Flags.set(`fervor_passed_${attr}_${targetLevel}`);
+      if (!f.passedBreakthroughs[attr].includes(targetLevel)) {
+        f.passedBreakthroughs[attr].push(targetLevel);
       }
     }
+    // 自然：進入冷卻
+    if (source === 'natural') {
+      f.naturalCooldownUntil = p.day + NATURAL_COOLDOWN_DAYS;
+    }
+
+    // 清 active
+    f.active = null;
+    f.source = null;
+    f.progress = 0;
+    f.target = DEFAULT_TARGET;
+    f.targetLevel = null;
+    f.startDay = null;
+
+    // 演出
+    if (typeof SoundManager !== 'undefined') SoundManager.playSynth('acquire');
+    const msg = (source === 'breakthrough')
+      ? `⚡ 【${name}狂熱】結束——你可以繼續突破到 ${targetLevel} 了。`
+      : `⚡ 【${name}狂熱】結束。那種癮頭散了，你感覺到——你真的變強了。`;
+    _log(msg, '#d4af37', true);
+    if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
   }
 
   // ══════════════════════════════════════════════════
-  // UI
+  // 瓶頸檢查（stats.js spendExpOnAttr 呼叫）
   // ══════════════════════════════════════════════════
 
   /**
-   * 顯示當前養成階段進度（debug / 未來 tooltip 用）
+   * 玩家試圖升到 targetLevel（= 當前屬性 +1）。
+   * 若踩到 BREAKTHROUGH_LEVELS 且還沒通過該瓶頸狂熱 → 阻擋升級，觸發狂熱。
+   * @returns {boolean} true = 阻擋升級（已觸發狂熱），false = 放行升級
    */
-  function getDebugStatus() {
-    const c = ensureInit();
+  function checkBreakthroughNeeded(attr, targetLevel) {
+    if (!ATTRS.includes(attr)) return false;
+    if (!BREAKTHROUGH_LEVELS.includes(targetLevel)) return false;
+    const f = ensureInit();
+    if (f.passedBreakthroughs[attr].includes(targetLevel)) return false;
+    if (f.active === attr && f.source === 'breakthrough' && f.targetLevel === targetLevel) {
+      // 狂熱已在進行中：還沒 complete 就繼續擋
+      return true;
+    }
+    // 首次踩到 → 觸發狂熱
+    _trigger(attr, 'breakthrough', targetLevel);
+    return true;
+  }
+
+  // ══════════════════════════════════════════════════
+  // UI：取得狂熱進度（主畫面框框）
+  // ══════════════════════════════════════════════════
+
+  function getStatusForUI() {
+    const f = ensureInit();
+    if (!f || !f.active) return null;
     return {
-      buildUp:  { ...c.buildUp },
-      active:   ATTRS.filter(a => hasTrait(TRAIT_OF[a])),
-      absent:   { ...c.absent },
-      anxiety:  { ...c.anxiety },
+      attr: f.active,
+      name: ATTR_NAME[f.active],
+      progress: f.progress,
+      target: f.target,
+      source: f.source,
+      targetLevel: f.targetLevel,
     };
   }
 
-  return {
+  // ══════════════════════════════════════════════════
+  // Day cycle（日結）
+  // ══════════════════════════════════════════════════
+
+  function onDayEnd() {
+    const f = ensureInit();
+    const p = Stats.player;
+    // 滑動窗口自動修剪（trainingLog 留 NATURAL_WINDOW 天）
+    ATTRS.forEach(attr => {
+      f.trainingLog[attr] = f.trainingLog[attr].filter(d => d >= p.day - NATURAL_WINDOW + 1);
+    });
+    // 冷卻自然過期（不主動清，靠 _isInNaturalCooldown 判斷）
+  }
+
+  // ══════════════════════════════════════════════════
+  // 向後相容：舊 Compulsion API（main.js slot 7 + 舊呼叫點）
+  // ══════════════════════════════════════════════════
+
+  // 舊 API 保留為 no-op / 最小存根 — 避免舊呼叫點崩潰
+  function hasPendingTonight() { return false; }
+  function getPendingAttr()    { return null; }
+  function playNightChoice(onComplete) { if (onComplete) onComplete(); }
+  function onNightPreempted()  { /* no-op */ }
+  function getDebugStatus() {
+    const f = ensureInit();
+    return { active: f?.active, progress: f?.progress, target: f?.target };
+  }
+
+  // 對外公開
+  const API = {
     ATTRS,
     TRAIT_OF,
-    NAME_OF,
+    ATTR_NAME,
+    BREAKTHROUGH_LEVELS,
     ensureInit,
     onTraining,
     onDayEnd,
+    // 狀態查詢
+    isActive,
+    activeAttr,
+    getState,
+    getStatusForUI,
+    // 加成計算
+    getExpMultiplier,
+    getMoodDelta,
+    getExtraStaminaCost,
+    getSlackChance,
+    getSlackLine,
+    // 瓶頸
+    checkBreakthroughNeeded,
+    // 舊相容
     hasPendingTonight,
     getPendingAttr,
     playNightChoice,
     onNightPreempted,
     getDebugStatus,
   };
+
+  return API;
 })();
+
+// 向後相容別名：main.js 舊呼叫點暫時用 Compulsion，逐步改 Fervor
+const Compulsion = Fervor;

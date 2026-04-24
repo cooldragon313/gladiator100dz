@@ -28,6 +28,17 @@
 - 刪掉 `hector_fake_friendly_day1`（audit 已確認後續無引用）
 - 註解「假善意」→「自來熟試探」符合 Phase 1 設計
 
+**4. 🆕 狂熱系統落實（Fervor，取代舊強迫症）**
+- 重寫 [src/systems/compulsion.js](src/systems/compulsion.js)（IIFE 名改 `Fervor`，檔名保留避免動載入順序；`Compulsion` 保留為 alias）
+- 四個正面暫時特性：`STR_fervor` / `AGI_fervor` / `CON_fervor` / `WIL_fervor`
+- 自然觸發：5 天內同屬性訓練 8 次 → 進狂熱 + 14 天冷卻
+- 瓶頸觸發：屬性要升到 20/30/40/.../100 必須通過一次狂熱（阻擋升級直到 5 次）
+  - hook 在 `Stats.spendExpOnAttr` 開頭
+- 狂熱期間練對屬性：EXP +25% / mood +5 / 額外 stamina -5
+- 狂熱期間練錯屬性：mood -5 / 15% 擺爛（EXP ×0.5，含吐槽 log）
+- 主畫面左上角金色徽章顯示「⚡ 力量狂熱 · 進度 3/5」
+- 舊存檔自動遷移：`player.compulsion` → `player.fervor`，`*_addict` 特性自動清掉
+
 ---
 
 ## ▶️ 換電腦後的**第一要務**：實機測 Day 1 整條
@@ -47,6 +58,8 @@
 8. **🆕 索爾視覺印象** — 瘸腿 + 胸前木牌 + 奧蘭 narrator（除非剛拒絕奧蘭）
 9. **Day 2+ 訓練** — 測赫克特笑臉示好池 / 臭臉騷擾池
 10. **老默治療** — F12 console 看 `[DoctorEvents] _performWoundHeal`
+11. **🆕 狂熱系統** — 連續訓練同屬性 5 天 → 左上角金色徽章出現；練別的看有沒有吐槽 log + EXP 偶爾縮半
+12. **🆕 屬性瓶頸** — 試把某屬性升到 20（18 → 19 免費、19 → 20 會跳瓶頸儀式彈窗強制狂熱）
 
 **重點觀察**：
 - 節奏會不會太拖（今天加了不少對白 — 牢房/獄卒兩段都變長了）
