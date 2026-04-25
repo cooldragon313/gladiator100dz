@@ -327,7 +327,18 @@ const NPCConflicts = (() => {
             { type: 'vital',     key: 'hp',       delta: -10 },   // 你挨了一掌
             { type: 'moral', axis: 'loyalty', side: 'positive', weight: 1 },
           ],
-          resultLog: '塔倫長官冷笑，一巴掌打在你臉上。「下次自己拿自己吃完。」他轉身走了。梅拉塞站在門口很久——她沒有哭，但她看著你。',
+          // 🆕 2026-04-24：CLAUDE.md 第 11 條反饋鐵律 — 扣 HP 一定要有震動 + 紅光 + 痛叫
+          resultEffect: 'shake-and-flash',
+          resultDialogue: [
+            { speaker: '塔倫長官', text: '——蠢貨。' },
+            { text: '（啪！）', effect: 'shake-big' },
+            { speaker: '主角', text: '啊——!', effect: 'shake' },
+            { text: '（你的臉被打到一邊去。嘴裡有鐵的味道。）' },
+            { speaker: '塔倫長官', text: '下次自己拿自己吃完。' },
+            { text: '（他轉身走了。）' },
+            { text: '（梅拉塞站在門口很久——她沒有哭，但她看著你。）' },
+          ],
+          resultLog: '你替梅拉扛了那一巴掌。她欠你的，她記著。',
           logColor:  '#d9a84f',
         },
         {
@@ -338,7 +349,14 @@ const NPCConflicts = (() => {
             { type: 'affection', key: 'officer',  delta: 2 },
             { type: 'affection', key: 'melaKook', delta: -15 },
           ],
-          resultLog: '長官笑了。「蠢蛋。」他把那個饅頭拿走。梅拉塞當晚沒來食堂——她的肩膀有新的傷。',
+          // 🆕 NPC 反應 — 長官冷笑 + 梅拉沉默
+          resultDialogue: [
+            { speaker: '塔倫長官', text: '蠢蛋。' },
+            { text: '（他把那個饅頭拿走。）' },
+            { text: '（梅拉塞看著盤子，沒抬頭。）' },
+            { text: '（晚餐她沒來食堂。據說她的肩膀有新的傷。）' },
+          ],
+          resultLog: '你裝沒事走過去。但你聽見梅拉的位置空了一晚。',
           logColor:  '#8899aa',
         },
         {
@@ -351,7 +369,16 @@ const NPCConflicts = (() => {
             { type: 'affection', key: 'cassius',  delta: -10 },
             { type: 'moral', axis: 'loyalty', side: 'negative', weight: 2 },
           ],
-          resultLog: '梅拉塞看著你——那眼神你一輩子忘不掉。長官很滿意，但從那天起你的湯裡再也沒有菜。',
+          // 🆕 紅光 — 道德崩塌的視覺暗示
+          resultEffect: 'red-flash',
+          resultDialogue: [
+            { text: '（你開口的瞬間——梅拉塞抬頭看你。）' },
+            { text: '（那眼神，你一輩子忘不掉。）' },
+            { speaker: '塔倫長官', text: '⋯⋯哦？很好。' },
+            { text: '（長官帶人進廚房。梅拉沒抵抗。）' },
+            { text: '（從那天起，你的湯裡再也沒有菜。）' },
+          ],
+          resultLog: '你出賣了她。長官很滿意。但你之後每一口湯都嚐得到那眼神。',
           logColor:  '#663344',
         },
       ],
@@ -394,7 +421,19 @@ const NPCConflicts = (() => {
             { type: 'vital',     key: 'hp',     delta: -8 },    // 互撞一下
             { type: 'moral', axis: 'loyalty', side: 'positive', weight: 1 },
           ],
-          resultLog: '隔天你堵住赫克特。你們沒真的動手，但他看著你很久，最後把毯子摔回奧蘭床上。「行，算你狠。」他沒忘記這一筆。',
+          // 🆕 2026-04-24：扣 HP 要有震動（鐵則 11）
+          resultEffect: 'shake',
+          resultDialogue: [
+            { text: '（隔天，訓練後。你堵住赫克特。）' },
+            { speaker: '主角', text: '把毯子還他。' },
+            { speaker: '赫克特', text: '⋯⋯哦？' },
+            { text: '（他靠過來。肩膀撞了你一下。）', effect: 'shake-big' },
+            { speaker: '主角', text: '唔！' },
+            { text: '（你沒退。你也撞回去。）' },
+            { speaker: '赫克特', text: '行，算你狠。' },
+            { text: '（他把毯子摔回奧蘭床上。但他沒忘記這一筆。）' },
+          ],
+          resultLog: '你替奧蘭討回了毯子——但赫克特記著這一帳。',
           logColor:  '#d9a84f',
         },
         {
@@ -418,7 +457,16 @@ const NPCConflicts = (() => {
             { type: 'vital',     key: 'hp',     delta: -5 },    // 夜裡受寒
             { type: 'moral', axis: 'mercy', side: 'positive', weight: 1 },
           ],
-          resultLog: '奧蘭愣住，接也不是，不接也不是。最後他把毯子分成兩半——「我們一人一半。」那晚你們兩個都沒睡好，但你們都笑了。',
+          // 🆕 對白演出（受寒不是劇烈傷，不需要 shake；用對話呈現）
+          resultDialogue: [
+            { text: '（你把毯子推過去。）' },
+            { speaker: '主角', text: '拿去。我年輕，撐得住。' },
+            { text: '（奧蘭愣住——接也不是，不接也不是。）' },
+            { text: '（最後他把毯子分成兩半。）' },
+            { speaker: '奧蘭', text: '⋯⋯一人一半。' },
+            { text: '（那晚你們兩個都沒睡好。但你們都笑了。）' },
+          ],
+          resultLog: '一人一半。你們都沒睡好，但你們都笑了。',
           logColor:  '#c8a878',
         },
       ],
@@ -463,7 +511,24 @@ const NPCConflicts = (() => {
             { type: 'vital',     key: 'hp',      delta: -25 },
             { type: 'moral', axis: 'mercy', side: 'positive', weight: 2 },
           ],
-          resultLog: '你跑過去、跪下、背對奧蘭。第六第七鞭打在你背上——然後長官停了。他沒說話，把鞭子丟到一邊，走了。',
+          // 🆕 2026-04-24：高潮場面 — 連續鞭擊重震動 + 紅光（HP -25 嚴重傷）
+          resultEffect: 'shake-and-flash',
+          resultDialogue: [
+            { text: '（你衝過去。跪下。背對奧蘭。）' },
+            { speaker: '主角', text: '長官——這份他吃不下！' },
+            { speaker: '塔倫長官', text: '⋯⋯有種。' },
+            { text: '（咻——！）', effect: 'shake-big' },
+            { speaker: '主角', text: '啊——！' },
+            { text: '（咻——！）', effect: 'shake-big' },
+            { speaker: '主角', text: '啊啊——！！' },
+            { text: '（你的背已經破了。但你沒動。）' },
+            { text: '（鞭子停了。）' },
+            { speaker: '塔倫長官', text: '⋯⋯' },
+            { text: '（他把鞭子摔到一邊，走了。）' },
+            { text: '（卡西烏斯走過來扶你。沒說話。）' },
+            { text: '（奧蘭哭了。第一次。）' },
+          ],
+          resultLog: '你替奧蘭擋了兩鞭。他這輩子記著。',
           logColor:  '#d9a84f',
         },
         {
@@ -475,7 +540,15 @@ const NPCConflicts = (() => {
             { type: 'affection', key: 'orlan',   delta: 12 },
             { type: 'moral', axis: 'mercy', side: 'positive', weight: 1 },
           ],
-          resultLog: '長官轉頭看你。他笑了笑。「你是誰？」——他停了鞭子，但那晚他在你的訓練報告上加了幾筆。',
+          resultEffect: 'shake',
+          resultDialogue: [
+            { speaker: '主角', text: '夠了！' },
+            { text: '（全場安靜。）', effect: 'shake' },
+            { text: '（長官轉頭看你。）' },
+            { speaker: '塔倫長官', text: '⋯⋯你是誰？' },
+            { text: '（他停了鞭子。但他在你的訓練報告上加了幾筆。）' },
+          ],
+          resultLog: '你吼住了長官——但他記下了你。',
           logColor:  '#c8a878',
         },
         {
@@ -487,7 +560,15 @@ const NPCConflicts = (() => {
             { type: 'affection', key: 'melaKook', delta: -5 },
             { type: 'moral', axis: 'loyalty', side: 'negative', weight: 1 },
           ],
-          resultLog: '長官打完八鞭才停。奧蘭被拖走。那晚他沒跟你說話——他大概記得你站在哪。',
+          resultDialogue: [
+            { text: '（你低頭。看著自己的腳。）' },
+            { text: '（鞭聲還在。第六、第七、第八。）' },
+            { text: '（然後停了。）' },
+            { text: '（奧蘭被拖走。他被抬過你身邊的時候——你沒有抬頭。）' },
+            { text: '（那晚他沒跟你說話。）' },
+            { text: '（他大概記得你站在哪。）' },
+          ],
+          resultLog: '你選擇了沉默。這份沉默會跟著你。',
           logColor:  '#8899aa',
         },
       ],
