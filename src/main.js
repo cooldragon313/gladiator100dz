@@ -1080,6 +1080,14 @@ const Game = (() => {
         const reward = 15 + Math.floor(Math.random() * 16);  // 15~30
         Stats.modMoney(reward);
         addLog(`侍從遞來一小袋銅幣。「大人說這是你的。」（+${reward}）`, '#c8a060', false);
+        // 🆕 2026-04-25：競技場勝利 → 主人 / 塔倫好感（賺錢功勞）
+        //   主人：你替他賺錢 + 揚名 → +5
+        //   塔倫：他派你出場成功了 → +3（自己升職的籌碼）
+        if (typeof teammates !== 'undefined') {
+          teammates.modAffection('masterArtus', 5);
+          teammates.modAffection('officer', 3);
+          addLog('（主人聽到消息了。塔倫長官也記下這一筆。）', '#c8a060', false);
+        }
         // 🆕 2026-04-25：戰鬥後機率標記武器需修（葛拉階段 3 觸發來源）
         if (typeof BlacksmithEvents !== 'undefined' && BlacksmithEvents.markWeaponNeedsRepair) {
           BlacksmithEvents.markWeaponNeedsRepair({ chance: 0.30 });
@@ -3037,20 +3045,20 @@ const Game = (() => {
       //   base:   觸發時加分
       //   bonus:  特定屬性訓練加碼
       const PASSIVE_AFF_RULES = {
-        // 母親型 + 廚房手腳快 — 看你練都欣慰、AGI 特別愛（最高機率）
-        melaKook:      { chance: 0.50, base: 1, bonus: { AGI: 1 } },
-        // 巴爺：嚴師、看你撐住 — 常駐看你練、機率中等
-        overseer:      { chance: 0.30, base: 1, bonus: {} },
-        // 塔倫：看數字、平日少出現 — 出現就有印象（機率高）
-        officer:       { chance: 0.50, base: 1, bonus: {} },
-        // 主人：金主、極少出現 — 見一次面就記住（機率最高）
-        masterArtus:   { chance: 0.70, base: 1, bonus: {} },
-        // 葛拉：鐵匠尊重肯下功夫的人 — 但他不愛多管閒事
-        blacksmithGra: { chance: 0.40, base: 1, bonus: {} },
+        // 母親型 + 廚房手腳快 — 看你練都欣慰、AGI 特別愛
+        melaKook:      { chance: 0.40, base: 1, bonus: { AGI: 1 } },
+        // 巴爺：嚴師、常駐看你練 — 不愛拍馬屁、加分謹慎
+        overseer:      { chance: 0.25, base: 1, bonus: {} },
+        // 🆕 塔倫：看數字、平日罕見 — 出現就要加多點（被動主要靠競技場）
+        officer:       { chance: 0.30, base: 2, bonus: {} },
+        // 🆕 主人：見一次面記得久 — 被動主要靠競技場勝利通知
+        masterArtus:   { chance: 0.50, base: 3, bonus: {} },
+        // 葛拉：鐵匠尊重肯下功夫的人
+        blacksmithGra: { chance: 0.30, base: 1, bonus: {} },
         // 侍從：報告記錄、極少加分
         masterServant: { chance: 0.20, base: 1, bonus: {} },
         // 老默：醫生視角偶爾欣賞
-        doctorMo:      { chance: 0.30, base: 1, bonus: {} },
+        doctorMo:      { chance: 0.25, base: 1, bonus: {} },
       };
       aud.forEach(npcId => {
         const rule = PASSIVE_AFF_RULES[npcId];
