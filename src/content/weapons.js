@@ -183,6 +183,50 @@ const Weapons = {
   },
 };
 
+// 🆕 2026-04-25b：階段 5 秘法產出 — 雙刃短劍（雙持、副手 ATK 不打折）
+//   來源：blacksmith_twinblade_offer 事件（玩家讀過 twin_blade_schematic 書）
+Object.assign(Weapons, {
+  twinblade: {
+    id: 'twinblade', name: '雙刃短劍',
+    baseId: 'shortSword', tier: 2.5,    // 介於 T2 和 T3 之間（特殊獨特）
+    type: 'blade1h', hands: 1, twoHanded: false,
+    route: 'fury', swingTime: 3, cap: 10, special: 'twin_blade',
+    hitParts: ['身體', '頸部'],
+    ATK: 9, ACC: 7, CRT: 8, CDMG: 12, SPD: 4, PEN: 6,
+    desc: '兩把破劍熔在一起的奇怪武器。揮起來像短劍——但副手能用上長劍的力道。葛拉花了三天打成的。',
+    price: 0,   // 不可賣
+    twinBladeOffhandMult: 0.7,   // 副手 ATK 維持 0.7（一般副手 0.5）
+  },
+
+  // 🆕 階段 8 傳家武器（tier 4，葛拉好感 80+ + 神眷/鐵人特性才解鎖）
+  shortSword_t4: {
+    id: 'shortSword_t4', name: '葛拉之劍',
+    baseId: 'shortSword', tier: 4,
+    type: 'blade1h', hands: 1, twoHanded: false,
+    route: 'fury', swingTime: 3, cap: 11, special: 'gra_signature',
+    hitParts: ['身體', '頭'],
+    ATK: 16, ACC: 9, CRT: 9, CDMG: 16, SPD: 6, PEN: 10,
+    desc: '葛拉這輩子打過最好的劍。劍背刻著兩個字——他的名字。「拿好。⋯⋯這把不該斷。」',
+    price: 0,
+  },
+  longSword_t4: {
+    id: 'longSword_t4', name: '葛拉雙手劍',
+    baseId: 'longSword', tier: 4,
+    type: 'blade2h', hands: 2, twoHanded: true,
+    route: 'fury', swingTime: 5, cap: 9, special: 'gra_signature',
+    hitParts: ['身體', '頭'],
+    ATK: 26, ACC: 7, CRT: 8, CDMG: 18, SPD: 0, PEN: 18,
+    desc: '葛拉的傳家。「這是我這輩子最後一把這樣的劍。⋯⋯帶它出去。別讓它斷在你之前。」',
+    price: 0,
+  },
+});
+
+const WEAPON_TIER_UPGRADE_T4 = {
+  shortSword_t3: 'shortSword_t4',
+  longSword_t3:  'longSword_t4',
+  // 其他系列 T4 待補（先做 user 最常用的兩把）
+};
+
 // 🆕 2026-04-25：T1 → T2 升級對照表（葛拉用）
 const WEAPON_TIER_UPGRADE = {
   dagger:     'dagger_t2',
@@ -193,3 +237,90 @@ const WEAPON_TIER_UPGRADE = {
   warHammer:  'warHammer_t2',
   heavyAxe:   'heavyAxe_t2',
 };
+
+// 🆕 2026-04-25b：T2 → T3 升級對照表（葛拉階段 6 用）
+//   T3 武器有「鋼」字、價格再 ×2、數值再 +1~2
+const WEAPON_TIER_UPGRADE_T3 = {
+  dagger_t2:     'dagger_t3',
+  hammer_t2:     'hammer_t3',
+  shortSword_t2: 'shortSword_t3',
+  spear_t2:      'spear_t3',
+  longSword_t2:  'longSword_t3',
+  warHammer_t2:  'warHammer_t3',
+  heavyAxe_t2:   'heavyAxe_t3',
+};
+
+// 🆕 2026-04-25b：T3 武器資料（葛拉階段 6 升級產出）
+//   每 tier 加 ATK/PEN/ACC/CRT 各 +1~2、price ×2~3
+Object.assign(Weapons, {
+  dagger_t3: {
+    id: 'dagger_t3', name: '鋼刺匕首',
+    baseId: 'dagger', tier: 3,
+    type: 'blade1h', hands: 1, twoHanded: false,
+    route: 'focus', swingTime: 2, cap: 12, special: 'none',
+    hitParts: ['頸部', '身體'],
+    ATK: 6, ACC: 12, CRT: 16, CDMG: 24, SPD: 14, PEN: 5,
+    desc: '葛拉用鋼錠重新淬煉的版本。刃口能在縫裡找到要害——不只一次。',
+    price: 200,
+  },
+  hammer_t3: {
+    id: 'hammer_t3', name: '鋼頭重槌',
+    baseId: 'hammer', tier: 3,
+    type: 'blunt1h', hands: 1, twoHanded: false,
+    route: 'rage', swingTime: 5, cap: 8, special: 'none',
+    hitParts: ['頭', '手'],
+    ATK: 16, ACC: 4, CRT: 0, CDMG: 4, SPD: -1, PEN: 14,
+    desc: '葛拉的鋼頭。砸下去骨頭碎得乾淨。「這把不會壞。」',
+    price: 230,
+  },
+  shortSword_t3: {
+    id: 'shortSword_t3', name: '鍛造短劍',
+    baseId: 'shortSword', tier: 3,
+    type: 'blade1h', hands: 1, twoHanded: false,
+    route: 'fury', swingTime: 3, cap: 10, special: 'none',
+    hitParts: ['身體'],
+    ATK: 12, ACC: 7, CRT: 6, CDMG: 12, SPD: 4, PEN: 7,
+    desc: '葛拉用三天三夜鍛打的版本。「拿好。這把不該斷在你手上。」',
+    price: 280,
+  },
+  spear_t3: {
+    id: 'spear_t3', name: '鋼尖長槍',
+    baseId: 'spear', tier: 3,
+    type: 'polearm', hands: 2, twoHanded: true,
+    route: 'focus', swingTime: 4, cap: 9, special: 'first_strike',
+    hitParts: ['身體', '腳'],
+    ATK: 12, ACC: 10, CRT: 7, CDMG: 7, SPD: 8, PEN: 19,
+    desc: '槍頭是純鋼、桿是硬木。刺出去的距離比任何長槍多半步——半步就是別人的命。',
+    price: 340,
+  },
+  longSword_t3: {
+    id: 'longSword_t3', name: '鍛造長劍',
+    baseId: 'longSword', tier: 3,
+    type: 'blade2h', hands: 2, twoHanded: true,
+    route: 'fury', swingTime: 5, cap: 8, special: 'none',
+    hitParts: ['身體', '頭'],
+    ATK: 20, ACC: 5, CRT: 6, CDMG: 14, SPD: -1, PEN: 14,
+    desc: '葛拉這輩子打過最好的劍之一。劍背刻著一個小印——他的名字。',
+    price: 480,
+  },
+  warHammer_t3: {
+    id: 'warHammer_t3', name: '鍛造長槌',
+    baseId: 'warHammer', tier: 3,
+    type: 'blunt2h', hands: 2, twoHanded: true,
+    route: 'rage', swingTime: 10, cap: 5, special: 'concuss',
+    hitParts: ['頭', '身體'],
+    ATK: 22, ACC: 2, CRT: 2, CDMG: 4, SPD: -6, PEN: 22,
+    desc: '葛拉用配重塊重新平衡的版本。揮起來像揮一根鐵指——有點輕。',
+    price: 440,
+  },
+  heavyAxe_t3: {
+    id: 'heavyAxe_t3', name: '鍛造重斧',
+    baseId: 'heavyAxe', tier: 3,
+    type: 'heavy2h', hands: 2, twoHanded: true,
+    route: 'rage', swingTime: 9, cap: 6, special: 'none',
+    hitParts: ['身體', '手'],
+    ATK: 24, ACC: -1, CRT: 4, CDMG: 19, SPD: -8, PEN: 18,
+    desc: '葛拉打了五天才滿意。「這把斷誰的胳膊都不是它的錯。」',
+    price: 520,
+  },
+});

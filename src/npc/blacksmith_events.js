@@ -327,6 +327,404 @@ const BlacksmithEvents = (() => {
   }
 
   // ══════════════════════════════════════════
+  // 🆕 階段 6：武器升級 T3（80 金）
+  // ══════════════════════════════════════════
+  // 觸發：
+  //   - Day >= 50
+  //   - 葛拉好感 ≥ 50
+  //   - arena 5 勝
+  //   - money ≥ 80
+  //   - 玩家當前裝備武器是 T2（已階段 4 升過）
+  //   - 還沒升 T3 過該武器
+  function tryWeaponUpgradeT3() {
+    const p = Stats.player;
+    if (!p || p.day < 50) return false;
+    if (typeof Flags === 'undefined') return false;
+    if (typeof teammates === 'undefined') return false;
+
+    const aff = teammates.getAffection('blacksmithGra');
+    if (aff < 50) return false;
+
+    const wins = (p.combatStats?.arenaWins || 0);
+    if (wins < 5) return false;
+
+    if ((p.money || 0) < 80) return false;
+
+    const currentWeaponId = p.equippedWeapon;
+    if (!currentWeaponId) return false;
+    const upgradeMap = (typeof WEAPON_TIER_UPGRADE_T3 !== 'undefined') ? WEAPON_TIER_UPGRADE_T3 : {};
+    const t3Id = upgradeMap[currentWeaponId];
+    if (!t3Id) return false;
+
+    const flagKey = `gra_upgraded_t3_${currentWeaponId}`;
+    if (Flags.has(flagKey)) return false;
+
+    _playUpgradeT3Event(currentWeaponId, t3Id, flagKey);
+    return true;
+  }
+
+  function _playUpgradeT3Event(currentId, t3Id, flagKey) {
+    const w     = (typeof Weapons !== 'undefined') ? Weapons[currentId] : null;
+    const newW  = (typeof Weapons !== 'undefined') ? Weapons[t3Id]      : null;
+    const oldName = w     ? w.name    : currentId;
+    const newName = newW  ? newW.name : t3Id;
+
+    if (typeof DialogueModal === 'undefined') {
+      _grantWeaponUpgradeT3(currentId, t3Id, flagKey, oldName, newName);
+      return;
+    }
+
+    DialogueModal.play([
+      { text: '（葛拉拿著你的武器看了很久。）' },
+      { speaker: '葛拉', text: '⋯⋯這把該再上一階了。' },
+      { speaker: '葛拉', text: '我用我這幾年存的好鋼。' },
+      { speaker: '葛拉', text: '八十金。明天來拿。' },
+      { text: '（他停下。）' },
+      { speaker: '葛拉', text: '⋯⋯這次我會在劍背刻名字。我的。' },
+      { text: '（他從不對誰這麼說。）' },
+    ], {
+      onComplete: () => {
+        if (typeof ChoiceModal === 'undefined') {
+          _grantWeaponUpgradeT3(currentId, t3Id, flagKey, oldName, newName);
+          return;
+        }
+        ChoiceModal.show({
+          id: 'gra_weapon_upgrade_t3',
+          icon: '🔥',
+          title: '葛拉提議升級你的武器',
+          body: `${oldName} → ${newName}（80 金）\n他要在劍背刻名字。`,
+          forced: true,
+          choices: [
+            {
+              id: 'accept',
+              label: '付 80 金 升級',
+              hint: '（葛拉的最高榮譽。）',
+              effects: [{ type: 'money', delta: -80 }],
+              resultLog: `葛拉接過 ${oldName}：「明天來拿。」`,
+              logColor: '#c8a060',
+            },
+            {
+              id: 'decline',
+              label: '不用',
+              hint: '（這把還行。）',
+              resultLog: '葛拉沉默地把武器還給你。「⋯⋯隨你。」',
+              logColor: '#8899aa',
+            },
+          ],
+        }, {
+          onChoose: (choiceId) => {
+            if (choiceId === 'accept') {
+              _grantWeaponUpgradeT3(currentId, t3Id, flagKey, oldName, newName);
+            }
+          }
+        });
+      }
+    });
+  }
+
+  function _grantWeaponUpgradeT3(oldId, newId, flagKey, oldName, newName) {
+    const p = Stats.player;
+    if (!Array.isArray(p.weaponInventory)) p.weaponInventory = [];
+
+    const oldIdx = p.weaponInventory.findIndex(e => (e.id || e) === oldId);
+    if (oldIdx >= 0) p.weaponInventory.splice(oldIdx, 1);
+    if (!p.weaponInventory.find(e => (e.id || e) === newId)) {
+      p.weaponInventory.push({ id: newId });
+    }
+
+    if (p.equippedWeapon === oldId) {
+      p.equippedWeapon = newId;
+    }
+
+    Flags.set(flagKey, true);
+    Flags.set('gra_weapon_t3', true);
+    if (teammates && teammates.modAffection) teammates.modAffection('blacksmithGra', +12);
+    _log(`✦ 你獲得了【${newName}】（從 ${oldName} 升級）。`, '#c8a060', true);
+    if (typeof Stage !== 'undefined' && Stage.popupBig) {
+      Stage.popupBig({
+        icon: '⚔', title: newName, subtitle: '葛拉的鍛造',
+        color: 'gold', duration: 1800, shake: true, sound: 'acquire',
+      });
+    }
+  }
+
+  // ══════════════════════════════════════════
+  // 🆕 階段 7：護甲升級（依當前裝備自動換下一階）
+  // ══════════════════════════════════════════
+  // 觸發：
+  //   - Day >= 60
+  //   - 葛拉好感 ≥ 40
+  //   - 階段 4 已完成（gra_weapon_t2 = 玩家已開始升級之路）
+  //   - 玩家當前裝備有對應升級
+  //   - 還沒升過該護甲
+  //   - money ≥ 50（護甲升級 50 金）
+  function tryArmorUpgrade() {
+    const p = Stats.player;
+    if (!p || p.day < 60) return false;
+    if (typeof Flags === 'undefined') return false;
+    if (typeof teammates === 'undefined') return false;
+    if (!Flags.has('gra_weapon_t2')) return false;
+
+    const aff = teammates.getAffection('blacksmithGra');
+    if (aff < 40) return false;
+
+    if ((p.money || 0) < 50) return false;
+
+    const currentArmorId = p.equippedArmor;
+    if (!currentArmorId) return false;
+    const upgradeMap = (typeof ARMOR_TIER_UPGRADE !== 'undefined') ? ARMOR_TIER_UPGRADE : {};
+    const nextId = upgradeMap[currentArmorId];
+    if (!nextId) return false;
+
+    const flagKey = `gra_upgraded_armor_${currentArmorId}`;
+    if (Flags.has(flagKey)) return false;
+
+    _playArmorUpgradeEvent(currentArmorId, nextId, flagKey);
+    return true;
+  }
+
+  function _playArmorUpgradeEvent(currentId, nextId, flagKey) {
+    const a    = (typeof Armors !== 'undefined') ? Armors[currentId] : null;
+    const newA = (typeof Armors !== 'undefined') ? Armors[nextId]    : null;
+    const oldName = a    ? a.name    : currentId;
+    const newName = newA ? newA.name : nextId;
+    const cost = 50;
+
+    if (typeof DialogueModal === 'undefined') {
+      _grantArmorUpgrade(currentId, nextId, flagKey, oldName, newName);
+      return;
+    }
+
+    DialogueModal.play([
+      { text: '（葛拉敲了敲你身上的甲。）' },
+      { speaker: '葛拉', text: '這身——夠了。' },
+      { speaker: '葛拉', text: '我有一套新的給你。' },
+      { speaker: '葛拉', text: `${cost} 金。明天來拿。` },
+    ], {
+      onComplete: () => {
+        if (typeof ChoiceModal === 'undefined') {
+          _grantArmorUpgrade(currentId, nextId, flagKey, oldName, newName);
+          return;
+        }
+        ChoiceModal.show({
+          id: 'gra_armor_upgrade',
+          icon: '🛡',
+          title: '葛拉提議升級你的護甲',
+          body: `${oldName} → ${newName}（${cost} 金）`,
+          forced: true,
+          choices: [
+            {
+              id: 'accept',
+              label: `付 ${cost} 金 升級`,
+              effects: [{ type: 'money', delta: -cost }],
+              resultLog: '葛拉接過你身上的甲：「明天再見。」',
+              logColor: '#c8a060',
+            },
+            {
+              id: 'decline',
+              label: '不用',
+              resultLog: '葛拉聳肩：「⋯⋯隨你。」',
+              logColor: '#8899aa',
+            },
+          ],
+        }, {
+          onChoose: (choiceId) => {
+            if (choiceId === 'accept') {
+              _grantArmorUpgrade(currentId, nextId, flagKey, oldName, newName);
+            }
+          }
+        });
+      }
+    });
+  }
+
+  function _grantArmorUpgrade(oldId, newId, flagKey, oldName, newName) {
+    const p = Stats.player;
+    if (!Array.isArray(p.armorInventory)) p.armorInventory = [];
+
+    if (!p.armorInventory.find(e => (e.id || e) === newId)) {
+      p.armorInventory.push({ id: newId });
+    }
+    if (p.equippedArmor === oldId) {
+      p.equippedArmor = newId;
+    }
+
+    Flags.set(flagKey, true);
+    Flags.set('gra_armor_upgraded_once', true);
+    if (teammates && teammates.modAffection) teammates.modAffection('blacksmithGra', +8);
+    _log(`✦ 你獲得了【${newName}】（從 ${oldName} 升級）。`, '#c8a060', true);
+    if (typeof Stage !== 'undefined' && Stage.popupBig) {
+      Stage.popupBig({
+        icon: '🛡', title: newName, subtitle: '葛拉的鍛造',
+        color: 'gold', duration: 1600, shake: true, sound: 'acquire',
+      });
+    }
+  }
+
+  // ══════════════════════════════════════════
+  // 🆕 階段 5：秘法打造（雙刃短劍）
+  // ══════════════════════════════════════════
+  // 觸發：
+  //   - 玩家讀過 twin_blade_schematic 書（flag knows_twin_blade_recipe）
+  //   - 葛拉好感 ≥ 30
+  //   - 50 金
+  //   - 還沒做過秘法
+  function tryBlueprintCraft() {
+    const p = Stats.player;
+    if (!p) return false;
+    if (typeof Flags === 'undefined') return false;
+    if (Flags.has('gra_blueprint_done')) return false;
+    if (!Flags.has('knows_twin_blade_recipe')) return false;
+    if (typeof teammates === 'undefined') return false;
+    if (teammates.getAffection('blacksmithGra') < 30) return false;
+    if ((p.money || 0) < 50) return false;
+
+    _playBlueprintCraftEvent();
+    return true;
+  }
+
+  function _playBlueprintCraftEvent() {
+    if (typeof DialogueModal === 'undefined') {
+      _grantTwinblade();
+      return;
+    }
+    DialogueModal.play([
+      { text: '（葛拉看著你手上那本《雙刃合鑄法殘篇》。）' },
+      { speaker: '葛拉', text: '⋯⋯你哪來這個。' },
+      { text: '（他沒等你回答。）' },
+      { speaker: '葛拉', text: '我試試。給我兩把破刀 + 五十金。' },
+      { speaker: '葛拉', text: '三天後來拿。' },
+    ], {
+      onComplete: () => {
+        if (typeof ChoiceModal === 'undefined') {
+          _grantTwinblade();
+          return;
+        }
+        ChoiceModal.show({
+          id: 'gra_blueprint_twinblade',
+          icon: '🔥',
+          title: '葛拉提議造雙刃短劍',
+          body: '兩把短劍熔在一起 — 副手 ATK 不打折。\n50 金 + 三天等待。',
+          forced: true,
+          choices: [
+            {
+              id: 'accept',
+              label: '付 50 金 委託',
+              hint: '（這武器在外面買不到。）',
+              effects: [{ type: 'money', delta: -50 }],
+              resultLog: '葛拉收下錢：「⋯⋯我等你三天後來。」',
+              logColor: '#c8a060',
+            },
+            {
+              id: 'decline',
+              label: '不用',
+              resultLog: '葛拉聳肩：「行。書還我。」（其實沒收回。）',
+              logColor: '#8899aa',
+            },
+          ],
+        }, {
+          onChoose: (choiceId) => {
+            if (choiceId === 'accept') _grantTwinblade();
+          }
+        });
+      }
+    });
+  }
+
+  function _grantTwinblade() {
+    const p = Stats.player;
+    if (!Array.isArray(p.weaponInventory)) p.weaponInventory = [];
+    if (!p.weaponInventory.find(e => (e.id || e) === 'twinblade')) {
+      p.weaponInventory.push({ id: 'twinblade' });
+    }
+    Flags.set('gra_blueprint_done', true);
+    if (teammates && teammates.modAffection) teammates.modAffection('blacksmithGra', +10);
+    _log('✦ 三天後你領回——一把奇怪的雙刃短劍。', '#c8a060', true);
+    _log('（兩把短劍熔在一起。揮起來像短劍、但副手能用長劍的力道。）', '#a89070', false);
+    if (typeof Stage !== 'undefined' && Stage.popupBig) {
+      Stage.popupBig({
+        icon: '⚔', title: '雙刃短劍', subtitle: '葛拉的秘法',
+        color: 'gold', duration: 1800, shake: true, sound: 'acquire',
+      });
+    }
+  }
+
+  // ══════════════════════════════════════════
+  // 🆕 階段 8：傳家武器（tier 4 劇情）
+  // ══════════════════════════════════════════
+  // 觸發：
+  //   - Day >= 80
+  //   - 葛拉好感 ≥ 80
+  //   - 玩家有 divine_blessing 或 iron_body 特性（罕見出生稀有特性）
+  //   - 已升過 T3 武器（gra_weapon_t3）
+  //   - 還沒拿過傳家武器
+  function tryHeirloomWeapon() {
+    const p = Stats.player;
+    if (!p || p.day < 80) return false;
+    if (typeof Flags === 'undefined') return false;
+    if (Flags.has('gra_heirloom_done')) return false;
+    if (typeof teammates === 'undefined') return false;
+    if (teammates.getAffection('blacksmithGra') < 80) return false;
+    if (!Flags.has('gra_weapon_t3')) return false;
+
+    const traits = Array.isArray(p.traits) ? p.traits : [];
+    const hasSpecialTrait = traits.includes('divine_blessing') || traits.includes('iron_body');
+    if (!hasSpecialTrait) return false;
+
+    const currentWeaponId = p.equippedWeapon;
+    if (!currentWeaponId) return false;
+    const upgradeMap = (typeof WEAPON_TIER_UPGRADE_T4 !== 'undefined') ? WEAPON_TIER_UPGRADE_T4 : {};
+    const t4Id = upgradeMap[currentWeaponId];
+    if (!t4Id) return false;
+
+    _playHeirloomEvent(currentWeaponId, t4Id);
+    return true;
+  }
+
+  function _playHeirloomEvent(currentId, t4Id) {
+    const w     = (typeof Weapons !== 'undefined') ? Weapons[currentId] : null;
+    const newW  = (typeof Weapons !== 'undefined') ? Weapons[t4Id]      : null;
+    const oldName = w     ? w.name    : currentId;
+    const newName = newW  ? newW.name : t4Id;
+
+    DialogueModal.play([
+      { text: '（葛拉把你叫到鍛造坊。火還沒滅。）' },
+      { speaker: '葛拉', text: '⋯⋯坐。' },
+      { text: '（他從炭火裡拿出一個東西、還燒紅的。）' },
+      { text: '（他用鉗子夾著、舉到你眼前。）' },
+      { speaker: '葛拉', text: '我這輩子打過很多刀。' },
+      { speaker: '葛拉', text: '⋯⋯這把是最後一把這樣的。' },
+      { text: '（他看你。眼神不一樣。）' },
+      { speaker: '葛拉', text: '帶出去。' },
+      { speaker: '葛拉', text: '別讓它斷在你之前。' },
+      { text: '（他用爐火重新淬了一次、然後遞給你。）' },
+      { text: '（劍背刻了兩個字。葛拉的名字。）' },
+    ], {
+      onComplete: () => _grantHeirloom(currentId, t4Id, oldName, newName)
+    });
+  }
+
+  function _grantHeirloom(oldId, newId, oldName, newName) {
+    const p = Stats.player;
+    if (!Array.isArray(p.weaponInventory)) p.weaponInventory = [];
+    if (!p.weaponInventory.find(e => (e.id || e) === newId)) {
+      p.weaponInventory.push({ id: newId });
+    }
+    if (p.equippedWeapon === oldId) {
+      p.equippedWeapon = newId;
+    }
+    Flags.set('gra_heirloom_done', true);
+    if (teammates && teammates.modAffection) teammates.modAffection('blacksmithGra', +20);
+    _log(`✦ 你獲得了【${newName}】。葛拉一輩子最好的鍛造。`, '#d4af37', true);
+    if (typeof Stage !== 'undefined' && Stage.popupBig) {
+      Stage.popupBig({
+        icon: '✦', title: newName, subtitle: '葛拉的傳家',
+        color: 'gold', duration: 2400, shake: true, sound: 'acquire',
+      });
+    }
+  }
+
+  // ══════════════════════════════════════════
   // 存檔 / 讀檔（目前無狀態需序列化）
   // ══════════════════════════════════════════
   function serialize()      { return {}; }
@@ -338,6 +736,10 @@ const BlacksmithEvents = (() => {
     tryFirstRepair,          // 階段 3
     markWeaponNeedsRepair,   // 戰鬥後 hook
     tryWeaponUpgradeT2,      // 階段 4
+    tryBlueprintCraft,       // 🆕 階段 5
+    tryWeaponUpgradeT3,      // 🆕 階段 6
+    tryArmorUpgrade,         // 🆕 階段 7
+    tryHeirloomWeapon,       // 🆕 階段 8
     serialize, restore, reset,
   };
 })();

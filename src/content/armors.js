@@ -68,7 +68,20 @@ const Armors = {
     desc: '幾乎刀槍不入，但你每走一步都像拖著鐵錨。',
     price: 150,
   },
+  // 🆕 2026-04-25b：板甲 T3（葛拉階段 7 終階）
+  steelPlate: {
+    id: 'steelPlate', name: '鋼板甲',
+    type: 'plate',
+    DEF: 18, SPD: -7, EVA: -5,
+    desc: '葛拉打過最重的一件。穿上去能擋兩記重斧、但你也走不快。「這套不是給普通人穿的。」',
+    price: 350,
+  },
 
+  // ── 🆕 2026-04-25 護甲升級對照表（葛拉階段 7 用）───────
+  //   依玩家當前裝備自動找下一階
+  //   皮系（輕路線）：rags → leatherArmor → thickLeather → studdedLeather → chainmail（轉板系）
+  //   板系（重路線）：chainmail → ironPlate → steelPlate
+  // 寫成全域 map 供 blacksmith_events 讀取
   // ── 盾牌 ──────────────────────────────────────────────
   woodShield: {
     id: 'woodShield', name: '木盾',
@@ -84,4 +97,15 @@ const Armors = {
     desc: '厚實的鐵盾，擋住重擊的同時你的手臂也在顫抖。',
     price: 70,
   },
+};
+
+// 🆕 2026-04-25：護甲升級對照表（葛拉階段 7 用）
+const ARMOR_TIER_UPGRADE = {
+  rags:           'leatherArmor',
+  leatherArmor:   'thickLeather',
+  thickLeather:   'studdedLeather',
+  studdedLeather: 'chainmail',     // 皮系頂峰 → 轉板系
+  chainmail:      'ironPlate',
+  ironPlate:      'steelPlate',
+  // steelPlate 已是頂級、再升要走階段 8 傳家
 };

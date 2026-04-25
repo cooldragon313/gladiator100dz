@@ -1141,19 +1141,19 @@ const Game = (() => {
       DialogueModal.play(lines, {
         onComplete: () => {
           if (typeof teammates !== 'undefined') {
-            teammates.modAffection('masterArtus', 20);
+            teammates.modAffection('masterArtus', 15);
             teammates.modAffection('officer', 5);
           }
-          addLog('✦ 主人記住了你的臉。（masterArtus +20、officer +5）', '#d4af37', true, true);
+          addLog('✦ 主人記住了你的臉。（masterArtus +15、officer +5）', '#d4af37', true, true);
           renderAll();
         },
       });
     } else {
       if (typeof teammates !== 'undefined') {
-        teammates.modAffection('masterArtus', 20);
+        teammates.modAffection('masterArtus', 15);
         teammates.modAffection('officer', 5);
       }
-      addLog('✦ 主人召見：你連勝三場、主人記住了你。（masterArtus +20）', '#d4af37', true, true);
+      addLog('✦ 主人召見：你連勝三場、主人記住了你。（masterArtus +15）', '#d4af37', true, true);
     }
   }
 
@@ -1200,11 +1200,11 @@ const Game = (() => {
         Stats.modMoney(reward);
         addLog(`侍從遞來一小袋銅幣。「大人說這是你的。」（+${reward}）`, '#c8a060', false);
         // 🆕 2026-04-25：競技場勝利 → 主人 / 塔倫好感（賺錢功勞）
-        //   主人：你替他賺錢 + 揚名 → +5
-        //   塔倫：他派你出場成功了 → +3（自己升職的籌碼）
+        // 🆕 2026-04-25b 平衡：使用者反饋 4 場就紫色 → 從 +5/+3 降為 +2/+2
+        //   S/A bonus 仍在 battle.js 加（+8/+8 for S、+4/+4 for A）— 評分越高加越多
         if (typeof teammates !== 'undefined') {
-          teammates.modAffection('masterArtus', 5);
-          teammates.modAffection('officer', 3);
+          teammates.modAffection('masterArtus', 2);
+          teammates.modAffection('officer', 2);
           addLog('(主人聽到消息了。塔倫長官也記下這一筆。)', '#c8a060', false);
         }
         // 🆕 2026-04-25：連 3 場勝 → 主人召見事件（一次性）
@@ -3168,9 +3168,9 @@ const Game = (() => {
     //   赫克托敵對路線（hector_hostile_path）= 永遠不加（他不喜歡你）
     //   發亮特效已 modAffection hook 自動觸發（綠光好感、紅光惡感）
     if (hasAttrEffect && typeof teammates !== 'undefined') {
-      // ─── 隊友被動好感（v10b 新加）───
-      //   匹配 favoredAttr：50% / +1（一起練同屬性 = 共鳴）
-      //   不匹配：15%   / +1（只是看你練）← 機率低、避免奧蘭等永駐隊友破表
+      // ─── 隊友被動好感（v10b 新加、2026-04-25b 平衡降）───
+      //   匹配 favoredAttr：30% / +1（一起練同屬性 = 共鳴）← 從 50% 降
+      //   不匹配：8% / +1（只是看你練）← 從 15% 降、避免奧蘭等永駐隊友破表
       //   赫克托敵對路線跳過（他不會給你好感）
       const tmList = currentNPCs.teammates || [];
       tmList.forEach(npcId => {
@@ -3180,7 +3180,7 @@ const Game = (() => {
         if (npc.alive === false) return;
         if (npcId === 'hector' && typeof Flags !== 'undefined' && Flags.has('hector_hostile_path')) return;
         const matchAttr = (trainedAttr && npc.favoredAttr === trainedAttr);
-        const chance = matchAttr ? 0.50 : 0.15;
+        const chance = matchAttr ? 0.30 : 0.08;
         if (Math.random() < chance) {
           teammates.modAffection(npcId, 1);
         }
@@ -3194,21 +3194,22 @@ const Game = (() => {
       //   chance: 每場訓練觸發機率（避免好感漲太快）
       //   base:   觸發時加分
       //   bonus:  特定屬性訓練加碼
+      // 🆕 2026-04-25b 平衡降：訓練被動好感太快、4 場主人就紫色
       const PASSIVE_AFF_RULES = {
-        // 母親型 + 廚房手腳快 — 看你練都欣慰、AGI 特別愛
-        melaKook:      { chance: 0.40, base: 1, bonus: { AGI: 1 } },
-        // 巴爺：嚴師、常駐看你練 — 不愛拍馬屁、加分謹慎
-        overseer:      { chance: 0.25, base: 1, bonus: {} },
-        // 🆕 塔倫：看數字、平日罕見 — 出現就要加多點（被動主要靠競技場）
-        officer:       { chance: 0.30, base: 2, bonus: {} },
-        // 🆕 主人：見一次面記得久 — 被動主要靠競技場勝利通知
-        masterArtus:   { chance: 0.50, base: 3, bonus: {} },
+        // 梅拉：母親型 + AGI 特別愛
+        melaKook:      { chance: 0.30, base: 1, bonus: { AGI: 1 } },
+        // 巴爺：嚴師、常駐看你練 — 加分謹慎
+        overseer:      { chance: 0.18, base: 1, bonus: {} },
+        // 塔倫：看數字、平日罕見 — 出現時 +1（從 base 2 降）
+        officer:       { chance: 0.25, base: 1, bonus: {} },
+        // 主人：被動只是「印象」、主要靠競技場勝利通知
+        masterArtus:   { chance: 0.30, base: 2, bonus: {} },   // 從 chance 0.50 base 3 降
         // 葛拉：鐵匠尊重肯下功夫的人
-        blacksmithGra: { chance: 0.30, base: 1, bonus: {} },
-        // 侍從：報告記錄、極少加分
-        masterServant: { chance: 0.20, base: 1, bonus: {} },
+        blacksmithGra: { chance: 0.20, base: 1, bonus: {} },
+        // 侍從：極少加分
+        masterServant: { chance: 0.15, base: 1, bonus: {} },
         // 老默：醫生視角偶爾欣賞
-        doctorMo:      { chance: 0.25, base: 1, bonus: {} },
+        doctorMo:      { chance: 0.18, base: 1, bonus: {} },
       };
       aud.forEach(npcId => {
         const rule = PASSIVE_AFF_RULES[npcId];
@@ -3674,9 +3675,14 @@ const Game = (() => {
       // 鐵匠葛拉事件鏈
       if (typeof BlacksmithEvents !== 'undefined') {
         try {
+          // 葛拉事件鏈優先序：2 → 3 → 4 → 5 → 6 → 7 → 8（一晚最多一個）
           if (BlacksmithEvents.tryFirstArmor()) { /* 階段 2 */ }
           else if (BlacksmithEvents.tryFirstRepair()) { /* 階段 3 */ }
-          else if (BlacksmithEvents.tryWeaponUpgradeT2) { BlacksmithEvents.tryWeaponUpgradeT2(); }
+          else if (BlacksmithEvents.tryWeaponUpgradeT2()) { /* 階段 4 */ }
+          else if (BlacksmithEvents.tryBlueprintCraft && BlacksmithEvents.tryBlueprintCraft()) { /* 階段 5 */ }
+          else if (BlacksmithEvents.tryWeaponUpgradeT3 && BlacksmithEvents.tryWeaponUpgradeT3()) { /* 階段 6 */ }
+          else if (BlacksmithEvents.tryArmorUpgrade && BlacksmithEvents.tryArmorUpgrade()) { /* 階段 7 */ }
+          else if (BlacksmithEvents.tryHeirloomWeapon && BlacksmithEvents.tryHeirloomWeapon()) { /* 階段 8 */ }
         } catch (e) { console.error('[Blacksmith]', e); }
       }
       _uiLocked = false;   // 🆕 解鎖

@@ -551,6 +551,12 @@ player.wounds.head = null | { severity:1-3, daysElapsed } | { special:'concussio
 | `gra_first_repair` | 階段 3 — 首次免費修繕已完成 | `_playFirstRepairEvent` |
 | `gra_weapon_t2` | 階段 4 — 任一武器已升 T2（一次性 flag）| `_grantWeaponUpgrade` |
 | `gra_upgraded_{weaponId}` | 個別武器升級紀錄（避免重複觸發同把武器升級）| `_grantWeaponUpgrade` |
+| `gra_weapon_t3` | 階段 6 — 任一武器已升 T3 | `_grantWeaponUpgradeT3` |
+| `gra_upgraded_t3_{weaponId}` | 個別武器 T3 升級紀錄 | `_grantWeaponUpgradeT3` |
+| `gra_armor_upgraded_once` | 階段 7 — 任一護甲已升級過 | `_grantArmorUpgrade` |
+| `gra_upgraded_armor_{armorId}` | 個別護甲升級紀錄 | `_grantArmorUpgrade` |
+| `gra_blueprint_done` | 階段 5 — 雙刃秘法已完成 | `_grantTwinblade` |
+| `gra_heirloom_done` | 階段 8 — 傳家武器已給 | `_grantHeirloom` |
 
 ### 🆕 沙洗 / 競技場 / 主人事件 flag（2026-04-25）
 
