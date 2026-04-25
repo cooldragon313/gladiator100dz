@@ -822,13 +822,57 @@ const teammates = (() => {
         // 14:00-16:00 在訓練場出現，其他時間 → 不強制出現（隨機決定）
         { hours: [14, 16], fields: ['stdTraining'] },
       ],
-      desc: '嚴厲、精確、毫無憐憫。他訓練出來的人，要麼成為最強的鬥士，要麼死在訓練場。',
+      // 🆕 2026-04-25 v10：完整人物 — 暱稱「巴爺」、退役角鬥士、塔倫當年陷害的對象
+      desc: '退役角鬥士。每天在訓練場罵你、打你、看你撐住的那個老人。左前臂有一道老疤——最後一戰留的。對塔倫長官真心感激（他不知道當年是誰把他送上去的）。',
+      background: '本名巴布魯斯（Babrius）。當年是訓練場招牌之一、能力好、深得大家喜歡。塔倫（當時的監督官）覺得他太強眼、獻計給主人把他送上去打領主借來的強敵。巴爺重傷沒死、塔倫順勢「力保」演好人、升長官後推巴爺接監督。巴爺至今真心當塔倫是恩人。底層有壓抑疑慮但不敢去想——去想 = 否定自己這幾年的人生。',
       baseAffection: 0,
       personality: 'aggressive',
       favoredAttr: null,  // 非訓練 NPC（觀眾）
-      // 🆕 D.19：嚴師愛勤勉鐵意志，恨懶散膽小
-      likedTraits:    { iron_will:3, diligence:2, cruel:2, prideful:1 },
-      dislikedTraits: { coward:3, merciful:2, impulsive:1 },
+      // 🆕 2026-04-25 v10：愛憎重排（撐到底=勇敢勤勞 / 厭惡找理由的人）
+      likedTraits:    { iron_will:3, diligence:3, prideful:2, cruel:1 },
+      dislikedTraits: { neurotic:3, coward:3, opportunist:2, merciful:1 },
+      // 🆕 2026-04-25：NPC 間的關係
+      relations: {
+        allies:   ['cassius', 'melaKook', 'doctorMo'],   // 同期老人物
+        // 表面盟友：officer（塔倫）— 但巴爺至今真心當恩人，揭露事件前不寫進 enemies
+        enemies:  [],
+      },
+      storyReveals: [
+        {
+          id: 'overseer_silent', type: 'flavor', affection: 0,
+          text: '他在訓練場不講廢話。罵的時候不重複。',
+        },
+        {
+          id: 'overseer_old_scar', type: 'flavor', affection: 15,
+          text: '你發現他左前臂有一道又長又老的疤痕。不是新傷——是最後一戰留下的。',
+        },
+        {
+          id: 'overseer_friends_call', type: 'event', affection: 30,
+          dialogueLines: [
+            { text: '梅拉端飯經過訓練場。' },
+            { speaker: '梅拉', text: '巴爺，吃飯了。' },
+            { text: '（監督官沒回頭、只揮揮手。）' },
+            { text: '（你第一次聽到有人這樣叫他——「巴爺」。）' },
+            { text: '（他笑了一下。第一次看到他笑。）' },
+          ],
+          text: '原來他叫「巴爺」。但你還不知道為什麼。',
+        },
+        {
+          id: 'overseer_thanks_tarren', type: 'event', affection: 50,
+          dialogueLines: [
+            { text: '訓練後的傍晚。巴爺一個人坐在角落喝酒。' },
+            { text: '（他喝多了。）' },
+            { speaker: '巴爺', text: '⋯⋯這條命是長官給的。' },
+            { text: '（他舉杯對著塔倫的方向——但塔倫不在。）' },
+            { text: '（你站在不遠處看著。心裡不知道為什麼湧起一陣不對勁。）' },
+          ],
+          text: '你聽到他說那句話。他真心相信。但你心裡不對勁。',
+        },
+        {
+          id: 'overseer_loyal', type: 'flavor', affection: 75,
+          text: '塔倫私下叫巴爺去做事——巴爺立刻就去。沒有半句話。他對你說過：「跟著長官混不會吃虧。」',
+        },
+      ],
     },
 
     officer: {

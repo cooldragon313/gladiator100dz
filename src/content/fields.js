@@ -48,7 +48,9 @@ const FIELDS = {
       { npcId: 'dagiSlave',     role: 'teammate', chance: 0.50 },
       { npcId: 'oldSlave',      role: 'teammate', chance: 0.35 },
       // 觀眾/權威（事件觸發目標）
-      { npcId: 'overseer',      role: 'audience', chance: 0.65 },
+      // 🆕 2026-04-25 v10：監督官（巴爺）大幅提高、塔倫長官加進來偶爾露面
+      { npcId: 'overseer',      role: 'audience', chance: 0.85 },   // 巴爺 — 訓練場主場
+      { npcId: 'officer',       role: 'audience', chance: 0.20 },   // 塔倫 — 偶爾出現（玩家需累積好感才能進巴爺主線揭露）
       { npcId: 'blacksmithGra', role: 'audience', chance: 0.30 },
       { npcId: 'melaKook',      role: 'audience', chance: 0.25 },
       { npcId: 'masterServant', role: 'audience', chance: 0.20 },

@@ -208,6 +208,69 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       2026-04-25 v10 監督官巴爺主線（Phase A-E 實作）
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">FEATURE</span>
+      <span class="version-title">監督官巴爺主線 — 三角動機鏈 + 4 層揭露 + 喝酒透漏選擇</span>
+      <span class="version-date">2026-04-25</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text"><strong>監督官改名「巴布魯斯（巴爺）」</strong> <span class="file-tag">npc.js / docs/characters/overseer.md</span>
+          — 退役角鬥士、跟玩家完整好感互動線。<strong>三角動機鏈</strong>：主人愛錢、塔倫沒能力只能算計、巴爺成招牌威脅塔倫被借局陷害。
+          設計書：<code>docs/discussions/2026-04-25-overseer-rework.md</code></span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text"><strong>npc.js overseer 重寫</strong>
+          — 新 desc / background / 5 段 storyReveals / 新愛憎表（iron_will/diligence/prideful 愛 / neurotic/coward 恨）/ relations 加 cassius/melaKook/doctorMo</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text"><strong>場景頻率調整</strong> <span class="file-tag">fields.js</span>
+          — overseer chance 0.65 → <strong>0.85</strong>（巴爺常駐訓練場）；加 officer entry chance <strong>0.20</strong>（讓玩家有機會刷塔倫好感）</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text"><strong>抓偷懶分工 v10</strong> <span class="file-tag">main.js _handleSlacking + _playWhipPunishment</span>
+          — 4 階梯機率：主人 5% / 侍從 10% / 塔倫 20% / 巴爺 <strong>75%+</strong>。
+          巴爺好感分段：< 30 抽打 / ≥ 30 大吼 / ≥ 60 假裝沒看到。
+          主人在場 = 大忌（HP -10 + 大震動 + 紅光）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>巴爺主線事件模組</strong> <span class="file-tag">src/npc/overseer_events.js（新檔）</span>
+          — 7 個事件函式：塔倫稱讚 3 階段、引爆事件、曖昧指令 2 個（含特性過濾選項）、老默接話、卡西烏斯補刀、偷聽密謀、喝酒透漏選擇</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>2 個劇情技能</strong> <span class="file-tag">skill.js</span>
+          — <code>unyielding</code> 不屈：致命一擊鎖死 1 HP + 5 回合 +30%、整場戰鬥 1 次（透漏路線授予）；
+          <code>veteran_eye</code> 老兵之眼：戰鬥開始看破對手 1 個弱點屬性、對應自己屬性 +20%（不透漏路線、待後續授予）</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">FLAG</span>
+        <span class="change-text"><strong>新增 15 個劇情 flag</strong> <span class="file-tag">CODEX.md</span>
+          — <code>tarren_praise_count</code> / <code>master_noticed_player</code> / <code>tarren_calculating</code> /
+          <code>mela/doctor/cassius_hinted_overseer</code> / <code>tarren_orders_completed</code> /
+          <code>overheard_master_plot</code> / <code>told_overseer_truth</code> / <code>overseer_kept_secret</code> /
+          <code>overseer_realized_tarren</code> / <code>overseer_passed_torch</code> / <code>overseer_no_more_talk</code> 等</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">TODO</span>
+        <span class="change-text"><strong>整合點待補</strong>
+          — 引爆事件需戰鬥勝利 hook、老默接話需治療結束 hook、主人召喚事件需既有召喚系統包覆、巴爺腰帶物品需 item.js 補定義</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
        2026-04-24 狂熱重構：5 attr 命名統一 + 大字 POPUP + UI 強化
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">

@@ -62,4 +62,44 @@ const Skills = {
     unlockReq: { WIL: 14 },
     effect: { atkPctBonus: 20, duration: 3 },
   },
+
+  // ── 🆕 2026-04-25 v10 監督官巴爺主線獎勵 ─────────────
+  unyielding: {
+    id: 'unyielding', name: '不屈',
+    type: 'passive',
+    desc: '巴爺傳授的絕技。受到致命一擊時鎖死 1 HP 不死，之後 5 回合內傷害 +30%。整場戰鬥僅觸發 1 次。',
+    // 🆕 不靠 EXP 購買 — 由「揭露真相 → 告訴巴爺 → 訣別事件」劇情授予
+    storyOnly: true,
+    grantedBy: 'overseer_passed_torch',  // flag set 後玩家獲得
+    passiveBonus: {},
+    // 戰鬥端 hook（待 battle.js 整合）：
+    //   onLethalHit: 鎖 hp = 1, set flag _unyielding_fired_battle, set duration 5 turns
+    //   onTurnAfterFire (5 turns): atkPctBonus: 30
+    //   每場戰鬥開始時 reset _unyielding_fired_battle
+    onLethalHit: {
+      hpFloor: 1,
+      buffName: 'unyielding_rage',
+      buffDuration: 5,
+      atkPctBonus: 30,
+    },
+  },
+
+  veteran_eye: {
+    id: 'veteran_eye', name: '老兵之眼',
+    type: 'passive',
+    desc: '看過太多場、看得出對手破綻。戰鬥開始時看破對手 1 個弱點屬性（PEN/CRT/ACC/SPD 任一），對應你的攻擊屬性 +20%。',
+    // 🆕 v10：巴爺主線「不透漏」路線獎勵 — 但實際取得來源待設計（設計書標 TODO）
+    //   暫定觸發來源：巴爺主線「不透漏真相」結局獎勵（aff 70+ + 偷聽密謀已觸發 + 不告訴）
+    //   未來其他取得來源（卡西烏斯訓練 / 老默觀察 / 賭場斥候）可再開
+    storyOnly: true,
+    grantedBy: 'overseer_kept_secret',  // flag set 後玩家獲得
+    passiveBonus: {},
+    // 戰鬥端 hook（待 battle.js 整合）：
+    //   onBattleStart: 從對手 weakness 欄位讀取（需戰鬥系統 weakness 欄位）
+    //   套用對應屬性 ×1.20
+    onBattleStart: {
+      revealWeakness: true,
+      attrBonusPct: 20,
+    },
+  },
 };

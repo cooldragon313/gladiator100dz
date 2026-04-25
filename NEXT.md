@@ -2,11 +2,61 @@
 
 > 跨電腦/跨 session 的「下一步該幹嘛」。
 > 新的一天開工先讀這份，做完了就更新。
-> 最後更新：2026-04-24（晚上收工 — 跨電腦切換前更新）
+> 最後更新：2026-04-25 v10 巴爺主線完成、待實機測
 
 ---
 
-## 🎯 今天做完（2026-04-24，全部 commit 了但**還沒實機測過**）
+## 🎯 今天做完（2026-04-25，**v10 監督官巴爺主線 Phase A-E**，commit 待測）
+
+**設計書**：[docs/discussions/2026-04-25-overseer-rework.md](docs/discussions/2026-04-25-overseer-rework.md)（v10 完整 spec）
+**角色檔**：[docs/characters/overseer.md](docs/characters/overseer.md)
+
+### 已實作
+1. **資料層**
+   - `npc.js` overseer 完全重寫（暱稱「巴爺」、Babrius 本名、退役角鬥士背景、5 段 storyReveals、新愛憎表）
+   - `fields.js` overseer chance 0.65→0.85、加 officer entry 0.20（讓玩家有機會刷塔倫好感）
+   - `skill.js` 加 2 個劇情技能：`unyielding`（不屈）/ `veteran_eye`（老兵之眼）
+
+2. **抓偷懶分工 v10**
+   - 主人 5% → 大忌 + HP -10 + 紅光震動
+   - 侍從 10% → HP -2
+   - 塔倫 20% → HP -5 + 「沒救的東西」
+   - 巴爺 75%+：好感 <30 抽打 / ≥30 大吼 / ≥60 假裝沒看到
+   - 25% 沒人 = 玩家好好休息
+
+3. **巴爺主線事件** [src/npc/overseer_events.js](src/npc/overseer_events.js)（**新檔**）
+   - ✅ 塔倫稱讚 3 階段（aff 20/30/40 觸發）— 第 3 階段提到「巴爺」名字（玩家起雞皮疙瘩）
+   - ✅ 塔倫曖昧指令 2 個（教訓人 / 對主人說謊）+ ChoiceModal 特性過濾選項
+   - ✅ 引爆事件 stub（標 TODO，需戰鬥勝利 hook）
+   - ✅ 老默接話 stub（標 TODO，需治療結束 hook）
+   - ✅ 卡西烏斯補刀（已 hook 訓練後事件鏈）+ 「巴爺」由來對白
+   - ✅ 偷聽密謀 stub（已 hook，但 TODO 主人召喚事件）
+   - ✅ 喝酒透漏選擇事件（已 hook）+ 透漏路線授予不屈、不透漏路線標記 `overseer_kept_secret`
+
+### 還沒做（明天 / 下次）
+1. **戰鬥勝利 hook → 引爆事件**
+   - `OverseerEvents.tryIgnitionEvent()` 需在跨訓練所對戰勝利後呼叫
+   - 觸發條件待設：fame >= 30 + 沒受重傷 + 對手強敵
+   - 位置：`battle.js Battle.start()` 的 onWin callback
+
+2. **治療結束 hook → 老默接話**
+   - `OverseerEvents.tryDoctorHint()` 需在 `doctor_events.js _performWoundHeal` 完成後呼叫
+
+3. **主人召喚事件 → 偷聽密謀整合**
+   - 目前條件夠了會自動觸發、但缺「主人召喚」的劇情前置
+   - 需加召喚事件包覆
+
+4. **物品 `gra_old_belt` 巴爺腰帶**
+   - 兩條路線都會送、需在 item.js 加定義（屬性 +5 ACC、紀念）
+
+### 老兵之眼設計筆記（`veteran_eye`）
+- **目前實作**：登記在 skill.js / 不透漏路線會 set flag `overseer_kept_secret`
+- **實際 grant 標 TODO**：在 overseer_events.js `_playKeepSecretScene` 註解保留
+- **未來其他來源**待定（卡西烏斯訓練 / 老默觀察 / 賭場斥候）
+
+---
+
+## 🎯 上一輪做完（2026-04-24，全部 commit 了但**還沒實機測過**）
 
 **1. bare addLog 大清（commit 7659688）**
 - CLAUDE.md 第 12 條鐵律全專案落實

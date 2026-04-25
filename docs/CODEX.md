@@ -244,6 +244,17 @@
 
 ---
 
+### 🆕 劇情技能（storyOnly — 不可購買、僅劇情授予）
+
+| ID | 名稱 | 類型 | 來源 | 效果 |
+|---|---|---|---|---|
+| `unyielding` | 不屈 | passive | 巴爺主線「告訴真相」路線（flag `overseer_passed_torch`）| 致命一擊鎖死 1 HP，5 回合內傷害 +30%。整場戰鬥 1 次 |
+| `veteran_eye` | 老兵之眼 | passive | 巴爺主線「不透漏」路線（flag `overseer_kept_secret`）/ 未來其他來源 TBD | 戰鬥開始看破對手 1 個弱點屬性、對應自己屬性 +20% |
+
+> ⚠️ 戰鬥端 hook（`onLethalHit` / `onBattleStart`）目前是 **placeholder**，待 battle.js 整合。
+
+---
+
 ### 書櫃機制
 
 - **上限** 5 本未讀書
@@ -529,6 +540,26 @@ player.wounds.head = null | { severity:1-3, daysElapsed } | { special:'concussio
 | `betrayed_olan` | 告發奧蘭（不可逆）| orlan_events |
 | `saw_olan_at_apothecary` | 看見奧蘭偷藥 | 藥房事件 |
 | `olan_apothecary_resolved` | 藥房懸念解決 | 各種選擇 |
+
+### 🆕 監督官巴爺主線 flag（v10，2026-04-25）
+
+| Flag | 意義 | 寫入時機 |
+|---|---|---|
+| `tarren_praise_count` | 塔倫稱讚累積次數（0-3）| 塔倫稱讚事件 |
+| `master_noticed_player` | 主人公開稱讚已觸發 | 引爆事件 |
+| `tarren_calculating` | 塔倫打算盤暗示 | 引爆事件 |
+| `mela_hinted_overseer` | 梅拉播種完 | 層 1a |
+| `doctor_hinted_overseer` | 老默接話完 | 層 1b（引爆後）|
+| `cassius_hinted_overseer` | 卡西烏斯補刀完 | 層 1c |
+| `tarren_orders_completed` | 塔倫曖昧指令完成計數（≥2 解鎖層 3）| 曖昧指令完成 |
+| `tarren_player_inner_circle` | 玩家成塔倫圈內 | 指令 2 投機選項 |
+| `saw_tarren_secret` | 偷看到塔倫布袋秘密 | 指令 3 偷看 |
+| `overheard_master_plot` | 偷聽密謀已觸發 | 層 3 |
+| `told_overseer_truth` | 告訴巴爺真相 | 層 4 喝酒事件 |
+| `overseer_kept_secret` | 玩家選擇不透漏（解鎖老兵之眼）| 層 4 喝酒事件 |
+| `overseer_realized_tarren` | 巴爺想通了 | 訣別事件 |
+| `overseer_passed_torch` | 巴爺傳絕技【不屈】| 訣別事件 |
+| `overseer_no_more_talk` | 巴爺從此不再提此事 | 訣別事件 |
 
 ### 傷勢系統 flag（新）
 

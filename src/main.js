@@ -1646,13 +1646,16 @@ const Game = (() => {
   }
 
   // 🆕 D.26：偷懶放空的動態代價（在場扣好感 / 無人時 30% 被抓）
+  // 🆕 2026-04-25 v10：機率階梯 — 主人(5%) < 侍從(10%) < 塔倫(20%) < 監督(75%+)
+  //   無人 = 25% 玩家好好休息時間（補 stamina）
+  //   巴爺好感分段：< 30 抽打 / ≥ 30 大吼 / ≥ 60 假裝沒看到
   // 權威 NPC 的靜態扣分規則
   const _SLACKING_WATCHERS = {
-    masterArtus:  { affDelta: -8, moodHit: -12, line: '「這傢伙好大狗膽——在我眼皮底下。」', color: '#663344' },
-    officer:      { affDelta: -5, moodHit: -6,  line: '塔倫長官冷冷地看你：「廢物。浪費口糧。」', color: '#cc6666' },
-    overseer:     { affDelta: -3, moodHit: -4,  line: '監督官揚起鞭子：「那邊那個！給我站起來！」', color: '#cc8844' },
-    masterServant:{ affDelta: -2, moodHit: -3,  line: '侍從瞇起眼記下什麼：「我會報告大人的。」', color: '#a07060' },
-    hector:       { affDelta:  2, moodHit:  0,  line: '赫克特遠遠地對你舉了舉下巴——「乾得漂亮。」', color: '#9a5a70', isAlly: true },
+    masterArtus:  { affDelta: -15, moodHit: -20, hpHit: -10, line: '「這傢伙好大狗膽——在我眼皮底下！」', color: '#663344' },
+    officer:      { affDelta: -10, moodHit: -8,  hpHit: -5,  line: '塔倫長官冷冷地看你：「⋯⋯沒救的東西。」', color: '#cc6666' },
+    overseer:     { affDelta: -3,  moodHit: -4,  hpHit: -5,  line: '巴爺揚起鞭子：「那邊那個！給我站起來！」', color: '#cc8844' },
+    masterServant:{ affDelta: -5,  moodHit: -5,  hpHit: -2,  line: '侍從瞇起眼記下什麼：「我會報告大人的。」', color: '#a07060' },
+    hector:       { affDelta:  2,  moodHit:  0,  hpHit:  0,  line: '赫克特遠遠地對你舉了舉下巴——「乾得漂亮。」', color: '#9a5a70', isAlly: true },
   };
   // 友善 NPC 在場的反應（不扣好感，但有台詞）
   const _SLACKING_FRIENDLY = {
@@ -1676,19 +1679,38 @@ const Game = (() => {
     if (typeof SoundManager !== 'undefined' && SoundManager.playSynth) {
       try { SoundManager.playSynth('injury'); } catch (e) { /* ignore */ }
     }
-    Stats.modVital('hp', -5);
 
-    // 對白：依 captor 變化主導者口氣
+    // 對白：依 captor 變化主導者口氣 + HP 扣分階梯
     const captor = opts && opts.captor;
+    // 🆕 v10：HP 扣分依抓人者（主人 -10 / 塔倫 -5 / 巴爺 -5 / 侍從 -2）
+    const HP_LOSS = { masterArtus: -10, officer: -5, overseer: -5, masterServant: -2 };
+    const hpHit = HP_LOSS[captor] !== undefined ? HP_LOSS[captor] : -5;
+    Stats.modVital('hp', hpHit);
+    // 🆕 v10：HP 扣分依抓人者（主人 -10 / 塔倫 -5 / 巴爺 -5 / 侍從 -2）— 已扣於上方 hpHit
     let scene;
-    if (captor === 'officer') {
+    if (captor === 'masterArtus') {
+      // 🆕 v10：主人在場 = 大忌、最重懲罰
+      scene = [
+        { text: '（你抬頭——主人就站在那裡。）' },
+        { text: '（他笑了。）', effect: 'shake' },
+        { speaker: '主人', text: '⋯⋯這傢伙。' },
+        { speaker: '主人', text: '在我眼皮底下偷懶？好大狗膽。' },
+        { text: '（他揮手。侍從衝上來。）', effect: 'shake-big' },
+        { text: '（咻——！）', effect: 'shake-big' },
+        { speaker: '主角', text: '啊——！' },
+        { text: '（咻——！）', effect: 'shake-big' },
+        { speaker: '主角', text: '啊啊——！！' },
+        { speaker: '主人', text: '記住這個感覺。' },
+        { text: '（他轉身走了。整個訓練場安靜得能聽見呼吸。）' },
+      ];
+    } else if (captor === 'officer') {
       scene = [
         { text: '（你以為沒人——但你錯了。）' },
         { speaker: '塔倫長官', text: '⋯⋯果然在這裡。' },
         { text: '（鞭子已經在他手裡。）', effect: 'shake' },
         { text: '（咻——！）', effect: 'shake-big' },
         { speaker: '主角', text: '啊——！' },
-        { speaker: '塔倫長官', text: '廢物。浪費口糧。' },
+        { speaker: '塔倫長官', text: '⋯⋯沒救的東西。' },
         { text: '（他甩了甩鞭子，走了。）' },
       ];
     } else if (captor === 'masterServant') {
@@ -1701,27 +1723,30 @@ const Game = (() => {
         { speaker: '侍從', text: '我會報告大人的。' },
       ];
     } else {
-      // 預設：監督官（overseer）
+      // 預設：監督官巴爺（overseer，aff < 30 才會走到這）
       scene = [
         { text: '（你以為沒人——但你錯了。）' },
-        { speaker: '監督官', text: '那邊那個！給我站起來！' },
+        { speaker: '巴爺', text: '那邊那個！給我站起來！' },
         { text: '（他衝過來，鞭子已經舉起。）', effect: 'shake' },
         { text: '（咻——！）', effect: 'shake-big' },
         { speaker: '主角', text: '啊——！' },
         { text: '（鞭子抽在你背上。火燒一樣的痛。）' },
-        { speaker: '監督官', text: '下次再讓我看到——就不只一鞭。' },
+        { speaker: '巴爺', text: '下次再讓我看到——就不只一鞭。' },
       ];
     }
 
     if (typeof DialogueModal !== 'undefined') {
       DialogueModal.play(scene, {
         onComplete: () => {
-          addLog('💥 咻——！鞭子抽在你背上。（❤️ -5）', '#cc3333', true, true);
+          const hpDisp = (typeof opts === 'object' && opts && typeof opts.captor === 'string')
+                          ? ({masterArtus:-10,officer:-5,overseer:-5,masterServant:-2}[opts.captor] || -5)
+                          : -5;
+          addLog(`💥 鞭子抽在你背上。（❤️ ${hpDisp}）`, '#cc3333', true, true);
           if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
         },
       });
     } else {
-      addLog('💥 咻——！鞭子抽在你背上。（❤️ -5）', '#cc3333', true, true);
+      addLog('💥 鞭子抽在你背上。', '#cc3333', true, true);
     }
   }
 
@@ -1735,16 +1760,41 @@ const Game = (() => {
 
     if (watchers.length > 0) {
       // 有權威 NPC 在場 → 直接扣
-      // 同時把心情加成減半（被瞪哪有心情爽）
-      Stats.modVital('mood', -8);   // 抵銷 effects 加的 +15 之中的 8
-      // 🆕 有敵意 watcher（非 ally）時 → 鞭刑
-      // 🆕 2026-04-24：依 watcher 順序選 captor（officer > masterArtus > overseer > masterServant > hector）
+      // 心情加成減半（被瞪哪有心情爽）
+      Stats.modVital('mood', -8);
+
+      // 🆕 v10：依優先度選主導抓人者（masterArtus > officer > masterServant > overseer）
+      //   主人在 = 大忌，蓋過其他人
+      const PRIORITY = ['masterArtus', 'officer', 'masterServant', 'overseer'];
       const hostile = watchers.filter(id => !_SLACKING_WATCHERS[id].isAlly);
-      if (hostile.length > 0) {
-        const captor = hostile[0];
+      let captor = null;
+      for (const id of PRIORITY) {
+        if (hostile.includes(id)) { captor = id; break; }
+      }
+
+      if (captor) {
+        // 🆕 v10：巴爺好感分段判定（只對 overseer captor 適用）
+        const overseerAff = (typeof teammates !== 'undefined' && teammates.getAffection)
+                              ? teammates.getAffection('overseer') : 0;
+        if (captor === 'overseer' && overseerAff >= 60) {
+          // 假裝沒看到
+          addLog('巴爺看了你一眼，沒走過來。「⋯⋯我這次當沒看到。下次別再讓我看見。」', '#c8a060', true, true);
+          // 不扣 HP / 好感 -1（最輕）
+          teammates.modAffection('overseer', -1);
+          return;
+        }
+        if (captor === 'overseer' && overseerAff >= 30) {
+          // 大吼但不打
+          addLog('巴爺大吼：「你他媽再讓我看到一次——！」（他只是吼，沒動手。）', '#cc8844', true, true);
+          teammates.modAffection('overseer', -1);
+          Stats.modVital('mood', -3);
+          return;
+        }
+        // 其餘情境 → 鞭刑（含 overseer aff < 30）
         _playWhipPunishment({ captor });
       }
 
+      // 套用所有在場 watcher 的好感 / mood 扣分（不只 captor）
       watchers.forEach(id => {
         const rule = _SLACKING_WATCHERS[id];
         if (rule.affDelta) teammates.modAffection(id, rule.affDelta);
@@ -1765,13 +1815,16 @@ const Game = (() => {
       return;
     }
 
-    // 完全沒人在場 → 30% 機率被巡邏抓包
-    if (Math.random() < 0.30) {
+    // 🆕 v10：完全沒人在場 → 75% 玩家好好休息 / 25% 巡邏抓包
+    //   (與 v9 相反 — 巴爺常駐 audience 0.85，能走到「無人」的場景大多是真沒人 = 玩家確實安全)
+    if (Math.random() < 0.25) {
+      // 抓人者機率階梯（主人 5% / 侍從 10% / 塔倫 20% / 監督 65%）
       const roll = Math.random();
       let caught;
-      if (roll < 0.70) caught = 'overseer';
-      else if (roll < 0.90) caught = 'officer';
-      else caught = 'masterServant';
+      if (roll < 0.05)      caught = 'masterArtus';     // 主人最少出現、出現就慘
+      else if (roll < 0.15) caught = 'masterServant';   // 侍從
+      else if (roll < 0.35) caught = 'officer';         // 塔倫
+      else                  caught = 'overseer';        // 監督官最常見
 
       const rule = _SLACKING_WATCHERS[caught];
       // 被抓 = 震怒版：扣更多
@@ -1779,7 +1832,7 @@ const Game = (() => {
       const angryMood = Math.round(rule.moodHit * 1.3);
       teammates.modAffection(caught, angryAff);
       Stats.modVital('mood', angryMood);
-      // 🆕 2026-04-19 被巡邏抓包 → 鞭刑特效（DialogueModal 演出）
+      // 鞭刑特效（DialogueModal 演出）
       _playWhipPunishment({ captor: caught });
       addLog('【被抓包】' + rule.line, rule.color, true, true);
       addLog(`你以為沒人在——但你錯了。額外扣心情與好感。`, '#cc5533', true, false);
@@ -2963,6 +3016,17 @@ const Game = (() => {
     if (typeof HectorEvents !== 'undefined') {
       HectorEvents.tryFriendlyHint();
       HectorEvents.tryHarassment();
+    }
+
+    // 🆕 2026-04-25 v10：監督官巴爺主線事件
+    if (typeof OverseerEvents !== 'undefined') {
+      try {
+        OverseerEvents.tryTarrenPraise();         // 鋪墊期 — 塔倫稱讚 3 階段
+        OverseerEvents.tryTarrenAmbiguousOrder(); // 曖昧任務期 — 塔倫指令 2 個
+        OverseerEvents.tryCassiusHint();          // 回響期 — 卡西烏斯補刀
+        OverseerEvents.tryEavesdrop();            // 證據期 — 偷聽密謀（條件嚴格）
+        OverseerEvents.tryOverseerDrink();        // 選擇期 — 喝酒透漏選擇
+      } catch (e) { console.error('[OverseerEvents]', e); }
     }
 
     // 🆕 2026-04-24：旁觀切磋小事件（補體力 — 對沖偷懶/騷擾懲罰）

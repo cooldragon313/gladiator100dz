@@ -446,6 +446,14 @@ character_roll → testbattle → battle → actions → main
 
 ## 🔄 最近重要變更
 
+- **2026-04-25 v10 監督官巴爺主線**（overseer-rework spec / Phase A-E 實作）—
+  - 監督官改名「**巴布魯斯（巴爺）**」、退役角鬥士、跟玩家完整好感互動線
+  - 三角動機鏈：主人愛錢愛名 / 塔倫沒能力走算計 / 巴爺成招牌被借局陷害
+  - 4 層揭露結構：梅拉播種 → 塔倫稱讚 3 階段 + 引爆事件 + 曖昧指令 2 個 → 老默/卡西烏斯回響 → 偷聽密謀 → 喝酒透漏選擇（給玩家道德重量）
+  - 新劇情技能：`unyielding` 不屈（致命一擊鎖死 1HP + 5 回合 +30%）/ `veteran_eye` 老兵之眼（看破弱點）
+  - 抓偷懶 4 階梯：主人 5% / 侍從 10% / 塔倫 20% / 巴爺 75%；巴爺好感 ≥30 大吼 / ≥60 假裝沒看到
+  - 場景頻率：overseer chance 0.65→0.85、officer 進 audience pool（chance 0.20）
+  - 詳見 [docs/discussions/2026-04-25-overseer-rework.md](docs/discussions/2026-04-25-overseer-rework.md) + [docs/characters/overseer.md](docs/characters/overseer.md)
 - **2026-04-24（晚）狂熱重構**（fervor-rework-plan.md）：5 條鐵則重做 — (a) 5 attr 命名統一（力量/靈巧/體質/反應/意志），補齊 DEX_fervor (b) 訓練動作改名為具體動作（推舉石頭/投接碎石/杖擊承受/亂棍格擋/打坐冥想） (c) 對白池全重寫（自然觸發 × 瓶頸 × 結束 × 進度 × 擺爛 5 attr 全配齊；擺爛吐槽 = 5 狂熱 × 4 錯訓練 = 20 句具體場景） (d) Stage.popupBig 共用元件（觸發/結束/升級都用） (e) 訓練按鈕視覺強化 — 對應狂熱按鈕放大發光呼吸閃爍，其他縮 0.94× 變灰。
 - **2026-04-24**：**狂熱系統落實**（fervor.md）— 取代舊 compulsion 強迫症。四個正面暫時特性 STR/AGI/CON/WIL_fervor；自然觸發（5 天內同屬性 8 次）+ 瓶頸觸發（屬性升到 20/30/.../100 強制）；練對 EXP +25% / mood +5，練錯 mood -5 + 15% 擺爛；5 次結束。主畫面左上金色徽章顯示進度。舊 `_addict` 特性 / `player.compulsion` 自動遷移清除。
 - **2026-04-24**：bare `addLog` 大清（CLAUDE.md 第 12 條鐵律）+ 老默治療 bug 根治 + Hector Phase 1 完成 + Day 1 開場大翻修
