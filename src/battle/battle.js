@@ -108,7 +108,21 @@ const Battle = (() => {
     _battleTick       = 0;
     // 🆕 預設開啟斬首面板，但切磋可傳 { sparring: true } 關閉
     _isArenaBattle    = !options.sparring;
-    _pendingFameReward= 0;
+    // 🆕 2026-04-25 修 bug：start(opponentId) 路徑從不讀 enemy.fameReward
+    //   結果 timeline 事件競技場（Day 50 大型 / Day 100 萬骸祭等）S 評分都 +0 fame
+    //   修法：從 TB_ENEMIES[opponentId] 讀 fameReward；無欄位則用 fame ÷ 2 估算
+    _pendingFameReward = 0;
+    if (typeof TB_ENEMIES !== 'undefined') {
+      const enemyDef = TB_ENEMIES[opponentId];
+      if (enemyDef) {
+        if (typeof enemyDef.fameReward === 'number') {
+          _pendingFameReward = enemyDef.fameReward;
+        } else {
+          // fallback：enemy fame 一半（最低 5）
+          _pendingFameReward = Math.max(5, Math.round((enemyDef.fame || 10) / 2));
+        }
+      }
+    }
     _lastRating       = null;
     _crowdMood        = _generateCrowdMood();
     _playerDelay      = 0;

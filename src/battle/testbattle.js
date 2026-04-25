@@ -130,6 +130,8 @@ const TB_TRAITS = {
 // 6. ENEMIES / BOSSES
 // ═══════════════════════════════════════════════════════
 const TB_ENEMIES = {
+  // 🆕 fameReward 欄位（2026-04-25）：S 評分 ×2、A ×1.5、B ×1、C ×0.7
+  //   無此欄位則 Battle.start fallback 用 fame ÷ 2 估算（最低 5）
   slaveRookie: {
     name:'新進奴隸', title:'雜魚',
     STR:8,  DEX:6,  CON:8,  AGI:6,  WIL:5,  LUK:5,  hpBase:40,
@@ -137,6 +139,7 @@ const TB_ENEMIES = {
     traitId:'none',
     ai:'basic', passive:null, specialCD:99,
     fame:0, intimidation:0,
+    fameReward:5,   // 🆕 早期試煉
     desc:'毫無戰鬥經驗，靠本能揮舞武器。',
   },
   // 🆕 Day 5 三人考驗：索爾（農夫體格，比你稍強但不壓倒，有緊張感但能贏）
@@ -178,6 +181,7 @@ const TB_ENEMIES = {
     traitId:'none',
     ai:'normal', passive:null, specialCD:99,
     fame:20, intimidation:0.02,
+    fameReward:15,   // 🆕 2026-04-25：Day 50 大型競技基礎 fame；S 評分 ×2 = 30
     desc:'臉上總是塗著黑色的顏料。他說那是戰友的血——你不確定他是認真的。',
   },
 
@@ -188,6 +192,7 @@ const TB_ENEMIES = {
     traitId:'none',
     ai:'normal', passive:null, specialCD:99,
     fame:35, intimidation:0.04,
+    fameReward:25,   // 🆕 2026-04-25：高階對手；S ×2 = 50
     desc:'身上的傷疤多過臉上的皺紋。懂得把握時機，不會輕易露出破綻。',
   },
 
@@ -204,6 +209,7 @@ const TB_ENEMIES = {
     traitId:'none',
     ai:'normal', passive:null, specialCD:99,
     fame:22, intimidation:0.03,
+    fameReward:18,   // 🆕 跨訓練所賭局
     desc:'莫拉斯大人家的招牌鬥士。跨場二十二勝四敗。左臂有一條從手腕到肘窩的舊疤——所以叫「鐵臂」。',
   },
 
@@ -215,6 +221,7 @@ const TB_ENEMIES = {
     traitId:'none',
     ai:'normal', passive:null, specialCD:99,
     fame:0, intimidation:0.08,
+    fameReward:20,   // 🆕 黑道對戰、不公開但賭客在看
     desc:'全身黑、面罩只露眼睛。海龍幫的代理鬥士——不是正規角鬥士。打起來的風格完全不同。',
   },
 
@@ -226,6 +233,7 @@ const TB_ENEMIES = {
     traitId:'none',
     ai:'normal', passive:null, specialCD:99,
     fame:0, intimidation:0.05,
+    fameReward:22,   // 🆕 護衛立功
     desc:'流民出身的強盜頭子。嘴巴不停，一邊打一邊罵。殺過至少十五個商隊護衛。',
   },
 
@@ -237,6 +245,7 @@ const TB_ENEMIES = {
     traitId:'none',
     ai:'normal', passive:null, specialCD:99,
     fame:0, intimidation:0.06,
+    fameReward:25,   // 🆕 殺退刺客傳開
     desc:'全身黑、戴黑色指套。血環公會（？）的刺客。首擊極猛——如果你沒察覺他靠近。',
   },
 
@@ -248,6 +257,7 @@ const TB_ENEMIES = {
     traitId:'none',
     ai:'normal', passive:null, specialCD:99,
     fame:0, intimidation:0.10,
+    fameReward:30,   // 🆕 殺虎傳奇
     desc:'成年公虎。左眼上有老傷疤，暗示牠跟人打過且活下來。無法溝通、無法逃。戰鬥節奏完全不同。',
   },
 
@@ -259,6 +269,7 @@ const TB_ENEMIES = {
     traitId:'none',
     ai:'boss_gruen', passive:'regen5', specialCD:3,
     fame:85, intimidation:0.06,
+    fameReward:50,   // 🆕 萬骸祭三人眾
     passiveDesc:'每回合回復 3 HP（上限50%最大值）',
     specialName:'反制姿態',
     specialDesc:'每3回合進入反制姿態。玩家若在此回合攻擊，傷害減半且葛倫直接反擊。',
@@ -272,6 +283,7 @@ const TB_ENEMIES = {
     traitId:'none',
     ai:'boss_voda', passive:'armorPierce40', specialCD:4,
     fame:90, intimidation:0.14,
+    fameReward:50,   // 🆕 萬骸祭三人眾
     passiveDesc:'所有攻擊無視對手 40% DEF',
     specialName:'山崩',
     specialDesc:'每4回合蓄力一回合（跳過攻擊），下一擊傷害×2.5，觸發重傷判定。',
@@ -285,6 +297,7 @@ const TB_ENEMIES = {
     traitId:'none',
     ai:'boss_seira', passive:'firstCrit', specialCD:3,
     fame:75, intimidation:0.10,
+    fameReward:50,   // 🆕 萬骸祭三人眾
     passiveDesc:'本場戰鬥第一擊必定暴擊',
     specialName:'三連刺',
     specialDesc:'每3回合發動三次快速攻擊，各自獨立計算命中與暴擊。',
