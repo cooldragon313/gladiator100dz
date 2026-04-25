@@ -4218,7 +4218,11 @@ const Game = (() => {
     const p = Stats.player;
     const traitsList = document.getElementById('cs-traits-list');
     if (!traitsList) return;
-    const traits = p.traits || [];
+    // 🆕 2026-04-24：強制呼叫 Fervor.ensureInit 清掉廢棄 _addict 特性
+    //   （之前殘留在存檔的 STR_addict/WIL_addict 等不再屬於合法 trait）
+    if (typeof Fervor !== 'undefined' && Fervor.ensureInit) Fervor.ensureInit(p);
+    // 渲染前再過一次 — 任何 TRAIT_DEFS 找不到的特性（廢棄、拼錯、舊檔殘留）都不顯示
+    const traits = (p.traits || []).filter(id => Config.TRAIT_DEFS && Config.TRAIT_DEFS[id]);
     if (traits.length === 0) {
       traitsList.innerHTML = '';
       traitsList.style.display = 'none';
@@ -4226,9 +4230,9 @@ const Game = (() => {
       traitsList.style.display = '';
       traitsList.innerHTML = traits.map(id => {
         const def = Config.TRAIT_DEFS[id];
-        const name = def ? def.name : id;
-        const desc = def ? def.desc : '';
-        const cat  = def ? def.category : 'positive';
+        const name = def.name;
+        const desc = def.desc || '';
+        const cat  = def.category || 'positive';
         const prefix = cat === 'positive' ? '★' : '▼';
         const cls    = cat === 'positive' ? 'trait-positive' : 'trait-negative';
         return `<span class="trait-tag ${cls}" title="${desc}">

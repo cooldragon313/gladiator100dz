@@ -106,14 +106,20 @@ const Fervor = (() => {
       _migrateFromCompulsion(player);
     }
 
+    // 🆕 2026-04-24：永久清除廢棄 _addict 特性
+    //   不只在遷移時清 — 每次 ensureInit 都掃一次。
+    //   理由：玩家可能用「新版開的存檔（已有 fervor）但 traits 殘留 _addict」這種狀態，
+    //   migration 條件判斷不到，所以單獨無條件 strip。
+    _stripDeprecatedAddictTraits(player);
+
     if (!player.fervor || typeof player.fervor !== 'object') {
       player.fervor = _blankState();
     }
     const f = player.fervor;
     // 補齊欄位（save schema 遷移安全）
-    if (!f.trainingLog) f.trainingLog = { STR:[], AGI:[], CON:[], WIL:[] };
+    if (!f.trainingLog) f.trainingLog = { STR:[], DEX:[], AGI:[], CON:[], WIL:[] };
     if (!f.passedBreakthroughs) {
-      f.passedBreakthroughs = { STR:[], AGI:[], CON:[], WIL:[] };
+      f.passedBreakthroughs = { STR:[], DEX:[], AGI:[], CON:[], WIL:[] };
     }
     ATTRS.forEach(a => {
       if (!Array.isArray(f.trainingLog[a])) f.trainingLog[a] = [];
@@ -129,6 +135,22 @@ const Fervor = (() => {
     return f;
   }
 
+  // 🆕 2026-04-24：永久 strip 廢棄 _addict 特性（每次 ensureInit 都跑）
+  function _stripDeprecatedAddictTraits(player) {
+    if (!Array.isArray(player.traits)) return;
+    const before = player.traits.length;
+    const removed = [];
+    player.traits = player.traits.filter(t => {
+      const isAddict = /_addict$/.test(t);
+      if (isAddict) removed.push(t);
+      return !isAddict;
+    });
+    if (removed.length > 0) {
+      console.log('[Fervor] stripped deprecated _addict traits:', removed,
+                  `(${before} → ${player.traits.length})`);
+    }
+  }
+
   function _blankState() {
     return {
       active: null,
@@ -138,8 +160,8 @@ const Fervor = (() => {
       targetLevel: null,
       startDay: null,
       naturalCooldownUntil: null,
-      trainingLog: { STR:[], AGI:[], CON:[], WIL:[] },
-      passedBreakthroughs: { STR:[], AGI:[], CON:[], WIL:[] },
+      trainingLog: { STR:[], DEX:[], AGI:[], CON:[], WIL:[] },
+      passedBreakthroughs: { STR:[], DEX:[], AGI:[], CON:[], WIL:[] },
     };
   }
 
