@@ -402,6 +402,63 @@ const Stage = (() => {
     if (typeof onComplete === 'function') onComplete();
   }
 
+  // ══════════════════════════════════════════════════
+  // 🆕 2026-04-24 大字 POPUP（共用元件）
+  //   用於：狂熱觸發/結束、屬性升級、未來重要獲得物
+  //   螢幕中央大字 + 副標題、淡入淡出、配震動 + 音效。
+  //   不出現數字（rule § 0.1）
+  // ══════════════════════════════════════════════════
+  /**
+   * @param {Object} opts
+   *   icon      — emoji 或符號（'⚡' / '✦' / '🔥'）
+   *   title     — 大字標題
+   *   subtitle  — 小字副標題（可選）
+   *   color     — 'gold' (default) | 'red' | 'green' | 'cyan'
+   *   duration  — 顯示總時長 ms (default 1800)
+   *   shake     — true 觸發 game-root 震動 (default true)
+   *   sound     — 'acquire' | 'level_up' | 'debuff' | null (default 'acquire')
+   *   onComplete — popup 消失後呼叫
+   */
+  function popupBig(opts = {}) {
+    const icon     = opts.icon     || '⚡';
+    const title    = opts.title    || '';
+    const subtitle = opts.subtitle || '';
+    const color    = opts.color    || 'gold';
+    const duration = opts.duration || 1800;
+    const shake    = opts.shake !== false;
+    const sound    = (opts.sound === undefined) ? 'acquire' : opts.sound;
+    const onComplete = opts.onComplete;
+
+    // 建立 / 取得 popup 容器
+    let popup = document.getElementById('stage-popup-big');
+    if (!popup) {
+      popup = document.createElement('div');
+      popup.id = 'stage-popup-big';
+      popup.className = 'stage-popup-big';
+      document.body.appendChild(popup);
+    }
+    popup.className = 'stage-popup-big color-' + color;
+    popup.innerHTML = `
+      <div class="popup-icon">${icon}</div>
+      <div class="popup-title">${title}</div>
+      ${subtitle ? `<div class="popup-subtitle">${subtitle}</div>` : ''}
+    `;
+
+    // 重置動畫（強制 reflow）
+    popup.style.animation = 'none';
+    void popup.offsetWidth;
+    popup.style.animation = `popupBigShow ${duration}ms ease-out forwards`;
+
+    // 震動 + 音效
+    if (shake && typeof Game !== 'undefined' && Game.shakeGameRoot) Game.shakeGameRoot();
+    if (sound && typeof SoundManager !== 'undefined') SoundManager.playSynth(sound);
+
+    // 結束 callback
+    if (typeof onComplete === 'function') {
+      setTimeout(() => { try { onComplete(); } catch (e) { console.error('[Stage.popupBig]', e); } }, duration);
+    }
+  }
+
   return {
     playSleep,
     playOpening,
@@ -411,5 +468,6 @@ const Stage = (() => {
     openEyes,
     showZzz,
     hideZzz,
+    popupBig,   // 🆕 2026-04-24
   };
 })();

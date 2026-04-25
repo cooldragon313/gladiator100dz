@@ -436,22 +436,27 @@ const Config = (() => {
     STR_fervor: {
       id: 'STR_fervor', name: '力量狂熱', category: 'positive',
       fervorAttr: 'STR', temporary: true,
-      desc: '你正在突破——力量訓練 EXP +25% / mood +5。練別屬性 mood -5 + 15% 擺爛。對應訓練累積 5 次結束。',
+      desc: '你正在突破——推舉石頭 EXP +25% / mood +5。練別的會分心：mood -5 + 15% 擺爛。對應訓練累積 5 次結束。',
+    },
+    DEX_fervor: {
+      id: 'DEX_fervor', name: '靈巧狂熱', category: 'positive',
+      fervorAttr: 'DEX', temporary: true,
+      desc: '你正在突破——投接碎石 EXP +25% / mood +5。練別的會分心：mood -5 + 15% 擺爛。對應訓練累積 5 次結束。',
     },
     AGI_fervor: {
-      id: 'AGI_fervor', name: '步法狂熱', category: 'positive',
+      id: 'AGI_fervor', name: '反應狂熱', category: 'positive',
       fervorAttr: 'AGI', temporary: true,
-      desc: '你正在突破——步法訓練 EXP +25% / mood +5。練別屬性 mood -5 + 15% 擺爛。對應訓練累積 5 次結束。',
+      desc: '你正在突破——亂棍格擋 EXP +25% / mood +5。練別的會分心：mood -5 + 15% 擺爛。對應訓練累積 5 次結束。',
     },
     CON_fervor: {
-      id: 'CON_fervor', name: '鐵耐狂熱', category: 'positive',
+      id: 'CON_fervor', name: '體質狂熱', category: 'positive',
       fervorAttr: 'CON', temporary: true,
-      desc: '你正在突破——耐力訓練 EXP +25% / mood +5。練別屬性 mood -5 + 15% 擺爛。對應訓練累積 5 次結束。',
+      desc: '你正在突破——杖擊承受 EXP +25% / mood +5。練別的會分心：mood -5 + 15% 擺爛。對應訓練累積 5 次結束。',
     },
     WIL_fervor: {
-      id: 'WIL_fervor', name: '禪定覺醒', category: 'positive',
+      id: 'WIL_fervor', name: '意志狂熱', category: 'positive',
       fervorAttr: 'WIL', temporary: true,
-      desc: '你正在突破——冥想訓練 EXP +25% / mood +5。練別屬性 mood -5 + 15% 擺爛。對應訓練累積 5 次結束。',
+      desc: '你正在突破——打坐冥想 EXP +25% / mood +5。練別的會分心：mood -5 + 15% 擺爛。對應訓練累積 5 次結束。',
     },
   };
 

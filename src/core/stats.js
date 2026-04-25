@@ -157,8 +157,8 @@ const Stats = (() => {
       targetLevel: null,
       startDay: null,
       naturalCooldownUntil: null,
-      trainingLog: { STR: [], AGI: [], CON: [], WIL: [] },
-      passedBreakthroughs: { STR: [], AGI: [], CON: [], WIL: [] },
+      trainingLog: { STR: [], DEX: [], AGI: [], CON: [], WIL: [] },
+      passedBreakthroughs: { STR: [], DEX: [], AGI: [], CON: [], WIL: [] },
     },
   };
 

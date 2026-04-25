@@ -139,7 +139,9 @@
 | 🆕 老默三階段 | `doctor_saw_severe_wound` → `doctor_hinted_black_doc` → `got_black_doc_contact` | doctor_events.js |
 | 🆕 自然癒合 flag | `natural_recovery_triggered_{part}` | wounds.js |
 | 🆕 狂熱系統 | `player.fervor` / `Fervor.*` | compulsion.js（IIFE 名 Fervor）/ fervor.md |
-| 🆕 4 狂熱特性（正面暫時）| STR_fervor/AGI_fervor/CON_fervor/WIL_fervor | config.js / fervor.md |
+| 🆕 5 狂熱特性（正面暫時）| STR/DEX/CON/AGI/WIL_fervor — 力量/靈巧/體質/反應/意志狂熱 | config.js / fervor.md |
+| 🆕 5 訓練動作名（單一事實源）| 推舉石頭(STR) / 投接碎石(DEX) / 杖擊承受(CON) / 亂棍格擋(AGI) / 打坐冥想(WIL) | actions.js + Fervor.TRAIN_NAME |
+| 🆕 大字 POPUP | `Stage.popupBig({icon,title,subtitle,color,sound,shake})` | stage.js |
 | 🆕 自然觸發 | 5 天內同屬性訓練 8 次 → 進入狂熱 | `Fervor.onTraining` |
 | 🆕 瓶頸觸發 | 屬性升到 20/30/.../100 強制一次狂熱 | `Fervor.checkBreakthroughNeeded` in `Stats.spendExpOnAttr` |
 | 🆕 狂熱加成 | 練對 EXP +25% / mood +5 / 練錯 mood -5 + 15% 擺爛 | `Fervor.getExpMultiplier` + `getMoodDelta` + `getSlackChance` |
@@ -444,6 +446,7 @@ character_roll → testbattle → battle → actions → main
 
 ## 🔄 最近重要變更
 
+- **2026-04-24（晚）狂熱重構**（fervor-rework-plan.md）：5 條鐵則重做 — (a) 5 attr 命名統一（力量/靈巧/體質/反應/意志），補齊 DEX_fervor (b) 訓練動作改名為具體動作（推舉石頭/投接碎石/杖擊承受/亂棍格擋/打坐冥想） (c) 對白池全重寫（自然觸發 × 瓶頸 × 結束 × 進度 × 擺爛 5 attr 全配齊；擺爛吐槽 = 5 狂熱 × 4 錯訓練 = 20 句具體場景） (d) Stage.popupBig 共用元件（觸發/結束/升級都用） (e) 訓練按鈕視覺強化 — 對應狂熱按鈕放大發光呼吸閃爍，其他縮 0.94× 變灰。
 - **2026-04-24**：**狂熱系統落實**（fervor.md）— 取代舊 compulsion 強迫症。四個正面暫時特性 STR/AGI/CON/WIL_fervor；自然觸發（5 天內同屬性 8 次）+ 瓶頸觸發（屬性升到 20/30/.../100 強制）；練對 EXP +25% / mood +5，練錯 mood -5 + 15% 擺爛；5 次結束。主畫面左上金色徽章顯示進度。舊 `_addict` 特性 / `player.compulsion` 自動遷移清除。
 - **2026-04-24**：bare `addLog` 大清（CLAUDE.md 第 12 條鐵律）+ 老默治療 bug 根治 + Hector Phase 1 完成 + Day 1 開場大翻修
 - **2026-04-19**：世界觀大擴充（Phase 2 準備）— 新增文件：mansion-geography.md（大宅+訓練場同座建築）/ master-family-spec.md（訓練所家族通用規範）/ found-family.md（新家人儀式系統）/ livia.md（主人娘）/ marcus.md（少爺）。重寫 orlan.md 背景三段式（磨坊子→阿圖斯家傭人→被 Marcus 告發偷錢→Livia 求情降級訓練場）。整合 Day 1 開場（受傷演出合進 wakeup 不重播）。替換磨劍事件為沙地畫磨坊（避免無武器矛盾）。orlan_letter 加「主人傳信？這不像是大人的做法」暗示 Livia 管道。

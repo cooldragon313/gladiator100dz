@@ -208,6 +208,86 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       2026-04-24 狂熱重構：5 attr 命名統一 + 大字 POPUP + UI 強化
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">REWORK</span>
+      <span class="version-title">狂熱對白 + UI 全面重做（讓玩家感覺到「現在就是要練那個」）</span>
+      <span class="version-date">2026-04-24</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text"><strong>5 條鐵則先定</strong>
+          — (1) Stage / 對白不出現數字 (2) 獲得/結束場面 = 震動 + 大字 POPUP
+          (3) 觸發要有講法但不能玄 (4) 訓練名稱統一 (5) 對白要對應該動作的具體動作。
+          詳細規格 / 對白池在 <code>docs/discussions/2026-04-24-fervor-rework-plan.md</code>。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text"><strong>命名統一表（單一事實源）</strong> <span class="file-tag">compulsion.js / actions.js / config.js</span>
+          — 訓練動作改名：基礎揮砍 → <strong>推舉石頭</strong>、精準刺擊 → <strong>投接碎石</strong>、
+          耐力訓練 → <strong>杖擊承受</strong>、步法練習 → <strong>亂棍格擋</strong>、冥想調息 → <strong>打坐冥想</strong>。
+          attr 中文名統一：力量 / 靈巧 / 體質 / <strong>反應</strong>（原步法）/ <strong>意志</strong>（原禪定）。
+          狂熱特性：力量狂熱 / 靈巧狂熱 / 體質狂熱 / 反應狂熱 / 意志狂熱。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>新增 DEX_fervor</strong> <span class="file-tag">config.js + compulsion.js</span>
+          — 原設計只有 STR/AGI/CON/WIL 4 個漏 DEX，導致投接碎石永遠不會觸發狂熱、不擋升級瓶頸。
+          現在 5 attr 全配齊，<code>player.fervor.trainingLog/passedBreakthroughs</code> 加 DEX 欄位。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>Stage.popupBig 共用元件</strong> <span class="file-tag">src/ui/stage.js + game.html</span>
+          — 螢幕中央 56px 大字 + emoji + subtitle + 震動 + 音效。
+          淡入縮放動畫 1.8 秒。color: gold/red/green/cyan。
+          用於：狂熱觸發 / 結束 / 屬性升級 / 未來重要獲得物。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text"><strong>對白池全面重寫</strong> <span class="file-tag">compulsion.js</span>
+          — 自然觸發 5 attr × 2 句（用「日常切片」式：剛剛端碗 / 抓蒼蠅 / 被人撞肩 / 瓦罐滑落 / 長官罵你）。
+          瓶頸觸發 5 attr × 4 句（想升級→動作測試→還不夠→需要再練）。
+          自然結束 5 attr × 1 句（具體完成感）。
+          進度回饋 5 attr × 3 句感受（取代純數字 N/5 log）。
+          擺爛吐槽 5 狂熱 × 4 錯訓練 = <strong>20 句具體場景</strong>（你正在 X 但你想著 Y）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text"><strong>狂熱期間訓練按鈕視覺強化</strong> <span class="file-tag">main.js renderActionList + game.html</span>
+          — 對應狂熱屬性的訓練按鈕：放大 1.06×、金色發光呼吸閃爍（2.2s pulse）、加 ⚡ icon。
+          其他訓練按鈕：縮 0.94×、grayscale 55%、半透明 0.55。
+          讓玩家「一眼看出現在就是要練那個」。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text"><strong>狂熱徽章進度條視覺化</strong> <span class="file-tag">main.js _renderFervorBadge + game.html</span>
+          — 原本「進度 3/5」純數字 → 改 5 顆金色 dot（亮的代表已完成）。
+          hint 文字改成「去推舉石頭」這種世界內語言（不講系統）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>屬性升級反饋三層</strong> <span class="file-tag">main.js _renderAttrSpend + _showLevelUpFeedback</span>
+          — 原本單行 log「✦ STR 升級！」→ 現在：
+          (1) 大字 POPUP「✦ 力量 提升」+ level_up 音效 + 震動
+          (2) log 對白行（依 attr 隨機抽：「（你扛起平常那塊石頭——它沒變輕，是你的肩膀變寬了。）」）
+          (3) log 數字行「✦ 力量 → 16（消耗 47 EXP）」</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">FIX</span>
+        <span class="change-text"><strong>升級被狂熱擋住時的訊息更具體</strong>
+          — Fervor 觸發瓶頸後 spendExpOnAttr 會回 false。原本只 toast「EXP 不足」（誤導）。
+          現在區分「還在狂熱中，先去把訓練做完」/ 「身體還沒準備好——先把這份感覺練進去」/「EXP 不足」。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
        2026-04-24 狂熱系統（Fervor）落實 — 取代舊強迫症
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">

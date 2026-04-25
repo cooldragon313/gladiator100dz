@@ -1278,11 +1278,16 @@ const Game = (() => {
     badge.classList.toggle('breakthrough', status.source === 'breakthrough');
     const titleIcon = status.source === 'breakthrough' ? '🔥' : '⚡';
     const hint = status.source === 'breakthrough'
-                   ? `突破 ${status.targetLevel} 的必經儀式`
-                   : `練${status.name} EXP +25%`;
+                   ? `去${status.trainName}（突破必經）`
+                   : `去${status.trainName}`;
+    // 進度條視覺化（5 格，每完成 1 個亮一格）— 不顯示「N/5」純數字
+    let dots = '';
+    for (let i = 0; i < status.target; i++) {
+      dots += `<span class="fervor-dot${i < status.progress ? ' on' : ''}"></span>`;
+    }
     badge.innerHTML = `
       <div class="fervor-title">${titleIcon} ${status.name}狂熱</div>
-      <div class="fervor-progress">進度 ${status.progress} / ${status.target}</div>
+      <div class="fervor-dots">${dots}</div>
       <div class="fervor-hint">${hint}</div>
     `;
   }
@@ -2290,8 +2295,24 @@ const Game = (() => {
       const synergyAttr = _getTrainedAttrKey(act);
       const synergyHtml = _renderSynergyRosterHtml(synergyAttr);
 
-      html += `<button class="action-btn" ${titleAttr} ${disabled ? 'disabled' : clickStr}>
-        <div class="action-name">${badgeHtml}<span class="action-title">${act.name}${injuryHint}</span>${synergyHtml}</div>
+      // 🆕 2026-04-24：狂熱期間訓練按鈕視覺強化
+      //   對應狂熱屬性 → fervor-active（放大發光閃爍 + ⚡ icon）
+      //   其他訓練 → fervor-dimmed（縮小變灰）
+      let fervorClass = '';
+      let fervorIcon = '';
+      if (typeof Fervor !== 'undefined' && Fervor.isActive && Fervor.isActive()) {
+        const activeAttr = Fervor.activeAttr();
+        if (synergyAttr === activeAttr) {
+          fervorClass = ' action-btn-fervor-active';
+          fervorIcon  = '<span class="action-fervor-icon">⚡</span>';
+        } else if (synergyAttr) {
+          // 只 dim 其他訓練動作（休息/事件動作不 dim）
+          fervorClass = ' action-btn-fervor-dimmed';
+        }
+      }
+
+      html += `<button class="action-btn${fervorClass}" ${titleAttr} ${disabled ? 'disabled' : clickStr}>
+        <div class="action-name">${badgeHtml}${fervorIcon}<span class="action-title">${act.name}${injuryHint}</span>${synergyHtml}</div>
         <div class="action-cost">${costStr}</div>
       </button>`;
     });
@@ -2583,10 +2604,10 @@ const Game = (() => {
       if (moodDelta !== 0) Stats.modVital('mood', moodDelta);
       const extraStam = Fervor.getExtraStaminaCost(trainedAttr);
       if (extraStam > 0) Stats.modVital('stamina', -extraStam);
-      // 擺爛擲骰
+      // 擺爛擲骰（吐槽依「狂熱屬性 × 玩家正在做的錯誤訓練」對照）
       if (Math.random() < Fervor.getSlackChance(trainedAttr)) {
         fervorSlackHit = true;
-        const line = Fervor.getSlackLine();
+        const line = Fervor.getSlackLine(trainedAttr);
         if (line) addLog(line, '#8899aa', true, false);
       }
     }
@@ -4103,16 +4124,78 @@ const Game = (() => {
         const cost = Stats.expToNext(lvl);
         const ok = Stats.spendExpOnAttr(attr);
         if (ok) {
-          addLog(`✦ ${attr} 升級！(消耗 ${cost} EXP)  ${attr} → ${Stats.player[attr]}`, '#e8d070', true);
+          // 🆕 2026-04-24：升級反饋三層 — 大字 POPUP + 對白 log + 數字 log
+          _showLevelUpFeedback(attr, Stats.player[attr], cost);
           _fillCharSheet();
           if (typeof Stats.renderAll === 'function') Stats.renderAll();
           // 🆕 D.28：同步更新右上角「詳細」按鈕的升級徽章
           _updateDetailReadyBadge();
         } else {
-          showToast('EXP 不足');
+          // 🆕 2026-04-24：失敗也許是 fervor 擋住了 — 給更具體訊息
+          //   Fervor.checkBreakthroughNeeded 會吃掉這次升級並觸發狂熱
+          if (typeof Fervor !== 'undefined' && Fervor.isActive && Fervor.isActive() && Fervor.activeAttr() === attr) {
+            showToast('還在狂熱中，先去把訓練做完');
+          } else if ((p.exp[attr] || 0) < cost) {
+            showToast('EXP 不足');
+          } else {
+            // 大概率是剛剛 hook 觸發了狂熱（演出已經在跑）
+            showToast('身體還沒準備好——先把這份感覺練進去');
+          }
         }
       });
     });
+  }
+
+  // 🆕 2026-04-24：屬性升級反饋（大字 POPUP + 對白池）
+  //   不在 Stage 出現數字（rule § 0.1）— 數字只在下方 log 行
+  const _LEVEL_UP_LINES = {
+    STR: [
+      '（你扛起平常那塊石頭——它沒變輕，是你的肩膀變寬了。）',
+      '（你揮拳。對手接的時候退了半步。他自己也沒料到。）',
+      '（手心的繭又厚了一層。這層你會記得。）',
+    ],
+    DEX: [
+      '（你抓飛過去的蒼蠅——抓到了。你自己嚇一跳。）',
+      '（你拋接碎石的時候，手指像是知道每顆石頭的軌跡。）',
+    ],
+    CON: [
+      '（你跑完三圈之後還能說話。昨天不行。）',
+      '（被人撞到——你沒退。對方退了。）',
+    ],
+    AGI: [
+      '（瓦罐從架上滑落——你接住了。沒看見它掉。動作先到。）',
+      '（長官的鞭子甩過來——你閃了。閃完才意識到。）',
+    ],
+    WIL: [
+      '（疼痛還在，但變成了你可以放在旁邊的東西。）',
+      '（長官在罵你——他的聲音很遠。）',
+    ],
+    LUK: [
+      '（早上踩到的那塊石頭——平常你會跌倒。今天沒有。）',
+    ],
+  };
+
+  function _showLevelUpFeedback(attr, newLvl, cost) {
+    const attrNameMap = { STR:'力量', DEX:'靈巧', CON:'體質', AGI:'反應', WIL:'意志', LUK:'運氣' };
+    const attrName = attrNameMap[attr] || attr;
+    const pool = _LEVEL_UP_LINES[attr] || [];
+    const line = pool.length ? pool[Math.floor(Math.random() * pool.length)] : '';
+
+    // 大字 POPUP（無數字）
+    if (typeof Stage !== 'undefined' && Stage.popupBig) {
+      Stage.popupBig({
+        icon: '✦',
+        title: `${attrName} 提升`,
+        subtitle: '',
+        color: 'gold',
+        duration: 1500,
+        shake: true,
+        sound: 'level_up',
+      });
+    }
+    // 下方 log：對白行（情緒）+ 數字行
+    if (line) addLog(line, '#d4af37', true, false);
+    addLog(`✦ ${attrName} → ${newLvl}（消耗 ${cost} EXP）`, '#e8d070', false, false);
   }
 
   // ── R3: 當前狀態 ────────────────────────────────
@@ -4866,8 +4949,8 @@ const Game = (() => {
         fervor: {
           active: null, source: null, progress: 0, target: 5,
           targetLevel: null, startDay: null, naturalCooldownUntil: null,
-          trainingLog: { STR:[], AGI:[], CON:[], WIL:[] },
-          passedBreakthroughs: { STR:[], AGI:[], CON:[], WIL:[] },
+          trainingLog: { STR:[], DEX:[], AGI:[], CON:[], WIL:[] },
+          passedBreakthroughs: { STR:[], DEX:[], AGI:[], CON:[], WIL:[] },
         },
       });
       Flags.clear();          // 清空所有故事旗標

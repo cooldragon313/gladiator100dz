@@ -52,8 +52,8 @@ const ACTIONS = {
   //                 （LUK 不可練，留給事件/運氣系統；sparring 仍為隊友邀請事件）
   // injuryPart：受傷部位（輕量版 v1）。
   basicSwing: {
-    id: 'basicSwing', name: '基礎揮砍',
-    desc: '反覆揮動武器，磨礪攻擊動作。',
+    id: 'basicSwing', name: '推舉石頭',
+    desc: '反覆抬起、推舉、放下沉重的石塊。鍛鍊力量。',
     slots: 1, staminaCost: 20, foodCost: 10,
     fields: ['stdTraining'],
     // 🆕 D.26：訓練本身是被迫勞動，會扣心情
@@ -65,8 +65,8 @@ const ACTIONS = {
     injuryPart: '手臂',
   },
   preciseStab: {
-    id: 'preciseStab', name: '精準刺擊',
-    desc: '對木樁反覆刺擊，鍛鍊手眼協調與出手精度。',
+    id: 'preciseStab', name: '投接碎石',
+    desc: '同伴拋來碎石，你接住、再丟回。鍛鍊靈巧。',
     slots: 1, staminaCost: 20, foodCost: 10,
     fields: ['stdTraining'],
     effects: [
@@ -77,8 +77,8 @@ const ACTIONS = {
     injuryPart: '手部',
   },
   endurance: {
-    id: 'endurance', name: '耐力訓練',
-    desc: '全副武裝奔跑，強化體質與持久力。',
+    id: 'endurance', name: '杖擊承受',
+    desc: '同伴用木杖擊打你的軀幹，你撐住不倒。鍛鍊體質。',
     slots: 1, staminaCost: 20, foodCost: 12,
     fields: ['stdTraining'],
     effects: [
@@ -89,8 +89,8 @@ const ACTIONS = {
     injuryPart: '軀幹',
   },
   footwork: {
-    id: 'footwork', name: '步法練習',
-    desc: '反覆移動步伐，提高靈敏與閃躲能力。',
+    id: 'footwork', name: '亂棍格擋',
+    desc: '同伴從不固定方向揮棍，你閃避或格擋。鍛鍊反應。',
     slots: 1, staminaCost: 20, foodCost: 10,
     fields: ['stdTraining'],
     effects: [
@@ -101,8 +101,8 @@ const ACTIONS = {
     injuryPart: '腿部',
   },
   meditation: {
-    id: 'meditation', name: '冥想調息',
-    desc: '靜坐調整呼吸，磨礪意志。不消耗體力，也不補心情——這是修行，不是放鬆。',
+    id: 'meditation', name: '打坐冥想',
+    desc: '盤坐、閉眼、調呼吸。磨礪意志。不消耗體力，也不補心情——這是修行，不是放鬆。',
     slots: 1, staminaCost: 0, foodCost: 0,
     fields: ['stdTraining'],
     // 🆕 D.26：冥想純意志訓練。不扣不補心情，不補體力。

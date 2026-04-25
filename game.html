@@ -319,6 +319,52 @@ html, body {
   50%      { transform: translate(-3px, 1px); }
 }
 
+/* 🆕 2026-04-24 大字 POPUP（共用元件 — 狂熱觸發/結束、屬性升級用） */
+.stage-popup-big {
+  position: fixed;
+  top: 32%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9999;
+  pointer-events: none;
+  text-align: center;
+  text-shadow: 0 0 20px currentColor, 0 0 40px currentColor;
+  font-family: 'Noto Serif TC', Georgia, serif;
+  letter-spacing: .12em;
+  opacity: 0;
+}
+.stage-popup-big .popup-icon {
+  font-size: 48px;
+  line-height: 1;
+  margin-bottom: 8px;
+  filter: drop-shadow(0 0 12px currentColor);
+}
+.stage-popup-big .popup-title {
+  font-size: 56px;
+  font-weight: 900;
+  line-height: 1.15;
+  text-shadow: 0 0 18px currentColor, 0 2px 6px rgba(0,0,0,0.85);
+}
+.stage-popup-big .popup-subtitle {
+  font-size: 18px;
+  margin-top: 10px;
+  letter-spacing: .14em;
+  opacity: 0.92;
+  text-shadow: 0 0 8px currentColor, 0 2px 4px rgba(0,0,0,0.85);
+}
+.stage-popup-big.color-gold  { color: #f0d068; }
+.stage-popup-big.color-red   { color: #e87060; }
+.stage-popup-big.color-green { color: #88cc88; }
+.stage-popup-big.color-cyan  { color: #88c8e0; }
+
+@keyframes popupBigShow {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+  15%  { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+  25%  { transform: translate(-50%, -50%) scale(1.0); }
+  75%  { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.05); }
+}
+
 /* 🆕 2026-04-24 狂熱徽章（疊在 scene-view 左上角，金色發光） */
 #fervor-badge {
   position: absolute;
@@ -343,9 +389,22 @@ html, body {
   text-shadow: 0 0 4px rgba(212,175,55,0.5);
   margin-bottom: 2px;
 }
-#fervor-badge .fervor-progress {
-  font-size: 11px;
-  color: #c8ae6a;
+#fervor-badge .fervor-dots {
+  display: flex;
+  gap: 4px;
+  margin: 3px 0 2px;
+}
+#fervor-badge .fervor-dot {
+  width: 16px;
+  height: 6px;
+  border-radius: 2px;
+  background: rgba(212,175,55,0.18);
+  border: 1px solid rgba(212,175,55,0.45);
+}
+#fervor-badge .fervor-dot.on {
+  background: linear-gradient(180deg, #f4d870, #d4a830);
+  box-shadow: 0 0 6px rgba(244,216,112,0.7);
+  border-color: #f4d870;
 }
 #fervor-badge .fervor-hint {
   font-size: 10px;
@@ -3251,6 +3310,50 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   line-height: 1.4;
 }
 .action-btn:hover:not([disabled]) .action-name { color: #e8c090; }
+
+/* 🆕 2026-04-24：狂熱期間訓練按鈕視覺強化
+   對應屬性 → 放大發光呼吸閃爍 + ⚡ icon
+   其他訓練 → 縮小變灰
+   讓玩家一眼看出「現在就是要練那個」 */
+.action-btn-fervor-active {
+  background: linear-gradient(135deg, rgba(80,55,15,0.95), rgba(50,35,10,0.95)) !important;
+  border: 1.5px solid #f4d870 !important;
+  box-shadow: 0 0 18px rgba(244,216,112,0.55), inset 0 0 10px rgba(244,216,112,0.15);
+  transform: scale(1.06);
+  transform-origin: left center;
+  animation: fervor-active-pulse 2.2s ease-in-out infinite;
+  position: relative;
+  z-index: 2;
+}
+.action-btn-fervor-active .action-name { color: #f4d870 !important; }
+.action-btn-fervor-active .action-fervor-icon {
+  color: #f4d870;
+  font-size: 18px;
+  text-shadow: 0 0 6px rgba(244,216,112,0.85);
+  margin-right: 2px;
+}
+.action-btn-fervor-active:hover:not([disabled]) {
+  background: linear-gradient(135deg, rgba(110,70,18,0.98), rgba(70,45,12,0.98)) !important;
+  border-color: #fce088 !important;
+}
+@keyframes fervor-active-pulse {
+  0%, 100% {
+    box-shadow: 0 0 14px rgba(244,216,112,0.45), inset 0 0 8px rgba(244,216,112,0.12);
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(244,216,112,0.85), inset 0 0 14px rgba(244,216,112,0.25);
+  }
+}
+.action-btn-fervor-dimmed {
+  opacity: 0.55;
+  filter: grayscale(0.55);
+  transform: scale(0.94);
+  transform-origin: left center;
+}
+.action-btn-fervor-dimmed:hover:not([disabled]) {
+  opacity: 0.75;
+  filter: grayscale(0.3);
+}
 
 /* 🆕 D.26：訓練屬性徽章（左側彩色小標籤） */
 .attr-badge {
