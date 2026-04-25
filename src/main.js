@@ -945,6 +945,7 @@ const Game = (() => {
           ], {
             onComplete: () => {
               _grantSolAmulet();
+              _endOfSandWash();   // 🆕 主人 +5 + 塔倫宣布開放競技場
               renderAll();
             },
           });
@@ -990,6 +991,7 @@ const Game = (() => {
           teammates.modAffection('officer', -8);  // 長官鄙視你
         }
         addLog('你活下來了。整個訓練所都知道你輸了——但索爾記得你。', '#8b0000', true, true);
+        _endOfSandWash();   // 🆕 2026-04-25 沙洗結束 — 競技場開放（玩家輸了主人沒印象，但仍可參賽）
         renderAll();
       },
     });
@@ -1004,6 +1006,7 @@ const Game = (() => {
     Flags.set('sol_dead', true);
     Flags.set('sol_died_day', Stats.player.day);
     _grantSolAmulet();   // 🆕 2026-04-20 索爾死 → 獲得女兒掛件
+    _endOfSandWash();    // 🆕 2026-04-25 主人 +5 + 塔倫宣布開放競技場
     renderAll();
   }
 
@@ -1036,6 +1039,122 @@ const Game = (() => {
 
     addLog('✦ 你獲得了：女兒的掛件（LUK +1）', '#d4af37', true, true);
     addLog('「一塊歪歪斜斜的木牌。女兒刻的。」', '#a89070', false, false);
+  }
+
+  // 🆕 2026-04-25：沙洗結束 — 主人留下印象 + 塔倫宣布開放競技場
+  //   兩個沙洗結局（贏 / 輸給索爾被拖走）都會觸發開放競技場
+  //   但只有玩家「贏」（活下來、索爾死）才有 master +5 印象
+  //   輸了被拖走的玩家 = 主人覺得你是廢物 → 沒印象
+  function _endOfSandWash() {
+    if (typeof Flags === 'undefined') return;
+    if (Flags.has('sand_wash_aftermath_done')) return;
+    Flags.set('sand_wash_aftermath_done', true);
+    Flags.set('arena_unlocked', true);
+
+    const playerWon = !Flags.has('trial_lost_to_sol');
+
+    // 延遲一下、避免跟前面的 popup / amulet 演出搶畫面
+    setTimeout(() => {
+      // 玩家贏 → 主人對你留下第一印象（你活下來了 = 有用）
+      if (playerWon && typeof teammates !== 'undefined' && teammates.modAffection) {
+        teammates.modAffection('masterArtus', 5);
+      }
+      const lines = playerWon
+        ? [
+            { text: '（沙地上的痕跡還沒掃乾淨。）' },
+            { text: '（塔倫長官走到你們面前。）' },
+            { speaker: '塔倫長官', text: '聽好。' },
+            { speaker: '塔倫長官', text: '從今天開始——你們可以報名參加競技場了。' },
+            { speaker: '塔倫長官', text: '主人會看著你們。' },
+            { speaker: '塔倫長官', text: '⋯⋯誰能上、誰被淘汰，就看你們自己。' },
+            { text: '（他轉身走了。）' },
+            { text: '（你身上的沙還沒拍乾淨。但你知道——這是你還能再呼吸一次的理由。）' },
+          ]
+        : [
+            { text: '（你躺在床上。能感覺到的只有疼。）' },
+            { text: '（外面遠遠傳來塔倫長官對其他人講話的聲音。）' },
+            { speaker: '塔倫長官', text: '⋯⋯從今天開始，你們可以報名參加競技場了。' },
+            { speaker: '塔倫長官', text: '能上場的——機會自己抓。' },
+            { text: '（你聽得清楚。但他沒提到你。）' },
+            { text: '（你也不知道自己還算不算「能上場」的那群人。）' },
+          ];
+
+      if (typeof DialogueModal !== 'undefined') {
+        DialogueModal.play(lines, {
+          onComplete: () => {
+            const msg = playerWon
+              ? '✦ 競技場已開放報名。主人對你有了第一印象。'
+              : '✦ 競技場已開放報名。但主人沒注意到你。';
+            addLog(msg, '#d4af37', true, true);
+            renderAll();
+          },
+        });
+      } else {
+        addLog('✦ 競技場已開放報名。', '#d4af37', true, true);
+      }
+    }, 1500);
+  }
+
+  // 🆕 2026-04-25 TODO：達官顯貴客人事件（user 提案、未實作）
+  //   構想：
+  //     - 主人在 audience 時 + 額外 5% 機率 → 帶「客人 ???」進來
+  //     - 客人是新 NPC（待設計）— 暫定 ID 'distinguishedGuest'
+  //       可能是領主使者 / 鄰邦商人 / 競爭主人 / 賭徒
+  //     - 觸發後：主人公開要求場內對打、無斬首系統（sparring 模式）
+  //     - 對手：在場其他 teammate（最強的那個）
+  //     - 戰鬥贏 → 客人 +X 好感、主人 +5、玩家 fame +小
+  //     - 戰鬥輸 → 客人 -X、主人 -3、玩家挨笑
+  //   設計目的：場外故事連結、給玩家 fame 來源 + 客人關係累積
+  //   相關 docs/quests/distinguished-guest.md 還沒寫
+  //   實作前要先：
+  //     1. npc.js 加 distinguishedGuest NPC 定義
+  //     2. 設計 4-5 種客人類型（一個 session 一種隨機）
+  //     3. battle.js 已支援 sparring:true 模式（無斬首），可直接用
+  //     4. 寫對話池、結算規則
+  //   暫不實作、留待 user 確認設計後再開工。
+
+  // 🆕 2026-04-25：競技場 3 連勝 → 主人召見（一次性）
+  //   觸發條件：onWin 處檢查 winStreak >= 3 + flag master_summon_3wins_done 未 set
+  //   給 master +20、officer +5、加完整對話
+  function _playMasterSummon3WinsScene() {
+    const lines = [
+      { text: '（侍從匆匆來找你。）' },
+      { speaker: '侍從', text: '主人有請。' },
+      { text: '（你被帶到主人房門口。塔倫長官已經站在那裡。）' },
+      { text: '（塔倫的臉色很複雜——他好像沒料到主人這麼快就找你。）' },
+      { speaker: '塔倫長官', text: '⋯⋯主人在等你。進去。' },
+      { text: '（你推門進去。主人坐在窗邊喝酒、沒抬頭。）' },
+      { speaker: '主人', text: '⋯⋯三場了。' },
+      { speaker: '主人', text: '我以為你撐不過第二場。' },
+      { text: '（他終於抬頭看你。）' },
+      { speaker: '主人', text: '坐。' },
+      { text: '（你坐下。他打量了你一會兒。）' },
+      { speaker: '主人', text: '我手底下的人，三場連贏的不多。' },
+      { speaker: '主人', text: '⋯⋯記住我的臉。' },
+      { speaker: '主人', text: '以後該怎麼上場、該怎麼活——你自己想清楚。' },
+      { text: '（他揮揮手。）' },
+      { speaker: '主人', text: '回去吧。' },
+      { text: '（你出來。塔倫的眼神變了——從複雜變成警惕。）' },
+      { text: '（你不知道是好事還是壞事。）' },
+    ];
+    if (typeof DialogueModal !== 'undefined') {
+      DialogueModal.play(lines, {
+        onComplete: () => {
+          if (typeof teammates !== 'undefined') {
+            teammates.modAffection('masterArtus', 20);
+            teammates.modAffection('officer', 5);
+          }
+          addLog('✦ 主人記住了你的臉。（masterArtus +20、officer +5）', '#d4af37', true, true);
+          renderAll();
+        },
+      });
+    } else {
+      if (typeof teammates !== 'undefined') {
+        teammates.modAffection('masterArtus', 20);
+        teammates.modAffection('officer', 5);
+      }
+      addLog('✦ 主人召見：你連勝三場、主人記住了你。（masterArtus +20）', '#d4af37', true, true);
+    }
   }
 
   function _showTimelineBattleBtn(ev) {
@@ -1086,7 +1205,16 @@ const Game = (() => {
         if (typeof teammates !== 'undefined') {
           teammates.modAffection('masterArtus', 5);
           teammates.modAffection('officer', 3);
-          addLog('（主人聽到消息了。塔倫長官也記下這一筆。）', '#c8a060', false);
+          addLog('(主人聽到消息了。塔倫長官也記下這一筆。)', '#c8a060', false);
+        }
+        // 🆕 2026-04-25：連 3 場勝 → 主人召見事件（一次性）
+        //   觸發條件：winStreak >= 3 + 還沒觸發過
+        //   給 master +20、officer +5 + 開啟主人首次親見對話
+        const ws = (Stats.player.combatStats?.winStreak || 0);
+        if (ws >= 3 && !Flags.has('master_summon_3wins_done')) {
+          Flags.set('master_summon_3wins_done', true);
+          // 延遲一下、避免跟前面的對話搶畫面
+          setTimeout(() => _playMasterSummon3WinsScene(), 1800);
         }
         // 🆕 2026-04-25：戰鬥後機率標記武器需修（葛拉階段 3 觸發來源）
         if (typeof BlacksmithEvents !== 'undefined' && BlacksmithEvents.markWeaponNeedsRepair) {

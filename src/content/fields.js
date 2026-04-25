@@ -50,7 +50,12 @@ const FIELDS = {
       // 觀眾/權威（事件觸發目標）
       // 🆕 2026-04-25 v10：監督官（巴爺）大幅提高、塔倫長官加進來偶爾露面
       { npcId: 'overseer',      role: 'audience', chance: 0.85 },   // 巴爺 — 訓練場主場
-      { npcId: 'officer',       role: 'audience', chance: 0.20 },   // 塔倫 — 偶爾出現（玩家需累積好感才能進巴爺主線揭露）
+      // 🆕 2026-04-25：主人/塔倫進 audience pool（房子後院、偶爾喵一下）
+      //   主人出現 → 塔倫必跟（主人巡訓練場永遠有塔倫陪同）
+      //   實作：rollFieldNPCs 處理 forcePair 邏輯（npc.js）
+      //   也方便達官顯貴客人事件、競技場報名後段觸發
+      { npcId: 'officer',       role: 'audience', chance: 0.25 },   // 塔倫 — 偶爾出現
+      { npcId: 'masterArtus',   role: 'audience', chance: 0.15, forcePair: 'officer' },  // 主人 — 帶塔倫同框
       { npcId: 'blacksmithGra', role: 'audience', chance: 0.30 },
       { npcId: 'melaKook',      role: 'audience', chance: 0.25 },
       { npcId: 'masterServant', role: 'audience', chance: 0.20 },
@@ -90,6 +95,8 @@ function rollFieldNPCs(fieldId) {
 
   // Step 2: random fill, skip already-forced NPCs
   const curDay = (typeof Stats !== 'undefined') ? (Stats.player?.day || 1) : 1;
+  // 🆕 2026-04-25：collect rolled NPCs first（之後 step 3 處理 forcePair）
+  const rolledIds = new Set();
   (f.characters || []).forEach(entry => {
     if (forcedIds.has(entry.npcId)) return;
     // 🆕 檢查 NPC 是否還活著（索爾 Day 5 後 alive=false 就不再出現）
@@ -102,7 +109,22 @@ function rollFieldNPCs(fieldId) {
     }
     if (Math.random() < chance) {
       (entry.role === 'teammate' ? tmList : audList).push(entry.npcId);
+      rolledIds.add(entry.npcId);
     }
+  });
+
+  // 🆕 2026-04-25 Step 3：forcePair — 主人出現時自動帶塔倫進來
+  //   設計：房子後院、主人巡訓練場一定有塔倫陪同
+  (f.characters || []).forEach(entry => {
+    if (!entry.forcePair) return;
+    if (!rolledIds.has(entry.npcId)) return;       // 自己沒進來、不需要 pair
+    const pairId = entry.forcePair;
+    if (rolledIds.has(pairId) || forcedIds.has(pairId)) return;  // 已在
+    // 找 pair 的 entry 確認 role
+    const pairEntry = (f.characters || []).find(e => e.npcId === pairId);
+    const role = pairEntry ? pairEntry.role : 'audience';
+    (role === 'teammate' ? tmList : audList).push(pairId);
+    rolledIds.add(pairId);
   });
 
   return { teammates: tmList, audience: audList };

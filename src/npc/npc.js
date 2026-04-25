@@ -878,7 +878,7 @@ const teammates = (() => {
     officer: {
       id: 'officer', name: '塔倫長官',
       role: 'audience',
-      title: '競技場長官',
+      title: '訓練場長官',
       desc: '管理整個競技場的實權人物。他的一個眼神能讓你獲得特權，也能讓你消失。',
       baseAffection: 0,
       personality: 'cunning',

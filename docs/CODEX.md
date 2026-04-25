@@ -552,6 +552,15 @@ player.wounds.head = null | { severity:1-3, daysElapsed } | { special:'concussio
 | `gra_weapon_t2` | 階段 4 — 任一武器已升 T2（一次性 flag）| `_grantWeaponUpgrade` |
 | `gra_upgraded_{weaponId}` | 個別武器升級紀錄（避免重複觸發同把武器升級）| `_grantWeaponUpgrade` |
 
+### 🆕 沙洗 / 競技場 / 主人事件 flag（2026-04-25）
+
+| Flag | 意義 | 寫入時機 |
+|---|---|---|
+| `sand_wash_aftermath_done` | 沙洗結束流程已跑（主人印象 + 競技場開放）| `_endOfSandWash`（一次性）|
+| `arena_unlocked` | 競技場已開放報名 | 沙洗結束 |
+| `trial_lost_to_sol` | 玩家輸給索爾被拖走（影響主人印象）| `_trialPlayerLostToSol` |
+| `master_summon_3wins_done` | 主人召見 3 連勝事件已觸發（一次性）| 競技場 onWin 觸發後 |
+
 ### 🆕 監督官巴爺主線 flag（v10，2026-04-25）
 
 | Flag | 意義 | 寫入時機 |

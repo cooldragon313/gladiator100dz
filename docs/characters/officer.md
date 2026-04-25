@@ -10,7 +10,7 @@
 | 項目 | 值 |
 |---|---|
 | Role | `audience` |
-| 職稱 | 競技場長官 |
+| 職稱 | 訓練場長官 |
 | favoredAttr | null（非訓練 NPC） |
 | baseAffection | 0 |
 | personality | cunning |
