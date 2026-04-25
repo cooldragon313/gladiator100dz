@@ -3161,11 +3161,33 @@ const Game = (() => {
       }
     }
 
-    // 🆕 2026-04-25：在場觀眾被動好感（任何訓練都觸發、機率版）
-    //   原 melaKook +1/+2 邏輯擴成所有觀眾型 NPC
-    //   機率 = 每場 chance × 每天 ~5 場訓練 → 平均 ~1-2 點/天/NPC
-    //   100 天能累積 ~30-60 點，跟 v10 巴爺主線觸發門檻（40-60）相容
-    //   解決 v10 巴爺主線「主人 60 / 塔倫 40 / 巴爺 60」永遠刷不到的問題
+    // 🆕 2026-04-25：訓練後在場 NPC 被動好感（觀眾 + 隊友都吃）
+    //   觀眾型：melaKook / overseer / officer / masterArtus 等（依角色人設）
+    //   隊友型：在場練同屬性 = 共鳴感 +1（匹配 favoredAttr 機率 50%）
+    //          只在場 = 看你練 +1（不匹配 30%）
+    //   赫克托敵對路線（hector_hostile_path）= 永遠不加（他不喜歡你）
+    //   發亮特效已 modAffection hook 自動觸發（綠光好感、紅光惡感）
+    if (hasAttrEffect && typeof teammates !== 'undefined') {
+      // ─── 隊友被動好感（v10b 新加）───
+      //   匹配 favoredAttr：50% / +1（一起練同屬性 = 共鳴）
+      //   不匹配：15%   / +1（只是看你練）← 機率低、避免奧蘭等永駐隊友破表
+      //   赫克托敵對路線跳過（他不會給你好感）
+      const tmList = currentNPCs.teammates || [];
+      tmList.forEach(npcId => {
+        if (!npcId) return;
+        const npc = teammates.getNPC(npcId);
+        if (!npc) return;
+        if (npc.alive === false) return;
+        if (npcId === 'hector' && typeof Flags !== 'undefined' && Flags.has('hector_hostile_path')) return;
+        const matchAttr = (trainedAttr && npc.favoredAttr === trainedAttr);
+        const chance = matchAttr ? 0.50 : 0.15;
+        if (Math.random() < chance) {
+          teammates.modAffection(npcId, 1);
+        }
+      });
+    }
+
+    // 🆕 2026-04-25：在場觀眾被動好感（觀眾型 NPC 規則）
     if (hasAttrEffect && typeof teammates !== 'undefined') {
       const aud = currentNPCs.audience || [];
       // 各觀眾型 NPC 的被動加成規則（依角色人設）
