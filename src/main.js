@@ -1609,19 +1609,66 @@ const Game = (() => {
   };
 
   /**
-   * 🆕 2026-04-19 偷懶被抓鞭刑特效：紅光 + 震動 + HP -5 + 音效
+   * 🆕 2026-04-19 偷懶被抓鞭刑特效：強紅光 + 大震動 + HP -5 + 音效
+   * 🆕 2026-04-24：改用 DialogueModal 演出（不只 log），玩家會看到「被抓」對話框
+   * @param {Object} [opts]
+   *   captor — 抓人者（'overseer' / 'officer' / 'masterServant'）；
+   *            null = 同場有 watcher 一起看見的情境
    */
-  function _playWhipPunishment() {
-    // 紅光閃爍 + 震動
-    if (typeof _flashStageRed === 'function') _flashStageRed();
-    if (typeof _shakeGameRoot === 'function') _shakeGameRoot();
-    // 音效（用現有 injury synth）
+  function _playWhipPunishment(opts) {
+    // 強紅光 + 大震動 + 音效（在開對話框前）
+    if (typeof _flashStageRed === 'function') _flashStageRed(true);
+    if (typeof _shakeGameRoot === 'function') _shakeGameRoot(true);
     if (typeof SoundManager !== 'undefined' && SoundManager.playSynth) {
       try { SoundManager.playSynth('injury'); } catch (e) { /* ignore */ }
     }
-    // HP 扣 5
     Stats.modVital('hp', -5);
-    addLog('💥 咻——！鞭子抽在你背上。（❤️ -5）', '#cc3333', true, true);
+
+    // 對白：依 captor 變化主導者口氣
+    const captor = opts && opts.captor;
+    let scene;
+    if (captor === 'officer') {
+      scene = [
+        { text: '（你以為沒人——但你錯了。）' },
+        { speaker: '塔倫長官', text: '⋯⋯果然在這裡。' },
+        { text: '（鞭子已經在他手裡。）', effect: 'shake' },
+        { text: '（咻——！）', effect: 'shake-big' },
+        { speaker: '主角', text: '啊——！' },
+        { speaker: '塔倫長官', text: '廢物。浪費口糧。' },
+        { text: '（他甩了甩鞭子，走了。）' },
+      ];
+    } else if (captor === 'masterServant') {
+      scene = [
+        { text: '（轉角——一雙眼睛盯住你。）' },
+        { speaker: '侍從', text: '哦？躲在這裡？' },
+        { text: '（他從袖子裡抽出短鞭。）', effect: 'shake' },
+        { text: '（咻——！）', effect: 'shake-big' },
+        { speaker: '主角', text: '唔——！' },
+        { speaker: '侍從', text: '我會報告大人的。' },
+      ];
+    } else {
+      // 預設：監督官（overseer）
+      scene = [
+        { text: '（你以為沒人——但你錯了。）' },
+        { speaker: '監督官', text: '那邊那個！給我站起來！' },
+        { text: '（他衝過來，鞭子已經舉起。）', effect: 'shake' },
+        { text: '（咻——！）', effect: 'shake-big' },
+        { speaker: '主角', text: '啊——！' },
+        { text: '（鞭子抽在你背上。火燒一樣的痛。）' },
+        { speaker: '監督官', text: '下次再讓我看到——就不只一鞭。' },
+      ];
+    }
+
+    if (typeof DialogueModal !== 'undefined') {
+      DialogueModal.play(scene, {
+        onComplete: () => {
+          addLog('💥 咻——！鞭子抽在你背上。（❤️ -5）', '#cc3333', true, true);
+          if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
+        },
+      });
+    } else {
+      addLog('💥 咻——！鞭子抽在你背上。（❤️ -5）', '#cc3333', true, true);
+    }
   }
 
   function _handleSlacking() {
@@ -1637,8 +1684,12 @@ const Game = (() => {
       // 同時把心情加成減半（被瞪哪有心情爽）
       Stats.modVital('mood', -8);   // 抵銷 effects 加的 +15 之中的 8
       // 🆕 有敵意 watcher（非 ally）時 → 鞭刑
-      const hostileWatcher = watchers.some(id => !_SLACKING_WATCHERS[id].isAlly);
-      if (hostileWatcher) _playWhipPunishment();
+      // 🆕 2026-04-24：依 watcher 順序選 captor（officer > masterArtus > overseer > masterServant > hector）
+      const hostile = watchers.filter(id => !_SLACKING_WATCHERS[id].isAlly);
+      if (hostile.length > 0) {
+        const captor = hostile[0];
+        _playWhipPunishment({ captor });
+      }
 
       watchers.forEach(id => {
         const rule = _SLACKING_WATCHERS[id];
@@ -1674,8 +1725,8 @@ const Game = (() => {
       const angryMood = Math.round(rule.moodHit * 1.3);
       teammates.modAffection(caught, angryAff);
       Stats.modVital('mood', angryMood);
-      // 🆕 2026-04-19 被巡邏抓包 → 鞭刑特效
-      _playWhipPunishment();
+      // 🆕 2026-04-19 被巡邏抓包 → 鞭刑特效（DialogueModal 演出）
+      _playWhipPunishment({ captor: caught });
       addLog('【被抓包】' + rule.line, rule.color, true, true);
       addLog(`你以為沒人在——但你錯了。額外扣心情與好感。`, '#cc5533', true, false);
     } else {
@@ -5747,22 +5798,26 @@ const Game = (() => {
   }
 
   // 🆕 D.28：舞台紅光閃動（被鞭等痛感演出）
-  function _flashStageRed() {
+  // 🆕 2026-04-24：strong 參數 — 紅光更紅、覆蓋更久（用於被鞭等重戲）
+  function _flashStageRed(strong) {
     const view = document.getElementById('scene-view');
     if (!view) return;
     const flash = document.createElement('div');
-    flash.className = 'stage-red-flash';
+    flash.className = strong ? 'stage-red-flash strong' : 'stage-red-flash';
     view.appendChild(flash);
-    setTimeout(() => { if (flash.parentNode) flash.remove(); }, 600);
+    const dur = strong ? 1200 : 600;
+    setTimeout(() => { if (flash.parentNode) flash.remove(); }, dur);
   }
-  // 🆕 D.28：全畫面震動
-  function _shakeGameRoot() {
+  // 🆕 D.28：全畫面震動 / 🆕 2026-04-24：strong 參數 — 振幅 ×2、持續更久
+  function _shakeGameRoot(strong) {
     const root = document.getElementById('game-root');
     if (!root) return;
-    root.classList.remove('shake-pain');
+    const cls = strong ? 'shake-pain-strong' : 'shake-pain';
+    root.classList.remove('shake-pain', 'shake-pain-strong');
     void root.offsetHeight;   // force reflow
-    root.classList.add('shake-pain');
-    setTimeout(() => root.classList.remove('shake-pain'), 500);
+    root.classList.add(cls);
+    const dur = strong ? 800 : 500;
+    setTimeout(() => root.classList.remove(cls), dur);
   }
 
   // 🆕 Day 1 結尾：奧蘭握手（依玩家之前的表現變化）
