@@ -1080,6 +1080,10 @@ const Game = (() => {
         const reward = 15 + Math.floor(Math.random() * 16);  // 15~30
         Stats.modMoney(reward);
         addLog(`侍從遞來一小袋銅幣。「大人說這是你的。」（+${reward}）`, '#c8a060', false);
+        // 🆕 2026-04-25：戰鬥後機率標記武器需修（葛拉階段 3 觸發來源）
+        if (typeof BlacksmithEvents !== 'undefined' && BlacksmithEvents.markWeaponNeedsRepair) {
+          BlacksmithEvents.markWeaponNeedsRepair({ chance: 0.30 });
+        }
         renderAll();
         // Day 100 萬骸祭獲勝 → 進入結局判定器
         if (ev.id === 'final_festival' && typeof Endings !== 'undefined' && typeof Endings.pickAndPlay === 'function') {
@@ -1257,6 +1261,28 @@ const Game = (() => {
         slot.onclick = null;
       }
     }
+  }
+
+  // 🆕 2026-04-25：好感變動發光反饋
+  //   teammates.modAffection 觸發 → 找到對應 tm-slot/aud-slot → 加 CSS 動畫
+  //   delta > 0 = 綠光、delta < 0 = 紅光
+  function flashNpcSlot(npcId, color) {
+    if (!npcId || !color) return;
+    const cur = (typeof GameState !== 'undefined' && GameState.getCurrentNPCs)
+                  ? GameState.getCurrentNPCs() : currentNPCs;
+    if (!cur) return;
+    const tmIdx  = (cur.teammates || []).indexOf(npcId);
+    const audIdx = (cur.audience  || []).indexOf(npcId);
+    let slotEl = null;
+    if (tmIdx  >= 0) slotEl = document.getElementById('tm-slot-'  + tmIdx);
+    else if (audIdx >= 0) slotEl = document.getElementById('aud-slot-' + audIdx);
+    if (!slotEl) return;   // NPC 不在場 → 不顯示（合理：你看不到的人好感變了沒提示）
+
+    const cls = (color === 'green') ? 'aff-glow-positive' : 'aff-glow-negative';
+    slotEl.classList.remove('aff-glow-positive', 'aff-glow-negative');
+    void slotEl.offsetWidth;   // 強制 reflow 才能重播動畫
+    slotEl.classList.add(cls);
+    setTimeout(() => slotEl.classList.remove(cls), 1200);
   }
 
   // 🆕 2026-04-24 狂熱進度徽章（左上角金色框）
@@ -3443,9 +3469,13 @@ const Game = (() => {
       if (typeof DoctorEvents !== 'undefined' && DoctorEvents.tryVisit) {
         try { DoctorEvents.tryVisit(); } catch (e) { console.error('[Doctor]', e); }
       }
-      // 鐵匠葛拉事件（首件護甲三幕）
-      if (typeof BlacksmithEvents !== 'undefined' && BlacksmithEvents.tryFirstArmor) {
-        try { BlacksmithEvents.tryFirstArmor(); } catch (e) { console.error('[Blacksmith]', e); }
+      // 鐵匠葛拉事件鏈（階段 2 / 3 / 4 — 一個觸發後其他自動延後到下次晨起）
+      if (typeof BlacksmithEvents !== 'undefined') {
+        try {
+          if (BlacksmithEvents.tryFirstArmor()) { /* 階段 2 完成、不串其他 */ }
+          else if (BlacksmithEvents.tryFirstRepair()) { /* 階段 3 */ }
+          else if (BlacksmithEvents.tryWeaponUpgradeT2) { BlacksmithEvents.tryWeaponUpgradeT2(); }
+        } catch (e) { console.error('[Blacksmith]', e); }
       }
       _uiLocked = false;   // 🆕 晨起演出全部完成，解鎖 UI
     } else {
@@ -3455,8 +3485,13 @@ const Game = (() => {
       if (typeof DoctorEvents !== 'undefined' && DoctorEvents.tryVisit) {
         try { DoctorEvents.tryVisit(); } catch (e) { console.error('[Doctor]', e); }
       }
-      if (typeof BlacksmithEvents !== 'undefined' && BlacksmithEvents.tryFirstArmor) {
-        try { BlacksmithEvents.tryFirstArmor(); } catch (e) { console.error('[Blacksmith]', e); }
+      // 鐵匠葛拉事件鏈
+      if (typeof BlacksmithEvents !== 'undefined') {
+        try {
+          if (BlacksmithEvents.tryFirstArmor()) { /* 階段 2 */ }
+          else if (BlacksmithEvents.tryFirstRepair()) { /* 階段 3 */ }
+          else if (BlacksmithEvents.tryWeaponUpgradeT2) { BlacksmithEvents.tryWeaponUpgradeT2(); }
+        } catch (e) { console.error('[Blacksmith]', e); }
       }
       _uiLocked = false;   // 🆕 解鎖
     }
@@ -6979,6 +7014,8 @@ const Game = (() => {
     // 🆕 2026-04-23：視覺特效公開 API（供 ChoiceModal、狂熱獲得等使用）
     flashStageRed: _flashStageRed,
     shakeGameRoot: _shakeGameRoot,
+    // 🆕 2026-04-25：好感變動發光反饋（供 npc.js modAffection 呼叫）
+    flashNpcSlot,
   };
 })();
 

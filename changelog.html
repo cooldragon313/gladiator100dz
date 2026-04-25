@@ -208,6 +208,66 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       2026-04-25b NPC 好感發光反饋 + 鍛造師階段 3-4
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag feature">FEATURE</span>
+      <span class="version-title">NPC 好感發光反饋 + 鍛造師葛拉階段 3-4 實作</span>
+      <span class="version-date">2026-04-25</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text"><strong>NPC 好感變動發光反饋</strong>
+          <span class="file-tag">npc.js modAffection + main.js flashNpcSlot + game.html CSS</span>
+          — 任何 <code>teammates.modAffection</code> 呼叫都會在對應 NPC 的 stage 大頭格子上播 1.2s 動畫：
+          <strong>綠光</strong>（好感 +）/ <strong>紅光</strong>（好感 -）。
+          NPC 不在場時不顯示（避免畫面亂閃）。讓玩家感受到隱形的好感增減。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>鍛造師階段 3 — 首次修繕（免費）</strong>
+          <span class="file-tag">blacksmith_events.js tryFirstRepair</span>
+          — 觸發：<code>gra_weapon_needs_repair</code> + 葛拉好感 ≥ 25 + 階段 2 已完成。
+          對白：「這次免費。下次你得付錢——別讓我覺得我看錯人。」</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>鍛造師階段 4 — 武器升級 T2（30 金）</strong>
+          <span class="file-tag">blacksmith_events.js tryWeaponUpgradeT2 + weapons.js</span>
+          — 觸發：Day ≥ 25 + 葛拉好感 ≥ 30 / arena 3 勝 + money ≥ 30 + 階段 3 已完成。
+          ChoiceModal「付 30 金 升級 / 不用」。
+          7 把武器都加 T2 版本（dagger_t2 / shortSword_t2 / longSword_t2 / spear_t2 /
+          warHammer_t2 / hammer_t2 / heavyAxe_t2）。
+          升級 = 換 weaponInventory ID（不需 durability 系統整合）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text"><strong>戰鬥後修繕標記</strong>
+          <span class="file-tag">main.js onWin + blacksmith_events.js markWeaponNeedsRepair</span>
+          — 簡化版 durability：戰鬥勝利後 30% 機率設 <code>gra_weapon_needs_repair</code> flag。
+          下次晨起鏈會檢查並觸發葛拉修繕事件。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">FLAG</span>
+        <span class="change-text"><strong>新增 4 個鍛造師主線 flag</strong> <span class="file-tag">CODEX.md</span>
+          — <code>gra_weapon_needs_repair</code> / <code>gra_first_repair</code> /
+          <code>gra_weapon_t2</code> / <code>gra_upgraded_{weaponId}</code></span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">TODO</span>
+        <span class="change-text"><strong>還沒做的鍛造師階段</strong>
+          — 階段 5（秘法打造）/ 階段 6（武器 T3）/ 階段 7（護甲升級）/ 階段 8（傳家武器）。
+          完整 durability 系統也待實作。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
        2026-04-25 v10 監督官巴爺主線（Phase A-E 實作）
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">

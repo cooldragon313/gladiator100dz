@@ -1198,6 +1198,12 @@ const teammates = (() => {
     }
     delta = Math.round(delta);
     affectionMap[id] = Math.max(-100, Math.min(100, (affectionMap[id] || 0) + delta));
+
+    // 🆕 2026-04-25：視覺反饋 — NPC 大頭發光（綠光好感、紅光惡感）
+    //   只在 NPC 在場時觸發（看不到的人好感變了不提示，避免畫面亂閃）
+    if (delta !== 0 && typeof Game !== 'undefined' && Game.flashNpcSlot) {
+      Game.flashNpcSlot(id, delta > 0 ? 'green' : 'red');
+    }
   }
 
   /**

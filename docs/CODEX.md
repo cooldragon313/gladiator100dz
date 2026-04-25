@@ -541,6 +541,17 @@ player.wounds.head = null | { severity:1-3, daysElapsed } | { special:'concussio
 | `saw_olan_at_apothecary` | 看見奧蘭偷藥 | 藥房事件 |
 | `olan_apothecary_resolved` | 藥房懸念解決 | 各種選擇 |
 
+### 🆕 鍛造師葛拉主線 flag（2026-04-25）
+
+| Flag | 意義 | 寫入時機 |
+|---|---|---|
+| `gra_invited_to_forge` | 階段 1 — 葛拉首次邀請已觸發 | events.js（既有）|
+| `gra_first_armor` | 階段 2 — 首件護甲已給 | blacksmith_events `_giveArmor` |
+| `gra_weapon_needs_repair` | 戰鬥後標記：武器需修（簡化版 durability）| `markWeaponNeedsRepair`（戰鬥勝利後 30% 機率）|
+| `gra_first_repair` | 階段 3 — 首次免費修繕已完成 | `_playFirstRepairEvent` |
+| `gra_weapon_t2` | 階段 4 — 任一武器已升 T2（一次性 flag）| `_grantWeaponUpgrade` |
+| `gra_upgraded_{weaponId}` | 個別武器升級紀錄（避免重複觸發同把武器升級）| `_grantWeaponUpgrade` |
+
 ### 🆕 監督官巴爺主線 flag（v10，2026-04-25）
 
 | Flag | 意義 | 寫入時機 |
