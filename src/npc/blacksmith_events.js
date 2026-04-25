@@ -5,7 +5,7 @@
  * 角色：docs/characters/blacksmithGra.md
  *
  * 觸發機制（晨起 / 訓練後 hook）：
- *   - tryFirstArmor()       階段 2 — 好感 ≥ 20 + Day ≥ 12 + arenaLosses ≥ 1 → 三幕進場 + 送皮甲
+ *   - tryFirstArmor()       階段 2 — 好感 ≥ 20 + Day ≥ 12 → 三幕進場 + 送皮甲（2026-04-25c：移除 arenaLosses 要求）
  *   - tryFirstRepair()      階段 3 — flag gra_weapon_needs_repair + 葛拉好感 ≥ 25 → 免費修繕一次
  *   - tryWeaponUpgradeT2()  階段 4 — Day ≥ 25 + 好感 30 / arena 3 勝 + money ≥ 30 → 武器 +1 tier
  *   - markWeaponNeedsRepair() 戰鬥後呼叫 — 機率標記武器需修
@@ -38,13 +38,20 @@ const BlacksmithEvents = (() => {
 
     const aff = teammates.getAffection('blacksmithGra');
     if (aff < 20) return false;
-    if ((p.combatStats?.arenaLosses ?? 0) < 1) return false;
+    // 🆕 2026-04-25c：使用者反饋 — 鍛造師流程不要綁競技場勝負
+    //   原本 arenaLosses ≥ 1 = 必須先輸過一場才看葛拉示弱送皮甲
+    //   改：好感到就好（葛拉自己注意到玩家撐不住）
 
     _playFirstArmorEvent(aff);
     return true;
   }
 
   function _playFirstArmorEvent(aff) {
+    // 🆕 2026-04-25c：立刻設 flag — 避免後續任何 callback chain 斷掉就每天重播
+    //   原本 flag 在 _giveArmor 末端才設，三幕中間 callback 任一壞掉就永遠 set 不到
+    //   現在第一幕一啟動就設 — 護甲在 _giveArmor 才實際發放，不影響後續邏輯
+    Flags.set('gra_first_armor', true);
+
     // 按好感決定護甲等級
     let armorId, armorName;
     if (aff >= 60) {
@@ -155,13 +162,14 @@ const BlacksmithEvents = (() => {
   //   - 還沒首次修繕過
   function tryFirstRepair() {
     const p = Stats.player;
-    if (!p) return false;
+    if (!p || p.day < 18) return false;   // 🆕 2026-04-25c：階段 2 是 Day 12、隔幾天再觸發
     if (typeof Flags === 'undefined') return false;
     if (Flags.has('gra_first_repair')) return false;
-    if (!Flags.has('gra_weapon_needs_repair')) return false;
     if (!Flags.has('gra_first_armor')) return false;  // 階段 2 先做
     if (typeof teammates === 'undefined') return false;
     if (teammates.getAffection('blacksmithGra') < 25) return false;
+    // 🆕 2026-04-25c：移除 gra_weapon_needs_repair flag 要求（之前綁戰鬥才會設）
+    //   現在純好感觸發 — 葛拉敘事上「看你訓練那麼多次劍刃也磨損了」即可
 
     Flags.set('gra_first_repair', true);
     Flags.unset('gra_weapon_needs_repair');
@@ -223,8 +231,8 @@ const BlacksmithEvents = (() => {
     if (typeof teammates === 'undefined') return false;
 
     const aff = teammates.getAffection('blacksmithGra');
-    const wins = (p.combatStats?.arenaWins || 0);
-    if (aff < 30 && wins < 3) return false;
+    if (aff < 30) return false;
+    // 🆕 2026-04-25c：移除 wins ≥ 3 替代條件，純好感觸發
 
     if ((p.money || 0) < 30) return false;
 
@@ -344,9 +352,7 @@ const BlacksmithEvents = (() => {
 
     const aff = teammates.getAffection('blacksmithGra');
     if (aff < 50) return false;
-
-    const wins = (p.combatStats?.arenaWins || 0);
-    if (wins < 5) return false;
+    // 🆕 2026-04-25c：移除 wins ≥ 5 要求，純好感觸發
 
     if ((p.money || 0) < 80) return false;
 

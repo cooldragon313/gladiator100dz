@@ -446,6 +446,18 @@ character_roll → testbattle → battle → actions → main
 
 ## 🔄 最近重要變更
 
+- **2026-04-25c 大掃蟲日**（6 連環 bug + 競技場退回 + 跑腿戲劇化）：
+  - **CRITICAL 老默治療「選了沒反應」第 4 次真根因** — `ChoiceModal._handleChoice` 在 `_close()` 後又讀 `_activeEvent.logColor` → null TypeError → click handler crash → `onChoose` 永不觸發。decline 自帶 logColor 短路掉永遠正常 → 害我前 3 次都誤判成 `_performHeal` 的問題。修：cache logColor 在 `_close()` 之前。
+  - **CRITICAL 葛拉每天重播「差了一個 tier」** — `Stage.playEvent` 是 async 但完全忽略 `opts.onComplete` → 三幕鏈 Act2 → Act3 永遠不串 → flag 沒設 → 每天觸發。修：(1) 真的呼叫 onComplete callback (2) `_playFirstArmorEvent` 啟動就先設 flag。
+  - **CRITICAL 競技場戰敗 = 直接 deathEnding** — 改：戰敗 = 隨機部位重傷（Wounds 系統）+ HP -40% / 體力 -30 / 心情 -25 / 名聲 -15 + 4 句塔倫低語對白。Day 100 萬骸祭仍真死。
+  - **CRITICAL Math.round 默默把 +1 歸零** — Hector 訓練被動好感 bug：mult 0.3 × 1 = 0.3 → round = 0 → 永遠不漲。修：用 `_probRound`（小數當機率擲骰、期望值不變）+ 訓練被動機率拉到 45%/12%。
+  - **DialogueModal 同步呼叫兩次會覆蓋 onComplete** — 加排隊機制 + console.warn + sleepEndDay 加 `doctorFired` 互斥。
+  - **戰鬥獎勵全面 ×0.5** — 50 天名聲 100 太快。砍 fame ×0.5 / S/A 評分好感 8|4 → 4|2 / 每場勝主人&長官 +2 → +1 / 3 連勝召見 +15&+5 → +8&+3。
+  - **競技場難度全面退回** — cbfb6b5 拉太兇玩家連輸三場。重新校準「對手平均屬性比玩家當期預期略低 2-4 點」。武器降級：上等去掉 T2 全 pool、精英 T2 為主退回 T1 為主。boss 也退。
+  - **葛拉鍛造線移除所有競技場依賴** — 階段 2/3/4/6 全拔 arenaLosses/wins 條件，純好感推進。
+  - **DialogueModal `line.color` 強調** — 新增 per-line 對白色、SPEAKER_COLORS 加「小/母/護」3 個新角色配色。
+  - **3 個跑腿事件全升格 DialogueModal 戲劇化** — 食物採買 / 傳言 / 小孩撞，每個 16-24 行對白 + 表情強調色（恐懼紅 / 感謝綠 / 童音藍 / 內心暖金）。
+  - 詳見 changelog.html `2026-04-25c` 區塊；memory 加 `feedback_dialoguemodal_overlap.md`（更新含 _activeEvent null deref）+ `feedback_math_round_zeros.md`（新）。
 - **2026-04-25 v10 監督官巴爺主線**（overseer-rework spec / Phase A-E 實作）—
   - 監督官改名「**巴布魯斯（巴爺）**」、退役角鬥士、跟玩家完整好感互動線
   - 三角動機鏈：主人愛錢愛名 / 塔倫沒能力走算計 / 巴爺成招牌被借局陷害

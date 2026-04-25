@@ -262,7 +262,13 @@ const Stage = (() => {
   async function playEvent(opts = {}) {
     _ensureOpeningOverlay();
     const overlay = document.getElementById('stage-opening');
-    if (!overlay) return;
+    if (!overlay) {
+      // 🆕 2026-04-25c：即使 overlay 找不到也要 fire onComplete 避免上層 callback chain 卡死
+      if (typeof opts.onComplete === 'function') {
+        try { opts.onComplete(); } catch (e) { console.error('[Stage.playEvent] onComplete error', e); }
+      }
+      return;
+    }
 
     const title  = opts.title  || '';
     const icon   = opts.icon   || '';
@@ -305,6 +311,13 @@ const Stage = (() => {
     overlay.classList.remove('overflow');   // 🆕 清除 overflow 狀態
     await _wait(OPENING_FADE_OUT_MS);
     overlay.innerHTML = '';
+
+    // 🆕 2026-04-25c：支援 onComplete callback（之前 callers 都傳了但被無視）
+    //   bug：blacksmith _playAct2 / _playAct3 用 onComplete 串下一步 → 永遠不觸發
+    //        → _giveArmor 不跑 → gra_first_armor flag 沒設 → 每天早上重播
+    if (typeof opts.onComplete === 'function') {
+      try { opts.onComplete(); } catch (e) { console.error('[Stage.playEvent] onComplete error', e); }
+    }
   }
 
   // ══════════════════════════════════════════════════

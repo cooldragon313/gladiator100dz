@@ -225,15 +225,20 @@ const ChoiceModal = (() => {
       Flags.set(choice.flagSet, true);
     }
 
-    // 關閉 modal
-    _close();
-
     // 🆕 2026-04-23 反饋鐵律（CONTENT-TEMPLATES.md 第 8 條）
     //   順序：視覺特效 → 對白 → resultLog → onChoose → renderAll
+    // 🆕 2026-04-25 修：必須在 _close() 之前 cache _activeEvent.logColor，
+    //   不然 _close 會把 _activeEvent 設成 null → 下一行 `_activeEvent.logColor`
+    //   丟 TypeError → 整個 click handler crash → onChoose 永不觸發
+    //   → 老默治療選了沒反應、沒扣錢、ailment 沒清。
     const fx              = resolved.resultEffect || choice.resultEffect;
     const resultDialogue  = resolved.resultDialogue || choice.resultDialogue;
     const logText         = resolved.log || resolved.resultLog || choice.resultLog;
-    const logColor        = resolved.logColor || choice.logColor || _activeEvent.logColor || '#e8d070';
+    const eventLogColor   = (_activeEvent && _activeEvent.logColor) || null;
+    const logColor        = resolved.logColor || choice.logColor || eventLogColor || '#e8d070';
+
+    // 關閉 modal（cache 完才能 close）
+    _close();
 
     // 視覺特效（立即）
     if (fx) _applyResultEffect(fx);

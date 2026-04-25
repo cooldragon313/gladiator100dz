@@ -1115,7 +1115,7 @@ const Game = (() => {
 
   // 🆕 2026-04-25：競技場 3 連勝 → 主人召見（一次性）
   //   觸發條件：onWin 處檢查 winStreak >= 3 + flag master_summon_3wins_done 未 set
-  //   給 master +20、officer +5、加完整對話
+  //   🆕 2026-04-25c 平衡：原 +15/+5 → +8/+3（戰鬥獎勵全面 ×0.5）
   function _playMasterSummon3WinsScene() {
     const lines = [
       { text: '（侍從匆匆來找你。）' },
@@ -1141,19 +1141,19 @@ const Game = (() => {
       DialogueModal.play(lines, {
         onComplete: () => {
           if (typeof teammates !== 'undefined') {
-            teammates.modAffection('masterArtus', 15);
-            teammates.modAffection('officer', 5);
+            teammates.modAffection('masterArtus', 8);
+            teammates.modAffection('officer', 3);
           }
-          addLog('✦ 主人記住了你的臉。（masterArtus +15、officer +5）', '#d4af37', true, true);
+          addLog('✦ 主人記住了你的臉。（masterArtus +8、officer +3）', '#d4af37', true, true);
           renderAll();
         },
       });
     } else {
       if (typeof teammates !== 'undefined') {
-        teammates.modAffection('masterArtus', 15);
-        teammates.modAffection('officer', 5);
+        teammates.modAffection('masterArtus', 8);
+        teammates.modAffection('officer', 3);
       }
-      addLog('✦ 主人召見：你連勝三場、主人記住了你。（masterArtus +15）', '#d4af37', true, true);
+      addLog('✦ 主人召見：你連勝三場、主人記住了你。（masterArtus +8）', '#d4af37', true, true);
     }
   }
 
@@ -1200,11 +1200,11 @@ const Game = (() => {
         Stats.modMoney(reward);
         addLog(`侍從遞來一小袋銅幣。「大人說這是你的。」（+${reward}）`, '#c8a060', false);
         // 🆕 2026-04-25：競技場勝利 → 主人 / 塔倫好感（賺錢功勞）
-        // 🆕 2026-04-25b 平衡：使用者反饋 4 場就紫色 → 從 +5/+3 降為 +2/+2
-        //   S/A bonus 仍在 battle.js 加（+8/+8 for S、+4/+4 for A）— 評分越高加越多
+        // 🆕 2026-04-25c 平衡：50 天就名聲 100 → 整體再 ×0.5、+2/+2 → +1/+1
+        //   S/A bonus 也同時減半（+4/+4 for S、+2/+2 for A — 見 battle.js）
         if (typeof teammates !== 'undefined') {
-          teammates.modAffection('masterArtus', 2);
-          teammates.modAffection('officer', 2);
+          teammates.modAffection('masterArtus', 1);
+          teammates.modAffection('officer', 1);
           addLog('(主人聽到消息了。塔倫長官也記下這一筆。)', '#c8a060', false);
         }
         // 🆕 2026-04-25：連 3 場勝 → 主人召見事件（一次性）
@@ -3168,10 +3168,12 @@ const Game = (() => {
     //   赫克托敵對路線（hector_hostile_path）= 永遠不加（他不喜歡你）
     //   發亮特效已 modAffection hook 自動觸發（綠光好感、紅光惡感）
     if (hasAttrEffect && typeof teammates !== 'undefined') {
-      // ─── 隊友被動好感（v10b 新加、2026-04-25b 平衡降）───
-      //   匹配 favoredAttr：30% / +1（一起練同屬性 = 共鳴）← 從 50% 降
-      //   不匹配：8% / +1（只是看你練）← 從 15% 降、避免奧蘭等永駐隊友破表
+      // ─── 隊友被動好感（v10b 新加、2026-04-25b 平衡降、c 拉回有感）───
+      //   匹配 favoredAttr：45% / +1（一起練同屬性 = 共鳴）
+      //   不匹配：12% / +1（只是看你練）
       //   赫克托敵對路線跳過（他不會給你好感）
+      //   🆕 2026-04-25c：之前 30%/8% × 愛憎倍率 0.3 round = 0 → 玩家 5 場全白練。
+      //     已修 Math.round → 機率取整（npc.js _probRound）+ 機率拉到 45%/12%。
       const tmList = currentNPCs.teammates || [];
       tmList.forEach(npcId => {
         if (!npcId) return;
@@ -3180,7 +3182,7 @@ const Game = (() => {
         if (npc.alive === false) return;
         if (npcId === 'hector' && typeof Flags !== 'undefined' && Flags.has('hector_hostile_path')) return;
         const matchAttr = (trainedAttr && npc.favoredAttr === trainedAttr);
-        const chance = matchAttr ? 0.30 : 0.08;
+        const chance = matchAttr ? 0.45 : 0.12;
         if (Math.random() < chance) {
           teammates.modAffection(npcId, 1);
         }
@@ -3653,11 +3655,16 @@ const Game = (() => {
       await _flushDialogues();
 
       // 🆕 D.22：嘗試觸發醫生訪問（條件符合才會開）
+      // 🆕 2026-04-25 修：tryVisit() 同步啟動 DialogueModal 後立刻 return；
+      //   若同晨葛拉事件再呼叫 DialogueModal.play 會覆蓋掉老默的 _lines/_onComplete →
+      //   結果就是玩家只看到一句、治療 onComplete 永不觸發、ailment 永遠沒清。
+      //   修：老默若觸發，整套葛拉事件延到隔天再跑（一晚一場大事件就夠）。
+      let doctorFired = false;
       if (typeof DoctorEvents !== 'undefined' && DoctorEvents.tryVisit) {
-        try { DoctorEvents.tryVisit(); } catch (e) { console.error('[Doctor]', e); }
+        try { doctorFired = !!DoctorEvents.tryVisit(); } catch (e) { console.error('[Doctor]', e); }
       }
       // 鐵匠葛拉事件鏈（階段 2 / 3 / 4 — 一個觸發後其他自動延後到下次晨起）
-      if (typeof BlacksmithEvents !== 'undefined') {
+      if (!doctorFired && typeof BlacksmithEvents !== 'undefined') {
         try {
           if (BlacksmithEvents.tryFirstArmor()) { /* 階段 2 完成、不串其他 */ }
           else if (BlacksmithEvents.tryFirstRepair()) { /* 階段 3 */ }
@@ -3669,11 +3676,12 @@ const Game = (() => {
       _sleepEndDayBody(sleepType);
       _flushStageEvents();
       _flushDialogues();
+      let doctorFired = false;
       if (typeof DoctorEvents !== 'undefined' && DoctorEvents.tryVisit) {
-        try { DoctorEvents.tryVisit(); } catch (e) { console.error('[Doctor]', e); }
+        try { doctorFired = !!DoctorEvents.tryVisit(); } catch (e) { console.error('[Doctor]', e); }
       }
-      // 鐵匠葛拉事件鏈
-      if (typeof BlacksmithEvents !== 'undefined') {
+      // 鐵匠葛拉事件鏈（老默若觸發 → 葛拉延到隔天，避免 DialogueModal 覆蓋）
+      if (!doctorFired && typeof BlacksmithEvents !== 'undefined') {
         try {
           // 葛拉事件鏈優先序：2 → 3 → 4 → 5 → 6 → 7 → 8（一晚最多一個）
           if (BlacksmithEvents.tryFirstArmor()) { /* 階段 2 */ }
@@ -3778,13 +3786,17 @@ const Game = (() => {
 
   // 🆕 2026-04-25 平衡調整：玩家 Day 50 ~ avg 26，舊 tier 太弱
   //   錨點：「avg 25 = T1 裝備」（中等場），上面 tier 往上推
+  // 🆕 2026-04-25c 全面退回難度（cbfb6b5 整體拉太兇）
+  //   設計原則：玩家是上升中的明星 — 應該大多場勝利、偶爾吃苦
+  //   數值錨：對手平均屬性比玩家當期預期略低 2-4 點、武器低半 tier
+  //   玩家當期預期屬性：D10 ~10、D30 ~20、D50 ~28、D70 ~34
   const ARENA_TIERS = [
     {
       minDay: 10, maxDay: 20,
       label: '初等場・試煉', color: '#8a8060',
-      statsMin: 12, statsMax: 22,                     // avg 17
-      hpMin: 40, hpMax: 60,
-      weaponPool: ['dagger', 'fists'],                // T0
+      statsMin: 8, statsMax: 14,                      // avg 11（玩家 ~10）
+      hpMin: 35, hpMax: 50,
+      weaponPool: ['fists', 'fists', 'dagger'],       // 多數沒武器
       armorPool:  ['rags'],
       shieldPool: ['none'],
       fameMin: 3, fameMax: 8,
@@ -3793,35 +3805,33 @@ const Game = (() => {
     {
       minDay: 20, maxDay: 40,
       label: '中等場・角鬥', color: '#b08040',
-      statsMin: 22, statsMax: 28,                     // avg 25 — 錨點
-      hpMin: 60, hpMax: 80,
-      weaponPool: ['shortSword', 'hammer', 'dagger', 'spear'],  // T1
-      armorPool:  ['leatherArmor', 'rags'],
-      shieldPool: ['woodShield', 'none'],
+      statsMin: 16, statsMax: 22,                     // avg 19（玩家 ~20）
+      hpMin: 50, hpMax: 70,
+      weaponPool: ['dagger', 'dagger', 'shortSword', 'spear'],  // T1 但偏廉
+      armorPool:  ['rags', 'leatherArmor'],
+      shieldPool: ['none', 'woodShield'],
       fameMin: 6, fameMax: 14,
       titleStr: '角鬥士',
     },
     {
       minDay: 40, maxDay: 60,
       label: '上等場・血鬥', color: '#c05020',
-      statsMin: 28, statsMax: 36,                     // avg 32 — 玩家 ~26 會吃苦
-      hpMin: 85, hpMax: 110,
-      // T1 + T2 混（高 tier 開始出現精鐵 / 鐵頭系列）
-      weaponPool: ['shortSword_t2', 'spear_t2', 'shortSword', 'heavyAxe', 'longSword', 'spear'],
-      armorPool:  ['chainmail', 'leatherArmor'],
-      shieldPool: ['ironShield', 'woodShield', 'none'],
+      statsMin: 20, statsMax: 28,                     // avg 24（玩家 ~28）
+      hpMin: 65, hpMax: 90,
+      weaponPool: ['shortSword', 'spear', 'longSword', 'heavyAxe'],  // 純 T1
+      armorPool:  ['leatherArmor', 'leatherArmor', 'chainmail'],
+      shieldPool: ['woodShield', 'woodShield', 'ironShield', 'none'],
       fameMin: 12, fameMax: 22,
       titleStr: '老手鬥士',
     },
     {
       minDay: 60, maxDay: 81,
       label: '精英場・死鬥', color: '#d03010',
-      statsMin: 36, statsMax: 46,                     // avg 41
-      hpMin: 110, hpMax: 140,
-      // T2 為主、偶爾 T1 重武器
-      weaponPool: ['longSword_t2', 'spear_t2', 'warHammer_t2', 'heavyAxe_t2', 'longSword', 'warHammer'],
-      armorPool:  ['chainmail', 'ironPlate'],
-      shieldPool: ['ironShield', 'none'],
+      statsMin: 26, statsMax: 34,                     // avg 30（玩家 ~34）
+      hpMin: 90, hpMax: 115,
+      weaponPool: ['longSword', 'warHammer', 'heavyAxe', 'shortSword_t2', 'spear_t2'],  // T1 為主、T2 偶爾
+      armorPool:  ['chainmail', 'chainmail', 'leatherArmor'],
+      shieldPool: ['ironShield', 'woodShield'],
       fameMin: 18, fameMax: 35,
       titleStr: '精英鬥士',
     },
@@ -3929,11 +3939,40 @@ const Game = (() => {
         renderAll();
       },
       () => {
-        // onLose
-        addLog(`【競技場落敗】你在競技場上倒下了……`, '#8b0000', true);
-        if (typeof Endings !== 'undefined' && Endings.deathEnding) {
-          Endings.deathEnding(p.name);
-        }
+        // 🆕 2026-04-25c：競技場戰敗 ≠ 死亡（之前的 deathEnding 過於嚴苛、玩家無法測試）
+        //   設計：戰敗 = 重傷 + 恥辱 + 經濟損失，但保留命。Day 100 萬骸祭才是真死。
+        //   參考既有 timeline battle onLose 寫法（main.js:1229）+ 真正用 Wounds 系統。
+        DialogueModal.play([
+          { text: '你倒在沙地上。視野模糊。' },
+          { text: '觀眾發出失望的噓聲。有人砸了酒杯。' },
+          { text: '兩個侍從把你拖下場。你聽見塔倫長官在主人耳邊低語——' },
+          { speaker: '塔倫長官', text: '⋯⋯這次只是丟臉。再來一次，主人就要重新考慮。' },
+        ], {
+          onComplete: () => {
+            // 重傷：隨機部位、嚴重度 2-3（依當前 HP 決定）
+            const parts = ['torso', 'arms', 'legs', 'head'];
+            const part  = parts[Math.floor(Math.random() * parts.length)];
+            const severity = (p.hp <= p.hpMax * 0.2) ? 3 : 2;
+            if (typeof Wounds !== 'undefined' && Wounds.inflict) {
+              Wounds.inflict(part, severity, { source:'arena_loss', cameFromCombat:true });
+              const partName = (Wounds.PART_NAMES && Wounds.PART_NAMES[part]) || part;
+              const sevName  = (Wounds.SEVERITY_NAMES && Wounds.SEVERITY_NAMES[severity]) || (severity === 3 ? '重傷' : '中傷');
+              addLog(`⚠️ 你的${partName}受了${sevName}。`, '#cc3333', true, true);
+            }
+            // 體力 / 心情 / 名聲懲罰（重 — 比訓練重傷重）
+            Stats.modVital('hp',      -Math.max(20, Math.round(p.hpMax * 0.4)));   // HP 砍掉至少 20、至多 40%
+            Stats.modVital('stamina', -30);
+            Stats.modVital('mood',    -25);
+            Stats.modFame(-15);
+            // 主人 / 長官好感扣（賠錢丟臉）
+            if (typeof teammates !== 'undefined') {
+              teammates.modAffection('masterArtus', -5);
+              teammates.modAffection('officer',     -3);
+            }
+            addLog('你敗了。但你還活著——這次。', '#8899aa', true, true);
+            renderAll();
+          },
+        });
       }
     );
   }
@@ -6592,16 +6631,25 @@ const Game = (() => {
     Effects.apply(ev.effects, { source: 'errand:' + ev.id });
     if (ev.flagSet) Flags.set(ev.flagSet, true);
 
-    // 🆕 D.12 v2: 排入 Stage 事件佇列，Stage.playSleep 結束後播小過場
-    //              用 log 的第一句當標題，其他行當內文
-    const lines = ev.text.split('\n').filter(Boolean);
-    queueStageEvent({
-      title: '主人傳喚',
-      icon:  '📜',
-      lines,
-      color: '#e8d070',
-      holdMs: 2400,
-    });
+    // 🆕 2026-04-25c：事件帶 dialogueLines 就走 DialogueModal（戲劇化演出）
+    //   不帶就走原本 Stage.playEvent 小過場
+    if (Array.isArray(ev.dialogueLines) && ev.dialogueLines.length > 0) {
+      _pendingDialogues.push({
+        lines: ev.dialogueLines,
+        // onComplete 不需要 — 效果已在前面套完
+      });
+    } else {
+      // 🆕 D.12 v2: 排入 Stage 事件佇列，Stage.playSleep 結束後播小過場
+      //              用 log 的第一句當標題，其他行當內文
+      const lines = ev.text.split('\n').filter(Boolean);
+      queueStageEvent({
+        title: '主人傳喚',
+        icon:  '📜',
+        lines,
+        color: '#e8d070',
+        holdMs: 2400,
+      });
+    }
     // 同時也寫進 log（含 flash，給歷史回看）
     addLog('【主人傳喚】\n' + ev.text, '#e8d070', true, true);
   }, 35);

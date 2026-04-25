@@ -208,6 +208,105 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       2026-04-25c 大掃蟲日 — 6 連環 bug + 競技場退回 + 跑腿戲劇化
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag fix">FIX + BALANCE</span>
+      <span class="version-title">大掃蟲日 — 6 個跨模組 bug + 競技場全面退回 + 跑腿三事件升格對話</span>
+      <span class="version-date">2026-04-25c</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-fix">CRITICAL</span>
+        <span class="change-text"><strong>老默治療「選了沒反應」第 4 次真根因</strong>
+          <span class="file-tag">choice_modal.js _handleChoice</span>
+          — `_close()` 把 `_activeEvent` 設 null 之後又讀 `_activeEvent.logColor` →
+          TypeError → 整個 click handler crash → `onChoose` 永不觸發 → ailment 沒清、money 沒扣。
+          decline 因自帶 logColor 短路掉、永遠正常 → 害我前 3 次都誤判成「flow OK，是 _performHeal 的 bug」。
+          修：cache logColor 在 `_close()` 之前。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">CRITICAL</span>
+        <span class="change-text"><strong>葛拉首件護甲每天重播「差了一個 tier」文字</strong>
+          <span class="file-tag">stage.js playEvent + blacksmith_events.js</span>
+          — `Stage.playEvent` 是 async 但完全忽略 `opts.onComplete` → 葛拉三幕鏈
+          Act2 → Act3 永遠不串 → `_giveArmor` 沒跑 → `gra_first_armor` flag 沒設 →
+          每天早上 tryFirstArmor 重新觸發。
+          修：(1) Stage.playEvent 真的呼叫 onComplete callback；
+          (2) `_playFirstArmorEvent` 啟動就先設 flag 防呆。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">CRITICAL</span>
+        <span class="change-text"><strong>競技場戰敗 = 直接 deathEnding</strong>
+          <span class="file-tag">main.js startArenaBattle onLose</span>
+          — 玩家連輸三場直接 game over。改：戰敗 = 隨機部位重傷（用 Wounds 系統）+
+          HP -40% / 體力 -30 / 心情 -25 / 名聲 -15 + 主人/長官好感 -5/-3 + 4 句塔倫低語對白。
+          Day 100 萬骸祭仍真死。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">CRITICAL</span>
+        <span class="change-text"><strong>NPC modAffection +1 被 Math.round 默默歸零</strong>
+          <span class="file-tag">npc.js modAffection + main.js trainee passive</span>
+          — Hector 訓練被動好感 bug：玩家好臉路線、累積 mercy/reliable，Hector 愛憎 mult 0.3 →
+          1 × 0.3 = 0.3 → `Math.round` = 0 → 永遠不漲、發光也不亮。
+          修：用 `_probRound`（小數當機率擲骰，期望值不變但保證會中）+
+          訓練被動機率拉回有感（match 30→45%、mismatch 8→12%）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">FIX</span>
+        <span class="change-text"><strong>DialogueModal 同步呼叫兩次會覆蓋 onComplete</strong>
+          <span class="file-tag">dialogue_modal.js play</span>
+          — 防禦修：若 `_isOpen=true` 時又呼叫 `play()` → 排隊而非覆蓋 + console.warn 警告。
+          配合 sleepEndDay 加 `doctorFired` 互斥（老默觸發當晨葛拉延後）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">BALANCE</span>
+        <span class="change-text"><strong>戰鬥獎勵全面 ×0.5</strong>
+          <span class="file-tag">battle.js + main.js onWin / _playMasterSummon3WinsScene</span>
+          — 50 天名聲 100 + 主人金色太快。砍：競技場 fame ×0.5 / S/A 評分好感 8|4 → 4|2 /
+          每場勝主人&長官 +2 → +1 / 3 連勝召見主人+15&長官+5 → +8&+3。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">BALANCE</span>
+        <span class="change-text"><strong>競技場難度全面退回（cbfb6b5 拉太兇）</strong>
+          <span class="file-tag">main.js ARENA_TIERS + testbattle.js gladiatorB/arenaVet</span>
+          — 玩家連輸三場、屬性高也打不過。重新校準錨點「對手平均屬性比玩家當期預期略低 2-4 點」：
+          初等 12-22 → 8-14、中等 22-28 → 16-22、上等 28-36 → 20-28、精英 36-46 → 26-34。
+          武器降級：上等去掉 T2 全 pool、精英 T2 為主退回 T1 為主。
+          時間軸 boss gladiatorB / arenaVet 也退回 +T1 武器。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">BALANCE</span>
+        <span class="change-text"><strong>葛拉鍛造線移除所有競技場依賴</strong>
+          <span class="file-tag">blacksmith_events.js</span>
+          — 階段 2 拔 `arenaLosses ≥ 1`、階段 3 拔 `gra_weapon_needs_repair`（戰鬥才設）+ 改 Day ≥ 18、
+          階段 4 拔 `wins ≥ 3` 替代條件、階段 6 拔 `wins ≥ 5`。
+          現在純粹靠跟葛拉聊天 / 訓練被動好感推進整個鍛造線。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text"><strong>DialogueModal 加 line.color 強調</strong>
+          <span class="file-tag">dialogue_modal.js _showCurrentLine</span>
+          — 新增 `line.color` 屬性 → 該行對白用指定色顯示。
+          SPEAKER_COLORS 加「小 / 母 / 護」3 個新角色頭像配色（同時清掉 老 重複定義）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>3 個跑腿事件全升格 DialogueModal 戲劇化</strong>
+          <span class="file-tag">events.js ERRAND_EVENTS + main.js checkMasterErrand</span>
+          — 之前只是 Stage 過場「沒感覺」，現在每個事件都有 16-24 行對白 + 角色強調色：
+          <strong>食物採買</strong>（侍從派遣 → 出門感官 → 偷藏零錢）/
+          <strong>傳言</strong>（老人壓低聲音「分早就分好了」紅褐強調 → 內心震動）/
+          <strong>小孩撞</strong>（撞擊震動 → 母親恐懼紅 → 認知轉變 → 感謝綠 + 小孩藍）。</span>
+      </li>
+    </ul>
+  </div>
+
+  <div class="section-sep">· · ·</div>
+
+  <!-- ══════════════════════════════════════════════════════
        2026-04-25b NPC 好感發光反饋 + 鍛造師階段 3-4
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">

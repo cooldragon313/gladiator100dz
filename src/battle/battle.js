@@ -1004,7 +1004,8 @@ const Battle = (() => {
       const rc    = RATING_CFG[_lastRating];
       const hpPct = Math.round(_player.hp / _player._hpMax * 100);
       // 連勝者特性：每場加固定名聲；fameBase 由成就解鎖後永久儲存
-      const fameAwarded = Math.round((_pendingFameReward + (Stats.player.fameBase || 0)) * rc.fameMult);
+      // 🆕 2026-04-25c 平衡：使用者反饋 50 天就名聲 100 → 整體 ×0.5
+      const fameAwarded = Math.round((_pendingFameReward + (Stats.player.fameBase || 0)) * rc.fameMult * 0.5);
 
       // Apply fame
       Stats.modFame(fameAwarded);
@@ -1018,8 +1019,9 @@ const Battle = (() => {
       if (_lastRating === 'A') cs.aRankCount++;
 
       // S/A rank affection bonuses (officer & master)
+      // 🆕 2026-04-25c 平衡：8/4 → 4/2（同樣 ×0.5）
       if (_lastRating === 'S' || _lastRating === 'A') {
-        const affBonus = _lastRating === 'S' ? 8 : 4;
+        const affBonus = _lastRating === 'S' ? 4 : 2;
         if (typeof teammates !== 'undefined') {
           teammates.modAffection('officer',     affBonus);
           teammates.modAffection('masterArtus', affBonus);
@@ -1038,7 +1040,7 @@ const Battle = (() => {
         `\n╔═══ 競技場評分 ═══╗\n` +
         `  ${rc.label}　${rc.desc}\n` +
         `  行動次數：${_battleTick}　HP剩餘：${hpPct}%\n` +
-        `  名聲獎勵：+${fameAwarded}（基礎 ${_pendingFameReward}${fameBaseNote} × ${rc.fameMult}）\n` +
+        `  名聲獎勵：+${fameAwarded}（基礎 ${_pendingFameReward}${fameBaseNote} × ${rc.fameMult} × 0.5）\n` +
         `╚══════════════════╝`,
         'log-special'
       );

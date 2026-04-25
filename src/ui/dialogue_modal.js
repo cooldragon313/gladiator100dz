@@ -38,6 +38,11 @@ const DialogueModal = (() => {
   let _onComplete = null;
   let _injected   = false;
   let _hintShown  = false;   // 首次開啟時在右下角提示 Space / Ctrl
+  // 🆕 2026-04-25：防覆蓋佇列。若 play() 在另一段對白還沒結束時被呼叫，
+  //   舊邏輯會直接覆蓋 _lines/_onComplete → 上一段的 onComplete 永遠不觸發
+  //   → 像老默治療這種「靠 onComplete 串 ChoiceModal」的流程整個斷掉。
+  //   現在改成：若 _isOpen，把新的 (lines, opts) 排隊，等當前播完再依序播。
+  let _queue      = [];
 
   // ══════════════════════════════════════════════════
   // DOM 建立
@@ -83,6 +88,14 @@ const DialogueModal = (() => {
     _ensureElements();
     if (!Array.isArray(lines) || lines.length === 0) {
       if (typeof opts.onComplete === 'function') opts.onComplete();
+      return;
+    }
+
+    // 🆕 2026-04-25：若已有對白在播，排隊等播完再放這一段，
+    //   不要覆蓋當前 _lines/_onComplete。
+    if (_isOpen) {
+      console.warn('[DialogueModal] play() called while another dialogue is open — queued');
+      _queue.push({ lines, opts });
       return;
     }
 
@@ -136,7 +149,12 @@ const DialogueModal = (() => {
       speakerEl.textContent = line.speaker || '';
       speakerEl.style.display = line.speaker ? '' : 'none';
     }
-    if (textEl) textEl.textContent = '';
+    // 🆕 2026-04-25c：per-line text 強調色（line.color）— 重要心情/表情用
+    //   設成 null 或 undefined 會清掉、回到 CSS 預設
+    if (textEl) {
+      textEl.textContent = '';
+      textEl.style.color = line.color || '';
+    }
     if (contEl) contEl.style.display = 'none';
     _fullyShown = false;
     _typeIdx = 0;
@@ -202,6 +220,12 @@ const DialogueModal = (() => {
     if (typeof cb === 'function') {
       try { cb(); } catch (e) { console.error('[DialogueModal] onComplete error', e); }
     }
+    // 🆕 2026-04-25：onComplete 跑完再清排隊；若 cb() 又呼叫 play()，
+    //   那次會直接走（_isOpen 已 false）；那之前累積的排隊則延後。
+    if (!_isOpen && _queue.length > 0) {
+      const next = _queue.shift();
+      play(next.lines, next.opts);
+    }
   }
 
   // ══════════════════════════════════════════════════
@@ -256,7 +280,10 @@ const DialogueModal = (() => {
     '阿':  '#4a2a4a',   // 阿圖斯 — 深紫（貴族）
     '梅':  '#5a4a2a',   // 梅拉 — 暖褐（廚房）
     '葛':  '#3a3a3a',   // 葛拉 — 鐵灰（鍛造）
-    '老':  '#3a4a3a',   // 老默 — 灰綠（醫藥）
+    '小':  '#5a3a4a',   // 小孩 — 紫紅（脆弱）
+    '母':  '#4a4a3a',   // 母親 — 灰綠（憔悴）
+    '護':  '#3a3a3a',   // 護衛 — 冷灰（公事公辦）
+    '老':  '#3a4a3a',   // 老人/老默 共用 — 灰綠（市井 / 醫者）
     '監':  '#4a3030',   // 監督官 — 暗棕紅
     '侍':  '#3a3a40',   // 侍從 — 冷灰
     '裝':  '#4a4030',   // 裝備庫管理員 — 泥色

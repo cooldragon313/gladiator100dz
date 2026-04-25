@@ -1196,7 +1196,11 @@ const teammates = (() => {
         delta = delta * mult;
       }
     }
-    delta = Math.round(delta);
+    // 🆕 2026-04-25c 修：用機率取整代替 Math.round
+    //   bug：Math.round(0.3) = 0 → +1 被愛憎倍率 ×0.3 → 0 → 好感永遠不漲、發光也不亮
+    //   情境：好臉路線玩家累積 mercy/reliable 等被 Hector 厭惡的特性
+    //   修法：小數部分當成機率擲骰，期望值不變、但保證 +1 偶爾真的進帳
+    delta = _probRound(delta);
     affectionMap[id] = Math.max(-100, Math.min(100, (affectionMap[id] || 0) + delta));
 
     // 🆕 2026-04-25：視覺反饋 — NPC 大頭發光（綠光好感、紅光惡感）
@@ -1204,6 +1208,20 @@ const teammates = (() => {
     if (delta !== 0 && typeof Game !== 'undefined' && Game.flashNpcSlot) {
       Game.flashNpcSlot(id, delta > 0 ? 'green' : 'red');
     }
+  }
+
+  // 🆕 2026-04-25c 機率取整（小數部分當成擲骰機率）
+  //   _probRound(0.3) → 30% 機率回 1、70% 回 0；期望值 0.3
+  //   _probRound(1.5) → 50/50 之間 1 或 2；期望值 1.5
+  //   _probRound(-0.7) → 70% 機率回 -1、30% 回 0
+  function _probRound(x) {
+    if (x === 0) return 0;
+    const sign  = x < 0 ? -1 : 1;
+    const abs   = Math.abs(x);
+    const floor = Math.floor(abs);
+    const frac  = abs - floor;
+    const rounded = (Math.random() < frac) ? (floor + 1) : floor;
+    return sign * rounded;
   }
 
   /**

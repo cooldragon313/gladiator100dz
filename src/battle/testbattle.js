@@ -173,12 +173,12 @@ const TB_ENEMIES = {
     desc:'比你早來幾個月的傢伙。不算強，但有經驗。',
   },
 
-  // 🆕 Day 50 大型競技用：中階對手（gladiatorB）
-  // 🆕 2026-04-25 平衡：玩家 Day 50 avg 26 → boss 升 avg 22 + T2 武器（加裝備差距）
+  // Day 50 大型競技用：中階對手（gladiatorB）
+  // 🆕 2026-04-25c 退回：cbfb6b5 升太多（24/20/24/...+T2）→ 玩家連輸；現在退到中等強度
   gladiatorB: {
     name:'黑面鬥士', title:'中階角鬥士',
-    STR:24, DEX:20, CON:24, AGI:18, WIL:16, LUK:14, hpBase:90,
-    weaponId:'shortSword_t2', armorId:'leatherArmor', shieldId:'woodShield',
+    STR:18, DEX:15, CON:18, AGI:14, WIL:14, LUK:11, hpBase:70,
+    weaponId:'shortSword', armorId:'leatherArmor', shieldId:'woodShield',
     traitId:'none',
     ai:'normal', passive:null, specialCD:99,
     fame:25, intimidation:0.03,
@@ -186,10 +186,11 @@ const TB_ENEMIES = {
     desc:'臉上總是塗著黑色的顏料。他說那是戰友的血——你不確定他是認真的。手裡那把劍經過葛拉以外的鐵匠重打過。',
   },
 
+  // 🆕 2026-04-25c 退回：原 32/26/30/...+T2/chainmail/ironShield 太硬
   arenaVet: {
     name:'競技場老手', title:'資深鬥士',
-    STR:32, DEX:26, CON:30, AGI:22, WIL:20, LUK:16, hpBase:110,
-    weaponId:'longSword_t2', armorId:'chainmail', shieldId:'ironShield',
+    STR:26, DEX:22, CON:25, AGI:19, WIL:17, LUK:14, hpBase:90,
+    weaponId:'longSword', armorId:'chainmail', shieldId:'woodShield',
     traitId:'none',
     ai:'normal', passive:null, specialCD:99,
     fame:45, intimidation:0.05,
