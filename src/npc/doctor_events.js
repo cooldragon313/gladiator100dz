@@ -510,7 +510,7 @@ const DoctorEvents = (() => {
         _PAIN('痛痛痛!'),
         _PAIN('啊啊啊啊啊——!!!', true),
         { speaker: '老默', text: '固定好了。' },
-        { speaker: '老默', text: '手臂暫時別用力。要完全好還得再來一次。' },
+        { speaker: '老默', text: '手臂保住了。但別馬上去揮重東西。' },
       ],
     },
     legs: {
@@ -651,18 +651,17 @@ const DoctorEvents = (() => {
     }
     if (free) Flags.set('doctor_next_free_day', p.day + 7);
 
+    // 🆕 2026-04-25 修：付錢都直接痊癒（之前中傷 / 重傷只「進入加速期」、玩家覺得 bug）
+    //   設計上：玩家付了錢就應該看到傷勢消失、不該還掛在角色頁
+    //   重傷貴是因為要花更久才能治好（時間成本仍體現在 advanceTime 90 分鐘）
+    Wounds.heal(part);
     let resultText;
     if (origSev === 1) {
-      Wounds.heal(part);
       resultText = `✦ ${partName}${sevName}痊癒了。`;
     } else if (origSev === 2) {
-      Flags.set('wound_treated_' + part, true);
-      w.daysElapsed = 0;
-      resultText = `✦ ${partName}處理完畢，7 天內應該會好。`;
+      resultText = `✦ ${partName}處理完畢、傷已平復。`;
     } else {
-      w.severity = 2;
-      w.daysElapsed = 0;
-      resultText = `✦ ${partName}重傷已控制住，降為中傷。`;
+      resultText = `✦ ${partName}重傷已徹底處理完畢。`;
     }
 
     // 時間 + 好感
@@ -687,7 +686,20 @@ const DoctorEvents = (() => {
     if (typeof DialogueModal !== 'undefined') {
       DialogueModal.play(lines, {
         onComplete: () => {
-          if (typeof SoundManager !== 'undefined') SoundManager.playSynth('acquire');
+          // 🆕 2026-04-25：付錢治療成功後 — 大字 POPUP + 震動 + 綠光
+          if (typeof Stage !== 'undefined' && Stage.popupBig) {
+            Stage.popupBig({
+              icon: '✦',
+              title: '傷勢痊癒',
+              subtitle: partName + '已平復',
+              color: 'green',
+              duration: 1600,
+              shake: true,
+              sound: 'acquire',
+            });
+          } else if (typeof SoundManager !== 'undefined') {
+            SoundManager.playSynth('acquire');
+          }
           _log(resultText, '#88cc77', true);
           if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
         },
