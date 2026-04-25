@@ -1496,6 +1496,55 @@ const Game = (() => {
     return 'nightmare';
   }
 
+  /**
+   * 🆕 2026-04-24：睡眠加成 — normal sleep 時依條件累加 stamina/mood
+   *   設計目的：玩家如果照顧好自己（吃飽、心情好、有伴），睡眠回得更多
+   *   單次最多累加 21 stamina（基礎 45 + 21 = 66）
+   */
+  function _applySleepBonuses(p) {
+    const bonuses = [];
+    let stamBonus = 0;
+    let moodBonus = 0;
+
+    // 條件 1：飽暖好眠（food ≥ 70）
+    if ((p.food || 0) >= 70) {
+      stamBonus += 5;
+      bonuses.push('🍖 飽暖好眠 +5');
+    }
+    // 條件 2：心情舒坦（mood ≥ 70）
+    if ((p.mood || 0) >= 70) {
+      stamBonus += 5;
+      bonuses.push('💭 心情舒坦 +5');
+    }
+    // 條件 3：身體找到節奏（連續 normal sleep ≥ 3）
+    if ((p.normalSleepStreak || 0) >= 3) {
+      stamBonus += 5;
+      bonuses.push('💤 身體找到節奏 +5');
+    }
+    // 條件 4：有寵物在身邊（任一槽有寵物）
+    if (p.pets && Object.values(p.pets).some(v => v && v.id)) {
+      stamBonus += 3;
+      bonuses.push('🐭 夜裡有伴 +3');
+    }
+    // 條件 5：奧蘭同房（未分房 + 還活著 + 未告發）
+    const orlanWithMe = typeof Flags !== 'undefined' &&
+                        !Flags.has('separated_from_olan') &&
+                        !Flags.has('orlan_dead') &&
+                        !Flags.has('betrayed_olan');
+    if (orlanWithMe) {
+      stamBonus += 3;
+      moodBonus += 2;
+      bonuses.push('🤝 兄弟在側 +3');
+    }
+
+    if (stamBonus > 0) Stats.modVital('stamina', stamBonus);
+    if (moodBonus > 0) Stats.modVital('mood', moodBonus);
+
+    if (bonuses.length > 0) {
+      addLog('　睡眠加成：' + bonuses.join(' · '), '#88aacc', false, false);
+    }
+  }
+
   function _triggerSleepEvent(forcedType) {
     const p = Stats.player;
     const daily = Config.DAILY;
@@ -1523,6 +1572,11 @@ const Game = (() => {
       Stats.modVital('stamina', staminaGain);
       Stats.modVital('mood',    daily.SLEEP_MOOD_GAIN);
       Stats.modVital('hp', Math.round(20 * injuryMult));   // 🆕 HP 恢復
+
+      // 🆕 2026-04-24：睡眠加成（滿足條件給額外體力）
+      //   每個條件獨立累加。最多 +21 stamina。失眠/噩夢不適用——前提是「睡得好」。
+      _applySleepBonuses(p);
+
       // 正常睡眠 → 重置失眠計數，累積正常睡眠天數
       p.insomniaStreak   = 0;
       p.normalSleepStreak = (p.normalSleepStreak || 0) + 1;
@@ -2099,6 +2153,120 @@ const Game = (() => {
   // 🗑️ 2026-04-23：舊 hectorFestival（Day 25 秋祭嫁禍）已廢棄
   //     改為 hector_events.js § 5.4 嫁禍事件（臭臉路線、aff ≤ -20、Day ≥ 20、移除 day25_done 依賴）
   //     Phase 3 在 hector_events.js 補（含「痛扁他」私戰選項）。
+
+  /**
+   * 🆕 2026-04-24：旁觀切磋小事件（補體力 / 對沖懲罰）
+   *   觸發條件：
+   *     - p.day >= 3（避開 Day 1-2 開場）
+   *     - 場上 ≥ 2 個隊友（除了主角）
+   *     - p.stamina < staminaMax × 0.65（疲倦時才合理）
+   *     - 今天還沒觸發（flag spectate_done_today）
+   *     - 12% 機率/天
+   *   效果：stamina +25 / mood +5（旁觀學習，不消耗時段）
+   *   敘述：依參戰兩個 NPC 抽不同對白；卡西烏斯/赫克托/奧蘭/索爾各有風格
+   */
+  function _trySpectateSparring() {
+    const p = Stats.player;
+    if (!p || p.day < 3) return;
+    if (typeof Flags === 'undefined') return;
+    if (Flags.has('spectate_done_today')) return;
+
+    // 疲倦時才觸發（避免滿體力玩家還拿白送 stamina）
+    const staminaRatio = (p.stamina || 0) / Math.max(1, p.staminaMax || 100);
+    if (staminaRatio >= 0.65) return;
+
+    // 場上要有 ≥ 2 個隊友（除了主角）
+    const teammates_ = Array.isArray(currentNPCs?.teammates) ? currentNPCs.teammates : [];
+    const fighters = teammates_.filter(id => {
+      // 主角不算（一般 currentNPCs.teammates 不含主角，但保險）
+      if (id === 'player') return false;
+      const npc = (typeof teammates !== 'undefined') ? teammates.getNPC(id) : null;
+      return npc && npc.alive !== false;
+    });
+    if (fighters.length < 2) return;
+
+    if (Math.random() >= 0.12) return;
+
+    Flags.set('spectate_done_today', true);
+
+    // 隨機抽兩個對打者
+    const shuffled = [...fighters].sort(() => Math.random() - 0.5);
+    const a = shuffled[0];
+    const b = shuffled[1];
+
+    const NAME = (id) => {
+      const npc = teammates.getNPC(id);
+      return npc ? (npc.name || id) : id;
+    };
+
+    // 對白：依參戰者組合給不同氣氛
+    //   有卡西烏斯 → 老兵風格
+    //   有赫克托 → 油條觀戰
+    //   有奧蘭 → 兄弟切磋
+    //   其他 → 通用
+    let lines;
+    if (a === 'cassius' || b === 'cassius') {
+      const opponent = (a === 'cassius') ? b : a;
+      lines = [
+        { text: '訓練場中央。塔倫長官把你們圈起來。' },
+        { speaker: '塔倫長官', text: `${NAME('cassius')}、${NAME(opponent)}——上場。其他人看好。` },
+        { text: '（卡西烏斯走過你身邊，低聲說：）' },
+        { speaker: '卡西烏斯', text: '看我換劍的時機。記著。' },
+        { text: '（兩人持木劍對峙。一交手——卡西烏斯的腳步像沒動過，但對方已經被逼到圈外。）' },
+        { text: '（你坐在沙地上，肩膀放鬆下來。沒人罵你不練。）' },
+        { text: '（這比訓練本身還有用。）' },
+      ];
+    } else if (a === 'hector' || b === 'hector') {
+      const opponent = (a === 'hector') ? b : a;
+      lines = [
+        { text: '訓練場上一陣騷動——赫克托被點名了。' },
+        { speaker: '塔倫長官', text: `${NAME('hector')}、${NAME(opponent)}——上場。` },
+        { text: '（赫克托走過你身邊，眨了眨眼。）' },
+        { speaker: '赫克特', text: '坐下來。看戲。' },
+        { text: '（他的木劍揮得花俏，但實打的兩下都很狠。對方很快被壓在地。）' },
+        { text: '（赫克托收劍時，故意讓對手喘了一口氣才補上。）' },
+        { text: '（你坐著休息——這節省下來的力氣，正好。）' },
+      ];
+    } else if (a === 'orlan' || b === 'orlan') {
+      const opponent = (a === 'orlan') ? b : a;
+      lines = [
+        { text: '訓練後段。塔倫長官隨手點了名。' },
+        { speaker: '塔倫長官', text: `${NAME('orlan')}、${NAME(opponent)}——你們兩個。` },
+        { text: '（奧蘭緊張地看了你一眼。）' },
+        { speaker: '奧蘭', text: '⋯⋯你看著就好，等我下來。' },
+        { text: '（他打得不好——但他撐住了好幾下。對方最後還是把他壓倒。）' },
+        { text: '（你在旁邊喘口氣。等下換你扶他起來。）' },
+      ];
+    } else {
+      lines = [
+        { text: '訓練場中央。塔倫長官把兩個人圈起來。' },
+        { speaker: '塔倫長官', text: `${NAME(a)}、${NAME(b)}——上場。其他人看好。` },
+        { text: '（兩人持木劍對峙。一上來就纏鬥起來。）' },
+        { text: '（你坐在沙地邊。沒人在看你練不練。）' },
+        { text: '（你可以喘口氣了。）' },
+      ];
+    }
+
+    if (typeof DialogueModal !== 'undefined') {
+      DialogueModal.play(lines, {
+        onComplete: () => {
+          Stats.modVital('stamina', 25);
+          Stats.modVital('mood', 5);
+          addLog('🛡 你旁觀了一場切磋。沒人在意你站在哪。（⚡ +25 · 💭 +5）', '#88aacc', true, true);
+          if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
+        },
+      });
+    } else {
+      Stats.modVital('stamina', 25);
+      Stats.modVital('mood', 5);
+      addLog('🛡 你旁觀了一場切磋，喘了口氣。', '#88aacc', true, true);
+    }
+  }
+
+  // 每日清「今日已旁觀」flag
+  DayCycle.onDayStart('clearSpectateDaily', () => {
+    if (typeof Flags !== 'undefined') Flags.unset('spectate_done_today');
+  }, 19);
 
   /**
    * 🆕 D.21 Option A：奧蘭藥房懸念觸發
@@ -2796,6 +2964,9 @@ const Game = (() => {
       HectorEvents.tryFriendlyHint();
       HectorEvents.tryHarassment();
     }
+
+    // 🆕 2026-04-24：旁觀切磋小事件（補體力 — 對沖偷懶/騷擾懲罰）
+    _trySpectateSparring();
 
     // 🆕 D.21 Option A：奧蘭藥房懸念事件（隨機觸發）
     _tryOrlanApothecarySighting();
