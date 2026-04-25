@@ -173,27 +173,28 @@ const TB_ENEMIES = {
     desc:'比你早來幾個月的傢伙。不算強，但有經驗。',
   },
 
-  // 🆕 Day 50 大型競技用：中階對手（gladiatorB 改名）
+  // 🆕 Day 50 大型競技用：中階對手（gladiatorB）
+  // 🆕 2026-04-25 平衡：玩家 Day 50 avg 26 → boss 升 avg 22 + T2 武器（加裝備差距）
   gladiatorB: {
     name:'黑面鬥士', title:'中階角鬥士',
-    STR:16, DEX:14, CON:16, AGI:12, WIL:12, LUK:10, hpBase:60,
-    weaponId:'shortSword', armorId:'leatherArmor', shieldId:'none',
+    STR:24, DEX:20, CON:24, AGI:18, WIL:16, LUK:14, hpBase:90,
+    weaponId:'shortSword_t2', armorId:'leatherArmor', shieldId:'woodShield',
     traitId:'none',
     ai:'normal', passive:null, specialCD:99,
-    fame:20, intimidation:0.02,
-    fameReward:15,   // 🆕 2026-04-25：Day 50 大型競技基礎 fame；S 評分 ×2 = 30
-    desc:'臉上總是塗著黑色的顏料。他說那是戰友的血——你不確定他是認真的。',
+    fame:25, intimidation:0.03,
+    fameReward:15,
+    desc:'臉上總是塗著黑色的顏料。他說那是戰友的血——你不確定他是認真的。手裡那把劍經過葛拉以外的鐵匠重打過。',
   },
 
   arenaVet: {
     name:'競技場老手', title:'資深鬥士',
-    STR:22, DEX:18, CON:20, AGI:16, WIL:15, LUK:12, hpBase:70,
-    weaponId:'shortSword', armorId:'leatherArmor', shieldId:'woodShield',
+    STR:32, DEX:26, CON:30, AGI:22, WIL:20, LUK:16, hpBase:110,
+    weaponId:'longSword_t2', armorId:'chainmail', shieldId:'ironShield',
     traitId:'none',
     ai:'normal', passive:null, specialCD:99,
-    fame:35, intimidation:0.04,
-    fameReward:25,   // 🆕 2026-04-25：高階對手；S ×2 = 50
-    desc:'身上的傷疤多過臉上的皺紋。懂得把握時機，不會輕易露出破綻。',
+    fame:45, intimidation:0.05,
+    fameReward:25,
+    desc:'身上的傷疤多過臉上的皺紋。懂得把握時機，不會輕易露出破綻。手裡的精鐵長劍砍過七十場。',
   },
 
   // ═══════════════════════════════════════════════════════

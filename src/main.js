@@ -3584,13 +3584,15 @@ const Game = (() => {
   // ARENA
   // ══════════════════════════════════════════════════════
 
+  // 🆕 2026-04-25 平衡調整：玩家 Day 50 ~ avg 26，舊 tier 太弱
+  //   錨點：「avg 25 = T1 裝備」（中等場），上面 tier 往上推
   const ARENA_TIERS = [
     {
       minDay: 10, maxDay: 20,
       label: '初等場・試煉', color: '#8a8060',
-      statsMin: 10, statsMax: 20,
+      statsMin: 12, statsMax: 22,                     // avg 17
       hpMin: 40, hpMax: 60,
-      weaponPool: ['dagger', 'fists'],
+      weaponPool: ['dagger', 'fists'],                // T0
       armorPool:  ['rags'],
       shieldPool: ['none'],
       fameMin: 3, fameMax: 8,
@@ -3599,9 +3601,9 @@ const Game = (() => {
     {
       minDay: 20, maxDay: 40,
       label: '中等場・角鬥', color: '#b08040',
-      statsMin: 20, statsMax: 25,
+      statsMin: 22, statsMax: 28,                     // avg 25 — 錨點
       hpMin: 60, hpMax: 80,
-      weaponPool: ['shortSword', 'hammer', 'dagger', 'spear'],
+      weaponPool: ['shortSword', 'hammer', 'dagger', 'spear'],  // T1
       armorPool:  ['leatherArmor', 'rags'],
       shieldPool: ['woodShield', 'none'],
       fameMin: 6, fameMax: 14,
@@ -3610,23 +3612,25 @@ const Game = (() => {
     {
       minDay: 40, maxDay: 60,
       label: '上等場・血鬥', color: '#c05020',
-      statsMin: 25, statsMax: 30,
-      hpMin: 80, hpMax: 100,
-      weaponPool: ['shortSword', 'spear', 'dagger', 'heavyAxe', 'longSword'],
+      statsMin: 28, statsMax: 36,                     // avg 32 — 玩家 ~26 會吃苦
+      hpMin: 85, hpMax: 110,
+      // T1 + T2 混（高 tier 開始出現精鐵 / 鐵頭系列）
+      weaponPool: ['shortSword_t2', 'spear_t2', 'shortSword', 'heavyAxe', 'longSword', 'spear'],
       armorPool:  ['chainmail', 'leatherArmor'],
       shieldPool: ['ironShield', 'woodShield', 'none'],
-      fameMin: 10, fameMax: 20,
+      fameMin: 12, fameMax: 22,
       titleStr: '老手鬥士',
     },
     {
       minDay: 60, maxDay: 81,
       label: '精英場・死鬥', color: '#d03010',
-      statsMin: 30, statsMax: 40,
-      hpMin: 100, hpMax: 120,
-      weaponPool: ['longSword', 'spear', 'warHammer', 'heavyAxe'],
+      statsMin: 36, statsMax: 46,                     // avg 41
+      hpMin: 110, hpMax: 140,
+      // T2 為主、偶爾 T1 重武器
+      weaponPool: ['longSword_t2', 'spear_t2', 'warHammer_t2', 'heavyAxe_t2', 'longSword', 'warHammer'],
       armorPool:  ['chainmail', 'ironPlate'],
       shieldPool: ['ironShield', 'none'],
-      fameMin: 15, fameMax: 30,
+      fameMin: 18, fameMax: 35,
       titleStr: '精英鬥士',
     },
   ];
