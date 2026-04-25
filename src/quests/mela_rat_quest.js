@@ -97,34 +97,40 @@ const MelaRatQuest = (() => {
       return true;
     }
 
-    // ═══ 失敗後重試路徑 🆕 ═══
-    // 條件：
-    //   - 已提議過、已完成（失敗）
-    //   - 沒有完整通關（mela_rat_passed 為 false）
-    //   - 剛才訓練的是 AGI / DEX / WIL（梅拉看到你練這些會想起來）
-    //   - 梅拉在觀眾區（她要看得到你）
-    //   - 完成日隔天之後（冷卻至少 1 天）
-    //   - 25% 機率
+    // ═══ 失敗 / 拒絕後重試路徑 🆕 ═══
+    // 條件分兩種：
+    //   A. 失敗過（接了沒抓到）：1 天冷卻、25% 機率、aff ≥ 25
+    //   B. 拒絕過（mela_rat_declined）：5 天冷卻、25% 機率、aff ≥ 35（重新贏信任）
+    // 共同：剛練 AGI/DEX/WIL + 梅拉在場
     if (Flags.has('mela_rat_done')) {
       if (!['AGI', 'DEX', 'WIL'].includes(trainedAttr)) return false;
-      // 梅拉要在場
       const melaPresent = _isMelaPresent();
       if (!melaPresent) return false;
+
+      const declined = Flags.has('mela_rat_declined');
+      const aff = (typeof teammates !== 'undefined') ? teammates.getAffection('melaKook') : 0;
+      const cooldownDays   = declined ? 5  : 1;
+      const affThreshold   = declined ? 35 : MELA_AFF_OFFER;
+
+      // 好感門檻
+      if (aff < affThreshold) return false;
       // 冷卻
       const doneDay = Flags.get('mela_rat_done_day');
-      if (typeof doneDay === 'number' && p.day <= doneDay) return false;
+      if (typeof doneDay === 'number' && p.day - doneDay < cooldownDays) return false;
       // 機率
       if (Math.random() > 0.25) return false;
 
-      // 清除失敗狀態，重新進入提議流程
+      // 清除失敗 / 拒絕狀態，重新進入提議流程
       Flags.unset('mela_rat_done');
       Flags.unset('mela_rat_done_day');
+      Flags.unset('mela_rat_declined');
       Flags.unset('mela_rat_failed_stage1');
       Flags.unset('mela_rat_failed_stage2');
       Flags.unset('mela_rat_failed_stage3');
       Flags.unset('mela_rat_accepted');
 
-      _playReOfferIntro();
+      if (declined) _playReOfferAfterDecline();
+      else          _playReOfferIntro();
       return true;
     }
 
@@ -152,6 +158,19 @@ const MelaRatQuest = (() => {
       { text: '（你點頭。）' },
       { speaker: '梅拉塞', text: '那隻小子還沒抓到。' },
       { speaker: '梅拉塞', text: '你⋯⋯要不要再試試？' },
+    ], _showOfferChoice);
+  }
+
+  // 🆕 2026-04-24：拒絕後再次提議的對白（不同口氣 — 暗示她記得你之前推掉）
+  function _playReOfferAfterDecline() {
+    _play([
+      { speaker: '梅拉塞', text: '小子。' },
+      { text: '（她叫住你。聲音比平常硬。）' },
+      { speaker: '梅拉塞', text: '上次⋯⋯算了。' },
+      { speaker: '梅拉塞', text: '我看你最近練得不錯。手腳都快了。' },
+      { speaker: '梅拉塞', text: '那隻老鼠還在廚房。' },
+      { text: '（她沒看你。）' },
+      { speaker: '梅拉塞', text: '⋯⋯這次要不要試？' },
     ], _showOfferChoice);
   }
 
@@ -191,14 +210,24 @@ const MelaRatQuest = (() => {
         {
           id: 'decline',
           label: '下次吧',
-          hint: '她不會再提。',
-          resultLog: '梅拉沒生氣。「⋯⋯行。你有你的理由。」',
+          hint: '她記著——下次想試要等好感更深。',
+          // 🆕 2026-04-24 fix bug：拒絕也要設 mela_rat_done + done_day，
+          //   並標記 declined 以便重試路徑用不同冷卻 / 不同對白
+          effects: [
+            { type: 'flag', key: 'mela_rat_done' },
+            { type: 'flag', key: 'mela_rat_declined' },
+          ],
+          resultLog: '梅拉沒生氣，但她別過頭去：「⋯⋯行。你有你的理由。」',
           logColor: '#c8a060',
         },
       ],
     }, {
       onChoose: (choiceId) => {
         if (choiceId === 'accept') _playAcceptedFollowup();
+        // 🆕 2026-04-24：拒絕時記下完成日（給重試路徑算冷卻用）
+        if (choiceId === 'decline') {
+          Flags.set('mela_rat_done_day', Stats.player.day);
+        }
       },
     });
   }
