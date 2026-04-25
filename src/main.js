@@ -3025,13 +3025,41 @@ const Game = (() => {
       }
     }
 
-    // 🆕 梅拉被動好感：她在場看你訓練 → +1（AGI 訓練 +2）
+    // 🆕 2026-04-25：在場觀眾被動好感（任何訓練都觸發、機率版）
+    //   原 melaKook +1/+2 邏輯擴成所有觀眾型 NPC
+    //   機率 = 每場 chance × 每天 ~5 場訓練 → 平均 ~1-2 點/天/NPC
+    //   100 天能累積 ~30-60 點，跟 v10 巴爺主線觸發門檻（40-60）相容
+    //   解決 v10 巴爺主線「主人 60 / 塔倫 40 / 巴爺 60」永遠刷不到的問題
     if (hasAttrEffect && typeof teammates !== 'undefined') {
-      const melaPresent = [...(currentNPCs.audience || [])].includes('melaKook');
-      if (melaPresent) {
-        const isAgi = trainedAttr === 'AGI';
-        teammates.modAffection('melaKook', isAgi ? 2 : 1);
-      }
+      const aud = currentNPCs.audience || [];
+      // 各觀眾型 NPC 的被動加成規則（依角色人設）
+      //   chance: 每場訓練觸發機率（避免好感漲太快）
+      //   base:   觸發時加分
+      //   bonus:  特定屬性訓練加碼
+      const PASSIVE_AFF_RULES = {
+        // 母親型 + 廚房手腳快 — 看你練都欣慰、AGI 特別愛（最高機率）
+        melaKook:      { chance: 0.50, base: 1, bonus: { AGI: 1 } },
+        // 巴爺：嚴師、看你撐住 — 常駐看你練、機率中等
+        overseer:      { chance: 0.30, base: 1, bonus: {} },
+        // 塔倫：看數字、平日少出現 — 出現就有印象（機率高）
+        officer:       { chance: 0.50, base: 1, bonus: {} },
+        // 主人：金主、極少出現 — 見一次面就記住（機率最高）
+        masterArtus:   { chance: 0.70, base: 1, bonus: {} },
+        // 葛拉：鐵匠尊重肯下功夫的人 — 但他不愛多管閒事
+        blacksmithGra: { chance: 0.40, base: 1, bonus: {} },
+        // 侍從：報告記錄、極少加分
+        masterServant: { chance: 0.20, base: 1, bonus: {} },
+        // 老默：醫生視角偶爾欣賞
+        doctorMo:      { chance: 0.30, base: 1, bonus: {} },
+      };
+      aud.forEach(npcId => {
+        const rule = PASSIVE_AFF_RULES[npcId];
+        if (!rule) return;
+        if (Math.random() >= rule.chance) return;   // 機率守衛
+        const bonus = (trainedAttr && rule.bonus[trainedAttr]) || 0;
+        const total = rule.base + bonus;
+        if (total > 0) teammates.modAffection(npcId, total);
+      });
     }
 
     // 🆕 抓老鼠任務觸發（梅拉好感 ≥ 25 + 她在場 + 隨機）
