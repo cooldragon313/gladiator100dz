@@ -5037,6 +5037,17 @@ const Game = (() => {
     currentFieldId = FIXED_FIELD;
     currentNPCs    = GameState.getCurrentNPCs();
 
+    // 🆕 2026-04-25 防作弊：從存檔還原 NPC roll 結果，避免 F5 重抽
+    //   GameState.loadFrom 已還原 dailyNPCMap / lastNPCRollDay
+    //   這裡同步 main.js module-local 變數，rollDailyNPCs 守衛才會生效
+    dailyNPCMap     = {};
+    if (data.gameState && data.gameState.dailyNPCMap) {
+      Object.keys(data.gameState.dailyNPCMap).forEach(fid => {
+        dailyNPCMap[fid] = data.gameState.dailyNPCMap[fid];
+      });
+    }
+    _lastNPCRollDay = GameState.getLastNPCRollDay();
+
     // NPC affection
     teammates.setAllAffection(data.npcAffection);
 

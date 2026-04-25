@@ -133,7 +133,9 @@ const GameState = (() => {
   // ══════════════════════════════════════════════════
 
   /**
-   * 回傳要存檔的部分。不存 currentNPCs / dailyNPCMap 因為這些每天重算。
+   * 回傳要存檔的部分。
+   * 🆕 2026-04-25：把 currentNPCs / dailyNPCMap / lastNPCRollDay 也存進去，
+   *    防止玩家用 F5 重整來「重新洗 NPC」作弊。讀檔後守衛會生效不重 roll。
    * @returns {object}
    */
   function getSerializable() {
@@ -142,11 +144,17 @@ const GameState = (() => {
       season:     _state.season,
       weather:    _state.weather,
       worldState: _state.worldState,
+      // 🆕 NPC roll 結果持久化（防作弊）
+      currentNPCs:    _state.currentNPCs    ? JSON.parse(JSON.stringify(_state.currentNPCs))    : { teammates:[], audience:[] },
+      dailyNPCMap:    _state.dailyNPCMap    ? JSON.parse(JSON.stringify(_state.dailyNPCMap))    : {},
+      lastNPCRollDay: _state.lastNPCRollDay,
     };
   }
 
   /**
-   * 從存檔資料還原。會破壞每日 NPC 快取，確保載入後會重 roll。
+   * 從存檔資料還原。
+   * 🆕 2026-04-25：保留存檔的 currentNPCs / dailyNPCMap / lastNPCRollDay，
+   *    讓 rollDailyNPCs 守衛生效、避免 F5 重新洗 NPC。
    * @param {object} data
    */
   function loadFrom(data) {
@@ -155,9 +163,10 @@ const GameState = (() => {
     _state.season     = data.season     || null;
     _state.weather    = data.weather    || null;
     _state.worldState = data.worldState || null;
-    // 清空 runtime 快取，讓下次 rollDailyNPCs 重新計算
-    invalidateDailyRoll();
-    _state.currentNPCs = { teammates: [], audience: [] };
+    // 🆕 還原 NPC roll 結果（避免 F5 作弊重抽）
+    _state.currentNPCs    = data.currentNPCs    || { teammates:[], audience:[] };
+    _state.dailyNPCMap    = data.dailyNPCMap    || {};
+    _state.lastNPCRollDay = (typeof data.lastNPCRollDay === 'number') ? data.lastNPCRollDay : -1;
     _state.currentEncounter = null;
   }
 
