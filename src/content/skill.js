@@ -330,6 +330,16 @@ const FIST_SKILL_TIERS = {
   jointBreaker:  { t1: 'jointBreaker',  t2: 'jointBreaker_t2',  t3: 'jointBreaker_t3' },
 };
 
+// 🆕 2026-04-27 三杯藏球賭博：連 5 次全勝獎勵
+Skills.luckyStar = {
+  id: 'luckyStar', name: '幸運之星',
+  type: 'passive',
+  desc: '累計賭局全勝 5 次。LUK 永久 +5。',
+  storyOnly: true,
+  grantedBy: 'lucky_star_granted',
+  passiveBonus: { LUK: 5 },
+};
+
 // 🆕 2026-04-27 T4 自創招式（玩家自己取名、效果由主導屬性決定）
 //   實際 name + effect 在 player.luciusT4 = { name, dominant, effDesc }
 //   battle.js 顯示時讀 player.luciusT4.name、效果讀 dominant

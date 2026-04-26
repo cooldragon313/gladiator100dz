@@ -2901,6 +2901,14 @@ const Game = (() => {
 
     // Special: end-of-day sleep
     if (actionId === '_sleep') {
+      // 🆕 2026-04-27 睡前先試三杯賭博（12% 機率、5 天 cd）
+      //   有觸發 → 賭博啟動、玩家完成後再點睡才真的睡
+      //   沒觸發 → 直接睡
+      if (typeof GamblingQuest !== 'undefined' && GamblingQuest.tryNightOffer) {
+        if (GamblingQuest.tryNightOffer()) {
+          return;   // 賭博啟動、暫停睡覺
+        }
+      }
       sleepEndDay();
       return;
     }
