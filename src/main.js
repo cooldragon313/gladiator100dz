@@ -1354,36 +1354,88 @@ const Game = (() => {
   }
 
   // ── NPC slots ─────────────────────────────────────────
+  // 🆕 2026-04-27 重構：前 N 格給有名字的劇情 teammate（current daily roll）、
+  //   後面剩下的格子塞 recruit 聚合（按屬性分組顯示「STR ×2」）
   function renderNPCSlots() {
-    // Teammate slots (6 max)
-    for (let i = 0; i < 6; i++) {
-      const slot = document.getElementById('tm-slot-' + i);
+    // Step 1: 收集當日命名 teammate（最多 6）
+    const namedTms = (currentNPCs.teammates || []).slice(0, 6);
+
+    // Step 2: 收集 active recruit、按屬性聚合
+    const recruitGroups = (typeof RecruitPool !== 'undefined' && RecruitPool.getActiveByAttr)
+                            ? RecruitPool.getActiveByAttr()
+                            : { STR: [], DEX: [], CON: [], AGI: [], WIL: [] };
+    // 過濾掉空組、轉成顯示用陣列
+    const groupArr = Object.entries(recruitGroups)
+      .filter(([attr, list]) => list.length > 0)
+      .map(([attr, list]) => ({ attr, list }));
+
+    // Step 3: 渲染 6 格 — 命名 NPC 優先、剩下放聚合卡
+    let slotIdx = 0;
+    for (const npcId of namedTms) {
+      if (slotIdx >= 6) break;
+      const slot = document.getElementById('tm-slot-' + slotIdx);
+      if (!slot) { slotIdx++; continue; }
+      const npc = teammates.getNPC(npcId);
+      slot.classList.add('occupied');
+      slot.classList.remove('empty', 'recruit-group');
+      const favorBadge = npc?.favoredAttr
+        ? `<span class="npc-favor-badge">${npc.favoredAttr}</span>`
+        : '';
+      slot.innerHTML = `<span class="npc-role-tag">${npc?.title || '隊友'}</span><span class="npc-name">${npc ? npc.name : npcId}</span>${favorBadge}`;
+      slot.onclick = () => onNPCClick(npcId);
+      slotIdx++;
+    }
+    // 接下來放聚合卡
+    for (const grp of groupArr) {
+      if (slotIdx >= 6) break;
+      const slot = document.getElementById('tm-slot-' + slotIdx);
+      if (!slot) { slotIdx++; continue; }
+      const names = grp.list.map(r => r.name).join(' / ');
+      slot.classList.add('occupied', 'recruit-group');
+      slot.classList.remove('empty');
+      slot.innerHTML = `
+        <span class="npc-role-tag">同訓</span>
+        <span class="npc-name recruit-attr-name">${grp.attr} ×${grp.list.length}</span>
+        <span class="recruit-list-mini">${names}</span>
+      `;
+      slot.title = `${grp.attr} 協力者：${names}`;
+      slot.onclick = null;   // 之後可加聚合 panel
+      slotIdx++;
+    }
+    // 剩下空格
+    for (; slotIdx < 6; slotIdx++) {
+      const slot = document.getElementById('tm-slot-' + slotIdx);
       if (!slot) continue;
-      const npcId = currentNPCs.teammates[i];
-      if (npcId) {
-        const npc = teammates.getNPC(npcId);
-        slot.classList.add('occupied');
-        slot.classList.remove('empty');
-        const favorBadge = npc?.favoredAttr
-          ? `<span class="npc-favor-badge">${npc.favoredAttr}</span>`
-          : '';
-        slot.innerHTML = `<span class="npc-role-tag">${npc?.title || '隊友'}</span><span class="npc-name">${npc ? npc.name : npcId}</span>${favorBadge}`;
-        slot.onclick = () => onNPCClick(npcId);
-      } else {
-        slot.classList.remove('occupied');
-        slot.classList.add('empty');
-        slot.innerHTML = '<span class="npc-empty-label">—</span>';
-        slot.onclick = null;
-      }
+      slot.classList.remove('occupied', 'recruit-group');
+      slot.classList.add('empty');
+      slot.innerHTML = '<span class="npc-empty-label">—</span>';
+      slot.onclick = null;
     }
 
     // 🆕 D.18：背景角鬥士小字條（右側疊著）
     _renderBackgroundStrip();
-    // Audience slots (3 max)
+
+    // 🆕 2026-04-27 觀眾排序：主格優先序 主人 > 塔倫 > 巴爺、其他擠溢位
+    const PRIORITY_AUDIENCE = ['masterArtus', 'officer', 'overseer'];
+    const audAll = (currentNPCs.audience || []).slice();
+
+    // Step 1: 把優先 NPC 排前面、其他保留原順序
+    const main3 = [];
+    const overflow = [];
+    PRIORITY_AUDIENCE.forEach(id => {
+      if (audAll.includes(id)) main3.push(id);
+    });
+    audAll.forEach(id => {
+      if (PRIORITY_AUDIENCE.includes(id)) return;   // 已在 main3
+      if (main3.length < 3) main3.push(id);
+      else overflow.push(id);
+    });
+
+    // Step 2: 渲染 3 大格
     for (let i = 0; i < 3; i++) {
       const slot = document.getElementById('aud-slot-' + i);
       if (!slot) continue;
-      const npcId = currentNPCs.audience[i];
+      const npcId = main3[i];
       if (npcId) {
         const npc = teammates.getNPC(npcId);
         slot.classList.add('occupied');
@@ -1394,6 +1446,27 @@ const Game = (() => {
         slot.classList.remove('occupied');
         slot.classList.add('empty');
         slot.innerHTML = '<span class="npc-empty-label">—</span>';
+        slot.onclick = null;
+      }
+    }
+
+    // Step 3: 渲染溢位區 5 小格
+    for (let i = 0; i < 5; i++) {
+      const slot = document.getElementById('aud-overflow-' + i);
+      if (!slot) continue;
+      const npcId = overflow[i];
+      if (npcId) {
+        const npc = teammates.getNPC(npcId);
+        slot.classList.add('occupied');
+        slot.classList.remove('empty');
+        slot.textContent = npc ? npc.name.charAt(0) : npcId.charAt(0);
+        slot.title = npc?.name || npcId;
+        slot.onclick = () => onNPCClick(npcId);
+      } else {
+        slot.classList.remove('occupied');
+        slot.classList.add('empty');
+        slot.textContent = '';
+        slot.title = '';
         slot.onclick = null;
       }
     }
@@ -1408,10 +1481,26 @@ const Game = (() => {
                   ? GameState.getCurrentNPCs() : currentNPCs;
     if (!cur) return;
     const tmIdx  = (cur.teammates || []).indexOf(npcId);
-    const audIdx = (cur.audience  || []).indexOf(npcId);
     let slotEl = null;
-    if (tmIdx  >= 0) slotEl = document.getElementById('tm-slot-'  + tmIdx);
-    else if (audIdx >= 0) slotEl = document.getElementById('aud-slot-' + audIdx);
+    if (tmIdx  >= 0) {
+      slotEl = document.getElementById('tm-slot-'  + tmIdx);
+    } else {
+      // 🆕 2026-04-27 觀眾分主格 + 溢位區、要按渲染後的位置找
+      const PRIORITY_AUDIENCE = ['masterArtus', 'officer', 'overseer'];
+      const audAll = (cur.audience || []).slice();
+      const main3 = [];
+      const overflow = [];
+      PRIORITY_AUDIENCE.forEach(id => { if (audAll.includes(id)) main3.push(id); });
+      audAll.forEach(id => {
+        if (PRIORITY_AUDIENCE.includes(id)) return;
+        if (main3.length < 3) main3.push(id);
+        else overflow.push(id);
+      });
+      const mainIdx = main3.indexOf(npcId);
+      const overflowIdx = overflow.indexOf(npcId);
+      if (mainIdx >= 0)        slotEl = document.getElementById('aud-slot-' + mainIdx);
+      else if (overflowIdx >= 0) slotEl = document.getElementById('aud-overflow-' + overflowIdx);
+    }
     if (!slotEl) return;   // NPC 不在場 → 不顯示（合理：你看不到的人好感變了沒提示）
 
     const cls = (color === 'green') ? 'aff-glow-positive' : 'aff-glow-negative';
@@ -3007,6 +3096,18 @@ const Game = (() => {
         else if (aff >= 30) storyNpcMult *= 1.3;
       });
 
+      // 🆕 2026-04-27 recruit 協力（同 favoredAttr 每人 ×1.2）
+      //   recruit 沒有複雜好感門檻、純功能性、固定加成
+      if (typeof RecruitPool !== 'undefined' && RecruitPool.getActiveByAttr && trainedAttr) {
+        const recruitGroups = RecruitPool.getActiveByAttr();
+        const matched = recruitGroups[trainedAttr] || [];
+        matched.forEach(r => {
+          if (r.alive === false) return;
+          storyNpcMult *= 1.2;   // 每個 +20%
+          partnerCount++;
+        });
+      }
+
       // ── 背景角鬥士協力（單段 pass/no-pass） ──
       if (trainedAttr && bgActive.length > 0) {
         bgActive.forEach(bg => {
@@ -3228,6 +3329,18 @@ const Game = (() => {
           teammates.modAffection(npcId, 1);
         }
       });
+
+      // 🆕 2026-04-27 recruit 也參與被動好感（同 favoredAttr 25% / 不同 5%）
+      //   recruit 比較淡、機率比命名 NPC 低
+      if (typeof RecruitPool !== 'undefined' && RecruitPool._getActiveRecruits) {
+        RecruitPool._getActiveRecruits().forEach(r => {
+          const matchAttr = (trainedAttr && r.favoredAttr === trainedAttr);
+          const chance = matchAttr ? 0.25 : 0.05;
+          if (Math.random() < chance) {
+            teammates.modAffection(r.id, 1);
+          }
+        });
+      }
     }
 
     // 🆕 2026-04-25：在場觀眾被動好感（觀眾型 NPC 規則）
@@ -5215,6 +5328,10 @@ const Game = (() => {
                       // 🆕 D.19 道德累積滑動窗口
                       moralHistory:  p.moralHistory ? JSON.parse(JSON.stringify(p.moralHistory)) : null,
                       moralLocks:    p.moralLocks   ? { ...p.moralLocks } : null,
+                      // 🆕 2026-04-27 recruit 池（深拷貝、每個 recruit 是物件）
+                      recruits:      Array.isArray(p.recruits)
+                                       ? p.recruits.map(r => ({ ...r }))
+                                       : [],
                     },
       fieldId:      currentFieldId,
       gameState:    GameState.getSerializable(),
@@ -5255,6 +5372,11 @@ const Game = (() => {
     if (!Array.isArray(p.achievements))  p.achievements  = [];
     if (!Array.isArray(p.traits))        p.traits        = [];
     if (!Array.isArray(p.ailments))      p.ailments      = [];   // 🆕 Phase 1-D
+    // 🆕 2026-04-27 recruit 池讀檔後重新註冊到 NPC_DEFS（讓 affection / flashNpcSlot 找得到）
+    if (!Array.isArray(p.recruits)) p.recruits = [];
+    if (typeof teammates !== 'undefined' && teammates.registerRecruit) {
+      p.recruits.forEach(r => teammates.registerRecruit(r));
+    }
     if (p.title              === undefined) p.title              = null;
     if (p.fameBase           === undefined) p.fameBase           = 0;
     if (p.insomniaStreak     === undefined) p.insomniaStreak     = 0;  // 🆕 Phase 1-D

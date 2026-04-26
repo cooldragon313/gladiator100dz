@@ -712,6 +712,67 @@ html, body {
   pointer-events: none;
 }
 
+/* 🆕 2026-04-27 recruit 聚合格 — 跟命名 NPC 視覺區隔 */
+.npc-slot.recruit-group {
+  background: linear-gradient(135deg, #1a1410, #0e0a06);
+  border-color: #5a4a30;
+}
+.npc-slot.recruit-group .recruit-attr-name {
+  font-size: 18px;
+  font-weight: 900;
+  color: #d4af37;
+  letter-spacing: .12em;
+}
+.npc-slot.recruit-group .recruit-list-mini {
+  font-size: 10px;
+  color: #886655;
+  margin-top: 2px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+/* 🆕 2026-04-27 觀眾主格 + 溢位區 layout */
+.audience-row-wrap {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.aud-main-row {
+  flex: 1;
+}
+.aud-overflow-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.aud-overflow-slot {
+  width: 36px;
+  height: 36px;
+  background: rgba(0,0,0,.35);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: border-color .15s;
+}
+.aud-overflow-slot.empty {
+  visibility: hidden;
+}
+.aud-overflow-slot.occupied {
+  border-color: var(--gold);
+  color: var(--text-hi);
+}
+.aud-overflow-slot:hover.occupied {
+  border-color: var(--gold-lt);
+}
+
 .audience-zone-label {
   font-size: 18px;
   color: var(--text-dim);
@@ -4354,10 +4415,21 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
           <!-- 觀眾評語（JS 動態填入） -->
           <div id="audience-speech"></div>
           <div class="audience-zone-label">— 觀眾 —</div>
-          <div class="npc-row">
-            <div class="npc-slot empty" id="aud-slot-0"><span class="npc-empty-label">—</span></div>
-            <div class="npc-slot empty" id="aud-slot-1"><span class="npc-empty-label">—</span></div>
-            <div class="npc-slot empty" id="aud-slot-2"><span class="npc-empty-label">—</span></div>
+          <div class="audience-row-wrap">
+            <!-- 主格 3 大（主人/塔倫/巴爺優先） -->
+            <div class="npc-row aud-main-row">
+              <div class="npc-slot empty" id="aud-slot-0"><span class="npc-empty-label">—</span></div>
+              <div class="npc-slot empty" id="aud-slot-1"><span class="npc-empty-label">—</span></div>
+              <div class="npc-slot empty" id="aud-slot-2"><span class="npc-empty-label">—</span></div>
+            </div>
+            <!-- 🆕 2026-04-27 溢位區 5 小格（其他 audience NPC 擠右側） -->
+            <div class="aud-overflow-row">
+              <div class="aud-overflow-slot empty" id="aud-overflow-0"></div>
+              <div class="aud-overflow-slot empty" id="aud-overflow-1"></div>
+              <div class="aud-overflow-slot empty" id="aud-overflow-2"></div>
+              <div class="aud-overflow-slot empty" id="aud-overflow-3"></div>
+              <div class="aud-overflow-slot empty" id="aud-overflow-4"></div>
+            </div>
           </div>
         </div>
 
@@ -5112,6 +5184,7 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 <script src="src/npc/lucius_events.js"></script>
 <script src="src/npc/npc_reactions.js"></script>
 <script src="src/npc/npc_conflicts.js"></script>
+<script src="src/systems/recruit_pool.js"></script>
 <script src="src/systems/tutorial_hints.js"></script>
 <script src="src/ui/help_modal.js"></script>
 <script src="src/quests/mela_rat_quest.js"></script>

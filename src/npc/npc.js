@@ -1393,6 +1393,15 @@ const teammates = (() => {
     return pending;
   }
 
+  // 🆕 2026-04-27：註冊動態 recruit NPC（給 recruit_pool.js 用）
+  //   讓 affection / flashNpcSlot 等既有系統能找到 recruit
+  function registerRecruit(recruit) {
+    if (!recruit || !recruit.id) return;
+    NPC_DEFS[recruit.id] = recruit;
+    // 預設好感 0
+    if (!affectionMap[recruit.id]) affectionMap[recruit.id] = 0;
+  }
+
   return {
     NPC_DEFS,
     getAffection,
@@ -1405,5 +1414,7 @@ const teammates = (() => {
     // 🆕 D.12 故事揭露系統
     getVisibleFlavor,
     getPendingStoryEvents,
+    // 🆕 2026-04-27 動態 recruit
+    registerRecruit,
   };
 })();
