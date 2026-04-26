@@ -220,6 +220,14 @@ const LuciusEvents = (() => {
 
     Flags.set('lucius_last_visit_day', p.day);
 
+    // 🆕 2026-04-27 隱藏第 5 次相遇 — 4 招都學完 + 巴爺主線完成 + 還沒提過巴爺
+    const allTaught = SKILL_LEARN_ORDER.every(s => Flags.has(s.flag));
+    const overseerEnded = Flags.has('overseer_passed_torch') || Flags.has('overseer_kept_secret');
+    if (allTaught && overseerEnded && !Flags.has('lucius_remembered_babrius')) {
+      _playHiddenBabriusScene();
+      return true;
+    }
+
     // 該教第幾招？
     const nextSkill = SKILL_LEARN_ORDER.find(s => !Flags.has(s.flag));
 
@@ -348,14 +356,259 @@ const LuciusEvents = (() => {
   }
 
   // ══════════════════════════════════════════════════
-  // 工具：紀錄拳法招式使用次數（給未來 T2/T3 自悟用）
+  // 工具：紀錄拳法招式使用次數（按招分開計）
+  //   存在 player.luciusSkillUsage = { bareDisarm: 5, leverageThrow: 3, ... }
+  //   給 T2/T3 自悟用、各招分別計次
   // ══════════════════════════════════════════════════
+  const FIST_BASE_IDS = ['bareDisarm', 'leverageThrow', 'vitalStrike', 'jointBreaker'];
+
+  function _getSeriesKey(skillId) {
+    // 從招 ID 取系列（bareDisarm / bareDisarm_t2 / bareDisarm_t3 → bareDisarm）
+    if (!skillId) return null;
+    return skillId.replace(/_t[23]$/, '');
+  }
+
   function recordSkillUsage(skillId) {
     if (!skillId) return;
+    const series = _getSeriesKey(skillId);
+    if (!FIST_BASE_IDS.includes(series)) return;
+    if (!Stats.player.luciusSkillUsage) Stats.player.luciusSkillUsage = {};
+    Stats.player.luciusSkillUsage[series] = (Stats.player.luciusSkillUsage[series] || 0) + 1;
+    // legacy 總計（保留向下相容）
+    if (typeof Flags !== 'undefined') Flags.increment('lucius_skill_use_count', 1);
+
+    // 🆕 自悟自動檢查（用完招後立刻判斷有沒有達標）
+    _checkSelfRealize(series);
+  }
+
+  // ══════════════════════════════════════════════════
+  // 🆕 2026-04-27 T2/T3 自悟系統
+  //   T2 條件：該招用 ≥ 8 次 + AGI ≥ 25 + 還沒有 T2 + 付 EXP
+  //   T3 條件：T2 有了 + 該招用 ≥ 12 次（T2 起算）+ AGI ≥ 30 + 付 EXP
+  // ══════════════════════════════════════════════════
+  function _checkSelfRealize(series) {
     if (typeof Flags === 'undefined') return;
-    const fistSkills = ['bareDisarm', 'leverageThrow', 'vitalStrike', 'jointBreaker'];
-    if (!fistSkills.includes(skillId)) return;
-    Flags.increment('lucius_skill_use_count', 1);
+    if (!series) return;
+    const usage = (Stats.player.luciusSkillUsage || {})[series] || 0;
+    const agiEff = (typeof Stats.eff === 'function') ? Stats.eff('AGI') : (Stats.player.AGI || 10);
+    const dexEff = (typeof Stats.eff === 'function') ? Stats.eff('DEX') : (Stats.player.DEX || 10);
+
+    // T2 自悟
+    if (!Flags.has(`lucius_t2_${series.replace(/[A-Z]/g, m => m.toLowerCase())}`) &&
+        !Flags.has(`lucius_t2_${_seriesShort(series)}`)) {
+      const t2Flag = `lucius_t2_${_seriesShort(series)}`;
+      if (!Flags.has(t2Flag) && usage >= 8 && agiEff >= 25) {
+        // 檢查 EXP 夠
+        const need = { AGI: 200, DEX: 100 };
+        const have = { AGI: Stats.player.exp?.AGI || 0, DEX: Stats.player.exp?.DEX || 0 };
+        if (have.AGI >= need.AGI && have.DEX >= need.DEX) {
+          _offerSelfRealize(series, 2, t2Flag, need);
+          return;
+        }
+      }
+    }
+    // T3 自悟
+    const t2Flag = `lucius_t2_${_seriesShort(series)}`;
+    const t3Flag = `lucius_t3_${_seriesShort(series)}`;
+    if (Flags.has(t2Flag) && !Flags.has(t3Flag) && usage >= 12 && agiEff >= 30) {
+      const need = { AGI: 350, DEX: 200 };
+      const have = { AGI: Stats.player.exp?.AGI || 0, DEX: Stats.player.exp?.DEX || 0 };
+      if (have.AGI >= need.AGI && have.DEX >= need.DEX) {
+        _offerSelfRealize(series, 3, t3Flag, need);
+      }
+    }
+  }
+
+  function _seriesShort(series) {
+    return ({ bareDisarm: 'disarm', leverageThrow: 'throw',
+              vitalStrike: 'vital', jointBreaker: 'joint' })[series] || series;
+  }
+
+  function _offerSelfRealize(series, tier, flagKey, cost) {
+    if (typeof ChoiceModal === 'undefined') {
+      _grantSelfRealize(series, tier, flagKey, cost);
+      return;
+    }
+    const skillName = ({ bareDisarm: '赤手奪刃', leverageThrow: '借力反摔',
+                         vitalStrike: '要害打擊', jointBreaker: '關節破' })[series];
+    ChoiceModal.show({
+      id: `lucius_realize_${series}_t${tier}`,
+      icon: '✦',
+      title: `自悟：${skillName} T${tier}`,
+      body: `你反覆用這招、突然領悟了更深的層次。\n要花 EXP 升級嗎？\n\n成本：AGI ${cost.AGI} EXP / DEX ${cost.DEX} EXP`,
+      forced: true,
+      choices: [
+        {
+          id: 'realize',
+          label: `升級！（AGI ${cost.AGI} / DEX ${cost.DEX} EXP）`,
+          effects: [],
+          resultLog: `✦ 自悟成功！${skillName} 升到 T${tier}。`,
+          logColor: '#d4af37',
+        },
+        {
+          id: 'not_yet',
+          label: '⋯⋯之後再說',
+          hint: '（保留 EXP）',
+          effects: [],
+          resultLog: '你決定先撐著、之後再升。',
+          logColor: '#9a8866',
+        },
+      ],
+    }, {
+      onChoose: (choiceId) => {
+        if (choiceId === 'realize') _grantSelfRealize(series, tier, flagKey, cost);
+      }
+    });
+  }
+
+  function _grantSelfRealize(series, tier, flagKey, cost) {
+    Stats.modExp('AGI', -cost.AGI);
+    Stats.modExp('DEX', -cost.DEX);
+    Flags.set(flagKey, true);
+
+    const newSkillId = `${series}_t${tier}`;
+    const oldSkillId = (tier === 2) ? series : `${series}_t2`;
+
+    if (!Array.isArray(Stats.player.learnedSkills)) Stats.player.learnedSkills = [];
+    // 移除舊階、加新階
+    const oldIdx = Stats.player.learnedSkills.indexOf(oldSkillId);
+    if (oldIdx >= 0) Stats.player.learnedSkills.splice(oldIdx, 1);
+    if (!Stats.player.learnedSkills.includes(newSkillId)) {
+      Stats.player.learnedSkills.push(newSkillId);
+    }
+
+    const skillName = ({ bareDisarm: '赤手奪刃', leverageThrow: '借力反摔',
+                         vitalStrike: '要害打擊', jointBreaker: '關節破' })[series];
+    if (typeof Stage !== 'undefined' && Stage.popupBig) {
+      Stage.popupBig({
+        icon: '✦', title: `${skillName} T${tier}`, subtitle: '你自悟了',
+        color: 'gold', duration: 1800, sound: 'acquire',
+      });
+    }
+    _log(`✦ 自悟！${skillName} 升到 T${tier}。`, '#d4af37', true);
+
+    // 🆕 升 T3 後檢查 T4 條件（4 招都 T3 + AGI 35 + DEX 30 + WIL 25）
+    if (tier === 3) _checkT4Realize();
+  }
+
+  // ══════════════════════════════════════════════════
+  // 🆕 2026-04-27 隱藏第 5 次相遇 — 提到巴爺
+  // 觸發：4 招都學完 + 巴爺主線完成 + 還沒提過
+  // ══════════════════════════════════════════════════
+  function _playHiddenBabriusScene() {
+    Flags.set('lucius_remembered_babrius', true);
+
+    if (typeof DialogueModal === 'undefined') {
+      _log('盧基烏斯：「⋯⋯巴布魯斯。他活著。我以為他也死了。告訴他、斷腳的還記得他。」', '#aa88aa', true);
+      return;
+    }
+    DialogueModal.play([
+      { text: '（你又經過 Forum 邊緣的巷弄。）' },
+      { text: '（盧基烏斯坐在那裡、一如既往。）' },
+      { text: '（你猶豫了一下、開口。）' },
+      { speaker: '主角', text: '⋯⋯我跟你提一個人。' },
+      { speaker: '盧基烏斯', text: '⋯⋯誰？' },
+      { speaker: '主角', text: '巴布魯斯。訓練所的監督官。退役角鬥士。' },
+      { text: '（盧基烏斯停住。）' },
+      { speaker: '盧基烏斯', text: '⋯⋯哦。' },
+      { text: '（他笑了一下、聲音很乾。）' },
+      { speaker: '盧基烏斯', text: '他活著。' },
+      { speaker: '盧基烏斯', text: '⋯⋯我以為他也死了。' },
+      { text: '（沉默。）' },
+      { speaker: '盧基烏斯', text: '⋯⋯告訴他、斷腳的還記得他。' },
+      { text: '（他不說話了。）' },
+      { text: '（你後來才想起來、你忘了問他怎麼認識巴爺的。）' },
+    ], {
+      onComplete: () => {
+        _log('💭 你忘了問他怎麼認識巴爺的。但有些事不需要問。', '#aa88aa', true);
+        // 跟巴爺好感有 → 解鎖巴爺額外回應（之後巴爺主線可讀此 flag）
+        if (typeof teammates !== 'undefined') {
+          teammates.modAffection('lucius', +5, { bypassTrait: true });
+        }
+      }
+    });
+  }
+
+  // ══════════════════════════════════════════════════
+  // 🆕 2026-04-27 T4 自創招式 — 玩家自定名字
+  // ══════════════════════════════════════════════════
+  function _checkT4Realize() {
+    if (typeof Flags === 'undefined') return;
+    if (Flags.has('lucius_t4_created')) return;
+
+    const allT3 = ['disarm', 'throw', 'vital', 'joint'].every(s => Flags.has(`lucius_t3_${s}`));
+    if (!allT3) return;
+
+    const agi = (typeof Stats.eff === 'function') ? Stats.eff('AGI') : 0;
+    const dex = (typeof Stats.eff === 'function') ? Stats.eff('DEX') : 0;
+    const wil = (typeof Stats.eff === 'function') ? Stats.eff('WIL') : 0;
+    if (agi < 35 || dex < 30 || wil < 25) return;
+
+    Flags.set('lucius_t4_created', true);
+    _playT4CreationScene();
+  }
+
+  function _playT4CreationScene() {
+    if (typeof DialogueModal === 'undefined') {
+      _promptT4Name();
+      return;
+    }
+    DialogueModal.play([
+      { text: '（戰鬥結束。你倒在沙地上喘氣。）' },
+      { text: '（腦中突然出現一個畫面——這個動作、你從來沒做過。）' },
+      { text: '（但你確定它能用。）' },
+      { text: '（盧基烏斯沒教過。他師父也沒教過。）' },
+      { text: '（這招——是你自己悟出來的。）' },
+      { speaker: '主角', text: '⋯⋯這是什麼？' },
+      { text: '（你決定給它一個名字。）' },
+    ], {
+      onComplete: () => _promptT4Name(),
+    });
+  }
+
+  function _promptT4Name() {
+    // 系統決定主導屬性 → 效果類型
+    const agi = (typeof Stats.eff === 'function') ? Stats.eff('AGI') : 0;
+    const dex = (typeof Stats.eff === 'function') ? Stats.eff('DEX') : 0;
+    const wil = (typeof Stats.eff === 'function') ? Stats.eff('WIL') : 0;
+    let dominant = 'agi', effDesc = '';
+    if (agi >= dex && agi >= wil) {
+      dominant = 'agi';
+      effDesc = '被攻擊時 50% 機率讓敵人下回合 miss + 自身 EVA +20（3 回合）';
+    } else if (dex >= agi && dex >= wil) {
+      dominant = 'dex';
+      effDesc = '戰鬥開場第 1 回合、必中暴擊（無視所有防禦）';
+    } else {
+      dominant = 'wil';
+      effDesc = 'HP < 30% 時 ATK +30 / CRT +20 / SPD +10（持續至戰鬥結束）';
+    }
+
+    let name = null;
+    try {
+      name = window.prompt(
+        `✦ 你自創了一招拳法！\n\n效果：${effDesc}\n\n請給它一個名字（最多 6 字、Enter 跳過用「無名」）：`,
+        ''
+      );
+    } catch (e) { name = null; }
+    if (!name || !name.trim()) name = '無名';
+    name = name.trim().slice(0, 6);
+
+    // 寫進 player.luciusT4
+    Stats.player.luciusT4 = { name, dominant, effDesc };
+
+    // 加進 learnedSkills
+    if (!Array.isArray(Stats.player.learnedSkills)) Stats.player.learnedSkills = [];
+    if (!Stats.player.learnedSkills.includes('luciusT4')) {
+      Stats.player.learnedSkills.push('luciusT4');
+    }
+
+    if (typeof Stage !== 'undefined' && Stage.popupBig) {
+      Stage.popupBig({
+        icon: '✨', title: name, subtitle: '你的拳法',
+        color: 'gold', duration: 2400, sound: 'acquire', shake: true,
+      });
+    }
+    _log(`✨ 你自創了【${name}】！效果：${effDesc}`, '#d4af37', true);
   }
 
   // ══════════════════════════════════════════════════

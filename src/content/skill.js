@@ -227,4 +227,119 @@ const Skills = {
     weaponClassAny: ['fist'],
     effect: { defPiercePct: 0.50 },
   },
+
+  // ── 拳法 T2 自悟（招用 ≥ 8 次 + AGI ≥ 25 + EXP）──
+  bareDisarm_t2: {
+    id: 'bareDisarm_t2', name: '赤手奪刃 T2',
+    type: 'active',
+    desc: '熟練後的赤手奪刃。1 回合內被攻擊 80% 完美格擋 + 格擋成功時敵人 SPD -10%（1 回合）。',
+    staminaCost: 12, cooldown: 4,
+    storyOnly: true,                    // 不靠 EXP 買、靠自悟條件
+    grantedBy: 'lucius_t2_disarm',
+    weaponClassAny: ['fist'],
+    series: 'bareDisarm', tier: 2,
+    effect: { blockChance: 0.80, slowOnBlock: true },
+  },
+  leverageThrow_t2: {
+    id: 'leverageThrow_t2', name: '借力反摔 T2',
+    type: 'active',
+    desc: '85% 傷害反彈。',
+    staminaCost: 18, cooldown: 5,
+    storyOnly: true,
+    grantedBy: 'lucius_t2_throw',
+    weaponClassAny: ['fist'],
+    series: 'leverageThrow', tier: 2,
+    effect: { reflectPct: 0.85 },
+  },
+  vitalStrike_t2: {
+    id: 'vitalStrike_t2', name: '要害打擊 T2',
+    type: 'active',
+    desc: '命中後敵人 silence 3 回合 + 30% 機率敵人 ATK -20%（3 回合）。',
+    staminaCost: 15, cooldown: 4,
+    storyOnly: true,
+    grantedBy: 'lucius_t2_vital',
+    weaponClassAny: ['fist'],
+    series: 'vitalStrike', tier: 2,
+    effect: { silenceTurns: 3, atkDebuffChance: 0.30 },
+  },
+  jointBreaker_t2: {
+    id: 'jointBreaker_t2', name: '關節破 T2',
+    type: 'active',
+    desc: '忽略所有 DEF（不論高低）。',
+    staminaCost: 10, cooldown: 3,
+    storyOnly: true,
+    grantedBy: 'lucius_t2_joint',
+    weaponClassAny: ['fist'],
+    series: 'jointBreaker', tier: 2,
+    effect: { defPiercePct: 1.0 },
+  },
+
+  // ── 拳法 T3 自悟（招用 ≥ 12 次 + AGI ≥ 30 + EXP）──
+  bareDisarm_t3: {
+    id: 'bareDisarm_t3', name: '赤手奪刃 T3',
+    type: 'active',
+    desc: '完全掌握。100% 完美格擋 + 格擋成功時敵人下回合無法用特技。',
+    staminaCost: 12, cooldown: 4,
+    storyOnly: true,
+    grantedBy: 'lucius_t3_disarm',
+    weaponClassAny: ['fist'],
+    series: 'bareDisarm', tier: 3,
+    effect: { blockChance: 1.0, silenceOnBlock: 1 },
+  },
+  leverageThrow_t3: {
+    id: 'leverageThrow_t3', name: '借力反摔 T3',
+    type: 'active',
+    desc: '100% 傷害反彈 + 敵人下回合無法行動（重摔倒地）。',
+    staminaCost: 18, cooldown: 5,
+    storyOnly: true,
+    grantedBy: 'lucius_t3_throw',
+    weaponClassAny: ['fist'],
+    series: 'leverageThrow', tier: 3,
+    effect: { reflectPct: 1.0, stunTurns: 1 },
+  },
+  vitalStrike_t3: {
+    id: 'vitalStrike_t3', name: '要害打擊 T3',
+    type: 'active',
+    desc: 'silence 4 回合 + 50% ATK -20% + 50% SPD -20%。',
+    staminaCost: 15, cooldown: 4,
+    storyOnly: true,
+    grantedBy: 'lucius_t3_vital',
+    weaponClassAny: ['fist'],
+    series: 'vitalStrike', tier: 3,
+    effect: { silenceTurns: 4, atkDebuffChance: 0.50, spdDebuffChance: 0.50 },
+  },
+  jointBreaker_t3: {
+    id: 'jointBreaker_t3', name: '關節破 T3',
+    type: 'active',
+    desc: '忽略所有 DEF + 30% 機率敵人「斷手」（ATK -50% 持續至戰鬥結束）。',
+    staminaCost: 10, cooldown: 3,
+    storyOnly: true,
+    grantedBy: 'lucius_t3_joint',
+    weaponClassAny: ['fist'],
+    series: 'jointBreaker', tier: 3,
+    effect: { defPiercePct: 1.0, breakArmChance: 0.30 },
+  },
+};
+
+// 🆕 2026-04-27 拳法系自悟對照表（T1 → T2 → T3）
+//   給 lucius_events.js 升級邏輯用
+const FIST_SKILL_TIERS = {
+  bareDisarm:    { t1: 'bareDisarm',    t2: 'bareDisarm_t2',    t3: 'bareDisarm_t3' },
+  leverageThrow: { t1: 'leverageThrow', t2: 'leverageThrow_t2', t3: 'leverageThrow_t3' },
+  vitalStrike:   { t1: 'vitalStrike',   t2: 'vitalStrike_t2',   t3: 'vitalStrike_t3' },
+  jointBreaker:  { t1: 'jointBreaker',  t2: 'jointBreaker_t2',  t3: 'jointBreaker_t3' },
+};
+
+// 🆕 2026-04-27 T4 自創招式（玩家自己取名、效果由主導屬性決定）
+//   實際 name + effect 在 player.luciusT4 = { name, dominant, effDesc }
+//   battle.js 顯示時讀 player.luciusT4.name、效果讀 dominant
+Skills.luciusT4 = {
+  id: 'luciusT4', name: '✦ 自創拳法',
+  type: 'active',
+  desc: '你自創的拳法。盧基烏斯沒教、他師父也沒教。',
+  staminaCost: 20, cooldown: 6,
+  storyOnly: true,
+  grantedBy: 'lucius_t4_created',
+  weaponClassAny: ['fist'],
+  series: 'luciusT4',
 };
