@@ -4967,7 +4967,7 @@ const Game = (() => {
       `).join('');
     }
 
-    // ── 技能卡片（目前只顯示被動） ─────────────
+    // ── 技能卡片（被動 + 劇情，主動仍隱藏等戰鬥整合） ─────────────
     const grid = document.getElementById('cs-skills-grid');
     if (!grid) return;
     const all = Object.values(Skills).filter(s => s.type === 'passive');
@@ -4983,28 +4983,37 @@ const Game = (() => {
 
       // 卡片狀態類別
       let cls = '';
-      if (learned)      cls = 'learned';
-      else if (check.ok) cls = 'learnable';
-      else              cls = 'locked';
+      if (learned)        cls = 'learned';
+      else if (s.storyOnly) cls = 'story-locked';   // 🆕 劇情技能未獲得
+      else if (check.ok)  cls = 'learnable';
+      else                cls = 'locked';
 
-      // 成本顯示：每個屬性一項
-      const costHtml = Object.entries(costs).map(([attr, cost]) => {
-        const have = p.exp?.[attr] || 0;
-        const ok   = have >= cost;
-        // 若玩家屬性低於門檻，標註「含屬性補差」
-        const curLvl = p[attr] || 10;
-        const minLvl = req[attr] || 0;
-        const hasCatchup = minLvl && curLvl < minLvl;
-        const catchupNote = hasCatchup
-          ? ` <span class="cost-extra">（含 ${attr} ${curLvl}→${minLvl} 補差）</span>`
-          : '';
-        return `<span class="cost-attr ${ok ? 'ok' : 'short'}">${attr} ${cost} EXP（有 ${have}）</span>${catchupNote}`;
-      }).join('');
+      // 🆕 2026-04-25c：劇情技能不顯示 EXP 成本（不能用 EXP 買）
+      let costHtml;
+      if (s.storyOnly) {
+        costHtml = learned
+          ? `<span class="cost-attr ok">✦ 劇情獲得</span>`
+          : `<span class="cost-attr short">🔒 劇情獲得（${s.grantedBy ? 'flag: ' + s.grantedBy : '待解鎖'}）</span>`;
+      } else {
+        costHtml = Object.entries(costs).map(([attr, cost]) => {
+          const have = p.exp?.[attr] || 0;
+          const ok   = have >= cost;
+          const curLvl = p[attr] || 10;
+          const minLvl = req[attr] || 0;
+          const hasCatchup = minLvl && curLvl < minLvl;
+          const catchupNote = hasCatchup
+            ? ` <span class="cost-extra">（含 ${attr} ${curLvl}→${minLvl} 補差）</span>`
+            : '';
+          return `<span class="cost-attr ${ok ? 'ok' : 'short'}">${attr} ${cost} EXP（有 ${have}）</span>${catchupNote}`;
+        }).join('');
+      }
 
       // 按鈕文字與狀態
       let btnHtml;
       if (learned) {
-        btnHtml = `<button class="cs-skill-card-btn learned" disabled>✔ 已習得</button>`;
+        btnHtml = `<button class="cs-skill-card-btn learned" disabled>✔ ${s.storyOnly ? '劇情獲得' : '已習得'}</button>`;
+      } else if (s.storyOnly) {
+        btnHtml = `<button class="cs-skill-card-btn" disabled>🔒 待解鎖</button>`;
       } else if (fameGate) {
         btnHtml = `<button class="cs-skill-card-btn" disabled title="需名聲 ${req.fame}">需名聲 ${req.fame}</button>`;
       } else if (check.ok) {
@@ -5014,15 +5023,15 @@ const Game = (() => {
       }
 
       // 被動效果敘述
-      const effectHtml = s.passiveBonus
+      const effectHtml = s.passiveBonus && Object.keys(s.passiveBonus).length > 0
         ? Object.entries(s.passiveBonus).map(([k, v]) => `${k} ${v >= 0 ? '+' : ''}${v}`).join(' / ')
-        : '';
+        : (s.storyOnly ? '✦ 劇情' : '被動');
 
       return `
         <div class="cs-skill-card ${cls}">
           <div class="cs-skill-card-head">
             <span class="cs-skill-card-name">${s.name}</span>
-            <span class="cs-skill-card-type">${effectHtml || '被動'}</span>
+            <span class="cs-skill-card-type">${effectHtml}</span>
           </div>
           <div class="cs-skill-card-desc">${s.desc}</div>
           <div class="cs-skill-card-cost">${costHtml}</div>

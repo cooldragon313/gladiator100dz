@@ -4048,10 +4048,21 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   scrollbar-width: thin;
   scrollbar-color: #2a1a10 transparent;
 }
-.bt-log-line { margin-bottom: 1px; }
+.bt-log-line {
+  margin-bottom: 1px;
+  /* 🆕 2026-04-25c：認 \n 換行（評分結算用 box-drawing chars 排版需要） */
+  white-space: pre-wrap;
+}
 .bt-log-line.log-crit    { color: #ffaa22; }
 .bt-log-line.log-miss    { color: #555568; }
-.bt-log-line.log-special { color: #cc88ff; font-weight: bold; }
+.bt-log-line.log-special {
+  color: #cc88ff; font-weight: bold;
+  /* 評分卡片：等寬 + 行距加大、讓 box 排版好看 */
+  font-family: 'Consolas', 'Menlo', monospace;
+  line-height: 1.5;
+  margin: 6px 0;
+  padding: 4px 0;
+}
 .bt-log-line.log-injury  { color: #ff6644; font-style: italic; }
 .bt-log-line.log-system  { color: #4466aa; }
 .bt-log-line.log-die     { color: #ff2200; font-weight: bold; letter-spacing: .12em; }
@@ -4113,6 +4124,38 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   padding: 20px;
 }
 #bt-finish-panel.open { display: flex; }
+
+/* 🆕 2026-04-25c：返回訓練場按鈕 — 戰後固定在中下、玩家手動點擊 */
+#bt-return-btn {
+  display: none;
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  padding: 18px 56px;
+  background: #1a0c04;
+  border: 3px solid #d4af37;
+  color: #f0d878;
+  font-family: var(--font);
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: .2em;
+  cursor: pointer;
+  transition: background .2s, transform .15s, box-shadow .2s;
+  box-shadow: 0 0 32px rgba(212, 175, 55, 0.55), inset 0 0 12px rgba(212, 175, 55, 0.2);
+  animation: bt-return-pulse 1.8s ease-in-out infinite;
+}
+#bt-return-btn.show { display: block !important; }
+#bt-return-btn:hover {
+  background: #2a1808;
+  transform: translateX(-50%) scale(1.06);
+  box-shadow: 0 0 48px rgba(212, 175, 55, 0.85), inset 0 0 18px rgba(212, 175, 55, 0.3);
+}
+@keyframes bt-return-pulse {
+  0%, 100% { box-shadow: 0 0 32px rgba(212, 175, 55, 0.55), inset 0 0 12px rgba(212, 175, 55, 0.2); }
+  50%      { box-shadow: 0 0 48px rgba(212, 175, 55, 0.85), inset 0 0 18px rgba(212, 175, 55, 0.4); }
+}
 #bt-finish-mood {
   font-size: 13px; color: #a08858; text-align: center;
   font-style: italic; max-width: 360px; line-height: 1.6;
@@ -5025,5 +5068,9 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 <script src="src/battle/battle.js"></script>
 <script src="src/actions/actions.js"></script>
 <script src="src/main.js"></script>
+
+<!-- 🆕 2026-04-25c：返回訓練場按鈕（戰後手動關閉戰鬥畫面）
+     放在 body 直屬子層、不被 #battle-overlay 父層 display 控制 -->
+<button id="bt-return-btn" onclick="Battle.returnToTraining()">↩ 返回訓練場</button>
 </body>
 </html>

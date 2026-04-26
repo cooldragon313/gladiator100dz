@@ -222,10 +222,17 @@ const Fervor = (() => {
   }
 
   // 擺爛機率（練錯屬性時）
+  // 🆕 2026-04-25c：靜心被動把擺爛機率減半（15% → 7.5%）
   function getSlackChance(attr) {
     const f = ensureInit();
     if (!f || !f.active) return 0;
-    return (attr !== f.active) ? 0.15 : 0;
+    if (attr === f.active) return 0;
+    let chance = 0.15;
+    const p = (typeof Stats !== 'undefined') ? Stats.player : null;
+    if (p && Array.isArray(p.learnedSkills) && p.learnedSkills.includes('calmMind')) {
+      chance = chance * 0.50;
+    }
+    return chance;
   }
 
   // 🆕 2026-04-24：擺爛吐槽（rework plan § 4）

@@ -24,6 +24,44 @@ const Battle = (() => {
   let _lastRating       = null;
   let _crowdMood        = null;  // 'bloodthirsty'|'neutral'|'merciful'|'special'
 
+  // 🆕 2026-04-25c：返回訓練場按鈕 — 戰後手動關戰鬥畫面
+  //   ⚠️ 必須在 IIFE 頂端宣告（let 不會 hoist）— start() 在 line 130 就會用到
+  let _pendingReturnAction = null;
+
+  // 🆕 2026-04-25c：自動戰鬥模式跨場記住（off / auto / hardcore）
+  //   存 localStorage、新戰鬥開始自動套用、玩家手動切換才改變
+  const AUTO_PREF_KEY = 'gladiator_auto_mode_pref';
+  function _saveAutoPref(mode) {
+    try { localStorage.setItem(AUTO_PREF_KEY, mode); } catch (e) {}
+  }
+  function _loadAutoPref() {
+    try { return localStorage.getItem(AUTO_PREF_KEY) || 'off'; } catch (e) { return 'off'; }
+  }
+  function _showReturnButton() {
+    const btn = document.getElementById('bt-return-btn');
+    if (btn) {
+      btn.classList.add('show');
+      btn.style.display = 'block';   // 雙保險：inline + class
+    }
+  }
+  function _hideReturnButton() {
+    const btn = document.getElementById('bt-return-btn');
+    if (btn) {
+      btn.classList.remove('show');
+      btn.style.display = '';   // 清掉 inline、回到 CSS class 控制
+    }
+  }
+  function returnToTraining() {
+    _hideReturnButton();
+    _hideOverlay();
+    Game.renderAll();
+    const cb = _pendingReturnAction;
+    _pendingReturnAction = null;
+    if (typeof cb === 'function') {
+      try { cb(); } catch (e) { console.error('[Battle] return callback error', e); }
+    }
+  }
+
   // ── ATB state ────────────────────────────────────────────
   let _atbLoop   = null;
   let _playerAtb = 0;   // 0–100, fills each tick
@@ -127,6 +165,8 @@ const Battle = (() => {
     _crowdMood        = _generateCrowdMood();
     _playerDelay      = 0;
     _playerDelaySkill = null;
+    _pendingReturnAction = null;   // 🆕 2026-04-25c：清掉上一場 return callback
+    _hideReturnButton();
 
     // ── Build player unit from Stats.player ──
     const p = Stats.player;
@@ -143,6 +183,13 @@ const Battle = (() => {
       amuletId:  'none',
       traitId:   'none',
     }, true);
+
+    // 🆕 2026-04-25c：HP 共用 — 進場帶訓練場當前 HP（不是滿血上場）
+    //   設計：訓練受傷殘血就帶殘血進競技場、戰後 HP 同步回訓練場
+    _player.hp = Math.max(1, Math.min(p.hp || _player._hpMax, _player._hpMax));
+
+    // 🆕 2026-04-25c 劇情技能戰鬥 hook
+    _applyStorySkills();
 
     // ── Build enemy unit ──
     _enemy  = TB_buildUnit({ enemyId: opponentId });
@@ -192,6 +239,36 @@ const Battle = (() => {
     _startAtbLoop();
     _updateCombatantUI();
     _updateSkillDisplay();
+
+    // 🆕 2026-04-25c：恢復玩家上次選的自動戰鬥模式（auto / hardcore / off）
+    _restoreAutoPref();
+  }
+
+  function _restoreAutoPref() {
+    const pref = _loadAutoPref();
+    if (pref === 'auto')          _startAuto(true);   // skipSave=true 避免覆寫
+    else if (pref === 'hardcore') _startHardcore(true);
+    // 'off' 不做事
+  }
+
+  // ══════════════════════════════════════════════════════
+  // 🆕 2026-04-25c：劇情技能戰鬥 hook
+  //   - veteran_eye: 戰鬥開場 +15% ATK +5 CRT（永久至戰鬥結束）
+  //   - unyielding: 重置 fired 旗標 + buff 計時、進入戰鬥就清零
+  // ══════════════════════════════════════════════════════
+  function _applyStorySkills() {
+    if (!_player || typeof Stats === 'undefined') return;
+    // 不屈：每場戰鬥重置
+    _player._unyieldingFired    = false;
+    _player._unyieldingBuffTurns = 0;
+    // 老兵之眼：戰鬥開始套加成
+    if (Stats.hasSkill && Stats.hasSkill('veteran_eye')) {
+      const beforeATK = _player.derived.ATK;
+      const beforeCRT = _player.derived.CRT;
+      _player.derived.ATK = Math.round(_player.derived.ATK * 1.15);
+      _player.derived.CRT = Math.min(75, _player.derived.CRT + 5);
+      _appendLog(`✦ 老兵之眼：看破對手破綻 — ATK ${beforeATK} → ${_player.derived.ATK}、CRT ${beforeCRT} → ${_player.derived.CRT}`, 'log-special');
+    }
   }
 
   // ── Equipment ID mapper ────────────────────────────────
@@ -698,6 +775,14 @@ const Battle = (() => {
       SoundManager.playSfx('skill_rage');  // D.1.13
     }
 
+    // 🆕 2026-04-25c 不屈 ATK +30%：buff 期間每次攻擊都套（不疊加爆筋以免破壞數值）
+    let savedATKUnyielding = null;
+    if (_player._unyieldingBuffTurns > 0) {
+      savedATKUnyielding = _player.derived.ATK;
+      _player.derived.ATK = Math.round(savedATKUnyielding * 1.30);
+      _appendLog(`  ✦ 不屈：ATK ${savedATKUnyielding} → ${_player.derived.ATK}（剩 ${_player._unyieldingBuffTurns} 回合）`, 'log-special');
+    }
+
     for (let i = 0; i < hits; i++) {
       if (_enemy.hp <= 0) break;
       const r = TB_attack(_player, _enemy, { turn: _turn });
@@ -729,6 +814,8 @@ const Battle = (() => {
 
     // 恢復爆筋暫時提升的 ATK
     if (savedATK !== null) _player.derived.ATK = savedATK;
+    // 🆕 2026-04-25c 恢復不屈 ATK
+    if (savedATKUnyielding !== null) _player.derived.ATK = savedATKUnyielding;
   }
 
   // ══════════════════════════════════════════════════════
@@ -749,6 +836,15 @@ const Battle = (() => {
         _playAttackAnim('enemy', { hit: r.hit, blocked: r.blocked, crit: r.crit });
         _appendLog(r.log, r.crit ? 'log-crit' : r.hit ? '' : 'log-miss');
         if (r.injuredPart) _appendLog(`  ※ 玩家【${r.injuredPart}】受傷（${r.injuryLevel}）`, 'log-injury');
+        // 🆕 2026-04-25c 反擊：玩家成功閃避（!hit 且 !blocked）→ 35% 機率立刻反擊 ATK×0.8
+        if (!r.hit && !r.blocked && Stats.hasSkill && Stats.hasSkill('counter')
+            && _enemy.hp > 0 && Math.random() < 0.35) {
+          const counterDmg = Math.max(1, Math.round(_player.derived.ATK * 0.80));
+          _enemy.hp = Math.max(0, _enemy.hp - counterDmg);
+          _appendLog(`  ↩✦ 反擊！閃避瞬間 ${_player.name} 揮出反擊 — ${_enemy.name} 受到 ${counterDmg} 傷害`, 'log-special');
+          _playAttackAnim('player', { hit: true, blocked: false, crit: false });
+          if (typeof SoundManager !== 'undefined') SoundManager.playSfx('hit_flesh');
+        }
         break;
       }
       case 'mountain_crash': {
@@ -844,6 +940,14 @@ const Battle = (() => {
     _appendLog(`── 回合 ${_turn} ──`, 'log-turn');
     const rd = document.getElementById('bt-round');
     if (rd) rd.textContent = `第 ${_turn} 回合`;
+
+    // 🆕 2026-04-25c 不屈 buff 倒數
+    if (_player && _player._unyieldingBuffTurns > 0) {
+      _player._unyieldingBuffTurns--;
+      if (_player._unyieldingBuffTurns === 0) {
+        _appendLog(`  ✦ 不屈效果結束。`, 'log-system');
+      }
+    }
 
     _updateCombatantUI();
     _updateSkillDisplay();
@@ -981,9 +1085,18 @@ const Battle = (() => {
     _stopAtbLoop();
     _clearHcCountdown();
     _hardcoreActive = false;
-    _stopAuto();
+    _stopAuto(true);   // 🆕 2026-04-25c：skipSave=true，戰後別覆寫玩家偏好
     _setButtons(false);
     _updateCombatantUI();
+
+    // 🆕 2026-04-25c：HP 共用 — 戰後同步 _player.hp 回 Stats.player.hp
+    //   設計：戰鬥受傷直接帶回訓練場、不會重置成滿血
+    //   注意：直接寫 .hp（不走 modVital）— 避免 Orlan 死亡救援以「剛剛從 X 跌到 0」邏輯誤觸
+    //   Orlan save 條件 `before > 0 && now <= 0` 在這個直接賦值不會被觀察到、是預期行為
+    //   （Orlan 救援應該由實際的訓練場/競技場傷害觸發、不是 sync）
+    if (_player && Stats.player) {
+      Stats.player.hp = Math.max(0, Math.min(_player.hp, Stats.player.hpMax || _player._hpMax));
+    }
 
     // D.1.13: 勝敗音效
     SoundManager.playSfx(won ? 'battle_victory' : 'battle_defeat');
@@ -1059,12 +1172,13 @@ const Battle = (() => {
       // Show rating result briefly, then show finishing panel
       setTimeout(() => _showFinishPanel(), 1800);
     } else {
+      // 🆕 2026-04-25c：非競技場勝利 / 任何戰敗 → 不自動關、顯示返回按鈕
+      //   讓玩家有時間看戰鬥 log + 評分做戰術規劃
       setTimeout(() => {
-        _hideOverlay();
         Game.renderAll();
-        if (won) _onWin();
-        else     _onLose();
-      }, 2200);
+        _pendingReturnAction = won ? _onWin : _onLose;
+        _showReturnButton();
+      }, 1200);
     }
   }
 
@@ -1132,14 +1246,15 @@ const Battle = (() => {
     // 🆕 D.22c：斬首/饒恕氣氛演出（DialogueModal）
     const atmosphereLines = _buildFinishAtmosphere(choice, mood);
 
-    // Done — restore scene, play atmosphere, then call onWin
+    // 🆕 2026-04-25c：返回按鈕在對白「開始」就出現（不等對白播完）
+    //   設計理由：玩家可能不點對白純看戰鬥 log → 之前等 onComplete 永遠不燒
+    //   現在：對白和按鈕同時出現，玩家自己決定要不要看完對白才返回
     setTimeout(() => {
-      _hideOverlay();
       Game.renderAll();
+      _pendingReturnAction = _onWin;
+      _showReturnButton();   // 🆕 立刻出按鈕
       if (atmosphereLines.length > 0 && typeof DialogueModal !== 'undefined') {
-        DialogueModal.play(atmosphereLines, { onComplete: _onWin });
-      } else {
-        _onWin();
+        DialogueModal.play(atmosphereLines);   // 對白照樣播、不依賴 onComplete
       }
     }, 600);
   }
@@ -1208,6 +1323,35 @@ const Battle = (() => {
       if (_playerAtb >= 100) { _setButtons(true); _checkSpecialReady(); }
     }
 
+    // 🆕 2026-04-25c 不屈：致命一擊鎖死 1 HP（每場 1 次）
+    //   觸發條件：玩家 + 該招會把 hp 打到 ≤0 + 已習得 unyielding + 本場未觸發
+    if (target === _player && dmg > 0
+        && target.hp - dmg <= 0
+        && Stats.hasSkill && Stats.hasSkill('unyielding')
+        && !target._unyieldingFired) {
+      const origDmg = dmg;
+      dmg = Math.max(0, target.hp - 1);   // 留 1 HP
+      target._unyieldingFired = true;
+      target._unyieldingBuffTurns = 5;
+      _appendLog(`💀✦ 不屈！你應該倒下、但你站著。HP 鎖死 1。5 回合內 ATK +30%！`, 'log-special');
+      _appendLog(`  （原傷 ${origDmg} → 削減為 ${dmg}）`, 'log-system');
+      if (typeof Game !== 'undefined' && Game.shakeGameRoot) Game.shakeGameRoot();
+      if (typeof SoundManager !== 'undefined') SoundManager.playSfx('skill_rage');
+    }
+
+    // 🆕 2026-04-25c 戰鬥意志：HP 跌破 50% 時 ATK+12 DEF+5（持續性 buff）
+    //   每次受傷後檢查、第一次跌破時套加成、回血超過 50% 時取消
+    if (target === _player && Stats.hasSkill && Stats.hasSkill('battleWill')) {
+      // 預備：之後回合套用，這裡先 set 旗標讓 _playerTurn 讀
+      const willBeBelow = (target.hp - dmg) < target._hpMax * 0.5;
+      if (willBeBelow && !target._battleWillActive) {
+        target._battleWillActive = true;
+        target.derived.ATK += 12;
+        target.derived.DEF += 5;
+        _appendLog(`✦ 戰鬥意志覺醒！殘血反而更冷靜 — ATK +12 / DEF +5。`, 'log-special');
+      }
+    }
+
     const wasAbove30 = target.hp >= target._hpMax * 0.30;
     if (dmg > 0) {
       target.hp = Math.max(0, target.hp - dmg);
@@ -1231,10 +1375,16 @@ const Battle = (() => {
   // UI HELPERS
   // ══════════════════════════════════════════════════════
   function _setButtons(enabled) {
-    ['bt-btn-attack','bt-btn-defend','bt-btn-special','bt-btn-auto'].forEach(id => {
+    // 🆕 2026-04-25c：bt-btn-auto 從 disable 列表移除
+    //   自動戰鬥按鈕應該永遠可按（戰鬥中也要能切換 自動/硬核/關閉 模式）
+    //   之前 bug：自動戰鬥時主動攻擊→_setButtons(false)→自動鈕也被鎖→無法關閉
+    ['bt-btn-attack','bt-btn-defend','bt-btn-special'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.disabled = !enabled;
     });
+    // 自動鈕只有戰鬥不在進行時才禁用（_active=false 時）
+    const autoBtn = document.getElementById('bt-btn-auto');
+    if (autoBtn) autoBtn.disabled = !_active;
   }
 
   function _checkSpecialReady() {
@@ -1447,39 +1597,45 @@ const Battle = (() => {
   // ══════════════════════════════════════════════════════
   // 循環：關閉 → 自動 → 硬核 → 關閉
   function toggleAuto() {
-    if (_autoRunning)      { _stopAuto();    _startHardcore(); }
+    // 🆕 2026-04-25c：cycle 中間狀態不存（_stopAuto skipSave=true）
+    //   只在最終狀態存：startHardcore / stopHardcore / startAuto
+    if (_autoRunning)         { _stopAuto(true);    _startHardcore(); }
     else if (_hardcoreActive) { _stopHardcore(); }
-    else                   { _startAuto(); }
+    else                      { _startAuto(); }
   }
 
-  function _startAuto() {
+  function _startAuto(skipSave) {
     if (!_active) return;
     _autoRunning = true;
     _updateAutoBtn();
+    if (!skipSave) _saveAutoPref('auto');   // 🆕 玩家手動切才存、自動恢復不存
     if (_playerAtb >= 100 && _playerDelay <= 0) {
       const action = (_player.gauge >= TBC.GAUGE_MAX) ? 'special' : 'attack';
       doAction(action);
     }
   }
 
-  function _stopAuto() {
+  function _stopAuto(skipSave) {
     _autoRunning = false;
     _updateAutoBtn();
+    if (!skipSave) _saveAutoPref('off');   // 🆕 toggle cycle 中間狀態不存（toggleAuto 會處理）
     if (_active && _playerAtb >= 100 && _playerDelay <= 0) { _setButtons(true); _checkSpecialReady(); }
   }
 
   // ── 硬核模式 ──────────────────────────────────────────
-  function _startHardcore() {
+  function _startHardcore(skipSave) {
     if (!_active) return;
     _hardcoreActive = true;
     _updateAutoBtn();
+    if (!skipSave) _saveAutoPref('hardcore');   // 🆕
     if (_playerAtb >= 100 && _playerDelay <= 0) _startHcCountdown();
   }
 
-  function _stopHardcore() {
+  function _stopHardcore(skipSave) {
     _clearHcCountdown();
     _hardcoreActive = false;
     _updateAutoBtn();
+    if (!skipSave) _saveAutoPref('off');   // 🆕
     if (_active && _playerAtb >= 100 && _playerDelay <= 0) { _setButtons(true); _checkSpecialReady(); }
   }
 
@@ -1655,6 +1811,8 @@ const Battle = (() => {
     _crowdMood        = _generateCrowdMood();
     _playerDelay      = 0;
     _playerDelaySkill = null;
+    _pendingReturnAction = null;   // 🆕 2026-04-25c：清掉上一場 return callback
+    _hideReturnButton();
 
     const p = Stats.player;
     _player = TB_buildUnit({
@@ -1669,6 +1827,11 @@ const Battle = (() => {
       amuletId:  'none',
       traitId:   'none',
     }, true);
+    // 🆕 2026-04-25c：HP 共用 — 進場帶訓練場當前 HP
+    _player.hp = Math.max(1, Math.min(p.hp || _player._hpMax, _player._hpMax));
+
+    // 🆕 2026-04-25c 劇情技能戰鬥 hook
+    _applyStorySkills();
 
     _enemy = TB_buildUnit({
       enemyId:      '_arena',
@@ -1720,6 +1883,9 @@ const Battle = (() => {
     _startAtbLoop();
     _updateCombatantUI();
     _updateSkillDisplay();
+
+    // 🆕 2026-04-25c：恢復玩家上次選的自動戰鬥模式
+    _restoreAutoPref();
   }
 
   // ══════════════════════════════════════════════════════
@@ -1728,5 +1894,5 @@ const Battle = (() => {
   // 🆕 D.28：對外暴露「戰鬥進行中」旗標，讓 main.js 可以擋住訓練動作
   function isActive() { return _active; }
 
-  return { start, startFromConfig, doAction, toggleAuto, getLastRating, finishChoice, isActive };
+  return { start, startFromConfig, doAction, toggleAuto, getLastRating, finishChoice, isActive, returnToTraining };
 })();

@@ -238,7 +238,8 @@ const Stats = (() => {
   // ── Render helpers ────────────────────────────────────
 
   function renderVitalBars() {
-    player.hpMax = player.hpBase + Math.round(2 * eff('CON'));
+    // 🆕 2026-04-25c：鐵皮等被動加 HPmax
+    player.hpMax = player.hpBase + Math.round(2 * eff('CON')) + _getSkillBonus('HPmax');
     player.hp = Math.round(Math.min(player.hp, player.hpMax));
     const defs = [
       { id:'bar-hp',      val: player.hp,      max: player.hpMax,      color:'#cc2200', label:'HP'   },
@@ -320,6 +321,10 @@ const Stats = (() => {
       const wil = player.WIL || 10;
       const resist = Math.min(0.40, wil * 0.01);  // 上限 40% 抵抗
       delta = delta * (1 - resist);
+      // 🆕 2026-04-25c 靜心被動：再 ×0.7（衰減 -30%）
+      if (Array.isArray(player.learnedSkills) && player.learnedSkills.includes('calmMind')) {
+        delta = delta * 0.70;
+      }
     }
 
     // 🆕 D.6 v2：強制整數化，杜絕倍率（心情/協力 1.25 等）累積出小數
@@ -479,7 +484,8 @@ const Stats = (() => {
     }
 
     // 重算屬性上限（CON 改了會影響 hpMax / staminaMax）
-    player.hpMax = player.hpBase + Math.round(2 * eff('CON'));
+    // 🆕 2026-04-25c：鐵皮等被動加 HPmax
+    player.hpMax = player.hpBase + Math.round(2 * eff('CON')) + _getSkillBonus('HPmax');
     player.hp    = player.hpMax;   // 新遊戲起手滿血
     // 🆕 2026-04-19：staminaMax 連動 CON（50 + 5×CON）
     player.staminaMax = 50 + Math.round(5 * eff('CON'));
@@ -706,6 +712,8 @@ const Stats = (() => {
     const s = (typeof Skills !== 'undefined') ? Skills[skillId] : null;
     if (!s) return { ok: false, reason: '技能不存在' };
     if (hasSkill(skillId)) return { ok: false, reason: '已習得' };
+    // 🆕 2026-04-25c：劇情技能不能用 EXP 買
+    if (s.storyOnly) return { ok: false, reason: '🔒 劇情獲得' };
     const req = s.unlockReq || {};
     if (req.fame && player.fame < req.fame) {
       return { ok: false, reason: `需名聲 ${req.fame}（現 ${player.fame}）` };

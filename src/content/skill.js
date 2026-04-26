@@ -3,103 +3,182 @@
  * Skills are unlocked through training, story events, or NPC interactions.
  *
  * 🆕 D.6 v2：被動技能透過屬性 EXP 購買（見 Stats.learnSkill）。
- *   - expCosts: { [attr]: cost }  — 基礎成本（可多屬性）
+ *   - expCosts: { [attr]: cost }  — 基礎成本（可多屬性 — 加成派生的多個屬性都要付）
  *   - unlockReq: { [attr]: level } — 若玩家屬性低於門檻，自動把差額 EXP 疊加到成本上
  *                                    且購買成功時把該屬性升到門檻
  *   - unlockReq.fame               — 名聲門檻為硬卡，無法用 EXP 補
- *   - 主動技能目前資料保留，等戰鬥系統掛鉤後啟用
+ *
+ * 🆕 2026-04-25c 重整：7 被動 + 2 劇情，覆蓋全 5 主屬性 × 2 階
+ *   成本公式：T1 ~150 EXP（≈ expToNext(30) × 0.9）；T2 ~450 EXP；
+ *            按派生公式拆主/副屬性。
+ *   參考派生公式：ATK=1.5×STR+0.5×DEX、ACC=STR+DEX、CRT=0.25×DEX+0.5×LUK、
+ *               EVA=AGI+裝備、SPD=AGI-甲重、HP=hpBase+2×CON、DEF=1.5×CON+0.5×STR
  */
 const Skills = {
-  // ── Passive skills ──────────────────────────────────
+  // ══════════════════════════════════════════════════
+  // T1 被動 (req attr 20)
+  // ══════════════════════════════════════════════════
+  bigStrike: {
+    id: 'bigStrike', name: '巨力',
+    type: 'passive',
+    desc: '練到一定程度的力量讓你的揮砍變得更具殺傷力。永久 +6 ATK +3 ACC。',
+    unlockReq: { STR: 20 },
+    expCosts:  { STR: 100, DEX: 50 },
+    passiveBonus: { ATK: 6, ACC: 3 },
+  },
+  precision: {
+    id: 'precision', name: '精準',
+    type: 'passive',
+    desc: '反覆訓練讓你的眼準、手穩，每一擊都打在對的位置。永久 +8 ACC +4 CRT。',
+    unlockReq: { DEX: 20 },
+    expCosts:  { DEX: 100, LUK: 50 },
+    passiveBonus: { ACC: 8, CRT: 4 },
+  },
   ironSkin: {
     id: 'ironSkin', name: '鐵皮',
     type: 'passive',
-    desc: '長年受創讓你的皮膚變得更厚實。永久 +5 DEF。',
-    unlockReq: { CON: 15 },
-    expCosts:  { CON: 200 },
-    passiveBonus: { DEF: 5 },
+    desc: '長年受創讓你的軀體更加結實。永久 +25 HP上限 +3 DEF。',
+    unlockReq: { CON: 20 },
+    expCosts:  { CON: 150 },
+    passiveBonus: { HPmax: 25, DEF: 3 },
   },
   quickStep: {
-    id: 'quickStep', name: '輕步',
+    id: 'quickStep', name: '疾風',
     type: 'passive',
-    desc: '腳步比常人更輕盈，難以捕捉。永久 +8 EVA。',
-    unlockReq: { AGI: 15 },
-    expCosts:  { AGI: 200 },
-    passiveBonus: { EVA: 8 },
+    desc: '腳步輕盈、反應靈敏，難以捕捉也走得快。永久 +6 EVA +4 SPD。',
+    unlockReq: { AGI: 20 },
+    expCosts:  { AGI: 150 },
+    passiveBonus: { EVA: 6, SPD: 4 },
   },
-  bloodlust: {
-    id: 'bloodlust', name: '嗜血',
+  calmMind: {
+    id: 'calmMind', name: '靜心',
     type: 'passive',
-    desc: '每次擊殺敵人時，恢復少量HP。',
-    unlockReq: { STR: 18, fame: 20 },
+    desc: '意志訓練讓你心緒穩定。戰鬥外心情衰減 -30%；狂熱中練錯屬性的擺爛機率 -50%。',
+    unlockReq: { WIL: 20 },
+    expCosts:  { WIL: 150 },
     passiveBonus: {},
-    onKill: { type: 'vital', key: 'hp', delta: 10 },
+    // 戰外效果由 main.js mood decay + compulsion.js fervor slack 讀 hasSkill('calmMind') 套用
+    moodDecayMult:  0.70,   // 1.0 → 0.70（衰減 -30%）
+    fervorSlackMult: 0.50,  // 15% → 7.5%（擺爛機率減半）
   },
 
-  // ── Active skills ────────────────────────────────────
+  // ══════════════════════════════════════════════════
+  // T2 被動 (req attr 30)
+  // ══════════════════════════════════════════════════
+  combo: {
+    id: 'combo', name: '連擊',
+    type: 'passive',
+    desc: '靈巧與反應的配合讓你的攻擊變得連綿不絕。永久 +5 SPD +3 ATK。',
+    unlockReq: { DEX: 30, AGI: 22 },
+    expCosts:  { DEX: 220, AGI: 150, STR: 80 },
+    passiveBonus: { SPD: 5, ATK: 3 },
+  },
+  counter: {
+    id: 'counter', name: '反擊',
+    type: 'passive',
+    desc: '閃避成功時 35% 機率立刻揮出反擊（造成 ATK×0.8 傷害）。',
+    unlockReq: { AGI: 30, DEX: 22 },
+    expCosts:  { AGI: 250, DEX: 100, STR: 100 },
+    passiveBonus: {},
+    // 戰鬥端 hook 條件：
+    //   _enemyTurn 中 r.hit === false（玩家成功閃避）→ roll 35% → 反擊 ATK×0.8
+    onDodge: {
+      chance:    0.35,
+      dmgMult:   0.80,
+    },
+  },
+  battleWill: {
+    id: 'battleWill', name: '戰鬥意志',
+    type: 'passive',
+    desc: '殘血時意志反而更堅定。HP 低於 50% 時 +12 ATK +5 DEF。',
+    unlockReq: { WIL: 30 },
+    expCosts:  { WIL: 250, STR: 100, CON: 100 },
+    passiveBonus: {},
+    // 戰鬥端 hook：每次 _player.hp 變動後檢查 hp/_hpMax < 0.5 → 套 +12 ATK +5 DEF
+    //   實作走 _getSkillBonus 的「conditional」分支（_battleWillActive 旗標）
+    conditionalBonus: {
+      conditionFn: 'hp_below_50',
+      bonus: { ATK: 12, DEF: 5 },
+    },
+  },
+
+  // ══════════════════════════════════════════════════
+  // 🆕 2026-04-25 v10 監督官巴爺主線獎勵（劇情授予、不靠 EXP 購買）
+  // ══════════════════════════════════════════════════
+  unyielding: {
+    id: 'unyielding', name: '不屈',
+    type: 'passive',
+    desc: '巴爺傳授的絕技。受到致命一擊時鎖死 1 HP 不死，之後 5 回合內傷害 +30%。整場戰鬥僅觸發 1 次。',
+    storyOnly: true,
+    grantedBy: 'overseer_passed_torch',
+    passiveBonus: {},
+    // 戰鬥端 hook（_applyDamage + _playerTurn + _endTurnCleanup_atb）：
+    //   onLethalHit: 鎖 hp = 1, set _player._unyieldingFired = true, set buff turns = 5
+    //   active 期間 _player.derived.ATK × 1.30
+    //   每回合結束 buffTurns--、戰鬥開始時 reset
+    onLethalHit: {
+      hpFloor:      1,
+      buffTurns:    5,
+      atkMult:      1.30,
+    },
+  },
+  veteran_eye: {
+    id: 'veteran_eye', name: '老兵之眼',
+    type: 'passive',
+    desc: '看過太多場、看得出對手破綻。戰鬥開場永久 +15% ATK +5 CRT。',
+    storyOnly: true,
+    grantedBy: 'overseer_kept_secret',
+    passiveBonus: {},
+    // 戰鬥端 hook：start() / startFromConfig() 末端、戰鬥已建好 _player 後套
+    //   _player.derived.ATK = round(_player.derived.ATK * 1.15)
+    //   _player.derived.CRT = min(75, _player.derived.CRT + 5)
+    onBattleStart: {
+      atkMult:    1.15,
+      critBonus:  5,
+    },
+  },
+
+  // ══════════════════════════════════════════════════
+  // ⚔ 主動技能（資料保留、戰鬥整合下階段）
+  //   完整設計見 docs/discussions/2026-04-25-active-skills-plan.md
+  // ══════════════════════════════════════════════════
   powerStrike: {
-    id: 'powerStrike', name: '蓄力重擊',
+    id: 'powerStrike', name: '強力斬',
     type: 'active',
-    desc: '蓄力一擊，造成 ATK×2.0 傷害，無視部分防禦。',
-    mpCost: 0, staminaCost: 20,
-    cooldown: 3,  // turns
-    unlockReq: { STR: 14 },
-    effect: { dmgMult: 2.0, penBonus: 15 },
+    desc: '蓄力一回合、下回合造成 ATK×2.0 傷害，無視 15 DEF。',
+    mpCost: 0, staminaCost: 20, cooldown: 3,
+    unlockReq: { STR: 30, fame: 200 },
+    expCosts:  { STR: 300, AGI: 100, DEX: 50 },   // 主屬性 STR + 蓄力時機 AGI + 揮砍精準 DEX
+    weaponClassAny: ['sword', 'blunt', 'axe'],    // 銳器/重器才能蓄力
+    effect: { dmgMult: 2.0, penBonus: 15, chargeTurns: 1 },
+  },
+  taunt: {
+    id: 'taunt', name: '嘲諷',
+    type: 'active',
+    desc: '強制目標 3 回合追打你，期間自身 +10 DEF +5 BLK。',
+    staminaCost: 15, cooldown: 5,
+    unlockReq: { CON: 30, WIL: 22 },
+    expCosts:  { CON: 250, WIL: 150, STR: 50 },
+    weaponClassAny: ['blunt', 'axe', 'spear'],   // 不適合匕首
+    effect: { tauntTurns: 3, defBonus: 10, blkBonus: 5 },
   },
   riposte: {
-    id: 'riposte', name: '反擊',
+    id: 'riposte', name: '反擊（主動）',
     type: 'active',
-    desc: '格擋後立即反擊，造成 ATK×1.5 傷害，且此回合 EVA +30%。',
+    desc: '預備姿態、被攻擊時格擋並立刻反擊 ATK×1.5。',
     staminaCost: 15, cooldown: 2,
-    unlockReq: { DEX: 14, AGI: 12 },
+    unlockReq: { DEX: 30, AGI: 22 },
+    expCosts:  { DEX: 250, AGI: 100, STR: 100 },
+    weaponClassAny: ['sword', 'spear', 'dagger'],
     effect: { dmgMult: 1.5, evaBonus: 30 },
   },
   warCry: {
     id: 'warCry', name: '戰吼',
     type: 'active',
-    desc: '發出震懾的戰吼，使自身 ATK +20%，持續 3 回合。',
+    desc: '震懾敵人，自身 ATK +20%，持續 3 回合。',
     staminaCost: 10, cooldown: 5,
-    unlockReq: { WIL: 14 },
+    unlockReq: { WIL: 30 },
+    expCosts:  { WIL: 250, STR: 100 },
     effect: { atkPctBonus: 20, duration: 3 },
-  },
-
-  // ── 🆕 2026-04-25 v10 監督官巴爺主線獎勵 ─────────────
-  unyielding: {
-    id: 'unyielding', name: '不屈',
-    type: 'passive',
-    desc: '巴爺傳授的絕技。受到致命一擊時鎖死 1 HP 不死，之後 5 回合內傷害 +30%。整場戰鬥僅觸發 1 次。',
-    // 🆕 不靠 EXP 購買 — 由「揭露真相 → 告訴巴爺 → 訣別事件」劇情授予
-    storyOnly: true,
-    grantedBy: 'overseer_passed_torch',  // flag set 後玩家獲得
-    passiveBonus: {},
-    // 戰鬥端 hook（待 battle.js 整合）：
-    //   onLethalHit: 鎖 hp = 1, set flag _unyielding_fired_battle, set duration 5 turns
-    //   onTurnAfterFire (5 turns): atkPctBonus: 30
-    //   每場戰鬥開始時 reset _unyielding_fired_battle
-    onLethalHit: {
-      hpFloor: 1,
-      buffName: 'unyielding_rage',
-      buffDuration: 5,
-      atkPctBonus: 30,
-    },
-  },
-
-  veteran_eye: {
-    id: 'veteran_eye', name: '老兵之眼',
-    type: 'passive',
-    desc: '看過太多場、看得出對手破綻。戰鬥開始時看破對手 1 個弱點屬性（PEN/CRT/ACC/SPD 任一），對應你的攻擊屬性 +20%。',
-    // 🆕 v10：巴爺主線「不透漏」路線獎勵 — 但實際取得來源待設計（設計書標 TODO）
-    //   暫定觸發來源：巴爺主線「不透漏真相」結局獎勵（aff 70+ + 偷聽密謀已觸發 + 不告訴）
-    //   未來其他取得來源（卡西烏斯訓練 / 老默觀察 / 賭場斥候）可再開
-    storyOnly: true,
-    grantedBy: 'overseer_kept_secret',  // flag set 後玩家獲得
-    passiveBonus: {},
-    // 戰鬥端 hook（待 battle.js 整合）：
-    //   onBattleStart: 從對手 weakness 欄位讀取（需戰鬥系統 weakness 欄位）
-    //   套用對應屬性 ×1.20
-    onBattleStart: {
-      revealWeakness: true,
-      attrBonusPct: 20,
-    },
   },
 };
