@@ -58,8 +58,9 @@ const Stats = (() => {
 
     // ── Inventory ──
     inventory: [],                    // 舊物品清單（向下相容，未來由 personalItems 取代）
-    equippedWeapon:  null,
-    equippedArmor:   null,             // 胸甲主槽（D.2 多部位系統啟用後由 equippedChest 取代）
+    // 🆕 2026-04-27：開場直接 equip T0 裝備（不要 null、玩家看到角色穿著「破布 + 空手」、不寒酸）
+    equippedWeapon:  'fists',
+    equippedArmor:   'rags',
     equippedOffhand: null,              // 盾牌 ID 或單手武器 ID（雙持）
 
     // ── 🆕 多部位裝備預留（D.2） ──
@@ -134,7 +135,7 @@ const Stats = (() => {
     focusBookId:  null,    // 專心書 ID，null = 無
     readBooks:    [],      // 已讀過的書 ID 清單
     dullardStage: 0,       // 傻福階段（0=完整 / 1=半醒 / 2=清醒）
-    weaponInventory: [],   // 武器持有清單（之前已散在 main.js，這裡統一初始化）
+    weaponInventory: [{ id: 'fists' }],   // 🆕 2026-04-27：開場有空手在 picker 裡
     armorInventory:  [{ id: 'rags' }],  // 護甲持有清單（起始：破布）
 
     // 🆕 2026-04-19: 傷勢系統（wounds.md）
@@ -826,9 +827,11 @@ const Stats = (() => {
   }
 
   // Room tier based on fame
+  // 🆕 2026-04-27：threshold 拉高（fame 真的很好取得、滿值約 300）
+  //   舊 20/60 太早就 unlock luxuryRoom、後期沒成長空間
   function getRoomTier() {
-    if (player.fame >= 60) return 'luxuryRoom';
-    if (player.fame >= 20) return 'basicRoom';
+    if (player.fame >= 200) return 'luxuryRoom';
+    if (player.fame >= 100) return 'basicRoom';
     return 'dirtyCell';
   }
 

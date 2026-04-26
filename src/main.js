@@ -1661,12 +1661,34 @@ const Game = (() => {
   /**
    * 🆕 2026-04-24：睡眠加成 — normal sleep 時依條件累加 stamina/mood
    *   設計目的：玩家如果照顧好自己（吃飽、心情好、有伴），睡眠回得更多
-   *   單次最多累加 21 stamina（基礎 45 + 21 = 66）
+   *
+   * 🆕 2026-04-27 大幅放大：
+   *   - 房間 3 tier 真正生效（之前 getRoomTier 寫好但沒用）
+   *     dirtyCell（fame<20）= 無加成
+   *     basicRoom（fame≥20）= +8 stamina +3 mood
+   *     luxuryRoom（fame≥60）= +18 stamina +6 mood +5 HP
+   *   - 兄弟在側擴大：分房後其他高好感 teammate (≥60) 可帶著一起睡
+   *     設計理由：升級到大房間反而失去陪伴加成不合理
    */
   function _applySleepBonuses(p) {
     const bonuses = [];
     let stamBonus = 0;
     let moodBonus = 0;
+    let hpBonus   = 0;
+
+    // 🆕 條件 0：房間等級 — 主加成、最重要
+    const roomTier = (typeof Stats.getRoomTier === 'function') ? Stats.getRoomTier() : 'dirtyCell';
+    if (roomTier === 'luxuryRoom') {
+      stamBonus += 18;
+      moodBonus += 6;
+      hpBonus   += 5;
+      bonuses.push('🏛 主人賞賜的好房間 +18');
+    } else if (roomTier === 'basicRoom') {
+      stamBonus += 8;
+      moodBonus += 3;
+      bonuses.push('🛏 像樣的房間 +8');
+    }
+    // dirtyCell = 0 加成、不 push log
 
     // 條件 1：飽暖好眠（food ≥ 70）
     if ((p.food || 0) >= 70) {
@@ -1688,7 +1710,8 @@ const Game = (() => {
       stamBonus += 3;
       bonuses.push('🐭 夜裡有伴 +3');
     }
-    // 條件 5：奧蘭同房（未分房 + 還活著 + 未告發）
+    // 🆕 條件 5：兄弟在側 — 擴大判定
+    //   優先順序：奧蘭未分房 → 任何高好感 teammate (≥60) 跟著升級到好房間
     const orlanWithMe = typeof Flags !== 'undefined' &&
                         !Flags.has('separated_from_olan') &&
                         !Flags.has('orlan_dead') &&
@@ -1696,11 +1719,29 @@ const Game = (() => {
     if (orlanWithMe) {
       stamBonus += 3;
       moodBonus += 2;
-      bonuses.push('🤝 兄弟在側 +3');
+      bonuses.push('🤝 兄弟在側 +3（奧蘭）');
+    } else if (typeof teammates !== 'undefined' && teammates.getAffection) {
+      // 🆕 找一個高好感 teammate 跟你升級進房間
+      //   loyal companions 名單：cassius / hector / ursa / dagiSlave / oldSlave
+      const loyalCandidates = ['cassius', 'ursa', 'dagiSlave', 'oldSlave', 'hector'];
+      let bestId = null, bestAff = 60;   // 至少 60 才算
+      loyalCandidates.forEach(id => {
+        const npc = teammates.getNPC && teammates.getNPC(id);
+        if (!npc || npc.alive === false) return;
+        const aff = teammates.getAffection(id);
+        if (aff > bestAff) { bestAff = aff; bestId = id; }
+      });
+      if (bestId) {
+        const name = teammates.getNPC(bestId).name;
+        stamBonus += 3;
+        moodBonus += 2;
+        bonuses.push(`🤝 兄弟在側 +3（${name}）`);
+      }
     }
 
     if (stamBonus > 0) Stats.modVital('stamina', stamBonus);
     if (moodBonus > 0) Stats.modVital('mood', moodBonus);
+    if (hpBonus   > 0) Stats.modVital('hp',   hpBonus);
 
     if (bonuses.length > 0) {
       addLog('　睡眠加成：' + bonuses.join(' · '), '#88aacc', false, false);
@@ -6444,7 +6485,7 @@ const Game = (() => {
         choices: [
           {
             id:    'oath',
-            label: '嗯。',
+            label: '好，我們一起努力吧！',
             hint:  '（你握了他的手。）',
             effects: [
               { type: 'affection', key: 'orlan', delta: +5 },

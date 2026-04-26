@@ -137,12 +137,19 @@ const BlacksmithEvents = (() => {
   function _giveArmor(armorId, armorName) {
     const p = Stats.player;
 
-    // 加進護甲庫
+    // 🆕 2026-04-27：階段 2 一次給整套 T1 皮甲（leatherArmor + thickLeather + studdedLeather）
+    //   設計理由：玩家有換裝選擇才能測試後續事件（修繕 / 升級判定吃當前裝備）
+    //   主送的還是依好感決定的那件、自動裝備
+    //   其他兩件進 inventory、玩家可換
     if (!Array.isArray(p.armorInventory)) p.armorInventory = [{ id: 'rags' }];
-    if (!p.armorInventory.find(e => e.id === armorId)) {
-      p.armorInventory.push({ id: armorId });
-    }
-    // 自動裝備（之前只穿破布）
+    const t1Set = ['leatherArmor', 'thickLeather', 'studdedLeather'];
+    t1Set.forEach(id => {
+      if (!p.armorInventory.find(e => e.id === id)) {
+        p.armorInventory.push({ id });
+      }
+    });
+
+    // 自動裝備主送那件（之前只穿破布）
     if (!p.equippedArmor || p.equippedArmor === 'rags') {
       p.equippedArmor = armorId;
     }
@@ -151,6 +158,7 @@ const BlacksmithEvents = (() => {
     Flags.set('gra_first_armor', true);
 
     _log(`你得到了【${armorName}】。`, '#c8a060', true);
+    _log(`✦ 葛拉順手塞了【加厚皮甲】跟【鉚釘皮甲】給你：「換著穿、別讓哪件破得太快。」`, '#888899', false);
   }
 
   // ══════════════════════════════════════════
