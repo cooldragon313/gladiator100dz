@@ -57,7 +57,8 @@ const OrlanEvents = (() => {
   // ══════════════════════════════════════════════════
   // 房間升級（Day 30+ 條件觸發）
   // ══════════════════════════════════════════════════
-  // 條件：master_aff ≥ 50 AND fame ≥ 30 AND 未觸發過 AND day ≥ 30
+  // 條件：master_aff ≥ 50 AND fame ≥ 100 AND 未觸發過 AND day ≥ 30
+  // 🆕 2026-04-27：fame threshold 30 → 100、跟 basicRoom 同步（getRoomTier）
   // 效果：強制分房、Flag separated_from_olan，之後獨自就寢首三晚 mood -15 + 失眠機率升高
   //
   // pride 特性的玩家：選項「拒絕」會多一段敘述（「我不需要這種特權」）但結果相同
@@ -69,7 +70,7 @@ const OrlanEvents = (() => {
     if (Flags.has('orlan_room_upgrade_shown')) return false;
     const masterAff = teammates.getAffection('masterArtus');
     const fame = p.fame || 0;
-    if (masterAff < 50 || fame < 30) return false;
+    if (masterAff < 50 || fame < 100) return false;
 
     Flags.set('orlan_room_upgrade_shown', true);
 
@@ -151,6 +152,55 @@ const OrlanEvents = (() => {
   // 偷藥事件（Day 60 左右，需要重傷過）
   // ══════════════════════════════════════════════════
   // 條件：Day ≥ 60 AND flag player_was_nearly_dead AND 未觸發過
+  // ══════════════════════════════════════════════════
+  // 🆕 2026-04-27：奧蘭人脈生名聲事件
+  // ══════════════════════════════════════════════════
+  // 設計：奧蘭曾是阿圖斯家僕、有舊熟人。好感夠就會「幫你說好話」
+  //   讓玩家累積 fame 到 100（basicRoom）/ 200（luxuryRoom）門檻
+  // 觸發條件：
+  //   - orlan aff ≥ 50（信任夠才會幫）
+  //   - !separated_from_olan（還在同房才能私下聊）
+  //   - !orlan_dead / !betrayed_olan
+  //   - fame < 200（已升頂級房不需要）
+  //   - Day ≥ 12（前期讓玩家自己掙）
+  //   - 距上次觸發 ≥ 8 天（cooldown）
+  //   - 12% 機率 per day
+  // 效果：+8~15 fame、log 一句話、不開 modal（背景成長感）
+  function _tryOrlanFameBoost() {
+    const p = Stats.player;
+    if (!p || p.day < 12) return false;
+    if (Flags.has('separated_from_olan')) return false;
+    if (Flags.has('orlan_dead')) return false;
+    if (Flags.has('betrayed_olan')) return false;
+    if ((p.fame || 0) >= 200) return false;
+    if (typeof teammates === 'undefined') return false;
+    if (teammates.getAffection('orlan') < 50) return false;
+
+    const lastDay = Flags.get('orlan_last_fame_help_day', -99);
+    if (p.day - lastDay < 8) return false;
+
+    if (Math.random() >= 0.12) return false;
+
+    Flags.set('orlan_last_fame_help_day', p.day);
+
+    const fameDelta = 8 + Math.floor(Math.random() * 8);   // 8~15
+    Stats.modFame(fameDelta);
+
+    // 4 種對白池、隨機抽
+    const lines = [
+      `奧蘭壓低聲音：「⋯⋯我跟主人家的老熟人打聽過了。他們聽說你最近表現很好。」（+${fameDelta} 名聲）`,
+      `奧蘭在火堆邊跟你說：「我託人帶話到主人家——讓某某幫你美言幾句。⋯⋯應該有用。」（+${fameDelta} 名聲）`,
+      `奧蘭收回信封：「我那個舊朋友還在主人家當差。他願意幫忙。」（+${fameDelta} 名聲）`,
+      `奧蘭笑了笑：「⋯⋯有時候有舊朋友的好處。主人最近會多注意你一點。」（+${fameDelta} 名聲）`,
+    ];
+    const line = lines[Math.floor(Math.random() * lines.length)];
+    _log(line, '#c8a060', true);
+
+    // 小好感回饋（玩家應該感謝他）
+    teammates.modAffection('orlan', +1);
+    return true;
+  }
+
   // 四選項驅動 reliability 軸（替他分擔 → reliable / 沉默 → coward）
   function _tryStealMedicine() {
     const p = Stats.player;
@@ -447,6 +497,8 @@ const OrlanEvents = (() => {
       if (_tryStealMedicine()) return;
       // Day 30+ 房間升級
       if (_tryRoomUpgrade()) return;
+      // 🆕 2026-04-27：奧蘭幫忙生名聲（背景事件、不擋大事件）
+      _tryOrlanFameBoost();
     });
 
     // 訣別後一週左右，奧蘭在前哨賽戰死（accept / reject 路線都會死）
