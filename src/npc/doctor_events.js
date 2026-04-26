@@ -702,10 +702,17 @@ const DoctorEvents = (() => {
           }
           _log(resultText, '#88cc77', true);
           if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
+          // 🆕 2026-04-27 巴爺主線老默接話 hook（治療結束後嘗試）
+          if (typeof OverseerEvents !== 'undefined' && OverseerEvents.tryDoctorHint) {
+            try { OverseerEvents.tryDoctorHint(); } catch (e) { console.error('[Overseer hint]', e); }
+          }
         },
       });
     } else {
       _log(resultText, '#88cc77', true);
+      if (typeof OverseerEvents !== 'undefined' && OverseerEvents.tryDoctorHint) {
+        try { OverseerEvents.tryDoctorHint(); } catch (e) { console.error('[Overseer hint]', e); }
+      }
     }
   }
 

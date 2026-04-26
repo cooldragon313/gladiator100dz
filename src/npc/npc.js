@@ -1227,15 +1227,17 @@ const teammates = (() => {
    * 負值 = 仇恨，用於 D.4 仇恨系統。
    * D.19 更新：正向 delta 會乘上 trait 愛憎倍率。
    */
-  function modAffection(npcId, delta) {
+  function modAffection(npcId, delta, opts) {
     const id  = _resolveId(npcId);
     const npc = NPC_DEFS[id];
+    const bypassTrait = opts && opts.bypassTrait;
     // 寬厚特性：正向好感成長速度 +20%
-    if (delta > 0 && typeof Stats !== 'undefined' && Stats.player.traits?.includes('kindness')) {
+    if (delta > 0 && !bypassTrait && typeof Stats !== 'undefined' && Stats.player.traits?.includes('kindness')) {
       delta = delta * 1.2;
     }
     // 🆕 D.19：特性愛憎倍率（只作用於正向）
-    if (delta > 0 && npc) {
+    // 🆕 2026-04-27：bypassTrait 旗標可跳過倍率（協力爆擊保證 +1 用）
+    if (delta > 0 && npc && !bypassTrait) {
       const mult = _computeTraitAffMult(npc);
       if (mult !== 1.0) {
         delta = delta * mult;

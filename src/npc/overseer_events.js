@@ -122,6 +122,44 @@ const OverseerEvents = (() => {
     });
   }
 
+  // ══════════════════════════════════════════════════
+  // 🆕 2026-04-27 § 鋪墊期 — 梅拉 Layer 1 暗示
+  //   觸發：梅拉在 audience + Day ≥ 15 + 玩家有戰鬥過 + 30% 機率 + 一次性
+  //   設計：母親型角色不忍心、半夜夢話一樣講出來
+  //   目的：set mela_hinted_overseer flag、影響偷聽密謀觸發條件
+  // ══════════════════════════════════════════════════
+  function tryMelaHint() {
+    if (typeof Flags === 'undefined') return false;
+    if (Flags.has('mela_hinted_overseer')) return false;
+    const p = Stats.player;
+    if (!p || p.day < 15) return false;
+    if ((p.combatStats?.arenaWins || 0) < 1) return false;   // 至少打過一場
+    if (!_isPresent('melaKook')) return false;
+    if (Math.random() >= 0.30) return false;
+
+    Flags.set('mela_hinted_overseer', true);
+
+    if (typeof DialogueModal === 'undefined') {
+      _log('梅拉低聲對你說：「⋯⋯巴爺以前也這樣的、紅得發燙。後來⋯⋯就變那樣了。孩子、你自己小心。」', '#c8a060', true);
+      return true;
+    }
+    DialogueModal.play([
+      { text: '（晚餐時、梅拉端來一碗熱湯。她蹲下來、把湯放在你前面。沒走。）' },
+      { text: '（她看你一眼、又看一眼遠處的巴爺。）' },
+      { speaker: '梅拉', text: '⋯⋯孩子。' },
+      { speaker: '梅拉', text: '我跟你說一件事。' },
+      { speaker: '梅拉', text: '巴爺以前也這樣。' },
+      { speaker: '梅拉', text: '紅得發燙、主人很喜歡他。' },
+      { speaker: '梅拉', text: '⋯⋯後來、就變那樣了。' },
+      { text: '（她沒說「那樣」是什麼樣。但你看了眼遠處的巴爺。）' },
+      { text: '（拐杖、跛腳、舊鞭子、雙眼裡沒光。）' },
+      { speaker: '梅拉', text: '⋯⋯孩子、你自己小心。' },
+      { speaker: '梅拉', text: '在這裡、紅得太快不是好事。' },
+      { text: '（她拍拍你肩膀、回廚房去了。）' },
+    ]);
+    return true;
+  }
+
   function _playPraise3() {
     if (typeof DialogueModal === 'undefined') {
       _log('塔倫長官：「你真的不錯。很認真。⋯⋯快追上我們巴爺當初的水準了。」', '#9a8866', true);
@@ -145,45 +183,214 @@ const OverseerEvents = (() => {
   }
 
   // ══════════════════════════════════════════════════
-  // § 引爆事件 — 主人公開稱讚（v10 核心）
+  // § 引爆事件 — 達官顯貴 (Distinguished Guest) 與 引爆 合一 v11
   // ══════════════════════════════════════════════════
-  // TODO 整合點：需在「玩家漂亮贏一場跨訓練所對戰」後觸發
-  //   建議 hook 位置：
-  //     - battle.js Battle.start() 的 onWin callback
-  //     - 或 main.js arena 勝利結算處
-  //   觸發條件提案：
-  //     - 跨訓練所戰鬥勝利
-  //     - 沒受重傷（HP > 50%）
-  //     - 對手強敵（fame ≥ 一定值 / 等級偏高）
-  //     - p.day >= 30 + fame >= 30
-  //   觸發後呼叫：OverseerEvents.tryIgnitionEvent()
+  // 設計：莫拉斯（Morras）老朋友兼老對手帶他家招牌「鐵臂」烏勒克來
+  //   阿圖斯為了在貴客面前撐場面 → 安排玩家上場 →
+  //   玩家贏 → 主人公開稱讚（引爆）→ 塔倫看在眼裡開始算計
+  //   玩家輸 → 主人冷臉、塔倫見獵心喜
+  // 觸發條件：Day ≥ 30、fame ≥ 30、winStreak ≥ 3、未觸發過
+  // 對手：morras_ironarm（既有 testbattle.js）
+  // 赫克特情報網（友善路線）：賽前 ChoiceModal 賣情報、命中率 -15%
+
   function tryIgnitionEvent() {
-    if (typeof Flags === 'undefined') return;
-    if (Flags.has('master_noticed_player')) return;
+    if (typeof Flags === 'undefined') return false;
+    if (Flags.has('master_noticed_player')) return false;
+    const p = Stats.player;
+    if (!p || p.day < 30) return false;
+    if ((p.fame || 0) < 30) return false;
+    if ((p.combatStats?.winStreak || 0) < 3) return false;
+
+    // 立刻 set flag 防重複（即使後續 dialog 鏈斷掉也不會重觸發）
     Flags.set('master_noticed_player', true);
     Flags.set('tarren_calculating', true);
 
+    _playDistinguishedGuestPreBattle();
+    return true;
+  }
+
+  function _playDistinguishedGuestPreBattle() {
     if (typeof DialogueModal === 'undefined') {
-      _log('主人公開稱讚你：「這傢伙今天打得不錯。去給老默看看。」塔倫笑著拍你肩膀，眼神不對勁。', '#d4af37', true);
+      _startDistinguishedBattle();
       return;
     }
     DialogueModal.play([
-      { text: '（你贏了。觀眾的歡呼還沒停。）' },
-      { text: '（你站在沙地中央喘氣、血還沒擦。）' },
-      { text: '（看台上、主人站起來。）' },
-      { speaker: '主人', text: '（拍了兩下手。）' },
-      { speaker: '主人', text: '這傢伙今天打得不錯。' },
-      { speaker: '主人', text: '去給老默看看，幫他把傷口整理一下。' },
-      { text: '（他坐回去、繼續喝酒。）' },
-      { text: '（你旁邊——塔倫長官走過來、拍了拍你肩膀。）' },
+      // 預告（侍從通知）
+      { text: '（侍從匆匆進來。）' },
+      { speaker: '侍從', text: '主人有客來訪。' },
+      { speaker: '侍從', text: '莫拉斯大人帶他家那個「鐵臂」烏勒克到了。' },
+      { speaker: '侍從', text: '⋯⋯主人指名你上場。' },
+      // 兩主見面（朋友兼找碴）
+      { text: '（你被推到沙場邊。兩個訓練所主人正在握手。表面熱絡、眼神在較勁。）' },
+      { speaker: '莫拉斯', text: '⋯⋯阿圖斯老兄、好久不見。' },
+      { speaker: '阿圖斯', text: '老不見好。你那個鐵臂還在嗎？' },
+      { speaker: '莫拉斯', text: '在啊、跨場 22 勝 4 敗。' },
+      { speaker: '莫拉斯', text: '⋯⋯聽說你最近訓出個小子。有點意思？' },
+      { speaker: '阿圖斯', text: '（冷笑）來、上場見真章。' },
+      { speaker: '莫拉斯', text: '（笑）老樣子、輸的請酒。' },
+      { speaker: '阿圖斯', text: '⋯⋯這次不是輸贏的事。' },
+      { text: '（兩人一起看著沙地中央。塔倫站在阿圖斯後面、表情像吃了蒼蠅。）' },
+    ], {
+      onComplete: () => _showHectorIntelChoice(),
+    });
+  }
+
+  // 赫克特情報網
+  function _showHectorIntelChoice() {
+    // 檢查赫克特友善路線、在場、玩家有錢
+    const hectorFriendly = Flags.has('hector_friendly_path');
+    const hectorPresent = _isPresent('hector');
+    const hectorHostile = Flags.has('hector_hostile_path');
+    const playerMoney = (Stats.player.money || 0);
+
+    if (hectorHostile) {
+      // 敵對路線：自動賣你弱點給對方（你不知道）
+      Flags.set('hector_betrayed_at_morras', true);
+      _log('（你瞥見赫克特跟莫拉斯的隨從在角落數錢。但你沒時間多想。）', '#cc8866', false);
+      _startDistinguishedBattle();
+      return;
+    }
+
+    if (!hectorFriendly || !hectorPresent || playerMoney < 10) {
+      _startDistinguishedBattle();
+      return;
+    }
+
+    // 友善路線 + 在場 + 有錢 → 提供情報
+    DialogueModal.play([
+      { text: '（訓練結束、要去沙場了。赫克特靠過來、聲音壓低。）' },
+      { speaker: '赫克特', text: '⋯⋯小子。聽說你要對上鐵臂。' },
+      { speaker: '赫克特', text: '我認識他。' },
+      { speaker: '赫克特', text: '左臂舊傷、舉不過肩。要打、攻他左邊。' },
+      { speaker: '赫克特', text: '⋯⋯這情報 10 銅錢。我不白給。' },
+    ], {
+      onComplete: () => {
+        if (typeof ChoiceModal === 'undefined') {
+          _startDistinguishedBattle();
+          return;
+        }
+        ChoiceModal.show({
+          id: 'hector_morras_intel',
+          icon: '🐍',
+          title: '赫克特要 10 銅錢買情報',
+          body: '「左臂舊傷、舉不過肩。攻他左邊。」',
+          forced: true,
+          choices: [
+            {
+              id: 'buy',
+              label: '給 10 錢、買情報',
+              hint: '（戰鬥中對手命中率 -15%）',
+              effects: [
+                { type: 'money', delta: -10 },
+                { type: 'flag', key: 'bought_morras_intel' },
+                { type: 'affection', key: 'hector', delta: 2 },
+              ],
+              resultLog: '赫克特把銅錢收進懷裡：「⋯⋯下次有戲再來找我。」',
+              logColor: '#aa7744',
+            },
+            {
+              id: 'decline',
+              label: '不用。我自己打',
+              hint: '（赫克特：「⋯⋯隨你。」）',
+              effects: [
+                { type: 'affection', key: 'hector', delta: -2 },
+              ],
+              resultLog: '赫克特聳聳肩走開：「⋯⋯記住、我提醒過你了。」',
+              logColor: '#9a8866',
+            },
+          ],
+        }, { onChoose: () => _startDistinguishedBattle() });
+      }
+    });
+  }
+
+  function _startDistinguishedBattle() {
+    // 強制開戰：玩家不能拒絕（劇情強制）
+    if (typeof Battle === 'undefined' || !Battle.start) {
+      _log('（戰鬥引擎未載入、跳過達官顯貴戰鬥）', '#cc6633', true);
+      return;
+    }
+
+    // 套情報 buff（戰鬥中對手 ACC -15%）
+    // 因為 Battle.start 不接 buff 參數、只能戰前 hack 暫存敵人 ACC
+    // 簡化：用 flag 標記、戰後 log（命中減免實際在 testbattle 那邊整合會更乾淨、現階段先用粗糙實作）
+    const hadIntel = Flags.has('bought_morras_intel');
+    if (hadIntel) {
+      _log('🐍 （赫克特的情報：你知道烏勒克的破綻。）', '#88aacc', false);
+    }
+    if (Flags.has('hector_betrayed_at_morras')) {
+      _log('（你不知道赫克特已經把你的弱點賣給對方了。）', '#cc6633', false);
+    }
+
+    // 開戰（hack：用 setTimeout 給 DialogueModal 完全關閉的時間）
+    setTimeout(() => {
+      Battle.start('morras_ironarm', _onMorrasWin, _onMorrasLose);
+    }, 300);
+  }
+
+  function _onMorrasWin() {
+    // 引爆對白
+    if (typeof DialogueModal === 'undefined') {
+      _log('✦ 你贏了。主人公開稱讚你。塔倫長官眼神不對勁。', '#d4af37', true);
+      _applyMorrasWinRewards();
+      return;
+    }
+    DialogueModal.play([
+      { text: '（烏勒克倒在沙地。觀眾爆出歡呼。）' },
+      { text: '（阿圖斯爆笑大叫、拍著莫拉斯肩膀。）' },
+      { speaker: '阿圖斯', text: '哈哈哈！老莫、看到沒！' },
+      { speaker: '莫拉斯', text: '⋯⋯（沉默良久）⋯⋯不錯。' },
+      { speaker: '莫拉斯', text: '⋯⋯這小子是新買的？' },
+      { speaker: '阿圖斯', text: '（驕傲）我訓的。' },
+      { text: '（他走到沙地邊、看著你。）' },
+      { speaker: '阿圖斯', text: '這傢伙今天打得不錯。去給老默看看。' },
+      { text: '（他坐回主席台、繼續喝酒。但你感覺得到——他第一次正眼看你。）' },
+      { text: '（塔倫長官走過來、拍你肩膀。）' },
       { speaker: '塔倫長官', text: '（笑著）這新人最近表現不錯。也很認真。' },
       { text: '（他笑著走開。但他的眼神——你說不清那眼神是什麼。）' },
       { text: '（內心獨白：⋯⋯主人剛剛叫了我的名字。）' },
     ], {
-      onComplete: () => {
-        _log('✦ 主人開始注意到你了。從今天起、你不只是個角鬥士。', '#d4af37', true);
-      }
+      onComplete: () => _applyMorrasWinRewards(),
     });
+  }
+
+  function _applyMorrasWinRewards() {
+    if (typeof teammates !== 'undefined') {
+      teammates.modAffection('masterArtus', +20);
+      teammates.modAffection('officer', +5);
+    }
+    Stats.modFame(+25);
+    _log('✦ 主人開始注意到你了。從今天起、你不只是個角鬥士。', '#d4af37', true);
+  }
+
+  function _onMorrasLose() {
+    if (typeof DialogueModal === 'undefined') {
+      _log('你輸了。主人黑著臉、塔倫卻笑了。', '#cc6633', true);
+      _applyMorrasLoseRewards();
+      return;
+    }
+    DialogueModal.play([
+      { text: '（你倒在沙地。莫拉斯哈哈大笑。）' },
+      { speaker: '莫拉斯', text: '老阿、你這次走眼了。' },
+      { speaker: '阿圖斯', text: '⋯⋯' },
+      { text: '（黑著臉、沒說話。）' },
+      { text: '（塔倫看著你、嘴角微揚。）' },
+      { speaker: '塔倫長官', text: '⋯⋯我就說。新人還是新人。' },
+    ], {
+      onComplete: () => _applyMorrasLoseRewards(),
+    });
+  }
+
+  function _applyMorrasLoseRewards() {
+    if (typeof teammates !== 'undefined') {
+      teammates.modAffection('masterArtus', -10);
+      teammates.modAffection('officer', +5);
+    }
+    Stats.modFame(-5);
+    // 不 set master_noticed_player flag → 之後可以再來一次
+    Flags.unset('master_noticed_player');
+    Flags.unset('tarren_calculating');
+    _log('（你失敗了。但機會還會再來——只要你撐得住。）', '#8899aa', true);
   }
 
   // ══════════════════════════════════════════════════
@@ -782,12 +989,17 @@ const OverseerEvents = (() => {
         const p = Stats.player;
         // TODO: 巴爺腰帶物品 — 同上
         _log('✦ 你獲得了巴爺的舊腰帶。', '#d4af37', true);
-        // 老兵之眼 — 注意：使用者要求標記未來給、不在這裡實際給
-        // 目前先 set flag 標示「應該獲得 老兵之眼」、實際 grant 待後續事件
-        // 但若 user 想立刻給：取消下面註解
-        // if (!Array.isArray(p.learnedSkills)) p.learnedSkills = [];
-        // if (!p.learnedSkills.includes('veteran_eye')) p.learnedSkills.push('veteran_eye');
-        // _log('✦ 你獲得了【老兵之眼】 — 看破對手 1 個弱點、對應屬性 +20%。', '#d4af37', true);
+        // 🆕 2026-04-27 老兵之眼直接授予（之前註解的部分打開）
+        //   設計：你選擇沉默 = 你看見了他沒看見的東西 = 老兵之眼 metaphor 完美
+        if (!Array.isArray(p.learnedSkills)) p.learnedSkills = [];
+        if (!p.learnedSkills.includes('veteran_eye')) p.learnedSkills.push('veteran_eye');
+        _log('✦ 你獲得了【老兵之眼】 — 戰鬥開場 ATK +15% / CRT +5。', '#d4af37', true);
+        if (typeof Stage !== 'undefined' && Stage.popupBig) {
+          Stage.popupBig({
+            icon: '👁', title: '老兵之眼', subtitle: '你看見了',
+            color: 'gold', duration: 1800, sound: 'acquire',
+          });
+        }
         _log('💭 你選擇了沉默。某些秘密只能自己背。', '#aa88aa', true);
         if (typeof teammates !== 'undefined' && teammates.modAffection) {
           teammates.modAffection('overseer', 5);
@@ -802,16 +1014,17 @@ const OverseerEvents = (() => {
   return {
     // 鋪墊期
     tryTarrenPraise,        // 訓練後 hook
+    tryMelaHint,            // 🆕 2026-04-27 梅拉 Layer 1（晚餐時觸發）
     // 引爆期
-    tryIgnitionEvent,       // TODO 戰鬥勝利 hook
+    tryIgnitionEvent,       // ✅ 2026-04-27 已 wire 進 sleepEndDay（達官顯貴 + 引爆）
     // 曖昧任務期
     tryTarrenAmbiguousOrder,// 訓練後 hook
     // 回響期
-    tryDoctorHint,          // TODO 治療結束 hook
+    tryDoctorHint,          // ✅ 2026-04-27 已 wire 進 doctor 治療後
     tryCassiusHint,         // 訓練後 hook
     // 證據期
-    tryEavesdrop,           // TODO 主人召喚 hook
+    tryEavesdrop,           // 訓練後 hook
     // 選擇期
-    tryOverseerDrink,       // TODO 睡前 hook
+    tryOverseerDrink,       // 睡前 hook
   };
 })();

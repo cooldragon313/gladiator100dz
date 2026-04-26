@@ -3317,6 +3317,7 @@ const Game = (() => {
       //   🆕 2026-04-25c：之前 30%/8% × 愛憎倍率 0.3 round = 0 → 玩家 5 場全白練。
       //     已修 Math.round → 機率取整（npc.js _probRound）+ 機率拉到 45%/12%。
       const tmList = currentNPCs.teammates || [];
+      const synergyHappened = (synergyMult > 1.0);   // 🆕 該場有發生協力爆擊
       tmList.forEach(npcId => {
         if (!npcId) return;
         const npc = teammates.getNPC(npcId);
@@ -3324,9 +3325,22 @@ const Game = (() => {
         if (npc.alive === false) return;
         if (npcId === 'hector' && typeof Flags !== 'undefined' && Flags.has('hector_hostile_path')) return;
         const matchAttr = (trainedAttr && npc.favoredAttr === trainedAttr);
-        const chance = matchAttr ? 0.45 : 0.12;
+        // 🆕 2026-04-27 赫克特友善路線額外加成（dislike trait 太多、補償）
+        let chance;
+        if (matchAttr) {
+          chance = (npcId === 'hector' && Flags && Flags.has('hector_friendly_path'))
+                     ? 0.65 : 0.45;
+        } else {
+          chance = 0.12;
+        }
         if (Math.random() < chance) {
           teammates.modAffection(npcId, 1);
+        }
+        // 🆕 2026-04-27 協力爆擊保證好感 — bypass trait dislike mult
+        //   條件：trainedAttr === favoredAttr + 該場有 synergy
+        //   設計：「他陪你一起練同樣的東西、實戰共鳴 = 不管討厭不討厭都記得」
+        if (matchAttr && synergyHappened) {
+          teammates.modAffection(npcId, 1, { bypassTrait: true });
         }
       });
 
@@ -3390,11 +3404,17 @@ const Game = (() => {
     // 🆕 2026-04-25 v10：監督官巴爺主線事件
     if (typeof OverseerEvents !== 'undefined') {
       try {
-        OverseerEvents.tryTarrenPraise();         // 鋪墊期 — 塔倫稱讚 3 階段
-        OverseerEvents.tryTarrenAmbiguousOrder(); // 曖昧任務期 — 塔倫指令 2 個
-        OverseerEvents.tryCassiusHint();          // 回響期 — 卡西烏斯補刀
-        OverseerEvents.tryEavesdrop();            // 證據期 — 偷聽密謀（條件嚴格）
-        OverseerEvents.tryOverseerDrink();        // 選擇期 — 喝酒透漏選擇
+        // 🆕 2026-04-27 達官顯貴 + 引爆事件（最高優先、會強制開戰）
+        if (OverseerEvents.tryIgnitionEvent && OverseerEvents.tryIgnitionEvent()) {
+          // 引爆事件已啟動、跳過其他鋪墊
+        } else {
+          OverseerEvents.tryTarrenPraise();         // 鋪墊期 — 塔倫稱讚 3 階段
+          OverseerEvents.tryMelaHint();             // 🆕 鋪墊期 — 梅拉晚餐暗示
+          OverseerEvents.tryTarrenAmbiguousOrder(); // 曖昧任務期 — 塔倫指令 2 個
+          OverseerEvents.tryCassiusHint();          // 回響期 — 卡西烏斯補刀
+          OverseerEvents.tryEavesdrop();            // 證據期 — 偷聽密謀（條件嚴格）
+          OverseerEvents.tryOverseerDrink();        // 選擇期 — 喝酒透漏選擇
+        }
       } catch (e) { console.error('[OverseerEvents]', e); }
     }
 
