@@ -1,170 +1,179 @@
 # 📌 NEXT — 下次開工備忘
 
 > 跨電腦/跨 session 的「下一步該幹嘛」。
-> 新的一天開工先讀這份，做完了就更新。
-> 最後更新：2026-04-25 v10 巴爺主線完成、待實機測
+> 新的一天開工先讀這份。
+> **最後更新：2026-04-27** — 大爆發實作日：巴爺後段 + 盧基烏斯後段 + 三杯賭博
 
 ---
 
-## 🎯 今天做完（2026-04-25，**v10 監督官巴爺主線 Phase A-E**，commit 待測）
+## 🎯 今天三大主軸全做完（2026-04-27，3 個 commit 已推）
 
-**設計書**：[docs/discussions/2026-04-25-overseer-rework.md](docs/discussions/2026-04-25-overseer-rework.md)（v10 完整 spec）
-**角色檔**：[docs/characters/overseer.md](docs/characters/overseer.md)
-
-### 已實作
-1. **資料層**
-   - `npc.js` overseer 完全重寫（暱稱「巴爺」、Babrius 本名、退役角鬥士背景、5 段 storyReveals、新愛憎表）
-   - `fields.js` overseer chance 0.65→0.85、加 officer entry 0.20（讓玩家有機會刷塔倫好感）
-   - `skill.js` 加 2 個劇情技能：`unyielding`（不屈）/ `veteran_eye`（老兵之眼）
-
-2. **抓偷懶分工 v10**
-   - 主人 5% → 大忌 + HP -10 + 紅光震動
-   - 侍從 10% → HP -2
-   - 塔倫 20% → HP -5 + 「沒救的東西」
-   - 巴爺 75%+：好感 <30 抽打 / ≥30 大吼 / ≥60 假裝沒看到
-   - 25% 沒人 = 玩家好好休息
-
-3. **巴爺主線事件** [src/npc/overseer_events.js](src/npc/overseer_events.js)（**新檔**）
-   - ✅ 塔倫稱讚 3 階段（aff 20/30/40 觸發）— 第 3 階段提到「巴爺」名字（玩家起雞皮疙瘩）
-   - ✅ 塔倫曖昧指令 2 個（教訓人 / 對主人說謊）+ ChoiceModal 特性過濾選項
-   - ✅ 引爆事件 stub（標 TODO，需戰鬥勝利 hook）
-   - ✅ 老默接話 stub（標 TODO，需治療結束 hook）
-   - ✅ 卡西烏斯補刀（已 hook 訓練後事件鏈）+ 「巴爺」由來對白
-   - ✅ 偷聽密謀 stub（已 hook，但 TODO 主人召喚事件）
-   - ✅ 喝酒透漏選擇事件（已 hook）+ 透漏路線授予不屈、不透漏路線標記 `overseer_kept_secret`
-
-### 還沒做（明天 / 下次）
-1. **戰鬥勝利 hook → 引爆事件**
-   - `OverseerEvents.tryIgnitionEvent()` 需在跨訓練所對戰勝利後呼叫
-   - 觸發條件待設：fame >= 30 + 沒受重傷 + 對手強敵
-   - 位置：`battle.js Battle.start()` 的 onWin callback
-
-2. **治療結束 hook → 老默接話**
-   - `OverseerEvents.tryDoctorHint()` 需在 `doctor_events.js _performWoundHeal` 完成後呼叫
-
-3. **主人召喚事件 → 偷聽密謀整合**
-   - 目前條件夠了會自動觸發、但缺「主人召喚」的劇情前置
-   - 需加召喚事件包覆
-
-4. **物品 `gra_old_belt` 巴爺腰帶**
-   - 兩條路線都會送、需在 item.js 加定義（屬性 +5 ACC、紀念）
-
-### 老兵之眼設計筆記（`veteran_eye`）
-- **目前實作**：登記在 skill.js / 不透漏路線會 set flag `overseer_kept_secret`
-- **實際 grant 標 TODO**：在 overseer_events.js `_playKeepSecretScene` 註解保留
-- **未來其他來源**待定（卡西烏斯訓練 / 老默觀察 / 賭場斥候）
+| Commit | 內容 |
+|---|---|
+| `a5dbeea` | A 巴爺主線 4 hook 補完（達官顯貴 + 梅拉 + 老默接話 + 老兵之眼）+ E 赫克特好感修 |
+| `e6b0d52` | B 盧基烏斯後段（T2/T3 自悟 + T4 自創 + 隱藏第 5 次相遇）|
+| `f712c2d` | D 三杯賭博 + 幸運之星 + minigames/ folder |
 
 ---
 
-## 🎯 上一輪做完（2026-04-24，全部 commit 了但**還沒實機測過**）
+## ✅ 今天做的事 — 9 大項詳述
 
-**1. bare addLog 大清（commit 7659688）**
-- CLAUDE.md 第 12 條鐵律全專案落實
-- 修了 11 個檔案 / 58 處：orlan_events / stats / compulsion / reading / wounds / books / effect_dispatcher / character_roll / blacksmith_events / npc_conflicts / mela_rat_quest
-- 每個外部模組頂部加統一 `_log` helper
-- **副作用（正面）**：以前靜默掉的提示文字從此會真的顯示（訓練強迫症警告、傷勢痊癒、見識 +N、效果總結⋯⋯）
+### A. 巴爺主線後段補完
 
-**2. Day 1 開場大翻修（commit c8804b5）**
-- 原本奧蘭突然冒出來「你好我叫奧蘭以後請多指教」—— 玩家莫名其妙
-- 現在建立完整「CANON 同批三新人」背景：
-  - 牢房場景點出「同房還有兩個人」（捲髮奧蘭 + 角落大個子索爾）
-  - 獄卒踢門改「三個臭貨」+ 起身側寫
-  - 奧蘭靠過來改「昨晚跟你同一間牢房的那個」— recognize 銜接
-- 奧蘭自介重寫：先擔心你 / 摸手腕（妹妹印記）/ 壓低聲音 / CANON 鐵則只說「磨坊裡來的」
-- 🆕 索爾 Day 1 視覺印象（三選項後）：瘸腿 + 空洞眼神 + 胸前木牌（Day 5 遺物伏筆）
-- Flag: `met_sol_day1`
+#### A.1 達官顯貴事件（最重要的新事件）
+莫拉斯（阿圖斯老朋友兼老對手）帶他家招牌「鐵臂烏勒克」來訪。
 
-**3. 赫克特死碼 flag 清掉（commit 1a997b0）**
-- 刪掉 `hector_fake_friendly_day1`（audit 已確認後續無引用）
-- 註解「假善意」→「自來熟試探」符合 Phase 1 設計
+- **觸發**：`Day ≥ 30 + fame ≥ 30 + winStreak ≥ 3`
+- **流程**：預告對白 → 兩主見面（朋友兼找碴）→ **強制**對戰 morras_ironarm
+- **戰勝**：主人 +20 / 塔倫 +5 / fame +25 / 啟動巴爺主線後段
+- **戰敗**：主人 -10 / 塔倫 +5 / fame -5、**可再來**
+- **赫克特情報網**：
+  - 友善路線在場 + 玩家 10 錢 → ChoiceModal「買情報 / 不用」
+  - 敵對路線 → 自動把你的弱點賣給對方（你不知道、戰後才有暗示）
 
-**4. 🆕 狂熱系統落實（Fervor，取代舊強迫症）**
-- 重寫 [src/systems/compulsion.js](src/systems/compulsion.js)（IIFE 名改 `Fervor`，檔名保留避免動載入順序；`Compulsion` 保留為 alias）
-- 四個正面暫時特性：`STR_fervor` / `AGI_fervor` / `CON_fervor` / `WIL_fervor`
-- 自然觸發：5 天內同屬性訓練 8 次 → 進狂熱 + 14 天冷卻
-- 瓶頸觸發：屬性要升到 20/30/40/.../100 必須通過一次狂熱（阻擋升級直到 5 次）
-  - hook 在 `Stats.spendExpOnAttr` 開頭
-- 狂熱期間練對屬性：EXP +25% / mood +5 / 額外 stamina -5
-- 狂熱期間練錯屬性：mood -5 / 15% 擺爛（EXP ×0.5，含吐槽 log）
-- 主畫面左上角金色徽章顯示「⚡ 力量狂熱 · 進度 3/5」
-- 舊存檔自動遷移：`player.compulsion` → `player.fervor`，`*_addict` 特性自動清掉
+#### A.2 梅拉 Layer 1 暗示
+- **觸發**：梅拉在 audience + Day ≥ 15 + arenaWins ≥ 1 + 30% + 一次性
+- **內容**：晚餐母親型口吻：「巴爺以前也這樣⋯⋯後來就變那樣了」
+- 解決偷聽密謀觸發條件難達問題（set `mela_hinted_overseer`）
 
-**5. 🆕 狂熱重構 — 命名統一 + 大字 POPUP + UI 強化**
-- 5 條鐵則：Stage 不出現數字 / 結束場面用大字 POPUP / 觸發要有講法但不玄 / 訓練名統一 / 對白要對應動作
-- 訓練動作改名（單一事實源）：**推舉石頭(STR) / 投接碎石(DEX) / 杖擊承受(CON) / 亂棍格擋(AGI) / 打坐冥想(WIL)**
-- 5 attr 中文名統一：力量 / 靈巧 / 體質 / 反應 / 意志
-- 補齊 DEX_fervor（5 attr 全配對應狂熱）
-- `Stage.popupBig` 共用元件：56px 大字 + 震動 + 音效，觸發/結束/升級都用
-- 對白池全重寫（自然 + 瓶頸 + 結束 + 進度 + 擺爛 5 attr × 各 N 句；擺爛 5×4=20 句具體場景）
-- 主畫面訓練按鈕視覺強化：對應狂熱屬性按鈕放大 1.06× + 金色發光呼吸閃爍 + ⚡ icon；其他訓練縮 0.94× + grayscale + 半透明
-- 升級也用大字 POPUP：✦ 力量 提升 + 對白行（情緒）+ 數字行
-- 設計書：[docs/discussions/2026-04-24-fervor-rework-plan.md](docs/discussions/2026-04-24-fervor-rework-plan.md)
+#### A.3 老默接話 hook 補上
+- 每次治療結束自動嘗試 `OverseerEvents.tryDoctorHint()`
 
----
+#### A.4 老兵之眼直接授予
+- 喝酒「不告訴」結局 → 直接給 `veteran_eye` + popupBig
 
-## ▶️ 換電腦後的**第一要務**：實機測 Day 1 整條
+### B. 盧基烏斯空手線後段
 
-> ⚠️ 這個 session 改了一大堆東西**一次都沒開過瀏覽器跑**。
-> 下次開工先把這輪跑完，確認沒踩到雷。
+#### B.1 T2/T3 自悟（新增 8 個技能）
+- T2 條件：該招用 ≥ 8 次 + AGI ≥ 25 + EXP（AGI 200 + DEX 100）
+- T3 條件：T2 + 該招用 ≥ 12 次 + AGI ≥ 30 + EXP（AGI 350 + DEX 200）
+- 用完招自動檢查、達標 → ChoiceModal「升級！」
+- 效果升級：
+  - **赤手奪刃** 60% / 80% / **100%** 完美格擋（T3 加敵 silence 1）
+  - **借力反摔** 70% / 85% / **100%** 反彈（T3 加敵 stun 1 整回合）
+  - **要害打擊** silence 2 / 3 / **4** 回合（T2/T3 加 ATK/SPD debuff）
+  - **關節破** 忽略 50% / **100%** DEF（T3 加 30% 斷手 ATK -50%）
 
-測試清單（按 Day 1 執行順序）：
+#### B.2 T4 自創拳法 + 玩家命名
+- 條件：4 招都 T3 + AGI ≥ 35 + DEX ≥ 30 + WIL ≥ 25
+- 戰鬥結束 popup → 對白 → `prompt` 玩家輸入名字（最多 6 字、Enter = 「無名」）
+- 效果按主導屬性：
+  - **AGI 主導**：被攻擊 50% 敵 miss + EVA +20 / 3 turn
+  - **DEX 主導**：必中暴擊（ATK ×2 無視防禦）
+  - **WIL 主導**：HP<30% 時 ATK +30 / CRT +20 / SPD +10 / 戰鬥結束
 
-1. **開新遊戲 → 牢房醒來** — 有沒有提到「同房還有兩個人」
-2. **獄卒踢門** — 「三個臭貨」台詞 + 看另外兩人起身側寫
-3. **走廊 → 血狼伍爾克 → 赫克特靠過來**
-4. **🔴 赫克特 ChoiceModal** — 彈兩選項（笑臉 / 臭臉）← **Phase 1 第一要務**
-5. **達吉** — 依特性分岔（kindness / cruel / baseline）
-6. **奧蘭初遇新版** — 看感情到位沒（你沒事吧 / 摸手腕 / 磨坊裡來的 / 只有我一個新的）
-7. **奧蘭三選項** — 握手 / 點頭 / 拒絕
-8. **🆕 索爾視覺印象** — 瘸腿 + 胸前木牌 + 奧蘭 narrator（除非剛拒絕奧蘭）
-9. **Day 2+ 訓練** — 測赫克特笑臉示好池 / 臭臉騷擾池
-10. **老默治療** — F12 console 看 `[DoctorEvents] _performWoundHeal`
-11. **🆕 狂熱系統** — 連續訓練同屬性 5 天 → 左上角金色徽章出現；練別的看有沒有吐槽 log + EXP 偶爾縮半
-12. **🆕 屬性瓶頸** — 試把某屬性升到 20（18 → 19 免費、19 → 20 會跳瓶頸儀式彈窗強制狂熱）
+#### B.3 隱藏第 5 次相遇
+- 4 招學完 + 巴爺主線完成 + 還沒提過 → 玩家主動提巴布魯斯
+- 「我以為他也死了。」「告訴他、斷腳的還記得他。」
 
-**重點觀察**：
-- 節奏會不會太拖（今天加了不少對白 — 牢房/獄卒兩段都變長了）
-- 奧蘭的感情到位了沒，索爾的視覺印象夠不夠
-- **Console 任何 ReferenceError** — 今天 bare addLog 大清過，不該再有
-- 以前靜默的 log 現在會出現，畫面會不會太吵
+### D. 三杯藏球賭博
+
+- **觸發**：點睡覺 12% 機率 + 5 天 cd + Day ≥ 8 + teammate 在場
+- 邀賭 NPC 個性化對白池
+- 三杯洗牌動畫（DEX 對撞、玩家 DEX 高動畫減速）
+- 三場制：場 1 簡單 / 場 2 中等 / 場 3 困難（防 LUK 速刷）
+- 賭金每場 5 銅
+- **全勝 → +1 LUK**「看來我挺幸運」popup
+- **連 5 次全勝 → 幸運之星 (+5 LUK passive)**
+
+### E. 赫克特好感修（順手做）
+
+- 友善路線練 DEX → chance 45% → **65%**
+- 訓練協力爆擊（synergyMult > 1.0）+ matchAttr → bypass trait mult **保證 +1**
+- 新加 `modAffection(id, delta, { bypassTrait: true })` API
+- 預期 5 場至少 1 hit 機率 44% → **91%**
 
 ---
 
-## 🧩 Phase 2 等開工（Hector 設計書 § 11）
+## 🎯 明天測試清單（按優先序）
 
-Day 1 測完沒事再排這些，順序：
+### 🔴 高優先 — 新核心系統
+1. **達官顯貴事件**（最重要）
+   - 起新檔、刷到 Day 30+ winStreak 3 + fame 30
+   - 應該觸發強制戰鬥、看完整對白
+   - 戰勝後檢查 master/officer aff 變動 + flag 解鎖
+2. **三杯賭博**
+   - Day 8+ 多點幾次睡覺、看有沒有人來邀
+   - 玩看看小遊戲、確認動畫流暢、洗牌速度合理
+   - 全勝確認 LUK +1
+3. **盧基烏斯 T2 自悟**
+   - 學了 T1 後在戰鬥中拼命用同一招、用 8 次
+   - AGI 屬性練到 25+
+   - 檢查有沒有跳 ChoiceModal「升級！」
 
-5. **仇恨撞擊**（臭臉路線，aff ≤ -30 + 8%/天）
-6. **介入保護他人**（玩家看到赫克托欺負達吉/奧蘭時）
-7. **好感暗示 + 賣情報**（笑臉路線、莫拉斯對打前）
-8. **敵人 weakness 欄位 + 戰鬥端加乘**（真情報觸發 +25% PEN 等）
+### 🟡 中優先 — 補洞
+4. **梅拉 Layer 1 暗示**：Day 15+ + 戰過 + 梅拉 audience → 觀察晚餐
+5. **老默接話 hook**：高好感老默治療結束後檢查暗示對白
+6. **赫克特好感**：DEX 訓練 5 場、檢查綠光頻率（應該明顯比之前多）
 
-Phase 3（高階）：
-9. 嫁禍事件改版 + **私戰 mini-battle**（8 回合限制）
-10. **黑市三功能**（斷肢義肢 / 興奮劑 / 欲練神功必先自宮）
-11. Day 40 倒地加 NPC 反應
-
-Phase 4（清理）：
-12. 故事揭露門檻調整（§ 8 表）
-
----
-
-## ⚠️ 已知坑 / 注意事項
-
-- **bare addLog 已全清** — 新寫 `src/**/*.js` 模組時仍要沿用 `_log` helper 模式
-- **選擇事件必須有 NPC 回應 + 視覺特效**（CLAUDE.md 第 11 條）
-- **新 NPC 必填 `favoredAttr` + `likedTraits` / `dislikedTraits`**（D.18 / D.19）
-- 跨系統整合清單 9 題（CLAUDE.md）— 提新事件/動作/NPC/物品/特性前跑一遍
-- **CANON.md 鐵則**：寫新對白前必查，Day 1 奧蘭刻意只說「磨坊裡來的」不提主人家 6 年
+### 🟢 低優先 — 細節
+7. **巴爺喝酒「不告訴」結局**：跑完整條巴爺線、確認拿到老兵之眼 popup
+8. **盧基烏斯隱藏第 5 次**：學完 4 招 + 巴爺主線結束、再去看盧基烏斯
 
 ---
 
-## 📎 重要連結
+## 🔮 後續 TODO（按優先序）
 
-- 設計書頂部進度總表 / TODO：[DESIGN.md](DESIGN.md)
-- Hector 設計書：[docs/discussions/2026-04-23-hector-redesign.md](docs/discussions/2026-04-23-hector-redesign.md)
-- Codex（特性/書/origin 字典）：[docs/CODEX.md](docs/CODEX.md)
-- Canon（故事事實）：[docs/CANON.md](docs/CANON.md)
-- 對白位置索引：[docs/DIALOGUE-MAP.md](docs/DIALOGUE-MAP.md)
-- Orlan 人物檔：[docs/characters/orlan.md](docs/characters/orlan.md)
-- Sol 人物檔：[docs/characters/sol.md](docs/characters/sol.md)
+### 🟥 高優先 — 進行中的系列
+- **C. 達官顯貴後續延伸**：之後可加「主人邀你陪客人喝酒」「貴客要看你訓練」等小事件
+- **赫克特情報網實際戰鬥效果**：目前只 set flag、戰鬥引擎沒讀（敵 ACC -15% 沒實作）
+- **巴爺腰帶物品**：兩條結局都有提、item.js 還沒定義
+
+### 🟧 中優先 — 中期補完
+- **鍛造師階段 5 雙刃秘法**：需要 `twin_blade_schematic` 書（**書還沒做**、卡死）
+- **觀眾切磋系統完成**（目前只有監督官）：
+  - 卡西烏斯切磋（DEX/CON）
+  - 烏爾沙切磋（CON）
+  - 達吉切磋（WIL）
+- **達吉 / 烏爾沙劇情線**（目前只有 baseAffection、沒專屬事件）
+
+### 🟨 低優先 — 後期收尾
+- **Day 100 萬骸祭結局演出**：8 結局判定有了、但儀式感（音樂 / 大字 popup / 觀眾呼喊）沒做
+- **裝備差決定論**（待設計議題）：低 tier 武器在高 tier 對手前完全無效、要不要讓技巧/屬性翻盤
+
+### 🩹 技術債
+- **戰敗 wound + onLose -40% HP 重複懲罰**（clamp 0 沒事但邏輯髒）
+- **bloodlust 改為「狂戰士」劇情特性**（之前收掉、要做新管道放回）
+- **被動「反擊」(counter) vs 主動「反擊」(riposte) 名稱衝突 UI 區分**
+- **Stage.popupBig 共用元件擴大使用**（學技能 / 強敵擊倒 / 里程碑）
+- **盧基烏斯 T4 自創招式 CON 主導沒效果**（目前只看 AGI/DEX/WIL）
+
+---
+
+## 📁 今天動到的檔案
+
+```
+src/content/skill.js          — 4 拳法 T1 + 8 拳法 T2/T3 + luciusT4 + luckyStar
+src/npc/lucius_events.js      — T1 學招 + T2/T3 自悟 + T4 自創 + 第 5 次隱藏
+src/npc/overseer_events.js    — 達官顯貴主流程 + 梅拉 Layer 1 + 老兵之眼授予
+src/npc/doctor_events.js      — _performWoundHeal 加 tryDoctorHint hook
+src/npc/npc.js                — modAffection 加 bypassTrait 旗標
+src/main.js                   — 達官顯貴 hook + 梅拉 hook + 赫克特好感修 +
+                                睡前賭博 hook + 隊友協力爆擊 +1 aff
+src/battle/battle.js          — 4 拳法 T1 hook + T2/T3 升級 effect 動態讀 +
+                                T4 自創 hook + 敵人 stun 跳回合
+src/minigames/shells_game.js  — 新檔案、三杯藏球小遊戲
+src/quests/gambling_quest.js  — 新檔案、賭局觸發 + 結算 + 幸運之星
+game.html                     — 加 shells_game.js / gambling_quest.js script
+```
+
+---
+
+## 🚧 已知小問題（明天測試時注意）
+
+1. **三杯賭博動畫**：杯子 swap 後 DOM 順序 + 球邏輯位置可能有 bug、實測再確認
+2. **達官顯貴強制戰鬥的 timing**：用 setTimeout 300ms 給 DialogueModal 關時間、可能會有 race
+3. **赫克特情報網的戰鬥加成**（敵 ACC -15%）目前沒實作、只有 flag
+
+---
+
+## 📚 之前完成的歷史（上次更新前）
+
+- **2026-04-25 v10 監督官巴爺主線 Phase A-E** — 鋪墊期 / 曖昧任務 / 卡西烏斯補刀 / 偷聽密謀 / 喝酒選擇都實作
+- **盧基烏斯空手線 T1** — 4 招 + 觸發鏈 + 善意 EXP 階梯（DEX/AGI/WIL bonus）
+- **NPC 新血池 + 觀眾溢位區** — STR/AGI 缺口補、聚合顯示
+- **主動技能戰鬥引擎** — 4 主動（強力斬/嘲諷/反擊/戰吼）+ weaponClass + 技能列 UI
+- **房間系統真正生效** — 3 tier 加成 + 兄弟在側擴大判定
+- **奧蘭人脈生 fame** — orlan aff ≥ 50 → 12% 機率 +8~15 fame
+
+明天測完回報哪邊壞、哪邊不順 🌙
