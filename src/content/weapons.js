@@ -19,7 +19,7 @@ const Weapons = {
 
   fists: {
     id: 'fists', name: '空手',
-    type: 'unarmed', hands: 1, twoHanded: false,
+    type: 'unarmed', weaponClass: 'fist', hands: 1, twoHanded: false,
     route: 'rage', swingTime: 1, cap: 15, special: 'none',
     hitParts: ['身體'],
     ATK: 4, ACC: 5, CRT: 3, CDMG: 8, SPD: 5, PEN: 0,
@@ -30,7 +30,7 @@ const Weapons = {
   // ── 單手武器 ──────────────────────────────────────────
   dagger: {
     id: 'dagger', name: '匕首',
-    type: 'blade1h', hands: 1, twoHanded: false,
+    type: 'blade1h', weaponClass: 'dagger', hands: 1, twoHanded: false,
     route: 'focus', swingTime: 2, cap: 10, special: 'none',
     hitParts: ['頸部', '身體'],
     ATK: 4, ACC: 8, CRT: 12, CDMG: 20, SPD: 12, PEN: 2,
@@ -40,7 +40,7 @@ const Weapons = {
 
   hammer: {
     id: 'hammer', name: '槌',
-    type: 'blunt1h', hands: 1, twoHanded: false,
+    type: 'blunt1h', weaponClass: 'blunt', hands: 1, twoHanded: false,
     route: 'rage', swingTime: 5, cap: 6, special: 'none',
     hitParts: ['頭', '手'],
     ATK: 12, ACC: 2, CRT: -2, CDMG: 0, SPD: -3, PEN: 10,
@@ -50,7 +50,7 @@ const Weapons = {
 
   shortSword: {
     id: 'shortSword', name: '短劍',
-    type: 'blade1h', hands: 1, twoHanded: false,
+    type: 'blade1h', weaponClass: 'sword', hands: 1, twoHanded: false,
     route: 'fury', swingTime: 3, cap: 8, special: 'none',
     hitParts: ['身體'],
     ATK: 8, ACC: 5, CRT: 4, CDMG: 8, SPD: 2, PEN: 4,
@@ -61,7 +61,7 @@ const Weapons = {
   // ── 雙手武器 ──────────────────────────────────────────
   spear: {
     id: 'spear', name: '長槍',
-    type: 'polearm', hands: 2, twoHanded: true,
+    type: 'polearm', weaponClass: 'spear', hands: 2, twoHanded: true,
     route: 'focus', swingTime: 4, cap: 7, special: 'first_strike',
     hitParts: ['身體', '腳'],
     ATK: 8, ACC: 8, CRT: 5, CDMG: 5, SPD: 6, PEN: 15,
@@ -71,7 +71,7 @@ const Weapons = {
 
   longSword: {
     id: 'longSword', name: '長劍',
-    type: 'blade2h', hands: 2, twoHanded: true,
+    type: 'blade2h', weaponClass: 'sword', hands: 2, twoHanded: true,
     route: 'fury', swingTime: 5, cap: 6, special: 'none',
     hitParts: ['身體', '頭'],
     ATK: 16, ACC: 3, CRT: 4, CDMG: 10, SPD: -3, PEN: 10,
@@ -81,7 +81,7 @@ const Weapons = {
 
   warHammer: {
     id: 'warHammer', name: '長槌',
-    type: 'blunt2h', hands: 2, twoHanded: true,
+    type: 'blunt2h', weaponClass: 'blunt', hands: 2, twoHanded: true,
     route: 'rage', swingTime: 10, cap: 3, special: 'concuss',
     hitParts: ['頭', '身體'],
     ATK: 18, ACC: 0, CRT: 0, CDMG: 0, SPD: -8, PEN: 18,
@@ -91,7 +91,7 @@ const Weapons = {
 
   heavyAxe: {
     id: 'heavyAxe', name: '重斧',
-    type: 'heavy2h', hands: 2, twoHanded: true,
+    type: 'heavy2h', weaponClass: 'axe', hands: 2, twoHanded: true,
     route: 'rage', swingTime: 9, cap: 4, special: 'none',
     hitParts: ['身體', '手'],
     ATK: 20, ACC: -5, CRT: 2, CDMG: 15, SPD: -10, PEN: 14,
@@ -108,7 +108,7 @@ const Weapons = {
   dagger_t2: {
     id: 'dagger_t2', name: '尖刃匕首',
     baseId: 'dagger', tier: 2,
-    type: 'blade1h', hands: 1, twoHanded: false,
+    type: 'blade1h', weaponClass: 'dagger', hands: 1, twoHanded: false,
     route: 'focus', swingTime: 2, cap: 11, special: 'none',
     hitParts: ['頸部', '身體'],
     ATK: 5, ACC: 10, CRT: 14, CDMG: 22, SPD: 13, PEN: 3,
@@ -119,7 +119,7 @@ const Weapons = {
   hammer_t2: {
     id: 'hammer_t2', name: '鐵頭重槌',
     baseId: 'hammer', tier: 2,
-    type: 'blunt1h', hands: 1, twoHanded: false,
+    type: 'blunt1h', weaponClass: 'blunt', hands: 1, twoHanded: false,
     route: 'rage', swingTime: 5, cap: 7, special: 'none',
     hitParts: ['頭', '手'],
     ATK: 14, ACC: 3, CRT: -1, CDMG: 2, SPD: -2, PEN: 12,
@@ -130,7 +130,7 @@ const Weapons = {
   shortSword_t2: {
     id: 'shortSword_t2', name: '精鐵短劍',
     baseId: 'shortSword', tier: 2,
-    type: 'blade1h', hands: 1, twoHanded: false,
+    type: 'blade1h', weaponClass: 'sword', hands: 1, twoHanded: false,
     route: 'fury', swingTime: 3, cap: 9, special: 'none',
     hitParts: ['身體'],
     ATK: 10, ACC: 6, CRT: 5, CDMG: 10, SPD: 3, PEN: 5,
@@ -141,7 +141,7 @@ const Weapons = {
   spear_t2: {
     id: 'spear_t2', name: '鐵頭長槍',
     baseId: 'spear', tier: 2,
-    type: 'polearm', hands: 2, twoHanded: true,
+    type: 'polearm', weaponClass: 'spear', hands: 2, twoHanded: true,
     route: 'focus', swingTime: 4, cap: 8, special: 'first_strike',
     hitParts: ['身體', '腳'],
     ATK: 10, ACC: 9, CRT: 6, CDMG: 6, SPD: 7, PEN: 17,
@@ -152,7 +152,7 @@ const Weapons = {
   longSword_t2: {
     id: 'longSword_t2', name: '精鐵長劍',
     baseId: 'longSword', tier: 2,
-    type: 'blade2h', hands: 2, twoHanded: true,
+    type: 'blade2h', weaponClass: 'sword', hands: 2, twoHanded: true,
     route: 'fury', swingTime: 5, cap: 7, special: 'none',
     hitParts: ['身體', '頭'],
     ATK: 18, ACC: 4, CRT: 5, CDMG: 12, SPD: -2, PEN: 12,
@@ -163,7 +163,7 @@ const Weapons = {
   warHammer_t2: {
     id: 'warHammer_t2', name: '鐵頭長槌',
     baseId: 'warHammer', tier: 2,
-    type: 'blunt2h', hands: 2, twoHanded: true,
+    type: 'blunt2h', weaponClass: 'blunt', hands: 2, twoHanded: true,
     route: 'rage', swingTime: 10, cap: 4, special: 'concuss',
     hitParts: ['頭', '身體'],
     ATK: 20, ACC: 1, CRT: 1, CDMG: 2, SPD: -7, PEN: 20,
@@ -174,7 +174,7 @@ const Weapons = {
   heavyAxe_t2: {
     id: 'heavyAxe_t2', name: '精鐵重斧',
     baseId: 'heavyAxe', tier: 2,
-    type: 'heavy2h', hands: 2, twoHanded: true,
+    type: 'heavy2h', weaponClass: 'axe', hands: 2, twoHanded: true,
     route: 'rage', swingTime: 9, cap: 5, special: 'none',
     hitParts: ['身體', '手'],
     ATK: 22, ACC: -3, CRT: 3, CDMG: 17, SPD: -9, PEN: 16,
@@ -189,7 +189,7 @@ Object.assign(Weapons, {
   twinblade: {
     id: 'twinblade', name: '雙刃短劍',
     baseId: 'shortSword', tier: 2.5,    // 介於 T2 和 T3 之間（特殊獨特）
-    type: 'blade1h', hands: 1, twoHanded: false,
+    type: 'blade1h', weaponClass: 'sword', hands: 1, twoHanded: false,
     route: 'fury', swingTime: 3, cap: 10, special: 'twin_blade',
     hitParts: ['身體', '頸部'],
     ATK: 9, ACC: 7, CRT: 8, CDMG: 12, SPD: 4, PEN: 6,
@@ -202,7 +202,7 @@ Object.assign(Weapons, {
   shortSword_t4: {
     id: 'shortSword_t4', name: '葛拉之劍',
     baseId: 'shortSword', tier: 4,
-    type: 'blade1h', hands: 1, twoHanded: false,
+    type: 'blade1h', weaponClass: 'sword', hands: 1, twoHanded: false,
     route: 'fury', swingTime: 3, cap: 11, special: 'gra_signature',
     hitParts: ['身體', '頭'],
     ATK: 16, ACC: 9, CRT: 9, CDMG: 16, SPD: 6, PEN: 10,
@@ -212,7 +212,7 @@ Object.assign(Weapons, {
   longSword_t4: {
     id: 'longSword_t4', name: '葛拉雙手劍',
     baseId: 'longSword', tier: 4,
-    type: 'blade2h', hands: 2, twoHanded: true,
+    type: 'blade2h', weaponClass: 'sword', hands: 2, twoHanded: true,
     route: 'fury', swingTime: 5, cap: 9, special: 'gra_signature',
     hitParts: ['身體', '頭'],
     ATK: 26, ACC: 7, CRT: 8, CDMG: 18, SPD: 0, PEN: 18,
@@ -256,7 +256,7 @@ Object.assign(Weapons, {
   dagger_t3: {
     id: 'dagger_t3', name: '鋼刺匕首',
     baseId: 'dagger', tier: 3,
-    type: 'blade1h', hands: 1, twoHanded: false,
+    type: 'blade1h', weaponClass: 'dagger', hands: 1, twoHanded: false,
     route: 'focus', swingTime: 2, cap: 12, special: 'none',
     hitParts: ['頸部', '身體'],
     ATK: 6, ACC: 12, CRT: 16, CDMG: 24, SPD: 14, PEN: 5,
@@ -266,7 +266,7 @@ Object.assign(Weapons, {
   hammer_t3: {
     id: 'hammer_t3', name: '鋼頭重槌',
     baseId: 'hammer', tier: 3,
-    type: 'blunt1h', hands: 1, twoHanded: false,
+    type: 'blunt1h', weaponClass: 'blunt', hands: 1, twoHanded: false,
     route: 'rage', swingTime: 5, cap: 8, special: 'none',
     hitParts: ['頭', '手'],
     ATK: 16, ACC: 4, CRT: 0, CDMG: 4, SPD: -1, PEN: 14,
@@ -276,7 +276,7 @@ Object.assign(Weapons, {
   shortSword_t3: {
     id: 'shortSword_t3', name: '鍛造短劍',
     baseId: 'shortSword', tier: 3,
-    type: 'blade1h', hands: 1, twoHanded: false,
+    type: 'blade1h', weaponClass: 'sword', hands: 1, twoHanded: false,
     route: 'fury', swingTime: 3, cap: 10, special: 'none',
     hitParts: ['身體'],
     ATK: 12, ACC: 7, CRT: 6, CDMG: 12, SPD: 4, PEN: 7,
@@ -286,7 +286,7 @@ Object.assign(Weapons, {
   spear_t3: {
     id: 'spear_t3', name: '鋼尖長槍',
     baseId: 'spear', tier: 3,
-    type: 'polearm', hands: 2, twoHanded: true,
+    type: 'polearm', weaponClass: 'spear', hands: 2, twoHanded: true,
     route: 'focus', swingTime: 4, cap: 9, special: 'first_strike',
     hitParts: ['身體', '腳'],
     ATK: 12, ACC: 10, CRT: 7, CDMG: 7, SPD: 8, PEN: 19,
@@ -296,7 +296,7 @@ Object.assign(Weapons, {
   longSword_t3: {
     id: 'longSword_t3', name: '鍛造長劍',
     baseId: 'longSword', tier: 3,
-    type: 'blade2h', hands: 2, twoHanded: true,
+    type: 'blade2h', weaponClass: 'sword', hands: 2, twoHanded: true,
     route: 'fury', swingTime: 5, cap: 8, special: 'none',
     hitParts: ['身體', '頭'],
     ATK: 20, ACC: 5, CRT: 6, CDMG: 14, SPD: -1, PEN: 14,
@@ -306,7 +306,7 @@ Object.assign(Weapons, {
   warHammer_t3: {
     id: 'warHammer_t3', name: '鍛造長槌',
     baseId: 'warHammer', tier: 3,
-    type: 'blunt2h', hands: 2, twoHanded: true,
+    type: 'blunt2h', weaponClass: 'blunt', hands: 2, twoHanded: true,
     route: 'rage', swingTime: 10, cap: 5, special: 'concuss',
     hitParts: ['頭', '身體'],
     ATK: 22, ACC: 2, CRT: 2, CDMG: 4, SPD: -6, PEN: 22,
@@ -316,7 +316,7 @@ Object.assign(Weapons, {
   heavyAxe_t3: {
     id: 'heavyAxe_t3', name: '鍛造重斧',
     baseId: 'heavyAxe', tier: 3,
-    type: 'heavy2h', hands: 2, twoHanded: true,
+    type: 'heavy2h', weaponClass: 'axe', hands: 2, twoHanded: true,
     route: 'rage', swingTime: 9, cap: 6, special: 'none',
     hitParts: ['身體', '手'],
     ATK: 24, ACC: -1, CRT: 4, CDMG: 19, SPD: -8, PEN: 18,

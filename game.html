@@ -3002,6 +3002,18 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   border-color: var(--gold-lt);
   background: linear-gradient(135deg, #1e1408, #140a04);
 }
+/* 🆕 2026-04-27：主動技能卡片視覺區隔 — 紅褐邊框、區別被動 */
+.cs-skill-card.active-skill {
+  border-color: #8a3a20;
+}
+.cs-skill-card.active-skill .cs-skill-card-type {
+  color: #cc7755;
+  border-color: #8a3a20;
+}
+.cs-skill-card.active-skill.learned {
+  border-color: #cc6633;
+  background: linear-gradient(135deg, #2a1408, #1a0a04);
+}
 .cs-skill-card-head {
   display: flex; align-items: center; justify-content: space-between;
   gap: 10px;
@@ -3791,6 +3803,56 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   padding: 8px 0;
   flex-shrink: 0;
 }
+
+/* 🆕 2026-04-27：主動技能列（4 grid 下方） */
+.battle-v2 .bt-active-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px 0 8px;
+  flex-shrink: 0;
+}
+.bt-active-skill-btn {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  background: #1a0808;
+  border: 1px solid #5a2a18;
+  color: #cc8855;
+  font-family: var(--font);
+  font-size: 13px;
+  cursor: pointer;
+  letter-spacing: .08em;
+  text-align: center;
+  transition: background .15s, border-color .15s;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.bt-active-skill-btn .skill-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ddaa77;
+}
+.bt-active-skill-btn .skill-cost {
+  font-size: 10px;
+  color: #886655;
+  letter-spacing: .05em;
+}
+.bt-active-skill-btn:hover:not(:disabled) {
+  background: #2a1208;
+  border-color: #cc6633;
+  color: #ffaa66;
+}
+.bt-active-skill-btn:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+.bt-active-skill-btn.cd-down {
+  background: #1a1a1a;
+  color: #555;
+  border-color: #333;
+}
 .battle-v2 .bt-action-grid .bt-btn {
   background: #1a0e08;
   border: 1px solid #3a2410;
@@ -4430,6 +4492,9 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
           <button class="bt-btn" id="bt-btn-defend"  onclick="Battle.doAction('defend')"  disabled>🛡 技能&nbsp;2</button>
           <button class="bt-btn" id="bt-btn-auto"    onclick="Battle.toggleAuto()"        disabled>▶ 自&nbsp;動</button>
         </div>
+
+        <!-- 🆕 2026-04-27：主動技能列（玩家學會 + 武器符合就出現） -->
+        <div class="bt-active-skills" id="bt-active-skills"></div>
 
         <!-- Battle log -->
         <div class="bt-log-box" id="bt-log"></div>

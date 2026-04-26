@@ -5008,26 +5008,28 @@ const Game = (() => {
       `).join('');
     }
 
-    // ── 技能卡片（被動 + 劇情，主動仍隱藏等戰鬥整合） ─────────────
+    // ── 技能卡片（被動 + 劇情 + 主動 全部顯示）─────────────
+    // 🆕 2026-04-27：解開 active 過濾、主動技能整合到角色頁
     const grid = document.getElementById('cs-skills-grid');
     if (!grid) return;
-    const all = Object.values(Skills).filter(s => s.type === 'passive');
+    const all = Object.values(Skills).filter(s => s.type === 'passive' || s.type === 'active');
 
     grid.innerHTML = all.map(s => {
       const learned = Stats.hasSkill(s.id);
       const costs   = Stats.getSkillCost(s.id) || {};
       const req     = s.unlockReq || {};
       const check   = Stats.canLearnSkill(s.id);
+      const isActive = s.type === 'active';
 
       // 硬門檻（名聲）檢查
       const fameGate = req.fame && p.fame < req.fame;
 
       // 卡片狀態類別
-      let cls = '';
-      if (learned)        cls = 'learned';
-      else if (s.storyOnly) cls = 'story-locked';   // 🆕 劇情技能未獲得
-      else if (check.ok)  cls = 'learnable';
-      else                cls = 'locked';
+      let cls = isActive ? 'active-skill' : '';
+      if (learned)        cls += ' learned';
+      else if (s.storyOnly) cls += ' story-locked';
+      else if (check.ok)  cls += ' learnable';
+      else                cls += ' locked';
 
       // 🆕 2026-04-25c：劇情技能不顯示 EXP 成本（不能用 EXP 買）
       let costHtml;
@@ -5063,10 +5065,20 @@ const Game = (() => {
         btnHtml = `<button class="cs-skill-card-btn" disabled>${check.reason || 'EXP 不足'}</button>`;
       }
 
-      // 被動效果敘述
-      const effectHtml = s.passiveBonus && Object.keys(s.passiveBonus).length > 0
-        ? Object.entries(s.passiveBonus).map(([k, v]) => `${k} ${v >= 0 ? '+' : ''}${v}`).join(' / ')
-        : (s.storyOnly ? '✦ 劇情' : '被動');
+      // 效果敘述：被動 = 加成、主動 = 武器類別 + 體力 + CD
+      let effectHtml;
+      if (isActive) {
+        const wcText = Array.isArray(s.weaponClassAny)
+          ? s.weaponClassAny.map(c => ({sword:'劍',blunt:'錘',axe:'斧',spear:'槍',dagger:'匕',fist:'拳'}[c] || c)).join('/')
+          : '';
+        const cd  = s.cooldown ? `cd ${s.cooldown}` : '';
+        const sta = s.staminaCost ? `⚡${s.staminaCost}` : '';
+        effectHtml = `⚔ 主動 · ${wcText} · ${sta} · ${cd}`;
+      } else if (s.passiveBonus && Object.keys(s.passiveBonus).length > 0) {
+        effectHtml = Object.entries(s.passiveBonus).map(([k, v]) => `${k} ${v >= 0 ? '+' : ''}${v}`).join(' / ');
+      } else {
+        effectHtml = s.storyOnly ? '✦ 劇情' : '被動';
+      }
 
       return `
         <div class="cs-skill-card ${cls}">

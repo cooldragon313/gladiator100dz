@@ -191,6 +191,9 @@ const Battle = (() => {
     // 🆕 2026-04-25c 劇情技能戰鬥 hook
     _applyStorySkills();
 
+    // 🆕 2026-04-27 主動技能 cooldown / buff 重置
+    _resetActiveSkills();
+
     // ── Build enemy unit ──
     _enemy  = TB_buildUnit({ enemyId: opponentId });
     _active = true;
@@ -239,6 +242,7 @@ const Battle = (() => {
     _startAtbLoop();
     _updateCombatantUI();
     _updateSkillDisplay();
+    _renderActiveSkillsBar();   // 🆕 戰鬥開始渲染主動技能列
 
     // 🆕 2026-04-25c：恢復玩家上次選的自動戰鬥模式（auto / hardcore / off）
     _restoreAutoPref();
@@ -269,6 +273,192 @@ const Battle = (() => {
       _player.derived.CRT = Math.min(75, _player.derived.CRT + 5);
       _appendLog(`✦ 老兵之眼：看破對手破綻 — ATK ${beforeATK} → ${_player.derived.ATK}、CRT ${beforeCRT} → ${_player.derived.CRT}`, 'log-special');
     }
+  }
+
+  // ══════════════════════════════════════════════════════
+  // 🆕 2026-04-27：主動技能系統
+  //   - cooldowns: 每技能獨立倒數（Map<skillId, turnsLeft>）
+  //   - render: 列出已習得 + 武器符合的主動技能
+  //   - 玩家點擊 → useActiveSkill(id) → 對應 hook 觸發
+  //
+  //   每場戰鬥重置 cooldowns + buff state（_taunt / _riposte / _warCry / _powerCharge）
+  // ══════════════════════════════════════════════════════
+  let _activeSkillCD = {};   // { skillId: turnsLeft }
+
+  function _resetActiveSkills() {
+    _activeSkillCD = {};
+    if (!_player) return;
+    _player._tauntTurns      = 0;
+    _player._riposteStance   = false;
+    _player._warCryTurns     = 0;
+    _player._warCryATKBonus  = 0;
+    _player._powerCharging   = false;   // true 表示下回合放強力斬
+    _player._tauntDefBonus   = 0;       // taunt 期間的 DEF 加成
+    _player._tauntBlkBonus   = 0;
+    if (_enemy) _enemy._tauntedTurns = 0;
+  }
+
+  function _getEquippedWeaponClass() {
+    if (!_player) return null;
+    const wId = (Stats.player && Stats.player.equippedWeapon) || 'fists';
+    const w = (typeof Weapons !== 'undefined') ? Weapons[wId] : null;
+    return w && w.weaponClass;
+  }
+
+  function _hasWeaponClass(skill) {
+    if (!Array.isArray(skill.weaponClassAny)) return true;   // 沒 require 就過
+    const cls = _getEquippedWeaponClass();
+    return cls && skill.weaponClassAny.includes(cls);
+  }
+
+  function _renderActiveSkillsBar() {
+    const bar = document.getElementById('bt-active-skills');
+    if (!bar) return;
+    if (!_active || !_player) {
+      bar.innerHTML = '';
+      return;
+    }
+    if (typeof Stats === 'undefined' || !Stats.hasSkill || typeof Skills === 'undefined') {
+      bar.innerHTML = '';
+      return;
+    }
+
+    const learned = (Stats.player.learnedSkills || []).filter(id => {
+      const s = Skills[id];
+      return s && s.type === 'active';
+    });
+
+    if (learned.length === 0) {
+      bar.innerHTML = '';
+      return;
+    }
+
+    bar.innerHTML = learned.map(id => {
+      const s = Skills[id];
+      const cd = _activeSkillCD[id] || 0;
+      const wcOk = _hasWeaponClass(s);
+      const stamOk = (Stats.player.stamina || 0) >= (s.staminaCost || 0);
+      const atbOk = _playerAtb >= 100 && _playerDelay <= 0;
+      const disabled = cd > 0 || !wcOk || !stamOk || !atbOk;
+      const cdCls = cd > 0 ? ' cd-down' : '';
+      const cdText = cd > 0 ? `cd ${cd}` : (s.cooldown ? `cd ${s.cooldown}` : '');
+      const reason = !wcOk ? '武器不符' : !stamOk ? '體力不足' : '';
+      const title = reason || `體力 ${s.staminaCost} · ${cdText}`;
+      return `
+        <button class="bt-active-skill-btn${cdCls}" data-skill-id="${id}"
+                ${disabled ? 'disabled' : ''} title="${title}">
+          <div class="skill-name">${s.name}</div>
+          <div class="skill-cost">⚡${s.staminaCost} · ${cdText}</div>
+        </button>
+      `;
+    }).join('');
+
+    bar.querySelectorAll('[data-skill-id]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (btn.disabled) return;
+        useActiveSkill(btn.dataset.skillId);
+      });
+    });
+  }
+
+  // 主動技能使用統一入口
+  function useActiveSkill(skillId) {
+    if (!_active || !_player) return;
+    const s = (typeof Skills !== 'undefined') ? Skills[skillId] : null;
+    if (!s || s.type !== 'active') return;
+    if (!Stats.hasSkill(skillId)) return;
+    if (_activeSkillCD[skillId] > 0) return;
+    if (!_hasWeaponClass(s)) {
+      _appendLog(`  ✗ ${s.name}：武器不符`, 'log-injury');
+      return;
+    }
+    if ((Stats.player.stamina || 0) < (s.staminaCost || 0)) {
+      _appendLog(`  ✗ ${s.name}：體力不足`, 'log-injury');
+      return;
+    }
+    if (_playerAtb < 100 || _playerDelay > 0) return;
+
+    // 扣體力 + 設 cooldown
+    Stats.modVital('stamina', -(s.staminaCost || 0));
+    _activeSkillCD[skillId] = (s.cooldown || 0) + 1;   // +1 因為當回合結束會 -1
+
+    // 分派到對應 hook
+    switch (skillId) {
+      case 'powerStrike': _useSkill_powerStrike(s); break;
+      case 'warCry':      _useSkill_warCry(s); break;
+      case 'riposte':     _useSkill_riposte(s); break;
+      case 'taunt':       _useSkill_taunt(s); break;
+      default:
+        _appendLog(`  ⚠ ${s.name}：戰鬥 hook 未實作`, 'log-system');
+    }
+  }
+
+  // ══════════════════════════════════════════════════════
+  // 各主動技能實作
+  // ══════════════════════════════════════════════════════
+
+  // 強力斬：蓄力 1 回合、下回合 ATK×2.0 無視 15 DEF
+  function _useSkill_powerStrike(s) {
+    _player._powerCharging = true;
+    _appendLog(`⚔ 你舉劍蓄力——【強力斬】`, 'log-special');
+    _appendLog(`  （下回合放招、ATK×2.0、無視 15 DEF）`, 'log-system');
+    if (typeof SoundManager !== 'undefined') SoundManager.playSfx('skill_rage');
+    _playerAtb = 0;
+    _setButtons(false);
+    if (!_checkDeath()) _endTurnCleanup_atb();
+    _renderActiveSkillsBar();
+  }
+
+  // 戰吼：自身 ATK +20%、3 回合
+  function _useSkill_warCry(s) {
+    if (_player._warCryTurns > 0) {
+      _appendLog(`  ✗ 戰吼還在生效中（剩 ${_player._warCryTurns} 回合）`, 'log-injury');
+      return;
+    }
+    const bonus = Math.max(3, Math.round(_player.derived.ATK * 0.20));
+    _player.derived.ATK += bonus;
+    _player._warCryATKBonus = bonus;
+    _player._warCryTurns = 3;
+    _appendLog(`📢 你發出震懾的【戰吼】！ATK +${bonus}（3 回合）`, 'log-special');
+    if (typeof SoundManager !== 'undefined') SoundManager.playSfx('skill_rage');
+    _playerAtb = 0;
+    _setButtons(false);
+    if (!_checkDeath()) _endTurnCleanup_atb();
+    _renderActiveSkillsBar();
+  }
+
+  // 反擊主動（riposte）：進入預備姿態、被攻擊時強制格擋並反擊 ATK×1.5
+  function _useSkill_riposte(s) {
+    _player._riposteStance = true;
+    _player._riposteStanceTurns = 2;   // 2 turn 內被打就觸發、超過自動解
+    _appendLog(`🛡 你進入【反擊姿態】 — 等對方出招`, 'log-special');
+    _appendLog(`  （下次被攻擊強制格擋並反擊 ATK×1.5）`, 'log-system');
+    if (typeof SoundManager !== 'undefined') SoundManager.playSfx('skill_focus');
+    _playerAtb = 0;
+    _setButtons(false);
+    if (!_checkDeath()) _endTurnCleanup_atb();
+    _renderActiveSkillsBar();
+  }
+
+  // 嘲諷：強制目標 3 回合追打 + 自身 DEF+10 BLK+5
+  function _useSkill_taunt(s) {
+    if (_enemy._tauntedTurns > 0) {
+      _appendLog(`  ✗ 對方已被嘲諷中（剩 ${_enemy._tauntedTurns} 回合）`, 'log-injury');
+      return;
+    }
+    _enemy._tauntedTurns = 3;
+    _player.derived.DEF += 10;
+    _player.derived.BLK += 5;
+    _player._tauntDefBonus = 10;
+    _player._tauntBlkBonus = 5;
+    _player._tauntTurns = 3;
+    _appendLog(`💢 你怒吼挑釁【嘲諷】！${_enemy.name} 被激怒、3 回合內強制追擊你`, 'log-special');
+    _appendLog(`  自身 DEF +10 BLK +5（3 回合）`, 'log-system');
+    if (typeof SoundManager !== 'undefined') SoundManager.playSfx('skill_rage');
+    _playerAtb = 0;
+    _setButtons(false);
+    if (!_checkDeath()) _endTurnCleanup_atb();
+    _renderActiveSkillsBar();
   }
 
   // ── Equipment ID mapper ────────────────────────────────
@@ -783,6 +973,19 @@ const Battle = (() => {
       _appendLog(`  ✦ 不屈：ATK ${savedATKUnyielding} → ${_player.derived.ATK}（剩 ${_player._unyieldingBuffTurns} 回合）`, 'log-special');
     }
 
+    // 🆕 2026-04-27 強力斬：蓄完力的這擊 ATK×2.0 + 無視 15 DEF
+    let savedATKPower = null, savedEnemyDEF = null;
+    if (_player._powerCharging) {
+      _player._powerCharging = false;
+      savedATKPower = _player.derived.ATK;
+      savedEnemyDEF = _enemy.derived.DEF;
+      _player.derived.ATK = Math.round(savedATKPower * 2.0);
+      _enemy.derived.DEF  = Math.max(0, savedEnemyDEF - 15);
+      _appendLog(`⚔💥 強力斬！ATK ${savedATKPower} → ${_player.derived.ATK}，無視 15 DEF`, 'log-special');
+      if (typeof SoundManager !== 'undefined') SoundManager.playSfx('hit_crit');
+      if (typeof Game !== 'undefined' && Game.shakeGameRoot) Game.shakeGameRoot();
+    }
+
     for (let i = 0; i < hits; i++) {
       if (_enemy.hp <= 0) break;
       const r = TB_attack(_player, _enemy, { turn: _turn });
@@ -816,6 +1019,9 @@ const Battle = (() => {
     if (savedATK !== null) _player.derived.ATK = savedATK;
     // 🆕 2026-04-25c 恢復不屈 ATK
     if (savedATKUnyielding !== null) _player.derived.ATK = savedATKUnyielding;
+    // 🆕 2026-04-27 強力斬：恢復 ATK + 敵人 DEF
+    if (savedATKPower !== null)  _player.derived.ATK = savedATKPower;
+    if (savedEnemyDEF !== null)  _enemy.derived.DEF  = savedEnemyDEF;
   }
 
   // ══════════════════════════════════════════════════════
@@ -825,18 +1031,40 @@ const Battle = (() => {
     if (!_active || _enemy.hp <= 0) { _endTurnCleanup_atb(); return; }
 
     const decision = TB_bossDecide(_enemy, _player, { turn: _turn });
+    // 🆕 2026-04-27 嘲諷：被嘲諷期間強制 'attack'、不能 special / triple / charge
+    if (_enemy._tauntedTurns > 0 && decision.action !== 'attack') {
+      decision.action = 'attack';
+      decision.log = `${_enemy.name} 被嘲諷激怒、撲上來攻擊！`;
+    }
     const isBigMove = ['triple_stab','mountain_crash','special_release'].includes(decision.action);
     if (decision.log) _appendLog(decision.log, isBigMove ? 'log-special' : 'log-system');
 
     switch (decision.action) {
       case 'attack': {
+        // 🆕 2026-04-27 反擊主動：預備姿態 → 強制 100% 格擋並反擊 ATK×1.5
+        if (_player._riposteStance) {
+          _player._riposteStance = false;
+          _player._riposteStanceTurns = 0;
+          const counterDmg = Math.max(1, Math.round(_player.derived.ATK * 1.5));
+          _enemy.hp = Math.max(0, _enemy.hp - counterDmg);
+          _appendLog(`🛡✦ 反擊！${_player.name} 完美格擋並反擊 — ${_enemy.name} 受到 ${counterDmg} 傷害！`, 'log-special');
+          _playAttackAnim('enemy', { hit: false, blocked: true, crit: false });
+          _playAttackAnim('player', { hit: true, blocked: false, crit: true });
+          if (typeof SoundManager !== 'undefined') {
+            SoundManager.playSfx('hit_block');
+            setTimeout(() => SoundManager.playSfx('hit_crit'), 200);
+          }
+          if (typeof Game !== 'undefined' && Game.shakeGameRoot) Game.shakeGameRoot();
+          break;   // 跳過正常攻擊判定
+        }
+
         const r = TB_attack(_enemy, _player, { turn: _turn });
         _applyDamage(_player, r.damage, r.counterDamage ? _enemy : null, r.counterDamage);
         // 🆕 2026-04-20 v3：敵方攻擊動畫（帶 result）
         _playAttackAnim('enemy', { hit: r.hit, blocked: r.blocked, crit: r.crit });
         _appendLog(r.log, r.crit ? 'log-crit' : r.hit ? '' : 'log-miss');
         if (r.injuredPart) _appendLog(`  ※ 玩家【${r.injuredPart}】受傷（${r.injuryLevel}）`, 'log-injury');
-        // 🆕 2026-04-25c 反擊：玩家成功閃避（!hit 且 !blocked）→ 35% 機率立刻反擊 ATK×0.8
+        // 🆕 2026-04-25c 反擊（被動）：玩家成功閃避（!hit 且 !blocked）→ 35% 機率立刻反擊 ATK×0.8
         if (!r.hit && !r.blocked && Stats.hasSkill && Stats.hasSkill('counter')
             && _enemy.hp > 0 && Math.random() < 0.35) {
           const counterDmg = Math.max(1, Math.round(_player.derived.ATK * 0.80));
@@ -949,8 +1177,47 @@ const Battle = (() => {
       }
     }
 
+    // 🆕 2026-04-27 主動技能 cooldown 倒數 + 各 buff 倒數
+    Object.keys(_activeSkillCD).forEach(id => {
+      if (_activeSkillCD[id] > 0) _activeSkillCD[id]--;
+    });
+    if (_player) {
+      // 戰吼 buff
+      if (_player._warCryTurns > 0) {
+        _player._warCryTurns--;
+        if (_player._warCryTurns === 0) {
+          _player.derived.ATK -= (_player._warCryATKBonus || 0);
+          _player._warCryATKBonus = 0;
+          _appendLog(`  ✦ 戰吼效果結束。`, 'log-system');
+        }
+      }
+      // 嘲諷 buff
+      if (_player._tauntTurns > 0) {
+        _player._tauntTurns--;
+        if (_player._tauntTurns === 0) {
+          _player.derived.DEF -= (_player._tauntDefBonus || 0);
+          _player.derived.BLK -= (_player._tauntBlkBonus || 0);
+          _player._tauntDefBonus = 0;
+          _player._tauntBlkBonus = 0;
+          _appendLog(`  ✦ 嘲諷效果結束。`, 'log-system');
+        }
+      }
+      // 反擊預備（一次性、敵人攻擊後就清掉，這裡是 fallback 倒數）
+      if (_player._riposteStanceTurns > 0) {
+        _player._riposteStanceTurns--;
+        if (_player._riposteStanceTurns === 0) {
+          _player._riposteStance = false;
+          _appendLog(`  ✦ 反擊姿態解除。`, 'log-system');
+        }
+      }
+    }
+    if (_enemy && _enemy._tauntedTurns > 0) {
+      _enemy._tauntedTurns--;
+    }
+
     _updateCombatantUI();
     _updateSkillDisplay();
+    _renderActiveSkillsBar();   // 🆕 每回合更新
     // Note: _setButtons is intentionally omitted — ATB loop handles it
   }
 
@@ -1765,6 +2032,7 @@ const Battle = (() => {
         _setButtons(true);
         _checkSpecialReady();
       }
+      _renderActiveSkillsBar();   // 🆕 ATB 滿時主動技能也要刷新
     }
 
     _updateAtbBarsUI();
@@ -1833,6 +2101,9 @@ const Battle = (() => {
     // 🆕 2026-04-25c 劇情技能戰鬥 hook
     _applyStorySkills();
 
+    // 🆕 2026-04-27 主動技能 cooldown / buff 重置
+    _resetActiveSkills();
+
     _enemy = TB_buildUnit({
       enemyId:      '_arena',
       name:         enemyCfg.name,
@@ -1883,6 +2154,7 @@ const Battle = (() => {
     _startAtbLoop();
     _updateCombatantUI();
     _updateSkillDisplay();
+    _renderActiveSkillsBar();   // 🆕 戰鬥開始渲染主動技能列
 
     // 🆕 2026-04-25c：恢復玩家上次選的自動戰鬥模式
     _restoreAutoPref();
@@ -1894,5 +2166,5 @@ const Battle = (() => {
   // 🆕 D.28：對外暴露「戰鬥進行中」旗標，讓 main.js 可以擋住訓練動作
   function isActive() { return _active; }
 
-  return { start, startFromConfig, doAction, toggleAuto, getLastRating, finishChoice, isActive, returnToTraining };
+  return { start, startFromConfig, doAction, toggleAuto, getLastRating, finishChoice, isActive, returnToTraining, useActiveSkill };
 })();
