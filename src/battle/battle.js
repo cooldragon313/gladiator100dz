@@ -295,7 +295,13 @@ const Battle = (() => {
     _player._powerCharging   = false;   // true 表示下回合放強力斬
     _player._tauntDefBonus   = 0;       // taunt 期間的 DEF 加成
     _player._tauntBlkBonus   = 0;
-    if (_enemy) _enemy._tauntedTurns = 0;
+    // 🆕 拳法系姿態
+    _player._bareDisarmTurns    = 0;
+    _player._leverageThrowTurns = 0;
+    if (_enemy) {
+      _enemy._tauntedTurns   = 0;
+      _enemy._silencedTurns  = 0;
+    }
   }
 
   function _getEquippedWeaponClass() {
@@ -382,12 +388,21 @@ const Battle = (() => {
     Stats.modVital('stamina', -(s.staminaCost || 0));
     _activeSkillCD[skillId] = (s.cooldown || 0) + 1;   // +1 因為當回合結束會 -1
 
+    // 🆕 2026-04-27 拳法招使用紀錄（給 T2/T3 自悟用）
+    if (typeof LuciusEvents !== 'undefined' && LuciusEvents.recordSkillUsage) {
+      LuciusEvents.recordSkillUsage(skillId);
+    }
+
     // 分派到對應 hook
     switch (skillId) {
-      case 'powerStrike': _useSkill_powerStrike(s); break;
-      case 'warCry':      _useSkill_warCry(s); break;
-      case 'riposte':     _useSkill_riposte(s); break;
-      case 'taunt':       _useSkill_taunt(s); break;
+      case 'powerStrike':   _useSkill_powerStrike(s); break;
+      case 'warCry':        _useSkill_warCry(s); break;
+      case 'riposte':       _useSkill_riposte(s); break;
+      case 'taunt':         _useSkill_taunt(s); break;
+      case 'bareDisarm':    _useSkill_bareDisarm(s); break;
+      case 'leverageThrow': _useSkill_leverageThrow(s); break;
+      case 'vitalStrike':   _useSkill_vitalStrike(s); break;
+      case 'jointBreaker':  _useSkill_jointBreaker(s); break;
       default:
         _appendLog(`  ⚠ ${s.name}：戰鬥 hook 未實作`, 'log-system');
     }
@@ -455,6 +470,74 @@ const Battle = (() => {
     _appendLog(`💢 你怒吼挑釁【嘲諷】！${_enemy.name} 被激怒、3 回合內強制追擊你`, 'log-special');
     _appendLog(`  自身 DEF +10 BLK +5（3 回合）`, 'log-system');
     if (typeof SoundManager !== 'undefined') SoundManager.playSfx('skill_rage');
+    _playerAtb = 0;
+    _setButtons(false);
+    if (!_checkDeath()) _endTurnCleanup_atb();
+    _renderActiveSkillsBar();
+  }
+
+  // ══════════════════════════════════════════════════════
+  // 🆕 2026-04-27 拳法系（盧基烏斯傳授）4 招
+  // ══════════════════════════════════════════════════════
+
+  // 赤手奪刃：1 回合內被攻擊 60% 完美格擋
+  function _useSkill_bareDisarm(s) {
+    _player._bareDisarmTurns = 2;   // 撐 2 turn 給敵人攻擊機會
+    _appendLog(`✋ 你進入【赤手奪刃】姿態 — 60% 完美格擋下次攻擊`, 'log-special');
+    if (typeof SoundManager !== 'undefined') SoundManager.playSfx('skill_focus');
+    _playerAtb = 0;
+    _setButtons(false);
+    if (!_checkDeath()) _endTurnCleanup_atb();
+    _renderActiveSkillsBar();
+  }
+
+  // 借力反摔：被攻擊時把傷害的 70% 反彈
+  function _useSkill_leverageThrow(s) {
+    _player._leverageThrowTurns = 2;
+    _appendLog(`🤼 你進入【借力反摔】姿態 — 下次被擊中、傷害的 70% 反彈給對方`, 'log-special');
+    if (typeof SoundManager !== 'undefined') SoundManager.playSfx('skill_focus');
+    _playerAtb = 0;
+    _setButtons(false);
+    if (!_checkDeath()) _endTurnCleanup_atb();
+    _renderActiveSkillsBar();
+  }
+
+  // 要害打擊：命中後敵人下 2 回合無法用特技
+  function _useSkill_vitalStrike(s) {
+    // 直接打一拳、命中後上 silence buff
+    const r = TB_attack(_player, _enemy, { turn: _turn });
+    _applyDamage(_enemy, r.damage, null, 0);
+    _playAttackAnim('player', { hit: r.hit, blocked: r.blocked, crit: r.crit });
+    _appendLog(`👊 要害打擊！${r.log}`, 'log-special');
+    if (r.hit) {
+      _enemy._silencedTurns = 2;
+      _appendLog(`  ✦ ${_enemy.name} 頸動脈被擊中、2 回合內無法用特技！`, 'log-special');
+      if (typeof SoundManager !== 'undefined') SoundManager.playSfx('hit_crit');
+    } else {
+      _appendLog(`  ✗ 沒打中、要害打擊失敗`, 'log-miss');
+    }
+    _playerAtb = 0;
+    _setButtons(false);
+    if (!_checkDeath()) _endTurnCleanup_atb();
+    _renderActiveSkillsBar();
+  }
+
+  // 關節破：對 DEF ≥ 8 的敵人忽略一半 DEF
+  function _useSkill_jointBreaker(s) {
+    let savedDEF = null;
+    if (_enemy.derived.DEF >= 8) {
+      savedDEF = _enemy.derived.DEF;
+      _enemy.derived.DEF = Math.round(savedDEF * 0.5);
+      _appendLog(`🦴 關節破！${_enemy.name} DEF ${savedDEF} → ${_enemy.derived.DEF}（忽略一半）`, 'log-special');
+    } else {
+      _appendLog(`👊 關節破 — 對方 DEF 太低、效果不明顯`, 'log-system');
+    }
+    const r = TB_attack(_player, _enemy, { turn: _turn });
+    _applyDamage(_enemy, r.damage, null, 0);
+    _playAttackAnim('player', { hit: r.hit, blocked: r.blocked, crit: r.crit });
+    _appendLog(r.log, r.crit ? 'log-crit' : r.hit ? '' : 'log-miss');
+    if (typeof SoundManager !== 'undefined') SoundManager.playSfx(r.hit ? 'hit_flesh' : 'hit_miss');
+    if (savedDEF !== null) _enemy.derived.DEF = savedDEF;   // 恢復
     _playerAtb = 0;
     _setButtons(false);
     if (!_checkDeath()) _endTurnCleanup_atb();
@@ -1036,6 +1119,11 @@ const Battle = (() => {
       decision.action = 'attack';
       decision.log = `${_enemy.name} 被嘲諷激怒、撲上來攻擊！`;
     }
+    // 🆕 2026-04-27 要害打擊 silence：禁用 special / triple / mountain_crash / counter_stance / charge
+    if (_enemy._silencedTurns > 0 && ['special_release','triple_stab','mountain_crash','counter_stance','charge'].includes(decision.action)) {
+      decision.action = 'attack';
+      decision.log = `${_enemy.name} 想用特技、但要害被擊中還沒恢復——只能普攻！`;
+    }
     const isBigMove = ['triple_stab','mountain_crash','special_release'].includes(decision.action);
     if (decision.log) _appendLog(decision.log, isBigMove ? 'log-special' : 'log-system');
 
@@ -1056,6 +1144,15 @@ const Battle = (() => {
           }
           if (typeof Game !== 'undefined' && Game.shakeGameRoot) Game.shakeGameRoot();
           break;   // 跳過正常攻擊判定
+        }
+
+        // 🆕 2026-04-27 赤手奪刃：60% 完美格擋
+        if (_player._bareDisarmTurns > 0 && Math.random() < 0.60) {
+          _player._bareDisarmTurns = 0;
+          _appendLog(`✋✦ 赤手奪刃！${_player.name} 徒手撥開來擊、無傷！`, 'log-special');
+          _playAttackAnim('enemy', { hit: false, blocked: true, crit: false });
+          if (typeof SoundManager !== 'undefined') SoundManager.playSfx('hit_block');
+          break;
         }
 
         const r = TB_attack(_enemy, _player, { turn: _turn });
@@ -1210,9 +1307,22 @@ const Battle = (() => {
           _appendLog(`  ✦ 反擊姿態解除。`, 'log-system');
         }
       }
+      // 🆕 拳法系姿態倒數
+      if (_player._bareDisarmTurns > 0) {
+        _player._bareDisarmTurns--;
+        if (_player._bareDisarmTurns === 0) _appendLog(`  ✦ 赤手奪刃姿態解除。`, 'log-system');
+      }
+      if (_player._leverageThrowTurns > 0) {
+        _player._leverageThrowTurns--;
+        if (_player._leverageThrowTurns === 0) _appendLog(`  ✦ 借力反摔姿態解除。`, 'log-system');
+      }
     }
     if (_enemy && _enemy._tauntedTurns > 0) {
       _enemy._tauntedTurns--;
+    }
+    if (_enemy && _enemy._silencedTurns > 0) {
+      _enemy._silencedTurns--;
+      if (_enemy._silencedTurns === 0) _appendLog(`  ✦ ${_enemy.name} 恢復行動能力。`, 'log-system');
     }
 
     _updateCombatantUI();
@@ -1588,6 +1698,17 @@ const Battle = (() => {
       _appendLog(`  ⚡ 瞬刺被打斷！技能條保留。`, 'log-injury');
       _updateSkillDisplay();
       if (_playerAtb >= 100) { _setButtons(true); _checkSpecialReady(); }
+    }
+
+    // 🆕 2026-04-27 借力反摔：被攻擊時把 70% 傷害反彈
+    if (target === _player && dmg > 0 && _player._leverageThrowTurns > 0) {
+      _player._leverageThrowTurns = 0;
+      const reflectDmg = Math.max(1, Math.round(dmg * 0.70));
+      _enemy.hp = Math.max(0, _enemy.hp - reflectDmg);
+      _appendLog(`🤼✦ 借力反摔！${_enemy.name} 被自己的力道甩飛、受到 ${reflectDmg} 傷害（反彈 70%）`, 'log-special');
+      _playAttackAnim('player', { hit: true, blocked: false, crit: true });
+      if (typeof SoundManager !== 'undefined') SoundManager.playSfx('hit_crit');
+      if (typeof Game !== 'undefined' && Game.shakeGameRoot) Game.shakeGameRoot();
     }
 
     // 🆕 2026-04-25c 不屈：致命一擊鎖死 1 HP（每場 1 次）

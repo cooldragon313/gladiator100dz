@@ -425,8 +425,17 @@ const OverseerEvents = (() => {
       { speaker: '老默', text: '⋯⋯的後塵。' },
       { text: '（他停下動作。）' },
       { speaker: '老默', text: '唉⋯⋯' },
+      // 🆕 2026-04-27 順便埋盧基烏斯線
+      { speaker: '老默', text: '⋯⋯上一個跟你一樣表現的人、被退役了。' },
+      { speaker: '老默', text: '沒死、但也沒回訓練所。' },
+      { text: '（他繼續包紮。）' },
+      { speaker: '老默', text: '⋯⋯Forum 那邊偶爾還能看到他。' },
     ], {
-      onComplete: () => _showDoctorHintChoice()
+      onComplete: () => {
+        // 🆕 set flag 解鎖 Lucius 線
+        if (typeof Flags !== 'undefined') Flags.set('heard_about_cripple', true);
+        _showDoctorHintChoice();
+      }
     });
   }
 
@@ -519,10 +528,16 @@ const OverseerEvents = (() => {
             { text: '（卡西烏斯停下。）' },
             { speaker: '卡西烏斯', text: '⋯⋯然後他就上場了。' },
             { speaker: '卡西烏斯', text: '回來時——只剩半條命。' },
+            // 🆕 2026-04-27 順便埋盧基烏斯線
+            { speaker: '卡西烏斯', text: '⋯⋯巴爺算幸運的。沒被救的人多了去。' },
+            { speaker: '卡西烏斯', text: '聽說 Forum 那個瘸子、以前也是好手。' },
+            { text: '（他喝一口水。）' },
+            { speaker: '卡西烏斯', text: '⋯⋯算了。命就是命。' },
             { text: '（他站起來走了。）' },
           ],
-          resultLog: '你終於知道「巴爺」這個名字的由來了。',
+          resultLog: '你終於知道「巴爺」這個名字的由來了。Forum 那個瘸子⋯⋯也曾是好手？',
           logColor: '#9a8a8a',
+          flagSet: 'heard_about_cripple',   // 🆕 解鎖 Lucius 線
         },
         {
           id: 'ask_meaning',

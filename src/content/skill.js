@@ -181,4 +181,50 @@ const Skills = {
     expCosts:  { WIL: 250, STR: 100 },
     effect: { atkPctBonus: 20, duration: 3 },
   },
+
+  // ══════════════════════════════════════════════════
+  // 🆕 2026-04-27 拳法系（盧基烏斯傳授）— T1 劇情授予
+  // 詳見 docs/quests/lucius-empty-hand.md
+  // 全部 weaponClass 'fist'、storyOnly: true
+  // ══════════════════════════════════════════════════
+  bareDisarm: {
+    id: 'bareDisarm', name: '赤手奪刃',
+    type: 'active',
+    desc: '盧基烏斯傳授的 pankration 技。1 回合內被攻擊有 60% 完美格擋（無傷）。',
+    staminaCost: 12, cooldown: 4,
+    storyOnly: true,
+    grantedBy: 'lucius_taught_disarm',
+    weaponClassAny: ['fist'],
+    effect: { blockChance: 0.60, stanceTurns: 1 },
+  },
+  leverageThrow: {
+    id: 'leverageThrow', name: '借力反摔',
+    type: 'active',
+    desc: '盧基烏斯傳授的摔技。被攻擊時把傷害的 70% 反彈給對方（撐 1 回合）。',
+    staminaCost: 18, cooldown: 5,
+    storyOnly: true,
+    grantedBy: 'lucius_taught_throw',
+    weaponClassAny: ['fist'],
+    effect: { reflectPct: 0.70, stanceTurns: 1 },
+  },
+  vitalStrike: {
+    id: 'vitalStrike', name: '要害打擊',
+    type: 'active',
+    desc: '盧基烏斯傳授的危險絕技。命中後敵人下 2 回合無法用特技。',
+    staminaCost: 15, cooldown: 4,
+    storyOnly: true,
+    grantedBy: 'lucius_taught_vital',
+    weaponClassAny: ['fist'],
+    effect: { silenceTurns: 2 },
+  },
+  jointBreaker: {
+    id: 'jointBreaker', name: '關節破',
+    type: 'active',
+    desc: '攻擊膝肘關節。對 DEF ≥ 8 的敵人忽略一半 DEF。',
+    staminaCost: 10, cooldown: 3,
+    storyOnly: true,
+    grantedBy: 'lucius_taught_joint',
+    weaponClassAny: ['fist'],
+    effect: { defPiercePct: 0.50 },
+  },
 };

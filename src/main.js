@@ -6714,6 +6714,16 @@ const Game = (() => {
     }
     // 同時也寫進 log（含 flash，給歷史回看）
     addLog('【主人傳喚】\n' + ev.text, '#e8d070', true, true);
+
+    // 🆕 2026-04-27 跑腿事件後嘗試 Lucius 相遇（first encounter or revisit）
+    if (typeof LuciusEvents !== 'undefined') {
+      try {
+        // 第一次相遇（heard_about_cripple flag + 35% 機率）
+        const firstEncounter = LuciusEvents.tryErrandEncounter();
+        // 沒撞到第一次 → 試 revisit（已 met + kindness 1）
+        if (!firstEncounter) LuciusEvents.tryRevisitEncounter();
+      } catch (e) { console.error('[Lucius]', e); }
+    }
   }, 35);
 
   // ══════════════════════════════════════════════════

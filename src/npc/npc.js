@@ -1082,6 +1082,51 @@ const teammates = (() => {
       ],
     },
 
+    // ══════════════════════════════════════════════════
+    // 🆕 2026-04-27 斷腳的盧基烏斯（Lucius "the Cripple"）
+    // ══════════════════════════════════════════════════
+    // Forum 邊緣巷弄、退役角鬥士、奇蹟存活但失去左腳
+    // 跟巴爺主線對位 — 「沒被救」的版本
+    // 詳見 docs/quests/lucius-empty-hand.md
+    lucius: {
+      id: 'lucius', name: '盧基烏斯',
+      role: 'audience',          // 不在訓練所、特殊接觸者
+      title: '斷腳的退役角鬥士',
+      desc: '8 年前在主人安排的賭局戰中存活、但失去左腳。沒被救回、被丟出訓練所。Forum 邊緣巷弄常駐。眼神異常清醒。',
+      baseAffection: 0,
+      personality: 'stoic',
+      favoredAttr: 'AGI',         // 機動性是空手存活核心
+      // 拳法傳承不傳「沒善意的人」
+      likedTraits:    { reliable: 2, humble: 2, kindness: 1, merciful: 1 },
+      dislikedTraits: { cruel: 3, opportunist: 2, prideful: 2 },
+      relations: {
+        allies:   [],
+        enemies:  [],   // 他不對任何人懷有惡意
+        history:  ['overseer'],   // 曾跟巴爺認識（隱藏線）
+      },
+      background: '8 年前盧基烏斯是某邊緣訓練所的角鬥士。某場賭局戰中、主人安排他「送死」迎合貴客。他奇蹟活了下來——但失去左腳。沒被「救回」、被丟出訓練所自生自滅。靠乞討跟偶爾教點 pankration 拳法為生。他師父當年也只教到第三招就被殺、傳承斷在這。',
+
+      // ── 故事揭露 ──（簡版、Lucius 主線在 lucius_events.js）
+      storyReveals: [
+        {
+          id: 'lucius_intro_flavor', type: 'flavor', affection: 0,
+          text: '一個獨腳老人坐在 Forum 邊緣巷弄、伸出破碗。眼神異常清醒、跟其他乞丐不一樣。',
+        },
+        {
+          id: 'lucius_old_gladiator', type: 'flavor', affection: 20,
+          text: '他說他以前也是角鬥士。「⋯⋯然後就成這樣了。」他敲敲斷腿。',
+        },
+        {
+          id: 'lucius_master_taught', type: 'flavor', affection: 40,
+          text: '他教你的招式有個名字 — pankration。希臘老式打法。「⋯⋯我師父教我的。」他說：「他只教到第三招、就被殺了。」',
+        },
+        {
+          id: 'lucius_remembers_babrius', type: 'flavor', affection: 60,
+          text: '你提到「巴布魯斯」、他停了一下。「⋯⋯哦。他活著。」他笑得很乾。「我以為他也死了。」',
+        },
+      ],
+    },
+
   };
 
   // ══════════════════════════════════════════════════
