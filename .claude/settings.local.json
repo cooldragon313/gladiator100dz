@@ -16,7 +16,8 @@
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
       "Bash(git push *)",
-      "Bash(node -c src/main.js)"
+      "Bash(node -c src/main.js)",
+      "Bash(git commit -m 'tune\\(shells\\): 再快 10% + 多幾次 swap *)"
     ]
   }
 }

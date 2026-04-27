@@ -175,12 +175,13 @@ const ShellsGame = (() => {
     _phase = 'reveal';
 
     // 對手 DEX 依 round 微調（round 1 笨手 / round 3 飛快）
+    // 🆕 2026-04-27 v3：每場再快 10%（×0.9）
     const baseDEX = _config.oppDEX || 15;
     const playerDEX = _config.playerDEX || 10;
     let roundDEX = baseDEX;
-    let speedMult = 1.0;
-    if (_round === 1) { roundDEX = baseDEX - 10; speedMult = 1.5; }   // 簡單
-    else if (_round === 3) { roundDEX = baseDEX + 5; speedMult = 0.8; }   // 困難
+    let speedMult = 0.9;   // 全場基礎 -10%
+    if (_round === 1) { roundDEX = baseDEX - 10; speedMult = 1.35; }   // 簡單（原 1.5 × 0.9）
+    else if (_round === 3) { roundDEX = baseDEX + 5; speedMult = 0.72; }   // 困難（原 0.8 × 0.9）
 
     // 玩家 DEX 高 → 動畫變慢（玩家眼睛跟得上）
     if (playerDEX >= 35) speedMult *= 0.7;
@@ -219,12 +220,11 @@ const ShellsGame = (() => {
     const cups = Array.from(document.querySelectorAll('.shell-cup'));
     cups.forEach(c => c.classList.add('shuffling'));
 
-    // 🆕 2026-04-27 v2：拉快速度（v1 的 800-1400ms 太慢、玩家覺得不對）
-    //   shuffleCount: 4 ~ 8（依 DEX 不變）
-    //   stepMs: 最低 400ms、基礎 600ms
-    //   範例：DEX 34 (speedMult 0.85)、正常場 = max(400, 510) = 510ms
-    //         場 1 簡單（×1.5）= 765ms、場 3 困難（×0.8）= 480ms
-    const shuffleCount = Math.min(8, 3 + Math.floor(roundDEX * 0.15));
+    // 🆕 2026-04-27 v3：再快 10% + 多幾次 swap
+    //   shuffleCount: 5 ~ 11（依 DEX、原 max 8）
+    //   stepMs: 最低 400ms、基礎 600ms（不變）
+    //   實際：因 speedMult 全場 -10%、實際時長都比 v2 短一成
+    const shuffleCount = Math.min(11, 4 + Math.floor(roundDEX * 0.2));
     const stepMs = Math.max(400, Math.round(600 * speedMult));
 
     let step = 0;
