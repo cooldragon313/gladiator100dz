@@ -251,6 +251,15 @@ const Config = (() => {
       id: 'unbreakable', name: '不屈之身', category: 'positive',
       desc: 'HP 跌至 20% 以下時，攻擊力 +15%。',
     },
+    // 🆕 2026-04-28 戰鬥屬性 EXP 系統 — 10 連勝隱藏特性
+    //   設計：[docs/systems/battle-attr-gain.md](../docs/systems/battle-attr-gain.md) § 5
+    //   解鎖：戰鬥連勝達 10 場（不含 sparring）首次觸發
+    //   永久保留（連勝歸零後仍在）
+    bloodRoar: {
+      id: 'bloodRoar', name: '嗜血之吼', category: 'positive', icon: '🩸',
+      desc: '十場不敗的證明。戰鬥開場 +5% ATK（永久）。',
+      hidden: true,   // 不從軸擲取得、只能 10 連勝解鎖
+    },
     // 🆕 D.12 / D.13 新增：解鎖睡前活動與故事共鳴
     literate: {
       id: 'literate', name: '識字', category: 'positive',

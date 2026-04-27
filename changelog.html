@@ -208,6 +208,44 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       2026-04-28 戰鬥屬性 EXP Phase 1 + 3 份 design doc
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag new">NEW + DOCS</span>
+      <span class="version-title">戰鬥屬性 EXP Phase 1 落地 + 裝備重構 / 葛拉主武器 3 份 design doc</span>
+      <span class="version-date">2026-04-28</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text"><strong>戰鬥屬性 EXP Phase 1 — 行為累積 + 評分加成 + 連勝獎勵 + bloodRoar 隱藏特性</strong>
+          <span class="file-tag">battle.js / config.js</span>
+          — 解屬性 30+ 升級曲線過陡（30→31 = 163 EXP）痛點。每場戰鬥即時計：
+          命中 +1 / 暴擊 +3 / 主動技能命中 +3（依 weaponClass 對應屬性）/ 閃避 AGI +2 /
+          格擋 CON +2 / 受重擊 CON +1（單場上限 5）/ 不屈觸發 WIL +5。
+          評分加成 S/A/B = 全屬性 +8/+5/+3（S 含 LUK +4），完勝/慘勝/一招秒額外加。
+          連勝獎勵 3/5/7/10：3 連勝全屬性 +5 + 主屬性 +20 / 5 連勝 +10 + 主屬性 +40 /
+          7 連勝 +15 + 主屬性 +60 + NPC 對白 / 10 連勝 +25 + 主屬性 +100 +
+          解鎖隱藏特性【嗜血之吼】（戰鬥開場 +5% ATK 永久）。
+          防刷：sparring 50% / 單屬性硬上限 +30 EXP / sparring 也算入連勝。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DOCS</span>
+        <span class="change-text"><strong>3 份 design doc 完成</strong>
+          <span class="file-tag">docs/systems/equipment-rework.md / docs/systems/battle-attr-gain.md / docs/quests/blacksmith-signature-weapon.md</span>
+          — (1) 裝備重構：5 級品質（粗灰/普白/精藍/上紫/傳金）+ 10 詞綴 + 主人賜 3 條護飾線 +
+          葛拉鋪 UI（塔倫解鎖 + 主人付一半費用）+ 葛拉信用點上交 + 競技場戰利品（S/A/B 80/60/40）+
+          對手強度重新校準 + 27 格儲物 + Boss 戰鐵則。
+          (2) 戰鬥屬性 EXP：完整規格（已實作 Phase 1）。
+          (3) 葛拉主武器之路 8 階段（綁定 → 認可 → 強化透漏歷史 → 升 T3 刻名 →
+          葛拉兒子的劍獨白 → 鍛傳家準備 → 傳家武器送 → 葛拉不退休、繼續陪你看到底）。</span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
        2026-04-25c 大掃蟲日 — 6 連環 bug + 競技場退回 + 跑腿戲劇化
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">

@@ -28,6 +28,43 @@ const Battle = (() => {
   //   ⚠️ 必須在 IIFE 頂端宣告（let 不會 hoist）— start() 在 line 130 就會用到
   let _pendingReturnAction = null;
 
+  // 🆕 2026-04-28 戰鬥屬性 EXP — 累積每場戰鬥的行為次數，戰後結算
+  //   設計：[docs/systems/battle-attr-gain.md](../../docs/systems/battle-attr-gain.md)
+  //   每場戰鬥開始時 reset、戰後在 _endBattle → _settleBattleAttrExp 套用
+  let _battleAttrLog = null;
+  function _resetBattleAttrLog() {
+    _battleAttrLog = {
+      playerHits:        0,   // 命中次數（不含暴擊）
+      playerCrits:       0,   // 暴擊命中次數
+      playerSkillHits:   0,   // 主動技能命中
+      enemyMisses:       0,   // 玩家閃避（敵人 miss）
+      enemyBlocks:       0,   // 玩家格擋（敵人攻擊被 block）
+      heavyTakesCount:   0,   // 受重擊次數（HP -10%+），單場硬上限 5
+      unyieldingFired:   false,
+    };
+  }
+
+  // weaponClass → 主屬性對應（單一事實源、跟 docs/systems/battle-attr-gain.md § 2 一致）
+  function _mainAttrForWeaponClass(wc) {
+    const map = {
+      dagger:  'DEX',
+      sword:   'STR',
+      blunt:   'STR',
+      axe:     'STR',
+      spear:   'DEX',
+      polearm: 'DEX',
+      fist:    'AGI',
+    };
+    return map[wc] || 'STR';
+  }
+  function _getEquippedWeaponClass() {
+    const p = Stats.player;
+    const wId = p && p.equippedWeapon;
+    if (!wId || typeof Weapons === 'undefined') return 'sword';
+    const w = Weapons[wId];
+    return (w && w.weaponClass) || 'sword';
+  }
+
   // 🆕 2026-04-25c：自動戰鬥模式跨場記住（off / auto / hardcore）
   //   存 localStorage、新戰鬥開始自動套用、玩家手動切換才改變
   const AUTO_PREF_KEY = 'gladiator_auto_mode_pref';
@@ -167,6 +204,7 @@ const Battle = (() => {
     _playerDelaySkill = null;
     _pendingReturnAction = null;   // 🆕 2026-04-25c：清掉上一場 return callback
     _hideReturnButton();
+    _resetBattleAttrLog();         // 🆕 2026-04-28 戰鬥屬性 EXP — 每場 reset
 
     // ── Build player unit from Stats.player ──
     const p = Stats.player;
@@ -521,6 +559,7 @@ const Battle = (() => {
     const eff = s.effect || {};
     const r = TB_attack(_player, _enemy, { turn: _turn });
     _applyDamage(_enemy, r.damage, null, 0);
+    if (_battleAttrLog && r.hit) _battleAttrLog.playerSkillHits++;   // 🆕 2026-04-28 主動技能 EXP
     _playAttackAnim('player', { hit: r.hit, blocked: r.blocked, crit: r.crit });
     _appendLog(`👊 ${s.name}！${r.log}`, 'log-special');
     if (r.hit) {
@@ -600,6 +639,7 @@ const Battle = (() => {
     }
     const r = TB_attack(_player, _enemy, { turn: _turn });
     _applyDamage(_enemy, r.damage, null, 0);
+    if (_battleAttrLog && r.hit) _battleAttrLog.playerSkillHits++;   // 🆕 2026-04-28 主動技能 EXP
     _playAttackAnim('player', { hit: r.hit, blocked: r.blocked, crit: r.crit });
     _appendLog(r.log, r.crit ? 'log-crit' : r.hit ? '' : 'log-miss');
     if (typeof SoundManager !== 'undefined') SoundManager.playSfx(r.hit ? 'hit_flesh' : 'hit_miss');
@@ -1145,6 +1185,11 @@ const Battle = (() => {
       if (_enemy.hp <= 0) break;
       const r = TB_attack(_player, _enemy, { turn: _turn });
       _applyDamage(_enemy, r.damage, r.counterDamage ? _player : null, r.counterDamage);
+      // 🆕 2026-04-28 戰鬥屬性 EXP — 命中累積
+      if (_battleAttrLog && r.hit) {
+        if (r.crit) _battleAttrLog.playerCrits++;
+        else        _battleAttrLog.playerHits++;
+      }
       // 🆕 2026-04-20 v3：攻擊動畫帶 result 觸發（miss/block/hit 不同光）
       _playAttackAnim('player', { hit: r.hit, blocked: r.blocked, crit: r.crit });
       _appendLog((hits > 1 ? `[第${i+1}擊] ` : '') + r.log,
@@ -1251,6 +1296,15 @@ const Battle = (() => {
 
         const r = TB_attack(_enemy, _player, { turn: _turn });
         _applyDamage(_player, r.damage, r.counterDamage ? _enemy : null, r.counterDamage);
+        // 🆕 2026-04-28 戰鬥屬性 EXP — 玩家閃避 / 格擋 / 受重擊
+        if (_battleAttrLog) {
+          if (!r.hit && !r.blocked) _battleAttrLog.enemyMisses++;
+          else if (r.blocked)       _battleAttrLog.enemyBlocks++;
+          else if (r.hit && _player._hpMax && (r.damage || 0) >= _player._hpMax * 0.10
+                   && _battleAttrLog.heavyTakesCount < 5) {
+            _battleAttrLog.heavyTakesCount++;
+          }
+        }
         // 🆕 2026-04-20 v3：敵方攻擊動畫（帶 result）
         _playAttackAnim('enemy', { hit: r.hit, blocked: r.blocked, crit: r.crit });
         _appendLog(r.log, r.crit ? 'log-crit' : r.hit ? '' : 'log-miss');
@@ -1534,6 +1588,13 @@ const Battle = (() => {
       TB_applyPressure(_enemy, 0.20, '劊子手');
       _appendLog(`  ★ 【劊子手】${_enemy.name} 聽聞你名號，心理崩潰 -20%！`, 'log-special');
     }
+
+    // 🆕 2026-04-28 嗜血之吼（10 連勝隱藏特性）：戰鬥開場 ATK +5%（永久套到當場）
+    if (traits.includes('bloodRoar') && _player && _player.derived) {
+      const before = _player.derived.ATK;
+      _player.derived.ATK = Math.round(before * 1.05);
+      _appendLog(`  🩸 【嗜血之吼】開場 ATK ${before} → ${_player.derived.ATK}（+5%）`, 'log-special');
+    }
   }
 
   function _showAchievementToast(name) {
@@ -1550,6 +1611,122 @@ const Battle = (() => {
     B: { label:'B 消耗', color:'#c8a060', fameMult:1.0,  desc:'勝負已分，但不夠漂亮。' },
     C: { label:'C 殘喘', color:'#888888', fameMult:0.7,  desc:'勉強獲勝，差點倒在場上。' },
   };
+
+  // 🆕 2026-04-28 戰鬥屬性 EXP — 戰後結算
+  //   設計：[docs/systems/battle-attr-gain.md](../../docs/systems/battle-attr-gain.md)
+  //   套用順序：A 行為累積 → B 評分加成 → 特殊條件 → 防刷上限 → Stats.modExp
+  function _settleBattleAttrExp(won) {
+    if (!_battleAttrLog) return;
+    const log = _battleAttrLog;
+    const p   = Stats.player;
+    if (!p || !p.exp) return;
+
+    const wc       = _getEquippedWeaponClass();
+    const mainAttr = _mainAttrForWeaponClass(wc);
+    const expDelta = { STR:0, DEX:0, CON:0, AGI:0, WIL:0, LUK:0 };
+
+    // ── A. 行為累積 ─────────────────────────────────
+    expDelta[mainAttr] += log.playerHits        * 1;
+    expDelta[mainAttr] += log.playerCrits       * 3;
+    expDelta[mainAttr] += log.playerSkillHits   * 3;
+    expDelta.AGI       += log.enemyMisses       * 2;
+    expDelta.CON       += log.enemyBlocks       * 2;
+    expDelta.CON       += Math.min(5, log.heavyTakesCount) * 1;
+    if (log.unyieldingFired) expDelta.WIL += 5;
+
+    // ── B. 評分加成（只在勝利 + 競技場時）────────────
+    if (won && _isArenaBattle && _lastRating) {
+      const ratingBonus = { S:8, A:5, B:3 };
+      const rb = ratingBonus[_lastRating] || 0;
+      if (rb > 0) {
+        ['STR','DEX','CON','AGI','WIL'].forEach(a => expDelta[a] += rb);
+        if (_lastRating === 'S') expDelta.LUK += 4;
+      }
+      // 特殊條件
+      const hpPct = _player.hp / _player._hpMax;
+      if (hpPct > 0.90)               expDelta.AGI += 5;                 // 完勝
+      if (hpPct < 0.20) { expDelta.CON += 5; expDelta.WIL += 5; }        // 慘勝
+      if (_turn === 1)  { expDelta.STR += 5; expDelta.DEX += 3; }        // 一招秒
+    }
+
+    // ── C. 防刷：sparring 50% / 單屬性硬上限 +30 ─────
+    const sparringMult = _isArenaBattle ? 1.0 : 0.5;
+    Object.keys(expDelta).forEach(a => {
+      let v = Math.round(expDelta[a] * sparringMult);
+      if (v > 30) v = 30;
+      expDelta[a] = v;
+    });
+
+    // ── 套用 + log ─────────────────────────────────
+    const parts = [];
+    Object.keys(expDelta).forEach(a => {
+      if (expDelta[a] > 0) {
+        Stats.modExp(a, expDelta[a]);
+        parts.push(`${a} +${expDelta[a]}`);
+      }
+    });
+    if (parts.length) {
+      _appendLog(`◈ 戰鬥成長：${parts.join(' / ')}`, 'log-special');
+      Game.addLog(`【戰鬥成長】${parts.join(' / ')}`, '#88cc77', false);
+    }
+  }
+
+  // 🆕 2026-04-28 連勝獎勵 — 觸發於 streak 達 3/5/7/10
+  function _applyStreakRewards(streak) {
+    if (![3, 5, 7, 10].includes(streak)) return;
+    const p   = Stats.player;
+    if (!p || !p.exp) return;
+    const wc       = _getEquippedWeaponClass();
+    const mainAttr = _mainAttrForWeaponClass(wc);
+    const allAttrs = ['STR','DEX','CON','AGI','WIL'];
+
+    let allBonus  = 0;
+    let mainBonus = 0;
+    let fameBonus = 0;
+    let dialog    = null;
+    let traitToGrant = null;
+
+    if (streak === 3) {
+      allBonus = 5;  mainBonus = 20;  fameBonus = 5;
+    } else if (streak === 5) {
+      allBonus = 10; mainBonus = 40;  fameBonus = 10;
+      if (typeof Flags !== 'undefined') Flags.set('combat_fervor_streak_unlocked', true);
+    } else if (streak === 7) {
+      allBonus = 15; mainBonus = 60;  fameBonus = 20;
+      dialog = '⚔ 七連勝！「你最近⋯⋯不太一樣了。」';
+    } else if (streak === 10) {
+      allBonus = 25; mainBonus = 100; fameBonus = 0;
+      if (!p.traits) p.traits = [];
+      if (!p.traits.includes('bloodRoar')) {
+        traitToGrant = 'bloodRoar';
+        if (typeof Flags !== 'undefined') Flags.set('bloodroar_unlocked', true);
+        dialog = '🩸 十連勝！獲得隱藏特性【嗜血之吼】（戰鬥開場 +5% ATK 永久）！';
+      }
+    }
+
+    allAttrs.forEach(a => Stats.modExp(a, allBonus));
+    Stats.modExp(mainAttr, mainBonus);
+    if (fameBonus > 0) Stats.modFame(fameBonus);
+    if (traitToGrant) p.traits.push(traitToGrant);
+
+    _appendLog(
+      `\n╔═══ ${streak} 連勝獎勵 ═══╗\n` +
+      `  全屬性 +${allBonus} EXP　${mainAttr} 額外 +${mainBonus}` +
+      (fameBonus ? `　名聲 +${fameBonus}` : '') + `\n` +
+      `╚════════════════════╝`,
+      'log-special'
+    );
+    if (dialog) {
+      Game.addLog(dialog, '#d4af37', false, true);
+      _appendLog(dialog, 'log-special');
+    }
+
+    // 紀錄史上最高連勝
+    if (typeof Flags !== 'undefined') {
+      const prevMax = (typeof Flags.get === 'function') ? (Flags.get('combat_streak_max') || 0) : 0;
+      if (streak > prevMax) Flags.set('combat_streak_max', streak);
+    }
+  }
 
   function _endBattle(won) {
     _active = false;
@@ -1602,6 +1779,9 @@ const Battle = (() => {
       if (_lastRating === 'S') cs.sRankCount++;
       if (_lastRating === 'A') cs.aRankCount++;
 
+      // 🆕 2026-04-28 連勝獎勵 — 達 3/5/7/10 觸發
+      _applyStreakRewards(cs.winStreak);
+
       // S/A rank affection bonuses (officer & master)
       // 🆕 2026-04-25c 平衡：8/4 → 4/2（同樣 ×0.5）
       if (_lastRating === 'S' || _lastRating === 'A') {
@@ -1637,7 +1817,19 @@ const Battle = (() => {
       const cs = Stats.player.combatStats;
       cs.arenaLosses++;
       cs.winStreak = 0;   // 連勝中斷
+    } else if (!_isArenaBattle) {
+      // 🆕 2026-04-28 sparring 也算入連勝（依 docs/systems/battle-attr-gain.md）
+      const cs = Stats.player.combatStats;
+      if (won) {
+        cs.winStreak = (cs.winStreak || 0) + 1;
+        _applyStreakRewards(cs.winStreak);
+      } else {
+        cs.winStreak = 0;
+      }
     }
+
+    // 🆕 2026-04-28 戰鬥屬性 EXP 結算（不論輸贏、競技場/sparring 都跑）
+    _settleBattleAttrExp(won);
 
     if (won && _isArenaBattle) {
       // Show rating result briefly, then show finishing panel
@@ -1822,6 +2014,7 @@ const Battle = (() => {
       dmg = Math.max(0, target.hp - 1);   // 留 1 HP
       target._unyieldingFired = true;
       target._unyieldingBuffTurns = 5;
+      if (_battleAttrLog && target === _player) _battleAttrLog.unyieldingFired = true;   // 🆕 2026-04-28 戰鬥屬性 EXP
       _appendLog(`💀✦ 不屈！你應該倒下、但你站著。HP 鎖死 1。5 回合內 ATK +30%！`, 'log-special');
       _appendLog(`  （原傷 ${origDmg} → 削減為 ${dmg}）`, 'log-system');
       if (typeof Game !== 'undefined' && Game.shakeGameRoot) Game.shakeGameRoot();
@@ -2303,6 +2496,7 @@ const Battle = (() => {
     _playerDelaySkill = null;
     _pendingReturnAction = null;   // 🆕 2026-04-25c：清掉上一場 return callback
     _hideReturnButton();
+    _resetBattleAttrLog();         // 🆕 2026-04-28 戰鬥屬性 EXP — 每場 reset
 
     const p = Stats.player;
     _player = TB_buildUnit({
