@@ -41,9 +41,11 @@ const Weapons = {
   hammer: {
     id: 'hammer', name: '槌',
     type: 'blunt1h', weaponClass: 'blunt', hands: 1, twoHanded: false,
-    route: 'rage', swingTime: 5, cap: 6, special: 'none',
+    // 🆕 2026-04-27 平衡：原 ATK 12 / ACC 2 / swingTime 5 → 槌打不死人也不疼
+    //   修：ATK 12→16、ACC 2→5、swingTime 5→4、CDMG 0→25（重擊風味）
+    route: 'rage', swingTime: 4, cap: 6, special: 'none',
     hitParts: ['頭', '手'],
-    ATK: 12, ACC: 2, CRT: -2, CDMG: 0, SPD: -3, PEN: 10,
+    ATK: 16, ACC: 5, CRT: -2, CDMG: 25, SPD: -3, PEN: 12,
     desc: '鐵頭重錘，砸爛盾牌和骨頭都不在話下。準度差，但每一擊都讓人痛不欲生。',
     price: 45,
   },
@@ -82,9 +84,11 @@ const Weapons = {
   warHammer: {
     id: 'warHammer', name: '長槌',
     type: 'blunt2h', weaponClass: 'blunt', hands: 2, twoHanded: true,
-    route: 'rage', swingTime: 10, cap: 3, special: 'concuss',
+    // 🆕 2026-04-27 平衡：ATK 18→24、ACC 0→3、swingTime 10→8、CDMG 0→35
+    //   雙手大鈍器、應該是「砸中就重傷」的感覺
+    route: 'rage', swingTime: 8, cap: 3, special: 'concuss',
     hitParts: ['頭', '身體'],
-    ATK: 18, ACC: 0, CRT: 0, CDMG: 0, SPD: -8, PEN: 18,
+    ATK: 24, ACC: 3, CRT: 0, CDMG: 35, SPD: -8, PEN: 22,
     desc: '最重的單件武器。砸中頭部可讓人直接失去意識，但揮動一次已是極限。',
     price: 90,
   },
@@ -120,9 +124,10 @@ const Weapons = {
     id: 'hammer_t2', name: '鐵頭重槌',
     baseId: 'hammer', tier: 2,
     type: 'blunt1h', weaponClass: 'blunt', hands: 1, twoHanded: false,
-    route: 'rage', swingTime: 5, cap: 7, special: 'none',
+    // 🆕 2026-04-27 平衡：跟著 T1 buff 一起拉 — ATK 14→18 / ACC 3→6 / CDMG 2→28 / swingTime 5→4
+    route: 'rage', swingTime: 4, cap: 7, special: 'none',
     hitParts: ['頭', '手'],
-    ATK: 14, ACC: 3, CRT: -1, CDMG: 2, SPD: -2, PEN: 12,
+    ATK: 18, ACC: 6, CRT: -1, CDMG: 28, SPD: -2, PEN: 13,
     desc: '葛拉的鐵頭。比原版重一點、但平衡更好。砸下去骨頭碎得脆。',
     price: 100,
   },
@@ -164,9 +169,10 @@ const Weapons = {
     id: 'warHammer_t2', name: '鐵頭長槌',
     baseId: 'warHammer', tier: 2,
     type: 'blunt2h', weaponClass: 'blunt', hands: 2, twoHanded: true,
-    route: 'rage', swingTime: 10, cap: 4, special: 'concuss',
+    // 🆕 2026-04-27 平衡：跟著 T1 buff 一起拉 — ATK 20→27 / ACC 1→4 / CDMG 2→38 / swingTime 10→8
+    route: 'rage', swingTime: 8, cap: 4, special: 'concuss',
     hitParts: ['頭', '身體'],
-    ATK: 20, ACC: 1, CRT: 1, CDMG: 2, SPD: -7, PEN: 20,
+    ATK: 27, ACC: 4, CRT: 1, CDMG: 38, SPD: -7, PEN: 23,
     desc: '葛拉重新配重的版本。重得更穩、揮得更可預測。',
     price: 200,
   },
@@ -267,9 +273,10 @@ Object.assign(Weapons, {
     id: 'hammer_t3', name: '鋼頭重槌',
     baseId: 'hammer', tier: 3,
     type: 'blunt1h', weaponClass: 'blunt', hands: 1, twoHanded: false,
-    route: 'rage', swingTime: 5, cap: 8, special: 'none',
+    // 🆕 2026-04-27 平衡：跟著 T1/T2 buff 一起拉 — ATK 16→21 / ACC 4→7 / CDMG 4→32 / swingTime 5→4
+    route: 'rage', swingTime: 4, cap: 8, special: 'none',
     hitParts: ['頭', '手'],
-    ATK: 16, ACC: 4, CRT: 0, CDMG: 4, SPD: -1, PEN: 14,
+    ATK: 21, ACC: 7, CRT: 0, CDMG: 32, SPD: -1, PEN: 15,
     desc: '葛拉的鋼頭。砸下去骨頭碎得乾淨。「這把不會壞。」',
     price: 230,
   },
@@ -307,9 +314,10 @@ Object.assign(Weapons, {
     id: 'warHammer_t3', name: '鍛造長槌',
     baseId: 'warHammer', tier: 3,
     type: 'blunt2h', weaponClass: 'blunt', hands: 2, twoHanded: true,
-    route: 'rage', swingTime: 10, cap: 5, special: 'concuss',
+    // 🆕 2026-04-27 平衡：跟著 T1/T2 buff 一起拉 — ATK 22→30 / ACC 2→5 / CDMG 4→42 / swingTime 10→8
+    route: 'rage', swingTime: 8, cap: 5, special: 'concuss',
     hitParts: ['頭', '身體'],
-    ATK: 22, ACC: 2, CRT: 2, CDMG: 4, SPD: -6, PEN: 22,
+    ATK: 30, ACC: 5, CRT: 2, CDMG: 42, SPD: -6, PEN: 25,
     desc: '葛拉用配重塊重新平衡的版本。揮起來像揮一根鐵指——有點輕。',
     price: 440,
   },
