@@ -2,7 +2,7 @@
 
 > 查找所有精緻做的東西 — 特性、書、origin、傷勢、見識、旗標、數字。
 > 來源：config.js / books.js / origins.js / wounds.js / stats.js 實際程式碼
-> 最後更新：2026-04-19
+> 最後更新：2026-04-28（裝備重構 + 戰鬥屬性 EXP 設計 — 待實作 design doc）
 
 ---
 
@@ -610,6 +610,34 @@ player.wounds.head = null | { severity:1-3, daysElapsed } | { special:'concussio
 | `refused_awakening` | 選擇停在半醒 | 半醒 ChoiceModal |
 | `dullard_awakened` | 傻福完全清醒 | 見識達 10 |
 
+### 🆕 裝備重構 flag（2026-04-28，待實作）
+
+| Flag | 意義 | 寫入時機 |
+|---|---|---|
+| `gra_forge_unlocked` | 葛拉鐵匠鋪 UI 已解鎖 | 塔倫解鎖事件 |
+| `gra_signature_chosen` | 主武器已選定 | 葛拉好感 30 進坊事件 |
+| `gra_signature_weapon` | 主武器 ID（值=武器 ID）| 同上 |
+| `gra_sig_recognized` | 階段 1 認可（戰勝 10）| 主武器 10 場勝後 |
+| `gra_sig_history_revealed` | 階段 3 葛拉透露歷史 | 鋪內強化主武器 3 次 |
+| `gra_sig_inscribed` | 階段 4 主武器已刻名 | T3 升級時 |
+| `gra_sig_full_story` | 階段 5 葛拉兒子的劍獨白 | T3 + Day 50+ |
+| `gra_sig_legendary_started` | 階段 6 開始鍛傳家 | 主人 80 + 葛拉 80 + 神眷/鐵人 |
+| `gra_sig_started_day` | 開始鍛傳家的天數 | 同上 |
+| `gra_sig_legendary_complete` | 階段 7 傳家武器已給 | Day 80+ + 等待 30 天 |
+| `gra_retired` | 葛拉退休（不再升 tier）| 階段 7 完成 |
+| `master_armor_milestone_{slot}_{n}` | 主人賜護飾線階段（slot=arm/leg/head, n=1/2/3/4）| 對應勝場達成 |
+| `master_heirloom_chosen` | 主人傳家三選一已定型 | 第 4 階段選後 |
+| `master_heirloom_choice` | 傳家選擇（值='cloth'/'leather'/'iron'）| 同上 |
+| `told_gra_wont_break` | 主武器之路階段 5 選項 | 「我不會」分支 |
+| `promised_gra_return` | 主武器之路階段 5 選項 | 「我會還給你」分支 |
+| `silent_response_gra` | 主武器之路階段 5 選項 | 沉默分支 |
+| `first_beat_rookie` | 首次擊敗 rookie 級 | 戰鬥結算 |
+| `first_beat_gladB` | 首次擊敗 gladB 級 | 戰鬥結算 |
+| `first_beat_vet` | 首次擊敗 vet 級 | 戰鬥結算 |
+| `first_beat_champion` | 首次擊敗 champion 級 | 戰鬥結算 |
+| `combat_streak_max` | 史上最長連勝（記錄最高值）| 連勝歸零時更新 |
+| `bloodroar_unlocked` | 隱藏特性 `bloodRoar` 已獲得（10 連勝）| 連勝達 10 |
+
 ### Flag 命名規範
 ```
 {主題}_{事件}_{狀態}
@@ -782,6 +810,74 @@ player.wounds.head = null | { severity:1-3, daysElapsed } | { special:'concussio
 |---|---|
 | HP ≤ 5 生死關頭 | Orlan 出現保護，HP 回到 20 / 特殊對白 |
 
+### 🆕 裝備品質倍率（2026-04-28，待實作）
+
+| 品質 | ID | 顏色 | 數值修正 | 詞綴數 |
+|---|---|---|---|---|
+| 粗糙 | `crude` | `#888888` 灰 | -15% | 0 |
+| 普通 | `common` | `#ffffff` 白 | ±0%（基準）| 0 |
+| 精良 | `fine` | `#5a9aff` 藍 | +15% | 1 |
+| 上等 | `superb` | `#c060ff` 紫 | +30% | 2 |
+| 傳家 | `legendary` | `#ffaa20` 金 | +50% + 套裝特效 | 3 |
+
+### 🆕 競技場戰利品掉落（2026-04-28，待實作）
+
+| 評分 | 觸發機率 | 觸發後品質分布 |
+|---|---|---|
+| **S** | 80%（戰鬥狂熱中 90%）| 20% 紫 / 30% 藍 / 50% 綠 |
+| **A** | 60%（戰鬥狂熱中 70%）| 20% 藍 / 30% 綠 / 50% 白 |
+| **B** | 40%（戰鬥狂熱中 50%）| 20% 綠 / 30% 白 / 50% 灰 |
+| C/D | 0% | — |
+
+詞綴規則：對手身上有什麼詞綴 → 玩家拿到的武器**保留全部詞綴**。
+
+### 🆕 戰鬥屬性 EXP 加成（2026-04-28，待實作）
+
+#### 行為累積（每場戰鬥即時計）
+- 命中：對應屬性 +1（依 weaponClass）
+- 暴擊：對應屬性 +3
+- 閃避成功：AGI +2
+- 格擋成功：CON +2
+- 主動技能命中：對應屬性 +3
+- 受重擊（≥ HP 10%）：CON +1（單場上限 5 次）
+- 致命一擊存活：WIL +5
+
+#### 戰後評分加成
+| 評分 | 加成 |
+|---|---|
+| S | 全屬性 +8（含 LUK +4）|
+| A | 全屬性 +5 |
+| B | 全屬性 +3 |
+| C/D | 不加 |
+
+#### 防刷
+- 單場單屬性硬上限 +30 EXP
+- Sparring 50% EXP
+- 同對手 24h 第二次戰勝 30%
+- 首勝甜頭：rookie/gladB/vet/champion 各首勝對應主屬性 +20
+
+### 🆕 連勝獎勵（2026-04-28，待實作）
+
+| 連勝數 | 獎勵 |
+|---|---|
+| 3 | 全屬性 +5 / 主用 weaponClass 對應屬性 +20 / 名聲 +5 |
+| 5 | 全屬性 +10 / 主屬性 +40 / 名聲 +10 / 解鎖戰鬥狂熱自然觸發資格 |
+| 7 | 全屬性 +15 / 主屬性 +60 / 名聲 +20 / NPC 對白 |
+| 10 | 全屬性 +25 / 主屬性 +100 / 解鎖隱藏特性 `bloodRoar`（戰鬥開場 +5% ATK 永久）|
+
+### 🆕 戰鬥狂熱 `COMBAT_fervor`（2026-04-28，待實作）
+
+| 項目 | 規格 |
+|---|---|
+| 自然觸發 | 3 天內戰鬥 ≥ 5 場（含 sparring）|
+| 強制觸發 | 5 連勝 |
+| 期間 buff | 戰鬥 EXP +50% / 命中 +5% / 暴擊 +3% / 戰勝 mood +5 / 戰敗 mood -3 / 訓練 EXP -25% / 戰利品觸發機率 +10% |
+| 維持條件 | 每天必打 1 場 |
+| 漏 1 天 | mood -3 + 對白 |
+| 漏 2 天 | mood -8 + 警告 |
+| 漏 3 天 | 強制結束 + mood -10 + **WIL +20 EXP**（清醒）+ 5 天冷卻 |
+| 自然結束 | 累積 8 場戰鬥 + 主屬性 +20 EXP |
+
 ---
 
 ## 🔗 系統檔案索引
@@ -830,6 +926,9 @@ player.wounds.head = null | { severity:1-3, daysElapsed } | { special:'concussio
 | `docs/systems/timeline.md` | 百日條動態揭露 |
 | `docs/systems/battle-density.md` | 戰鬥相遇頻率設計 |
 | `docs/systems/battle-screen-rework.md` | 戰鬥畫面三欄式重構 |
+| 🆕 `docs/systems/equipment-rework.md` | 裝備重構：5 級品質 + 10 詞綴 + 主人賜 + 葛拉鋪 + 競技場掉落 + 對手強度 + 27 格儲物（待實作）|
+| 🆕 `docs/systems/battle-attr-gain.md` | 戰鬥屬性 EXP：行為累積 + 評分加成 + 連勝獎勵 + 戰鬥狂熱 `COMBAT_fervor`（待實作）|
+| 🆕 `docs/quests/blacksmith-signature-weapon.md` | 葛拉個人任務「主武器之路」8 階段（待實作）|
 | `docs/philosophy/numbers-hiding.md` | 零數字哲學 / 日誌獎勵分工 |
 | `docs/characters/*.md` | 8 個 NPC 角色檔 |
 | `docs/quests/mela-rat.md` | 抓老鼠任務 |

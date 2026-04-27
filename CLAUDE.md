@@ -36,7 +36,7 @@
    - 改 NPC 對白先看這份，確保語氣一致
 3b. **`docs/quests/*.md`** — 🆕 D.28：每個任務的完整設計書（觸發 / 階段 / 門檻 / 對白 / 獎勵 / flag）
    - 目前已建：mela-rat / day1-opening / **day5-sand-wash**（2026-04-19）/ **blood-feast**（2026-04-20，Day 49 血戰宴會）
-3c. **`docs/systems/*.md`** — 🆕 D.28：系統規範（night-events, multi-check-quest, **reading**, **books-catalog**, **wounds**, **compulsion**, traits, origins, timeline, battle-*, npc-growth）
+3c. **`docs/systems/*.md`** — 🆕 D.28：系統規範（night-events, multi-check-quest, **reading**, **books-catalog**, **wounds**, **compulsion**, traits, origins, timeline, battle-*, npc-growth, **equipment-rework**, **battle-attr-gain**）
    - 🆕 **reading.md / books-catalog.md**（2026-04-19）：讀書系統 + 五類書本 + 見識數值 + 傻福三階段交互
    - 🆕 **wounds.md**（2026-04-19）：4 部位 × 3 級傷勢系統 + 低體力擲傷 + 好痛觸發 + 老默三階段 → 密醫引薦
    - 🆕 **fervor.md**（2026-04-22 設計 / 2026-04-24 實作）：4 種訓練狂熱（力/敏/耐/禪）+ 自然觸發（5 天 8 次）/ 瓶頸儀式（20/30/.../100）+ 5 次結束。**取代舊 compulsion.md**
@@ -446,6 +446,11 @@ character_roll → testbattle → battle → actions → main
 
 ## 🔄 最近重要變更
 
+- **2026-04-28 裝備重構 + 戰鬥屬性 EXP 設計（待實作）**：3 份 design doc 完成、待開工：
+  - **[docs/systems/equipment-rework.md](docs/systems/equipment-rework.md)** — 5 級品質（粗灰/普白/精藍/上紫/傳金）+ 10 詞綴系統 + 主人賜 3 條護飾線（布/皮/鐵 各 4 階）+ 葛拉鐵匠鋪 UI（塔倫解鎖事件）+ 葛拉信用點上交機制 + 競技場戰利品（S/A/B 觸發 80/60/40 + 對手掉啥拿啥）+ 對手強度重新校準（rookie -2 / gladB 持平 / vet +1~3 / champion +5~8）+ 27 格儲物 + Boss 戰鐵則。
+  - **[docs/systems/battle-attr-gain.md](docs/systems/battle-attr-gain.md)** — 戰鬥動作累積 EXP（行為對應屬性）+ 評分加成（S +8/A +5/B +3）+ 防刷（單場 +30 上限/CON 受擊 5 上限/Sparring 50%）+ 連勝獎勵階梯（3/5/7/10 連勝、10 連勝解鎖隱藏特性 `bloodRoar`）+ 第 6 種狂熱 `COMBAT_fervor`（每天必打、漏 3 天 mood -10 + WIL +20「也清醒了」+ 5 天冷卻）。
+  - **[docs/quests/blacksmith-signature-weapon.md](docs/quests/blacksmith-signature-weapon.md)** — 葛拉個人任務「主武器之路」8 階段（綁定 → 認可 → 強化透漏歷史 → 升 T3 刻名 → 葛拉兒子的劍獨白 → 鍛傳家準備 → 傳家武器送 → 葛拉退休）。跟既有 blacksmith-gra.md 整合、不另起爐灶。
+  - 設計討論時間軸：戰鬥 EXP 提案 → 連勝升級 → 戰鬥狂熱（每天必打/3 天結束）→ 競技場裝備 → 葛拉雙軌（事件 + UI）→ 品質系統 5 級 → 詞綴 10 個 → 主人賜 3 條材質固定 → 對手強度拉強 → 主武器綁定。所有決定已敲定。
 - **2026-04-25c 大掃蟲日**（6 連環 bug + 競技場退回 + 跑腿戲劇化）：
   - **CRITICAL 老默治療「選了沒反應」第 4 次真根因** — `ChoiceModal._handleChoice` 在 `_close()` 後又讀 `_activeEvent.logColor` → null TypeError → click handler crash → `onChoose` 永不觸發。decline 自帶 logColor 短路掉永遠正常 → 害我前 3 次都誤判成 `_performHeal` 的問題。修：cache logColor 在 `_close()` 之前。
   - **CRITICAL 葛拉每天重播「差了一個 tier」** — `Stage.playEvent` 是 async 但完全忽略 `opts.onComplete` → 三幕鏈 Act2 → Act3 永遠不串 → flag 沒設 → 每天觸發。修：(1) 真的呼叫 onComplete callback (2) `_playFirstArmorEvent` 啟動就先設 flag。
