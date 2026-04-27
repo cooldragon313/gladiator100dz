@@ -830,9 +830,10 @@ html, body {
 }
 .aud-overflow-row {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;   /* 🆕 2026-04-27 改橫排（直排撐高 audience-zone、把觀眾擠到中間）*/
   gap: 4px;
   flex-shrink: 0;
+  align-self: center;
 }
 .aud-overflow-slot {
   width: 36px;
