@@ -2,178 +2,183 @@
 
 > 跨電腦/跨 session 的「下一步該幹嘛」。
 > 新的一天開工先讀這份。
-> **最後更新：2026-04-27** — 大爆發實作日：巴爺後段 + 盧基烏斯後段 + 三杯賭博
+> **最後更新：2026-04-28（晚）** — 裝備系統大設計 + 戰鬥屬性 EXP Phase 1 落地
+> **下一台機器**：拉最新（`git pull`）→ 看 § 4「明天開工：先做這個」開始動工
 
 ---
 
-## 🎯 今天三大主軸全做完（2026-04-27，3 個 commit 已推）
+## ✅ 今天做完了什麼（2026-04-28）
+
+### 對話脈絡
+從「老默為何要被截肢」（其實是傷兵被截肢、不是老默）開始、user 提出**事件太少 / 屬性 30+ 太硬**的痛點，
+討論演化成**戰鬥屬性 EXP + 連勝獎勵 + 戰鬥狂熱 + 裝備重構（品質+詞綴+多管道）+ 葛拉個人任務**整套設計。
+
+### 4 個 commit（已推遠端）
 
 | Commit | 內容 |
 |---|---|
-| `a5dbeea` | A 巴爺主線 4 hook 補完（達官顯貴 + 梅拉 + 老默接話 + 老兵之眼）+ E 赫克特好感修 |
-| `e6b0d52` | B 盧基烏斯後段（T2/T3 自悟 + T4 自創 + 隱藏第 5 次相遇）|
-| `f712c2d` | D 三杯賭博 + 幸運之星 + minigames/ folder |
+| `8163c76` | balance(hammer)：槌系列全面 buff（ATK +33% / ACC +3 / CDMG 大幅提升 / swingTime 快一拍）|
+| `91eec15` | docs：3 份 design doc（裝備重構 / 戰鬥屬性 EXP / 葛拉主武器）+ CLAUDE/CODEX 索引同步 |
+| `b11d7b3` | feat(battle)：**戰鬥屬性 EXP Phase 1 落地**（行為累積 + 評分加成 + 連勝獎勵 + bloodRoar）|
+
+### 3 份 design doc（必讀，明天動工前先看）
+
+1. **[docs/systems/equipment-rework.md](docs/systems/equipment-rework.md)** — 裝備重構主規格
+   - 5 級品質（粗灰/普白/精藍/上紫/傳金）+ 顏色 + 數值倍率
+   - 10 個詞綴（鋒利/精準/致命/嗜血/灼燒等）+ 套裝特效
+   - 主人賜 3 條護飾線（布/皮/鐵 各 4 階、起手就精藍）+ 第 4 件三選一定型
+   - 葛拉鐵匠鋪 UI（塔倫解鎖事件 + 主人付一半費用）+ 葛拉信用點上交
+   - 競技場戰利品（S/A/B 觸發 80/60/40 + 對手掉啥拿啥）
+   - 對手強度重新校準 + Boss 戰鐵則
+   - 27 格儲物 + 強制處置 ChoiceModal
+
+2. **[docs/systems/battle-attr-gain.md](docs/systems/battle-attr-gain.md)** — 戰鬥屬性 EXP（Phase 1 已實作）
+   - A 行為累積 / B 評分加成 / C 防刷
+   - 連勝獎勵階梯（3/5/7/10）
+   - 第 6 種狂熱 `COMBAT_fervor`（每天必打、漏 3 天 mood -10 + WIL +20）— **未實作**
+
+3. **[docs/quests/blacksmith-signature-weapon.md](docs/quests/blacksmith-signature-weapon.md)** — 葛拉主武器
+   - 8 階段：綁定 → 認可 → 強化透漏歷史 → 升 T3 刻名 → 葛拉兒子的劍獨白 → 鍛傳家準備 → 傳家武器送 → **葛拉不退休、繼續陪你看到底**
+   - 跟既有 [blacksmith-gra.md](docs/quests/blacksmith-gra.md) 整合、不另起爐灶
 
 ---
 
-## ✅ 今天做的事 — 9 大項詳述
+## 🧪 Phase 1 已實作 — 你需要在新電腦測這些
 
-### A. 巴爺主線後段補完
+打開 `game.html`、隨便玩一場戰鬥、確認以下行為：
 
-#### A.1 達官顯貴事件（最重要的新事件）
-莫拉斯（阿圖斯老朋友兼老對手）帶他家招牌「鐵臂烏勒克」來訪。
-
-- **觸發**：`Day ≥ 30 + fame ≥ 30 + winStreak ≥ 3`
-- **流程**：預告對白 → 兩主見面（朋友兼找碴）→ **強制**對戰 morras_ironarm
-- **戰勝**：主人 +20 / 塔倫 +5 / fame +25 / 啟動巴爺主線後段
-- **戰敗**：主人 -10 / 塔倫 +5 / fame -5、**可再來**
-- **赫克特情報網**：
-  - 友善路線在場 + 玩家 10 錢 → ChoiceModal「買情報 / 不用」
-  - 敵對路線 → 自動把你的弱點賣給對方（你不知道、戰後才有暗示）
-
-#### A.2 梅拉 Layer 1 暗示
-- **觸發**：梅拉在 audience + Day ≥ 15 + arenaWins ≥ 1 + 30% + 一次性
-- **內容**：晚餐母親型口吻：「巴爺以前也這樣⋯⋯後來就變那樣了」
-- 解決偷聽密謀觸發條件難達問題（set `mela_hinted_overseer`）
-
-#### A.3 老默接話 hook 補上
-- 每次治療結束自動嘗試 `OverseerEvents.tryDoctorHint()`
-
-#### A.4 老兵之眼直接授予
-- 喝酒「不告訴」結局 → 直接給 `veteran_eye` + popupBig
-
-### B. 盧基烏斯空手線後段
-
-#### B.1 T2/T3 自悟（新增 8 個技能）
-- T2 條件：該招用 ≥ 8 次 + AGI ≥ 25 + EXP（AGI 200 + DEX 100）
-- T3 條件：T2 + 該招用 ≥ 12 次 + AGI ≥ 30 + EXP（AGI 350 + DEX 200）
-- 用完招自動檢查、達標 → ChoiceModal「升級！」
-- 效果升級：
-  - **赤手奪刃** 60% / 80% / **100%** 完美格擋（T3 加敵 silence 1）
-  - **借力反摔** 70% / 85% / **100%** 反彈（T3 加敵 stun 1 整回合）
-  - **要害打擊** silence 2 / 3 / **4** 回合（T2/T3 加 ATK/SPD debuff）
-  - **關節破** 忽略 50% / **100%** DEF（T3 加 30% 斷手 ATK -50%）
-
-#### B.2 T4 自創拳法 + 玩家命名
-- 條件：4 招都 T3 + AGI ≥ 35 + DEX ≥ 30 + WIL ≥ 25
-- 戰鬥結束 popup → 對白 → `prompt` 玩家輸入名字（最多 6 字、Enter = 「無名」）
-- 效果按主導屬性：
-  - **AGI 主導**：被攻擊 50% 敵 miss + EVA +20 / 3 turn
-  - **DEX 主導**：必中暴擊（ATK ×2 無視防禦）
-  - **WIL 主導**：HP<30% 時 ATK +30 / CRT +20 / SPD +10 / 戰鬥結束
-
-#### B.3 隱藏第 5 次相遇
-- 4 招學完 + 巴爺主線完成 + 還沒提過 → 玩家主動提巴布魯斯
-- 「我以為他也死了。」「告訴他、斷腳的還記得他。」
-
-### D. 三杯藏球賭博
-
-- **觸發**：點睡覺 12% 機率 + 5 天 cd + Day ≥ 8 + teammate 在場
-- 邀賭 NPC 個性化對白池
-- 三杯洗牌動畫（DEX 對撞、玩家 DEX 高動畫減速）
-- 三場制：場 1 簡單 / 場 2 中等 / 場 3 困難（防 LUK 速刷）
-- 賭金每場 5 銅
-- **全勝 → +1 LUK**「看來我挺幸運」popup
-- **連 5 次全勝 → 幸運之星 (+5 LUK passive)**
-
-### E. 赫克特好感修（順手做）
-
-- 友善路線練 DEX → chance 45% → **65%**
-- 訓練協力爆擊（synergyMult > 1.0）+ matchAttr → bypass trait mult **保證 +1**
-- 新加 `modAffection(id, delta, { bypassTrait: true })` API
-- 預期 5 場至少 1 hit 機率 44% → **91%**
-
----
-
-## 🎯 明天測試清單（按優先序）
-
-### 🔴 高優先 — 新核心系統
-1. **達官顯貴事件**（最重要）
-   - 起新檔、刷到 Day 30+ winStreak 3 + fame 30
-   - 應該觸發強制戰鬥、看完整對白
-   - 戰勝後檢查 master/officer aff 變動 + flag 解鎖
-2. **三杯賭博**
-   - Day 8+ 多點幾次睡覺、看有沒有人來邀
-   - 玩看看小遊戲、確認動畫流暢、洗牌速度合理
-   - 全勝確認 LUK +1
-3. **盧基烏斯 T2 自悟**
-   - 學了 T1 後在戰鬥中拼命用同一招、用 8 次
-   - AGI 屬性練到 25+
-   - 檢查有沒有跳 ChoiceModal「升級！」
-
-### 🟡 中優先 — 補洞
-4. **梅拉 Layer 1 暗示**：Day 15+ + 戰過 + 梅拉 audience → 觀察晚餐
-5. **老默接話 hook**：高好感老默治療結束後檢查暗示對白
-6. **赫克特好感**：DEX 訓練 5 場、檢查綠光頻率（應該明顯比之前多）
-
-### 🟢 低優先 — 細節
-7. **巴爺喝酒「不告訴」結局**：跑完整條巴爺線、確認拿到老兵之眼 popup
-8. **盧基烏斯隱藏第 5 次**：學完 4 招 + 巴爺主線結束、再去看盧基烏斯
-
----
-
-## 🔮 後續 TODO（按優先序）
-
-### 🟥 高優先 — 進行中的系列
-- **C. 達官顯貴後續延伸**：之後可加「主人邀你陪客人喝酒」「貴客要看你訓練」等小事件
-- **赫克特情報網實際戰鬥效果**：目前只 set flag、戰鬥引擎沒讀（敵 ACC -15% 沒實作）
-- **巴爺腰帶物品**：兩條結局都有提、item.js 還沒定義
-
-### 🟧 中優先 — 中期補完
-- **鍛造師階段 5 雙刃秘法**：需要 `twin_blade_schematic` 書（**書還沒做**、卡死）
-- **觀眾切磋系統完成**（目前只有監督官）：
-  - 卡西烏斯切磋（DEX/CON）
-  - 烏爾沙切磋（CON）
-  - 達吉切磋（WIL）
-- **達吉 / 烏爾沙劇情線**（目前只有 baseAffection、沒專屬事件）
-
-### 🟨 低優先 — 後期收尾
-- **Day 100 萬骸祭結局演出**：8 結局判定有了、但儀式感（音樂 / 大字 popup / 觀眾呼喊）沒做
-- **裝備差決定論**（待設計議題）：低 tier 武器在高 tier 對手前完全無效、要不要讓技巧/屬性翻盤
-
-### 🩹 技術債
-- **戰敗 wound + onLose -40% HP 重複懲罰**（clamp 0 沒事但邏輯髒）
-- **bloodlust 改為「狂戰士」劇情特性**（之前收掉、要做新管道放回）
-- **被動「反擊」(counter) vs 主動「反擊」(riposte) 名稱衝突 UI 區分**
-- **Stage.popupBig 共用元件擴大使用**（學技能 / 強敵擊倒 / 里程碑）
-- **盧基烏斯 T4 自創招式 CON 主導沒效果**（目前只看 AGI/DEX/WIL）
-
----
-
-## 📁 今天動到的檔案
-
+### 1. 戰鬥成長 log
+任何戰鬥結束後 → 戰鬥畫面 log 跑出：
 ```
-src/content/skill.js          — 4 拳法 T1 + 8 拳法 T2/T3 + luciusT4 + luckyStar
-src/npc/lucius_events.js      — T1 學招 + T2/T3 自悟 + T4 自創 + 第 5 次隱藏
-src/npc/overseer_events.js    — 達官顯貴主流程 + 梅拉 Layer 1 + 老兵之眼授予
-src/npc/doctor_events.js      — _performWoundHeal 加 tryDoctorHint hook
-src/npc/npc.js                — modAffection 加 bypassTrait 旗標
-src/main.js                   — 達官顯貴 hook + 梅拉 hook + 赫克特好感修 +
-                                睡前賭博 hook + 隊友協力爆擊 +1 aff
-src/battle/battle.js          — 4 拳法 T1 hook + T2/T3 升級 effect 動態讀 +
-                                T4 自創 hook + 敵人 stun 跳回合
-src/minigames/shells_game.js  — 新檔案、三杯藏球小遊戲
-src/quests/gambling_quest.js  — 新檔案、賭局觸發 + 結算 + 幸運之星
-game.html                     — 加 shells_game.js / gambling_quest.js script
+◈ 戰鬥成長：STR +X / DEX +Y / AGI +Z / CON +W
+```
+也會在訓練場 log 跑「**【戰鬥成長】**」綠字。
+
+### 2. 評分加成
+競技場勝利 + S 評 → 全屬性 +8 EXP（含 LUK +4）
+A 評 → +5 / B 評 → +3 / C 不加。
+
+### 3. 連勝獎勵（達 3/5/7/10 觸發）
+連勝 3 場 → 戰後 log 大字框：
+```
+╔═══ 3 連勝獎勵 ═══╗
+  全屬性 +5 EXP　STR 額外 +20　名聲 +5
+╚════════════════════╝
+```
+連 5 → +10 / +40、設 flag `combat_fervor_streak_unlocked`
+連 7 → +15 / +60 / +20 名聲、跳「你最近⋯⋯不太一樣了」
+連 10 → +25 / +100 + 解鎖隱藏特性【嗜血之吼】
+
+### 4. bloodRoar 開場 ATK +5%
+獲得【嗜血之吼】後、每場戰鬥開頭 log：
+```
+🩸 【嗜血之吼】開場 ATK X → Y（+5%）
 ```
 
+### 5. Sparring 也算連勝、屬性 EXP 給一半
+切磋戰勝 → 連勝 +1、但 EXP 全部 ×0.5。
+
+### 6. 防刷
+- 受 5 次重擊（≥ HP 10%）後 CON 不再加（單場硬上限）
+- 任何單屬性單場硬上限 +30 EXP（不會更多）
+
+### 已知小問題（明天可決定要不要修）
+- ❌ **首勝甜頭**（首次擊敗 rookie/gladB/vet/champion → 對應主屬性 +20）— 規格寫了但 Phase 1 未實作（要 enemy.tier 或 fame 分級邏輯）
+- ❌ **同對手 24h 第二次戰勝 30%** — 規格寫了但 Phase 1 未實作（要追蹤 `lastBeatenTime[oppId]`）
+- ⚠️ Phase 1 未追蹤 `combatFervor`、所以 `戰利品觸發機率 +10%` 未生效（要 Phase 2 戰鬥狂熱實作後才會用到）
+
 ---
 
-## 🚧 已知小問題（明天測試時注意）
+## 🎯 明天開工：先做這個
 
-1. **三杯賭博動畫**：杯子 swap 後 DOM 順序 + 球邏輯位置可能有 bug、實測再確認
-2. **達官顯貴強制戰鬥的 timing**：用 setTimeout 300ms 給 DialogueModal 關時間、可能會有 race
-3. **赫克特情報網的戰鬥加成**（敵 ACC -15%）目前沒實作、只有 flag
+### 優先順序（4 個 Phase 候選、user 自選）
+
+#### **A. 戰鬥狂熱 `COMBAT_fervor`** ⭐ 我推薦先做
+**為什麼**：跟今天剛做的連勝/EXP 同一系統、立刻把刷裝/刷戰鬥動機補上。  
+**規格**：[docs/systems/battle-attr-gain.md](docs/systems/battle-attr-gain.md) § 6  
+**改的檔案**：`src/systems/compulsion.js`（IIFE 名 Fervor、加第 6 種）  
+**核心邏輯**：
+- 觸發：3 天內戰鬥 ≥ 5 場（自然）OR 5 連勝（強制）
+- 期間 buff：戰鬥 EXP +50% / 命中 +5% / 暴擊 +3% / 戰勝 mood +5 / 訓練 EXP -25%
+- 維持：每天必打 1 場
+- 漏 1 天 mood -3 / 漏 2 天 mood -8 / 漏 3 天結束 + mood -10 + WIL +20「也清醒了」+ 5 天冷卻
+- 累積 8 場戰鬥自然結束 + 主屬性 +20 EXP
+- UI 跟現有 5 種狂熱共用主畫面左上金色徽章
+
+**估時**：3-4 小時（中等複雜度）
 
 ---
 
-## 📚 之前完成的歷史（上次更新前）
+#### **B. 品質系統 Phase 1（無詞綴）**
+**為什麼**：是裝備重構的基礎、所有後續（詞綴 / 鐵匠鋪 / 競技場掉落 / 主人賜）都依賴它。  
+**規格**：[docs/systems/equipment-rework.md](docs/systems/equipment-rework.md) § 2 + § 8 + § 9 Phase 1  
+**改的檔案**：
+- 新：`src/systems/equipment_quality.js`（getQualityMult、formatName、constants）
+- 改：`src/content/weapons.js` / `src/content/armors.js`（加 quality / baseQuality 欄位）
+- 改：玩家裝備物件存 `quality` 屬性
+- 改：`src/battle/battle.js`（`TB_buildUnit` 讀 quality 計算 ATK/DEF）
+- 改：`src/main.js`（裝備 picker / hover tooltip 顯示品質顏色）
+- 改：`save_system.js`（migration：舊存檔自動補 quality:'common'）
 
-- **2026-04-25 v10 監督官巴爺主線 Phase A-E** — 鋪墊期 / 曖昧任務 / 卡西烏斯補刀 / 偷聽密謀 / 喝酒選擇都實作
-- **盧基烏斯空手線 T1** — 4 招 + 觸發鏈 + 善意 EXP 階梯（DEX/AGI/WIL bonus）
-- **NPC 新血池 + 觀眾溢位區** — STR/AGI 缺口補、聚合顯示
-- **主動技能戰鬥引擎** — 4 主動（強力斬/嘲諷/反擊/戰吼）+ weaponClass + 技能列 UI
-- **房間系統真正生效** — 3 tier 加成 + 兄弟在側擴大判定
-- **奧蘭人脈生 fame** — orlan aff ≥ 50 → 12% 機率 +8~15 fame
+**估時**：4-6 小時（牽涉多檔案）
 
-明天測完回報哪邊壞、哪邊不順 🌙
+---
+
+#### **C. 葛拉鐵匠鋪 UI + 塔倫解鎖事件**
+**為什麼**：解「葛拉曝光太少 / 武器升級全卡死」痛點、玩家有主動權。  
+**規格**：[docs/systems/equipment-rework.md](docs/systems/equipment-rework.md) § 4.2  
+**改的檔案**：
+- 改：`src/npc/blacksmith_events.js`（加塔倫解鎖事件 + 鋪內 modal）
+- 新：玩家欄位 `gra_credit`（葛拉信用點）
+- 新：modal UI（強化品質 / 升 Tier / 鍛新詞綴 / 上交裝備）
+
+**前置**：要先做 B（品質系統）才能強化品質。如果先單做 C，只能做「升 Tier + 上交」基礎版。
+
+**估時**：5-7 小時（UI 工作量大）
+
+---
+
+#### **D. 詞綴系統**
+**規格**：[docs/systems/equipment-rework.md](docs/systems/equipment-rework.md) § 3  
+**前置**：B 品質系統完成。
+**估時**：3-4 小時
+
+---
+
+### 我的推薦動工順序
+
+1. **明天**：A 戰鬥狂熱（3-4 小時、跟剛做完的連動）
+2. **後天**：B 品質系統 Phase 1
+3. **後後天**：C 葛拉鋪 UI（依賴 B）
+4. **再後**：D 詞綴系統（依賴 B）
+
+---
+
+## 📂 必看的文件（明天醒來先看）
+
+按重要性排序：
+
+1. **這份 NEXT.md**（你現在看的）
+2. **[CLAUDE.md](CLAUDE.md)**（專案約定、自動讀）
+3. **[docs/systems/battle-attr-gain.md](docs/systems/battle-attr-gain.md)** § 6 — 戰鬥狂熱規格
+4. **[docs/systems/equipment-rework.md](docs/systems/equipment-rework.md)** — 裝備重構主規格
+5. **[docs/CODEX.md](docs/CODEX.md)** § 旗標字典 / § 數字速查表 — 已加新章節「裝備重構 flag」「戰鬥 EXP 加成」「COMBAT_fervor 規格」
+
+---
+
+## 🐛 上線前 todo（暫不處理）
+
+跟今天無關、但提醒自己：
+
+1. 葛拉鋪 UI 完成後、CLAUDE.md「Debug 工具清單」加新項目
+2. `combat_streak_max` flag 之後可在角色頁顯示成就
+3. 戰鬥 EXP 100 天後驗證：平均屬性是否在 35-40（如果 > 45 砍 30%、< 30 加 30%）
+4. `bloodRoar` 取得後可考慮加結局判定（10 連勝路線）
+5. asset/image/blacksmith.png 是 untracked、不知道是哪個資產、等 user 確認再 commit
+
+---
+
+## 💤 user 留言給明天的自己
+
+「**今天裝備設計都討論完了、3 份 doc 落地了、戰鬥 EXP Phase 1 也跑得起來。
+明天起來先測一下戰鬥成長 log 有沒有跳出來、然後挑一個 Phase 開始做（推 A）。**」
