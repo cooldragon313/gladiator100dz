@@ -323,8 +323,13 @@ const OverseerEvents = (() => {
     }
 
     // 開戰（hack：用 setTimeout 給 DialogueModal 完全關閉的時間）
+    // 🆕 2026-04-27 sparring: true — 訓練場內表演對決、不是公開競技場
+    //   → 不開斬首面板（砍首/踩臉/饒恕）
+    //   → 不算觀眾爽度（crowdMood 不影響）
+    //   → 不顯示 S/A/B/C 評分
+    //   → 戰勝直接走「返回按鈕 → _onMorrasWin」流程
     setTimeout(() => {
-      Battle.start('morras_ironarm', _onMorrasWin, _onMorrasLose);
+      Battle.start('morras_ironarm', _onMorrasWin, _onMorrasLose, { sparring: true });
     }, 300);
   }
 
