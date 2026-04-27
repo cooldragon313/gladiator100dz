@@ -101,7 +101,7 @@ const ShellsGame = (() => {
         justify-content: center;
         margin-bottom: 24px;
         position: relative;
-        height: 120px;
+        height: 180px;   /* 🆕 留空間給弧線動畫 */
       }
       .shell-cup {
         width: 80px;
@@ -113,6 +113,22 @@ const ShellsGame = (() => {
         position: relative;
         transition: transform .15s, border-color .15s;
         box-shadow: 0 4px 12px rgba(0,0,0,.5);
+      }
+      /* 🆕 2026-04-27 繞上 / 繞下的弧線洗牌動畫
+         避免兩杯直線平移重疊、玩家追不到 */
+      @keyframes shell-arc-over {
+        0%   { transform: translate(0, 0); }
+        25%  { transform: translate(calc(var(--dx) * 0.25), -60px); }
+        50%  { transform: translate(calc(var(--dx) * 0.5),  -75px); }
+        75%  { transform: translate(calc(var(--dx) * 0.75), -60px); }
+        100% { transform: translate(var(--dx), 0); }
+      }
+      @keyframes shell-arc-under {
+        0%   { transform: translate(0, 0); }
+        25%  { transform: translate(calc(var(--dx) * 0.25),  60px); }
+        50%  { transform: translate(calc(var(--dx) * 0.5),   75px); }
+        75%  { transform: translate(calc(var(--dx) * 0.75),  60px); }
+        100% { transform: translate(var(--dx), 0); }
       }
       .shell-cup:hover { border-color: #d4af37; }
       .shell-cup.lifted {
@@ -203,13 +219,15 @@ const ShellsGame = (() => {
     const cups = Array.from(document.querySelectorAll('.shell-cup'));
     cups.forEach(c => c.classList.add('shuffling'));
 
-    const shuffleCount = Math.min(15, 3 + Math.floor(roundDEX * 0.3));
-    const stepMs = Math.max(400, (2500 - roundDEX * 80) * speedMult / shuffleCount);
+    // 🆕 2026-04-27 大幅放慢 + 減少 swap 次數（之前快到不科學）
+    //   shuffleCount: 4 ~ 8（依 DEX）
+    //   stepMs: 最低 800ms、最高 1400ms
+    const shuffleCount = Math.min(8, 3 + Math.floor(roundDEX * 0.15));
+    const stepMs = Math.max(800, Math.round(1400 * speedMult));
 
     let step = 0;
     function _doSwap() {
       if (step >= shuffleCount) {
-        // 結束、進入猜測階段
         cups.forEach(c => c.classList.remove('shuffling'));
         _phase = 'guess';
         document.getElementById('shells-status').textContent = '⋯⋯點擊一個杯子！';
@@ -218,32 +236,35 @@ const ShellsGame = (() => {
         });
         return;
       }
-      // 隨機 swap 兩個杯子（必含當前 _ballPos 一個的可能更高、純隨機）
       let a = Math.floor(Math.random() * 3);
       let b = Math.floor(Math.random() * 3);
       while (b === a) b = Math.floor(Math.random() * 3);
 
-      // 視覺：兩杯互換位置（用 CSS transform）
       const cupA = cups[a], cupB = cups[b];
       const rectA = cupA.getBoundingClientRect();
       const rectB = cupB.getBoundingClientRect();
       const dx = rectB.left - rectA.left;
 
-      cupA.style.transition = `transform ${stepMs}ms ease`;
-      cupB.style.transition = `transform ${stepMs}ms ease`;
-      cupA.style.transform = `translateX(${dx}px)`;
-      cupB.style.transform = `translateX(${-dx}px)`;
+      // 🆕 用 CSS keyframes 弧線動畫：cupA 繞上 / cupB 繞下
+      //   兩杯不會視覺重疊、玩家可以清楚追到
+      cupA.style.setProperty('--dx', dx + 'px');
+      cupB.style.setProperty('--dx', (-dx) + 'px');
+      cupA.style.animation = `shell-arc-over ${stepMs}ms ease-in-out`;
+      cupB.style.animation = `shell-arc-under ${stepMs}ms ease-in-out`;
 
       // 球追蹤：邏輯上 swap
       if (_ballPos === a) _ballPos = b;
       else if (_ballPos === b) _ballPos = a;
 
-      // 動畫結束後重置位置 + 在 DOM 順序也 swap
       setTimeout(() => {
-        cupA.style.transition = '';
-        cupB.style.transition = '';
+        // 清掉動畫、把 dx 寫進 transform 暫存最終位置
+        cupA.style.animation = '';
+        cupB.style.animation = '';
         cupA.style.transform = '';
         cupB.style.transform = '';
+        cupA.style.removeProperty('--dx');
+        cupB.style.removeProperty('--dx');
+
         // 真正交換 DOM 順序
         const parent = cupA.parentNode;
         const aIdx = Array.from(parent.children).indexOf(cupA);
@@ -253,19 +274,9 @@ const ShellsGame = (() => {
         } else {
           parent.insertBefore(cupA, cupB);
         }
-        // 重新對應 cups 順序
         const newCupOrder = Array.from(parent.children);
         cups.length = 0;
         newCupOrder.forEach(c => cups.push(c));
-        // _ballPos 也要按新 DOM 順序更新
-        const oldA = a, oldB = b;
-        // 實際上 _ballPos 是「邏輯位置」、跟 DOM 順序無關
-        // 但 _onGuess 接收的是點擊的 DOM index — 我們需要保持兩者一致
-        // 簡化：每次 swap 後、_ballPos 用新 cups 陣列重新映射
-        // 實際做法：球永遠跟著它原本的 cup DOM、_ballPos 是 cup 在新陣列裡的 index
-        // 重新計算 _ballPos：
-        // 邏輯 swap 已 update（line 217），但 cups 陣列順序也要對得上
-        // 簡化：cups[]  跟 DOM children 同步、_ballPos 不需再變
         step++;
         _doSwap();
       }, stepMs);
