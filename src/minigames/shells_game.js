@@ -219,11 +219,13 @@ const ShellsGame = (() => {
     const cups = Array.from(document.querySelectorAll('.shell-cup'));
     cups.forEach(c => c.classList.add('shuffling'));
 
-    // 🆕 2026-04-27 大幅放慢 + 減少 swap 次數（之前快到不科學）
-    //   shuffleCount: 4 ~ 8（依 DEX）
-    //   stepMs: 最低 800ms、最高 1400ms
+    // 🆕 2026-04-27 v2：拉快速度（v1 的 800-1400ms 太慢、玩家覺得不對）
+    //   shuffleCount: 4 ~ 8（依 DEX 不變）
+    //   stepMs: 最低 400ms、基礎 600ms
+    //   範例：DEX 34 (speedMult 0.85)、正常場 = max(400, 510) = 510ms
+    //         場 1 簡單（×1.5）= 765ms、場 3 困難（×0.8）= 480ms
     const shuffleCount = Math.min(8, 3 + Math.floor(roundDEX * 0.15));
-    const stepMs = Math.max(800, Math.round(1400 * speedMult));
+    const stepMs = Math.max(400, Math.round(600 * speedMult));
 
     let step = 0;
     function _doSwap() {
