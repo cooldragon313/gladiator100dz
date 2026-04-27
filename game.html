@@ -628,14 +628,100 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* 中央舞台（留空，背景透出） — 🆕 2026-04-23：absolute 填滿 npc-area，讓上下區浮在上面不擠 */
-#stage-center {
+/* 中央舞台 + recruit 右側列表 wrapper */
+#stage-center-wrap {
   position: absolute;
   inset: 10px 14px;
   z-index: 1;
   display: flex;
+  flex-direction: row;
+  gap: 10px;
+}
+#stage-center {
+  flex: 1;
+  display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* 🆕 2026-04-27 recruit 協力直立列表（右側） */
+#recruit-side-list {
+  width: 110px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+  flex-shrink: 0;
+  pointer-events: auto;
+}
+.recruit-side-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  background: rgba(0,0,0,.35);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+  opacity: .5;             /* 默認暗色 */
+}
+.recruit-side-item .recruit-portrait {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3a2a1c, #1a0e08);
+  border: 1px solid #5a4028;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: bold;
+  color: #c8a060;
+  flex-shrink: 0;
+}
+.recruit-side-item .recruit-name {
+  font-size: 11px;
+  color: var(--text-dim);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: .02em;
+}
+.recruit-side-item .recruit-attr-tag {
+  font-size: 9px;
+  font-weight: bold;
+  padding: 1px 3px;
+  background: rgba(0,0,0,.4);
+  border-radius: 2px;
+  letter-spacing: .05em;
+  flex-shrink: 0;
+}
+/* aff 三段色階 */
+.recruit-side-item.aff-tier-1 {
+  opacity: 1;
+  border-color: #44aa44;
+  box-shadow: 0 0 6px rgba(68, 170, 68, .35);
+}
+.recruit-side-item.aff-tier-1 .recruit-portrait { border-color: #66cc66; color: #99dd99; }
+.recruit-side-item.aff-tier-2 {
+  opacity: 1;
+  border-color: #66cc66;
+  box-shadow: 0 0 10px rgba(68, 200, 68, .55);
+}
+.recruit-side-item.aff-tier-2 .recruit-portrait { border-color: #88dd88; color: #bbeebb; }
+.recruit-side-item.aff-tier-3 {
+  opacity: 1;
+  border-color: #d4af37;
+  box-shadow: 0 0 14px rgba(212, 175, 55, .65);
+  animation: recruit-gold-pulse 2.4s ease-in-out infinite;
+}
+.recruit-side-item.aff-tier-3 .recruit-portrait { border-color: #ffe070; color: #ffe070; }
+@keyframes recruit-gold-pulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(212, 175, 55, .45); }
+  50%      { box-shadow: 0 0 18px rgba(255, 224, 112, .8); }
 }
 @keyframes battle-btn-pulse {
   0%, 100% { box-shadow: 0 0 24px rgba(192,57,43,.45), inset 0 0 16px rgba(192,57,43,.15); }
@@ -4407,8 +4493,12 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
           <div id="synergy-bubbles"></div>
         </div>
 
-        <!-- 中央：空舞台（背景圖透出） -->
-        <div id="stage-center"></div>
+        <!-- 中央：空舞台（背景圖透出）+ 右側 recruit 協力列表 -->
+        <div id="stage-center-wrap">
+          <div id="stage-center"></div>
+          <!-- 🆕 2026-04-27 recruit 協力人像直立列表 -->
+          <div id="recruit-side-list"></div>
+        </div>
 
         <!-- 底部：觀眾區 -->
         <div id="audience-zone">

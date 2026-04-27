@@ -515,10 +515,176 @@ const OverseerEvents = (() => {
         },
       ],
     }, {
-      onChoose: () => {
+      onChoose: (choiceId) => {
         Flags.increment('tarren_orders_completed', 1);
+        // 🆕 2026-04-27 選了「遵命」或「了解」→ 觸發切磋出陰招場景
+        if (choiceId === 'obey' || choiceId === 'eager') {
+          // 標記目標、下次切磋自動播
+          Flags.set('tarren_order1_target', targetId);
+          Flags.set('tarren_order1_active', true);
+          // 立刻觸發、不等
+          setTimeout(() => _playSparringSneakyScene(targetId, targetName), 800);
+        }
       }
     });
+  }
+
+  // ══════════════════════════════════════════════════
+  // 🆕 2026-04-27 切磋出陰招場景（指令 1 obey/eager 後立刻觸發）
+  // 設計：正面切磋場合、反差感、出陰招對方知道
+  //   為了上位連自己朋友都犧牲、不可逆道德軸打擊
+  // ══════════════════════════════════════════════════
+  function _playSparringSneakyScene(targetId, targetName) {
+    if (typeof DialogueModal === 'undefined') {
+      _completeSneakyDefault(targetId, targetName);
+      return;
+    }
+    DialogueModal.play([
+      { text: '（隔天訓練。塔倫長官把你跟 ' + targetName + ' 推上沙場。）' },
+      { speaker: '塔倫長官', text: '今天切磋。打吧。' },
+      { text: '（其他人圍過來看。' + targetName + ' 拿起木劍、笑了一下。）' },
+      { speaker: targetName, text: '⋯⋯切磋啊。手下留情點。' },
+      { text: '（你站著、握著木劍。塔倫在邊上看你。）' },
+      { text: '（你知道他在等你做什麼。）' },
+    ], {
+      onComplete: () => _showSneakyChoice(targetId, targetName),
+    });
+  }
+
+  function _showSneakyChoice(targetId, targetName) {
+    if (typeof ChoiceModal === 'undefined') return;
+    const target = (typeof teammates !== 'undefined') ? teammates.getNPC(targetId) : null;
+    const hasInjury = (typeof Stats !== 'undefined' && Stats.player && Array.isArray(Stats.player.ailments))
+                       ? Stats.player.ailments.some(a => target && a.includes('injury')) : false;
+    // 簡化：對方有 ailment 才解鎖打舊傷選項（用玩家 ailments fallback、不準但能跑）
+    const targetHasWound = target && target.alive !== false;   // 偷懶判定、之後可細化
+
+    ChoiceModal.show({
+      id: 'sparring_sneak_' + targetId,
+      icon: '⚔',
+      title: '切磋場上',
+      body: `你跟 ${targetName} 在沙場上對峙。\n塔倫長官在邊上看著。`,
+      forced: true,
+      choices: [
+        {
+          id: 'normal',
+          label: '正常切磋（不下陰招）',
+          hint: '（你決定不下這種手）',
+          effects: [
+            { type: 'affection', key: 'officer', delta: -3 },
+            { type: 'vital', key: 'mood', delta: 3 },
+            { type: 'moral', axis: 'reliability', side: 'positive' },
+          ],
+          resultDialogue: [
+            { text: '（你打出正常的切磋招數、沒下陰招。）' },
+            { text: '（兩人交手十幾招、平手收場。）' },
+            { speaker: targetName, text: '哈、不錯。' },
+            { speaker: '塔倫長官', text: '⋯⋯' },
+            { text: '（塔倫沒說話、轉身走了。但你知道他記下你「不聽話」這一筆。）' },
+          ],
+          resultLog: '你選擇了不下陰招。塔倫不滿、但你保住了底線。',
+          logColor: '#9a8a8a',
+        },
+        {
+          id: 'sand',
+          label: '丟沙迷眼 ⚠',
+          hint: '（撈一把沙、趁機打他）',
+          effects: [
+            { type: 'affection', key: 'officer', delta: 5 },
+            { type: 'affection', key: targetId, delta: -30 },
+            { type: 'moral', axis: 'reliability', side: 'negative', weight: 2 },
+            { type: 'vital', key: 'mood', delta: -5 },
+            { type: 'flag', key: 'sneaky_used_sand_' + targetId },
+          ],
+          resultDialogue: [
+            { text: '（你佯裝撤退、低頭撈了一把沙。）' },
+            { text: '（趁 ' + targetName + ' 揮劍的瞬間——你揚起手。）', effect: 'shake' },
+            { text: '（沙子撒進他眼睛裡。）', effect: 'shake-and-flash' },
+            { speaker: targetName, text: '靠！' },
+            { text: '（他蒙眼、你立刻一棍打在他肩上。他踉蹌倒地。）', effect: 'shake' },
+            { text: '（沙場一片靜默。）' },
+            { speaker: targetName, text: '⋯⋯你他媽的。', color: '#cc4444' },
+            { text: '（他擦著眼睛、瞪著你。）' },
+            { speaker: targetName, text: '⋯⋯這不是切磋。這是陰招。', color: '#cc4444' },
+            { text: '（其他人都看到了。沒人說話。）' },
+            { text: '（塔倫笑著走過來、拍你肩膀。）' },
+            { speaker: '塔倫長官', text: '⋯⋯有意思。下次見。' },
+            { text: '（' + targetName + ' 沒再看你一眼。從此他知道你是這種人。）', color: '#aa6666' },
+            { speaker: '主角', text: '⋯⋯這就是我？', color: '#cc8866' },
+          ],
+          resultLog: `你下了陰招。${targetName} 知道是你。從此他會記得。`,
+          logColor: '#cc6633',
+        },
+        {
+          id: 'old_wound',
+          label: '打他舊傷處 ⚠⚠',
+          hint: '（瞄準他剛包紮過的位置）',
+          requireFlag: null,   // 之後可加條件、現在開放
+          effects: [
+            { type: 'affection', key: 'officer', delta: 8 },
+            { type: 'affection', key: targetId, delta: -40 },
+            { type: 'moral', axis: 'mercy', side: 'negative', weight: 2 },
+            { type: 'moral', axis: 'reliability', side: 'negative', weight: 1 },
+            { type: 'vital', key: 'mood', delta: -10 },
+            { type: 'flag', key: 'sneaky_hit_wound_' + targetId },
+          ],
+          resultDialogue: [
+            { text: '（你看見他肋骨上還有未癒的紗布。）' },
+            { text: '（你假裝失手、棍子直直落下——）', effect: 'shake' },
+            { text: '（——精準地砸在他舊傷處。）', effect: 'shake-and-flash' },
+            { speaker: targetName, text: '啊——!', color: '#cc4444' },
+            { text: '（他蜷縮倒地、嘔出一口血。）', effect: 'shake' },
+            { text: '（沙場一片死寂。連塔倫都頓了一下。）' },
+            { speaker: targetName, text: '⋯⋯你⋯⋯你他媽⋯⋯', color: '#cc4444' },
+            { text: '（他喘不過氣、但他知道。他知道是故意的。）', color: '#aa3333' },
+            { text: '（其他人退開。沒人想跟你眼神接觸。）' },
+            { text: '（塔倫走過來、笑得很滿意。）' },
+            { speaker: '塔倫長官', text: '⋯⋯狠。我喜歡。', color: '#cc7744' },
+            { text: '（' + targetName + ' 被人扶下場。他從沒回頭。）', color: '#aa6666' },
+            { speaker: '主角', text: '⋯⋯為了爬上去、我連朋友都打了。', color: '#cc8866' },
+            { speaker: '主角', text: '⋯⋯這就是我要的活法？', color: '#cc8866' },
+          ],
+          resultLog: `你打了 ${targetName} 的舊傷。他不會再原諒你。`,
+          logColor: '#aa3333',
+          resultEffect: 'shake-and-flash',
+        },
+        {
+          id: 'walk_away',
+          label: '⋯⋯放下武器、退出',
+          hint: '（你站在那、最後沒動手）',
+          effects: [
+            { type: 'affection', key: 'officer', delta: -8 },
+            { type: 'affection', key: targetId, delta: 5 },
+            { type: 'moral', axis: 'reliability', side: 'positive', weight: 2 },
+            { type: 'vital', key: 'mood', delta: 5 },
+          ],
+          resultDialogue: [
+            { text: '（你看著手裡的木劍、看著對面的 ' + targetName + '。）' },
+            { text: '（你放下武器、轉身走出沙場。）' },
+            { speaker: '塔倫長官', text: '⋯⋯你他媽幹什麼？' },
+            { text: '（你沒回應。' + targetName + ' 站在那、表情複雜。）' },
+            { speaker: targetName, text: '⋯⋯' },
+            { text: '（他知道你猶豫了。他也知道為什麼。）' },
+            { text: '（從此他對你的態度會不一樣。但塔倫⋯⋯不會。）' },
+          ],
+          resultLog: '你放下了武器。塔倫記恨、但你保住了自己。',
+          logColor: '#88cc77',
+        },
+      ],
+    }, {
+      onChoose: () => {
+        Flags.unset('tarren_order1_active');
+      }
+    });
+  }
+
+  function _completeSneakyDefault(targetId, targetName) {
+    // 沒 DialogueModal 環境時的 fallback
+    if (typeof teammates !== 'undefined') {
+      teammates.modAffection(targetId, -25);
+      teammates.modAffection('officer', +5);
+    }
+    _log(`你跟 ${targetName} 切磋時下了陰招。他知道是你。`, '#cc6633', true);
   }
 
   // ─── 指令 2：對主人說謊報訓練狀況 ──────────────────

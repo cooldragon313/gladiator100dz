@@ -1354,62 +1354,57 @@ const Game = (() => {
   }
 
   // ── NPC slots ─────────────────────────────────────────
-  // 🆕 2026-04-27 重構：前 N 格給有名字的劇情 teammate（current daily roll）、
-  //   後面剩下的格子塞 recruit 聚合（按屬性分組顯示「STR ×2」）
+  // 🆕 2026-04-27 重構 v2：
+  //   隊友 6 大格全給命名 NPC（不再聚合 recruit）
+  //   Recruit 改成右側獨立列表 #recruit-side-list（頭像 + aff 色階）
   function renderNPCSlots() {
-    // Step 1: 收集當日命名 teammate（最多 6）
+    // Step 1: 渲染 6 隊友大格（純命名 NPC）
     const namedTms = (currentNPCs.teammates || []).slice(0, 6);
-
-    // Step 2: 收集 active recruit、按屬性聚合
-    const recruitGroups = (typeof RecruitPool !== 'undefined' && RecruitPool.getActiveByAttr)
-                            ? RecruitPool.getActiveByAttr()
-                            : { STR: [], DEX: [], CON: [], AGI: [], WIL: [] };
-    // 過濾掉空組、轉成顯示用陣列
-    const groupArr = Object.entries(recruitGroups)
-      .filter(([attr, list]) => list.length > 0)
-      .map(([attr, list]) => ({ attr, list }));
-
-    // Step 3: 渲染 6 格 — 命名 NPC 優先、剩下放聚合卡
-    let slotIdx = 0;
-    for (const npcId of namedTms) {
-      if (slotIdx >= 6) break;
-      const slot = document.getElementById('tm-slot-' + slotIdx);
-      if (!slot) { slotIdx++; continue; }
-      const npc = teammates.getNPC(npcId);
-      slot.classList.add('occupied');
-      slot.classList.remove('empty', 'recruit-group');
-      const favorBadge = npc?.favoredAttr
-        ? `<span class="npc-favor-badge">${npc.favoredAttr}</span>`
-        : '';
-      slot.innerHTML = `<span class="npc-role-tag">${npc?.title || '隊友'}</span><span class="npc-name">${npc ? npc.name : npcId}</span>${favorBadge}`;
-      slot.onclick = () => onNPCClick(npcId);
-      slotIdx++;
-    }
-    // 接下來放聚合卡
-    for (const grp of groupArr) {
-      if (slotIdx >= 6) break;
-      const slot = document.getElementById('tm-slot-' + slotIdx);
-      if (!slot) { slotIdx++; continue; }
-      const names = grp.list.map(r => r.name).join(' / ');
-      slot.classList.add('occupied', 'recruit-group');
-      slot.classList.remove('empty');
-      slot.innerHTML = `
-        <span class="npc-role-tag">同訓</span>
-        <span class="npc-name recruit-attr-name">${grp.attr} ×${grp.list.length}</span>
-        <span class="recruit-list-mini">${names}</span>
-      `;
-      slot.title = `${grp.attr} 協力者：${names}`;
-      slot.onclick = null;   // 之後可加聚合 panel
-      slotIdx++;
-    }
-    // 剩下空格
-    for (; slotIdx < 6; slotIdx++) {
-      const slot = document.getElementById('tm-slot-' + slotIdx);
+    for (let i = 0; i < 6; i++) {
+      const slot = document.getElementById('tm-slot-' + i);
       if (!slot) continue;
-      slot.classList.remove('occupied', 'recruit-group');
-      slot.classList.add('empty');
-      slot.innerHTML = '<span class="npc-empty-label">—</span>';
-      slot.onclick = null;
+      const npcId = namedTms[i];
+      if (npcId) {
+        const npc = teammates.getNPC(npcId);
+        slot.classList.add('occupied');
+        slot.classList.remove('empty', 'recruit-group');
+        const favorBadge = npc?.favoredAttr
+          ? `<span class="npc-favor-badge">${npc.favoredAttr}</span>`
+          : '';
+        slot.innerHTML = `<span class="npc-role-tag">${npc?.title || '隊友'}</span><span class="npc-name">${npc ? npc.name : npcId}</span>${favorBadge}`;
+        slot.onclick = () => onNPCClick(npcId);
+      } else {
+        slot.classList.remove('occupied', 'recruit-group');
+        slot.classList.add('empty');
+        slot.innerHTML = '<span class="npc-empty-label">—</span>';
+        slot.onclick = null;
+      }
+    }
+
+    // Step 2: 右側 recruit 列表（每 recruit 一個頭像、aff 三段色階）
+    const sideList = document.getElementById('recruit-side-list');
+    if (sideList) {
+      const recruits = (typeof RecruitPool !== 'undefined' && RecruitPool._getActiveRecruits)
+                         ? RecruitPool._getActiveRecruits() : [];
+      sideList.innerHTML = recruits.map(r => {
+        const aff = (typeof teammates !== 'undefined') ? teammates.getAffection(r.id) : 0;
+        let tierCls = '';
+        if (aff >= 90) tierCls = 'aff-tier-3';
+        else if (aff >= 60) tierCls = 'aff-tier-2';
+        else if (aff >= 30) tierCls = 'aff-tier-1';
+        const initial = r.name.charAt(0);
+        return `
+          <div class="recruit-side-item ${tierCls}" data-recruit-id="${r.id}" title="${r.name} (${r.favoredAttr}) · 好感 ${aff}">
+            <div class="recruit-portrait">${initial}</div>
+            <span class="recruit-name">${r.name}</span>
+            <span class="recruit-attr-tag">${r.favoredAttr}</span>
+          </div>
+        `;
+      }).join('');
+      // 點擊個別 recruit 顯示資訊
+      sideList.querySelectorAll('[data-recruit-id]').forEach(el => {
+        el.addEventListener('click', () => onNPCClick(el.dataset.recruitId));
+      });
     }
 
     // 🆕 D.18：背景角鬥士小字條（右側疊著）
@@ -1480,6 +1475,16 @@ const Game = (() => {
     const cur = (typeof GameState !== 'undefined' && GameState.getCurrentNPCs)
                   ? GameState.getCurrentNPCs() : currentNPCs;
     if (!cur) return;
+    // 🆕 2026-04-27 recruit 走獨立側欄、用 data-recruit-id 找
+    const recruitEl = document.querySelector(`#recruit-side-list [data-recruit-id="${npcId}"]`);
+    if (recruitEl) {
+      const cls = (color === 'green') ? 'aff-glow-positive' : 'aff-glow-negative';
+      recruitEl.classList.remove('aff-glow-positive', 'aff-glow-negative');
+      void recruitEl.offsetWidth;
+      recruitEl.classList.add(cls);
+      setTimeout(() => recruitEl.classList.remove(cls), 1200);
+      return;
+    }
     const tmIdx  = (cur.teammates || []).indexOf(npcId);
     let slotEl = null;
     if (tmIdx  >= 0) {
@@ -3104,15 +3109,22 @@ const Game = (() => {
         else if (aff >= 30) storyNpcMult *= 1.3;
       });
 
-      // 🆕 2026-04-27 recruit 協力（同 favoredAttr 每人 ×1.2）
-      //   recruit 沒有複雜好感門檻、純功能性、固定加成
+      // 🆕 2026-04-27 recruit 協力（aff 三段門檻、跟命名 NPC 同邏輯但弱化）
+      //   aff < 30：無協力、暗色
+      //   aff 30：×1.2（綠光）
+      //   aff 60：×1.3（強綠光）
+      //   aff 90：×1.5（金光閃爍）
       if (typeof RecruitPool !== 'undefined' && RecruitPool.getActiveByAttr && trainedAttr) {
         const recruitGroups = RecruitPool.getActiveByAttr();
         const matched = recruitGroups[trainedAttr] || [];
         matched.forEach(r => {
           if (r.alive === false) return;
-          storyNpcMult *= 1.2;   // 每個 +20%
-          partnerCount++;
+          const aff = (typeof teammates !== 'undefined' && teammates.getAffection)
+                        ? teammates.getAffection(r.id) : 0;
+          if      (aff >= 90) { storyNpcMult *= 1.5; partnerCount++; }
+          else if (aff >= 60) { storyNpcMult *= 1.3; partnerCount++; }
+          else if (aff >= 30) { storyNpcMult *= 1.2; partnerCount++; }
+          // aff < 30 = 不協力（純在場、無加成）
         });
       }
 
