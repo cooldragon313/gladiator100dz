@@ -167,7 +167,7 @@ hammer: {
 - **背景圖**：`asset/image/blacksmith.png`（鐵匠鋪內景、火爐 + 鐵砧 + 暗色調）
   - 所有葛拉對話場景共用：進坊、UI、鋪內 ChoiceModal、主武器之路各階段獨白
   - 實作建議：寫一個 `Stage.playForgeBackdrop()` 共用元件、餵這張圖當背景
-- **葛拉大頭照**：待補（鋪 UI 做之前需要、或先用 placeholder）
+- **角色顯示**：**沒大頭照、用名字**（`{ speaker: '葛拉', text: '...' }`）— 跟全遊戲既有 DialogueModal 一致
 - **葛拉開場首句範本**：「今天來幹啥？」（隨好感變化、見階段對白）
 
 #### 解鎖事件：塔倫來交代
