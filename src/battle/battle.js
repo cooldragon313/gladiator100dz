@@ -1657,18 +1657,15 @@ const Battle = (() => {
       expDelta[a] = v;
     });
 
-    // ── 套用 + log ─────────────────────────────────
-    const parts = [];
+    // ── 套用（不再 log，改由 reward panel 顯示）─────
+    const gains = {};
     Object.keys(expDelta).forEach(a => {
       if (expDelta[a] > 0) {
         Stats.modExp(a, expDelta[a]);
-        parts.push(`${a} +${expDelta[a]}`);
+        gains[a] = expDelta[a];
       }
     });
-    if (parts.length) {
-      _appendLog(`◈ 戰鬥成長：${parts.join(' / ')}`, 'log-special');
-      Game.addLog(`【戰鬥成長】${parts.join(' / ')}`, '#88cc77', false);
-    }
+    return Object.keys(gains).length ? gains : null;
   }
 
   // 🆕 2026-04-28 連勝獎勵 — 觸發於 streak 達 3/5/7/10
@@ -1709,22 +1706,260 @@ const Battle = (() => {
     if (fameBonus > 0) Stats.modFame(fameBonus);
     if (traitToGrant) p.traits.push(traitToGrant);
 
-    _appendLog(
-      `\n╔═══ ${streak} 連勝獎勵 ═══╗\n` +
-      `  全屬性 +${allBonus} EXP　${mainAttr} 額外 +${mainBonus}` +
-      (fameBonus ? `　名聲 +${fameBonus}` : '') + `\n` +
-      `╚════════════════════╝`,
-      'log-special'
-    );
-    if (dialog) {
-      Game.addLog(dialog, '#d4af37', false, true);
-      _appendLog(dialog, 'log-special');
-    }
-
     // 紀錄史上最高連勝
     if (typeof Flags !== 'undefined') {
       const prevMax = (typeof Flags.get === 'function') ? (Flags.get('combat_streak_max') || 0) : 0;
       if (streak > prevMax) Flags.set('combat_streak_max', streak);
+    }
+
+    // 回傳 summary 給 reward panel（不再 _appendLog/Game.addLog）
+    return {
+      streak,
+      allBonus,
+      mainBonus,
+      mainAttr,
+      fameBonus,
+      dialog,
+      traitGranted: traitToGrant,
+    };
+  }
+
+  // ══════════════════════════════════════════════════════
+  // 🆕 2026-04-28 戰鬥獎勵畫面 — 戰後彈出、有評分 + 屬性成長 + 連勝獎勵
+  //   設計：給玩家成就感、不只 log 一行
+  // ══════════════════════════════════════════════════════
+  function _ensureRewardStyles() {
+    if (document.getElementById('bt-reward-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'bt-reward-styles';
+    style.textContent = `
+      #bt-reward-panel {
+        position: absolute; inset: 0; z-index: 50;
+        background: rgba(4,2,1,0.92);
+        display: none;
+        align-items: center; justify-content: center;
+        font-family: 'Noto Serif TC', Georgia, serif;
+        animation: btRewardFadeIn 300ms ease-out;
+      }
+      #bt-reward-panel.open { display: flex; }
+      .bt-reward-card {
+        background: linear-gradient(135deg, #1a1410, #0e0a06);
+        border: 2px solid #5a4028;
+        border-radius: 6px;
+        padding: 32px 44px;
+        min-width: 380px; max-width: 480px;
+        box-shadow: 0 0 60px rgba(212, 175, 55, 0.25);
+        animation: btRewardSlideUp 400ms cubic-bezier(0.2, 0.8, 0.3, 1);
+      }
+      .bt-reward-card.win  { border-color: #d4af37; box-shadow: 0 0 80px rgba(212, 175, 55, 0.4); }
+      .bt-reward-card.lose { border-color: #6a3030; box-shadow: 0 0 60px rgba(180, 60, 60, 0.3); }
+      .bt-reward-title {
+        font-size: 20px; font-weight: 900; letter-spacing: .25em;
+        color: #d4af37; text-align: center; margin-bottom: 20px;
+      }
+      .bt-reward-card.lose .bt-reward-title { color: #c08080; }
+      .bt-reward-rating-row {
+        display: flex; justify-content: center; align-items: center;
+        gap: 20px; margin-bottom: 18px;
+        padding: 12px 0; border-bottom: 1px solid #3a2a18;
+      }
+      .bt-reward-rating-letter {
+        font-size: 56px; font-weight: 900; line-height: 1;
+        text-shadow: 0 0 20px currentColor;
+        animation: btRewardLetterPop 500ms cubic-bezier(0.5, 1.5, 0.5, 1) 200ms backwards;
+      }
+      .bt-reward-rating-S { color: #f0d068; }
+      .bt-reward-rating-A { color: #88ccff; }
+      .bt-reward-rating-B { color: #c8a060; }
+      .bt-reward-rating-C { color: #888888; }
+      .bt-reward-rating-D { color: #666666; }
+      .bt-reward-rating-meta {
+        display: flex; flex-direction: column; gap: 4px;
+        font-size: 13px; color: #c8b898;
+      }
+      .bt-reward-rating-meta .bt-reward-fame { color: #f0d068; font-size: 16px; font-weight: 700; }
+      .bt-reward-section {
+        margin-bottom: 16px;
+      }
+      .bt-reward-section-title {
+        font-size: 13px; color: #886655; letter-spacing: .15em;
+        text-align: center; margin-bottom: 10px;
+        padding-bottom: 4px; border-bottom: 1px dashed #3a2a18;
+      }
+      .bt-reward-grid {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px;
+      }
+      .bt-reward-attr {
+        display: flex; justify-content: space-between; align-items: center;
+        font-size: 16px;
+        opacity: 0; animation: btRewardRowIn 400ms ease-out forwards;
+      }
+      .bt-reward-attr-name { color: #e8d8b0; letter-spacing: .1em; font-weight: 700; }
+      .bt-reward-attr-num  { color: #88cc77; font-weight: 900; font-family: monospace; }
+      .bt-reward-attr-num.glow { text-shadow: 0 0 12px #88cc77; }
+      .bt-reward-streak-section {
+        background: linear-gradient(135deg, rgba(180, 30, 30, 0.18), rgba(212, 175, 55, 0.12));
+        border: 1px solid #8b3030;
+        border-radius: 4px; padding: 12px 16px; margin-bottom: 16px;
+        animation: btRewardStreakPulse 1.6s ease-in-out infinite;
+      }
+      .bt-reward-streak-title {
+        font-size: 15px; color: #ff9966; font-weight: 900;
+        text-align: center; letter-spacing: .15em; margin-bottom: 8px;
+      }
+      .bt-reward-streak-text {
+        font-size: 14px; color: #f0d068; text-align: center; line-height: 1.7;
+      }
+      .bt-reward-streak-dialog {
+        font-size: 13px; color: #c8b898; font-style: italic;
+        text-align: center; margin-top: 8px; padding-top: 8px;
+        border-top: 1px dashed rgba(200, 184, 152, 0.2);
+      }
+      .bt-reward-trait-banner {
+        background: linear-gradient(135deg, #2a1010, #4a1a1a);
+        border: 2px solid #c03030;
+        color: #ffaa66; font-weight: 900;
+        padding: 10px 16px; margin-bottom: 16px;
+        text-align: center; letter-spacing: .15em;
+        font-size: 15px;
+        animation: btRewardTraitGlow 1.2s ease-in-out infinite;
+      }
+      .bt-reward-continue {
+        display: block; margin: 20px auto 0;
+        padding: 12px 36px;
+        background: #1a0c04;
+        border: 2px solid #d4af37;
+        color: #f0d878;
+        font-family: inherit; font-size: 17px; font-weight: 900;
+        letter-spacing: .25em;
+        cursor: pointer;
+        transition: background .2s, transform .15s;
+      }
+      .bt-reward-continue:hover {
+        background: #2a1808;
+        transform: scale(1.04);
+        box-shadow: 0 0 24px rgba(212, 175, 55, 0.5);
+      }
+      @keyframes btRewardFadeIn {
+        from { opacity: 0; } to { opacity: 1; }
+      }
+      @keyframes btRewardSlideUp {
+        from { opacity: 0; transform: translateY(40px) scale(0.95); }
+        to   { opacity: 1; transform: translateY(0)    scale(1); }
+      }
+      @keyframes btRewardLetterPop {
+        from { transform: scale(0); opacity: 0; }
+        to   { transform: scale(1); opacity: 1; }
+      }
+      @keyframes btRewardRowIn {
+        from { opacity: 0; transform: translateX(-12px); }
+        to   { opacity: 1; transform: translateX(0); }
+      }
+      @keyframes btRewardStreakPulse {
+        0%, 100% { box-shadow: 0 0 12px rgba(255, 100, 80, 0.3); }
+        50%      { box-shadow: 0 0 24px rgba(255, 100, 80, 0.6); }
+      }
+      @keyframes btRewardTraitGlow {
+        0%, 100% { box-shadow: 0 0 20px rgba(255, 60, 60, 0.5); }
+        50%      { box-shadow: 0 0 40px rgba(255, 100, 60, 0.9); }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function _showBattleRewardPanel(data, onContinue) {
+    _ensureRewardStyles();
+    const overlay = document.getElementById('battle-overlay');
+    if (!overlay) { onContinue && onContinue(); return; }
+
+    let panel = document.getElementById('bt-reward-panel');
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.id = 'bt-reward-panel';
+      overlay.appendChild(panel);
+    }
+
+    const cls = data.won ? 'win' : 'lose';
+    const titleText = data.won
+      ? (data.isArena ? '戰鬥勝利' : '切磋結束')
+      : '戰鬥落敗';
+
+    let html = `<div class="bt-reward-card ${cls}">`;
+    html += `<div class="bt-reward-title">${titleText}</div>`;
+
+    // 評分區（只在競技場勝利顯示）
+    if (data.won && data.isArena && data.rating) {
+      const ratingDescMap = {
+        S: '快速制敵、技壓全場', A: '攻守得當、表現出色',
+        B: '勝負已分、但不夠漂亮', C: '勉強獲勝、差點倒下',
+      };
+      html += `
+        <div class="bt-reward-rating-row">
+          <div class="bt-reward-rating-letter bt-reward-rating-${data.rating}">${data.rating}</div>
+          <div class="bt-reward-rating-meta">
+            <div>${ratingDescMap[data.rating] || ''}</div>
+            ${data.fameAwarded > 0 ? `<div class="bt-reward-fame">名聲 +${data.fameAwarded}</div>` : ''}
+          </div>
+        </div>`;
+    }
+
+    // 連勝橫幅（連勝達 3/5/7/10）
+    if (data.streakReward) {
+      const sr = data.streakReward;
+      html += `
+        <div class="bt-reward-streak-section">
+          <div class="bt-reward-streak-title">🔥 ${sr.streak} 連勝獎勵</div>
+          <div class="bt-reward-streak-text">
+            全屬性 +${sr.allBonus}　·　${sr.mainAttr} 額外 +${sr.mainBonus}` +
+            (sr.fameBonus > 0 ? `　·　名聲 +${sr.fameBonus}` : '') + `
+          </div>` +
+          (sr.dialog ? `<div class="bt-reward-streak-dialog">${sr.dialog}</div>` : '') +
+        `</div>`;
+    }
+
+    // 隱藏特性獲得橫幅（10 連勝 bloodRoar）
+    if (data.streakReward && data.streakReward.traitGranted === 'bloodRoar') {
+      html += `<div class="bt-reward-trait-banner">🩸 解鎖隱藏特性 — 嗜血之吼</div>`;
+    }
+
+    // 屬性成長
+    if (data.gains && Object.keys(data.gains).length) {
+      html += `
+        <div class="bt-reward-section">
+          <div class="bt-reward-section-title">— 戰鬥成長 —</div>
+          <div class="bt-reward-grid">`;
+      const order = ['STR','DEX','CON','AGI','WIL','LUK'];
+      let i = 0;
+      order.forEach(a => {
+        if (data.gains[a]) {
+          const big = data.gains[a] >= 20 ? ' glow' : '';
+          html += `<div class="bt-reward-attr" style="animation-delay:${300 + i * 80}ms">
+            <span class="bt-reward-attr-name">${a}</span>
+            <span class="bt-reward-attr-num${big}">+${data.gains[a]}</span>
+          </div>`;
+          i++;
+        }
+      });
+      html += `</div></div>`;
+    }
+
+    html += `<button class="bt-reward-continue" id="bt-reward-continue-btn">繼 續 ▸</button>`;
+    html += `</div>`;
+    panel.innerHTML = html;
+    panel.classList.add('open');
+
+    const btn = document.getElementById('bt-reward-continue-btn');
+    if (btn) {
+      btn.onclick = () => {
+        panel.classList.remove('open');
+        if (typeof onContinue === 'function') onContinue();
+      };
+    }
+
+    // 音效
+    if (typeof SoundManager !== 'undefined' && SoundManager.playSfx) {
+      if (data.won && data.rating === 'S')         SoundManager.playSfx('rating_s');
+      else if (data.streakReward && data.streakReward.traitGranted) SoundManager.playSfx('achievement');
     }
   }
 
@@ -1757,6 +1992,9 @@ const Battle = (() => {
       : `【戰鬥落敗】倒在 ${_enemy.name} 腳下，第 ${_turn} 回合。`;
     Game.addLog(resultText, won ? '#d4af37' : '#cc3300', false);
 
+    // 🆕 2026-04-28 戰鬥獎勵畫面收集
+    let _rewardData = { won, isArena: _isArenaBattle, rating: null, fameAwarded: 0, streakReward: null, gains: null };
+
     // ── Arena rating (won only) ──────────────────────────
     if (won && _isArenaBattle) {
       _lastRating = _calcRating();
@@ -1770,6 +2008,8 @@ const Battle = (() => {
 
       // Apply fame
       Stats.modFame(fameAwarded);
+      _rewardData.rating = _lastRating;
+      _rewardData.fameAwarded = fameAwarded;
 
       // Update combatStats
       const cs = Stats.player.combatStats;
@@ -1780,7 +2020,7 @@ const Battle = (() => {
       if (_lastRating === 'A') cs.aRankCount++;
 
       // 🆕 2026-04-28 連勝獎勵 — 達 3/5/7/10 觸發
-      _applyStreakRewards(cs.winStreak);
+      _rewardData.streakReward = _applyStreakRewards(cs.winStreak);
 
       // S/A rank affection bonuses (officer & master)
       // 🆕 2026-04-25c 平衡：8/4 → 4/2（同樣 ×0.5）
@@ -1822,26 +2062,35 @@ const Battle = (() => {
       const cs = Stats.player.combatStats;
       if (won) {
         cs.winStreak = (cs.winStreak || 0) + 1;
-        _applyStreakRewards(cs.winStreak);
+        _rewardData.streakReward = _applyStreakRewards(cs.winStreak);
       } else {
         cs.winStreak = 0;
       }
     }
 
     // 🆕 2026-04-28 戰鬥屬性 EXP 結算（不論輸贏、競技場/sparring 都跑）
-    _settleBattleAttrExp(won);
+    _rewardData.gains = _settleBattleAttrExp(won);
 
-    if (won && _isArenaBattle) {
-      // Show rating result briefly, then show finishing panel
-      setTimeout(() => _showFinishPanel(), 1800);
-    } else {
-      // 🆕 2026-04-25c：非競技場勝利 / 任何戰敗 → 不自動關、顯示返回按鈕
-      //   讓玩家有時間看戰鬥 log + 評分做戰術規劃
-      setTimeout(() => {
+    // 🆕 2026-04-28 是否要顯示獎勵畫面（有任何收穫就顯示）
+    const hasReward = (_rewardData.gains && Object.keys(_rewardData.gains).length)
+                   || _rewardData.streakReward
+                   || (won && _isArenaBattle);
+
+    const _afterRewardPanel = () => {
+      if (won && _isArenaBattle) {
+        _showFinishPanel();   // 砍首/踩臉/饒恕
+      } else {
         Game.renderAll();
         _pendingReturnAction = won ? _onWin : _onLose;
         _showReturnButton();
-      }, 1200);
+      }
+    };
+
+    if (hasReward) {
+      setTimeout(() => _showBattleRewardPanel(_rewardData, _afterRewardPanel), 800);
+    } else {
+      // 沒任何收穫（極少見）→ 走原邏輯
+      setTimeout(_afterRewardPanel, 1200);
     }
   }
 
