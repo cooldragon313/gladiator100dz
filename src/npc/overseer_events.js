@@ -517,16 +517,35 @@ const OverseerEvents = (() => {
     }, {
       onChoose: (choiceId) => {
         Flags.increment('tarren_orders_completed', 1);
-        // 🆕 2026-04-27 選了「遵命」或「了解」→ 觸發切磋出陰招場景
+        // 🆕 2026-04-27 選了「遵命」或「了解」→ 標記下次切磋自動播
+        // 🆕 2026-04-28 fix：不再 setTimeout 立刻播（沒長官在場時 immersion 破）
+        //   改：設 flag → tryFireSneakyScene 在訓練後 hook 檢查長官+目標都在場才播
         if (choiceId === 'obey' || choiceId === 'eager') {
-          // 標記目標、下次切磋自動播
           Flags.set('tarren_order1_target', targetId);
           Flags.set('tarren_order1_active', true);
-          // 立刻觸發、不等
-          setTimeout(() => _playSparringSneakyScene(targetId, targetName), 800);
         }
       }
     });
+  }
+
+  // 🆕 2026-04-28 切磋出陰招場景 — 延遲觸發版
+  //   設計：「隔天訓練塔倫長官把你跟 X 推上沙場」這幕在原始 spec 就是次日場景
+  //   但原本實作用 setTimeout 立刻播 → 沒長官在場 immersion 破
+  //   修法：拆成「設 flag」+「條件達成才播」兩步、長官+目標都在場才觸發
+  function tryFireSneakyScene() {
+    if (typeof Flags === 'undefined') return false;
+    if (!Flags.has('tarren_order1_active')) return false;
+    if (Flags.has('tarren_order1_played')) return false;        // 防止重複播
+    if (!_isPresent('officer')) return false;                    // 必要：長官得在場
+    const targetId = Flags.get('tarren_order1_target');
+    if (!targetId) return false;
+    if (!_isPresent(targetId)) return false;                     // 必要：目標也得在場
+
+    Flags.set('tarren_order1_played', true);   // 標記已播、避免重觸
+    const npc = (typeof teammates !== 'undefined') ? teammates.getNPC(targetId) : null;
+    const targetName = (npc && npc.name) || targetId;
+    _playSparringSneakyScene(targetId, targetName);
+    return true;
   }
 
   // ══════════════════════════════════════════════════
@@ -535,12 +554,14 @@ const OverseerEvents = (() => {
   //   為了上位連自己朋友都犧牲、不可逆道德軸打擊
   // ══════════════════════════════════════════════════
   function _playSparringSneakyScene(targetId, targetName) {
+    // 🆕 2026-04-28 防呆：呼叫前必須長官+目標都在場（tryFireSneakyScene 已守、這層 belt-and-suspenders）
+    if (!_isPresent('officer') || !_isPresent(targetId)) return;
     if (typeof DialogueModal === 'undefined') {
       _completeSneakyDefault(targetId, targetName);
       return;
     }
     DialogueModal.play([
-      { text: '（隔天訓練。塔倫長官把你跟 ' + targetName + ' 推上沙場。）' },
+      { text: '（塔倫長官走過來、把你跟 ' + targetName + ' 推上沙場。）' },
       { speaker: '塔倫長官', text: '今天切磋。打吧。' },
       { text: '（其他人圍過來看。' + targetName + ' 拿起木劍、笑了一下。）' },
       { speaker: targetName, text: '⋯⋯切磋啊。手下留情點。' },
@@ -1190,6 +1211,7 @@ const OverseerEvents = (() => {
     tryIgnitionEvent,       // ✅ 2026-04-27 已 wire 進 sleepEndDay（達官顯貴 + 引爆）
     // 曖昧任務期
     tryTarrenAmbiguousOrder,// 訓練後 hook
+    tryFireSneakyScene,     // 🆕 2026-04-28 訓練後 hook — 長官+目標都在場才播切磋陰招場景
     // 回響期
     tryDoctorHint,          // ✅ 2026-04-27 已 wire 進 doctor 治療後
     tryCassiusHint,         // 訓練後 hook

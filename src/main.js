@@ -3431,6 +3431,7 @@ const Game = (() => {
           OverseerEvents.tryTarrenPraise();         // 鋪墊期 — 塔倫稱讚 3 階段
           OverseerEvents.tryMelaHint();             // 🆕 鋪墊期 — 梅拉晚餐暗示
           OverseerEvents.tryTarrenAmbiguousOrder(); // 曖昧任務期 — 塔倫指令 2 個
+          if (OverseerEvents.tryFireSneakyScene) OverseerEvents.tryFireSneakyScene();  // 🆕 2026-04-28 切磋陰招（長官+目標在場才播）
           OverseerEvents.tryCassiusHint();          // 回響期 — 卡西烏斯補刀
           OverseerEvents.tryEavesdrop();            // 證據期 — 偷聽密謀（條件嚴格）
           OverseerEvents.tryOverseerDrink();        // 選擇期 — 喝酒透漏選擇
