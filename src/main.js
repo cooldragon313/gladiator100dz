@@ -1619,6 +1619,19 @@ const Game = (() => {
     if (_lastNPCRollDay === p.day) return;
     _syncLastRollDay(p.day);
     _resetDailyMap();
+
+    // 🆕 2026-04-29 Day 1 教學特例：場景單純化、玩家先一個人練
+    //   teammates=[]（無協力、單純訓練）、audience=['officer']（鞭打用）
+    //   奧蘭在第一次休息事件後動態加入（Day1Tutorial._addOrlanToScene）
+    //   tut_first_meditate_done 後不再強制、隔天恢復正常 roll
+    if (p.day === 1 && typeof Flags !== 'undefined' && !Flags.has('tut_first_meditate_done')) {
+      Object.keys(FIELDS).forEach(fid => {
+        _syncDailyMap(fid, { teammates: [], audience: ['officer'] });
+      });
+      _syncCurrentNPCs(dailyNPCMap[currentFieldId] || { teammates: [], audience: ['officer'] });
+      return;
+    }
+
     Object.keys(FIELDS).forEach(fid => {
       _syncDailyMap(fid, rollFieldNPCs(fid));
     });
@@ -2893,7 +2906,13 @@ const Game = (() => {
         }
       }
 
-      html += `<button class="action-btn${fervorClass}" ${titleAttr} ${disabled ? 'disabled' : clickStr}>
+      // 🆕 2026-04-29 Day 1 教學發光（指向當前該做的動作）
+      let tutGlow = '';
+      if (typeof Day1Tutorial !== 'undefined' && Day1Tutorial.shouldGlowAction && Day1Tutorial.shouldGlowAction(act.id)) {
+        tutGlow = ' tut-glow';
+      }
+
+      html += `<button class="action-btn${fervorClass}${tutGlow}" ${titleAttr} ${disabled ? 'disabled' : clickStr}>
         <div class="action-name">${badgeHtml}${fervorIcon}<span class="action-title">${act.name}${injuryHint}</span>${synergyHtml}</div>
         <div class="action-cost">${costStr}</div>
       </button>`;
@@ -3258,6 +3277,11 @@ const Game = (() => {
     // 🆕 2026-04-24 狂熱：訓練後記錄 + 觸發檢查（取代舊 Compulsion.onTraining）
     if (hasAttrEffect && trainedAttr && typeof Fervor !== 'undefined') {
       try { Fervor.onTraining(trainedAttr); } catch (e) { console.error('[Fervor]', e); }
+    }
+
+    // 🆕 2026-04-29 Day 1 教學鏈：訓練 / 休息 / 冥想 完成後 hook
+    if (typeof Day1Tutorial !== 'undefined' && Day1Tutorial.tryAfterAction) {
+      try { Day1Tutorial.tryAfterAction(actionId); } catch (e) { console.error('[Day1Tutorial]', e); }
     }
 
     // 🆕 D.26：偷懶放空的動態代價（在場扣好感 / 無人時 30% 被抓）
@@ -6202,6 +6226,10 @@ const Game = (() => {
       _resolveNonTrainingSlots();
       saveGame();
       renderAll();
+      // 🆕 2026-04-29 wakeup 結束 → 演鞭打發呆 + 訓練按鈕亮（教學鏈第 1 階段）
+      if (typeof Day1Tutorial !== 'undefined' && Day1Tutorial.tryAfterWakeup) {
+        try { Day1Tutorial.tryAfterWakeup(); } catch (e) { console.error('[Day1Tutorial]', e); }
+      }
     });
   }
 

@@ -3571,6 +3571,33 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   filter: grayscale(0.3);
 }
 
+/* 🆕 2026-04-29 Day 1 教學發光（指向當前該做的動作） */
+.action-btn.tut-glow {
+  border-color: #d4af37 !important;
+  background: linear-gradient(180deg, rgba(40,30,12,0.6), rgba(20,14,6,0.85)) !important;
+  animation: tut-glow-pulse 1.4s ease-in-out infinite;
+  position: relative;
+}
+.action-btn.tut-glow::after {
+  content: '⚡';
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  color: #f0d068;
+  font-size: 18px;
+  animation: tut-glow-arrow 1.4s ease-in-out infinite;
+}
+.action-btn.tut-glow .action-title { color: #f4d870 !important; font-weight: 900; }
+@keyframes tut-glow-pulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(212,175,55,0.5), inset 0 0 6px rgba(212,175,55,0.2); }
+  50%      { box-shadow: 0 0 24px rgba(255,210,80,0.85), inset 0 0 10px rgba(212,175,55,0.4); }
+}
+@keyframes tut-glow-arrow {
+  0%, 100% { opacity: 0.6; transform: translateY(-50%) translateX(0); }
+  50%      { opacity: 1; transform: translateY(-50%) translateX(-3px); }
+}
+
 /* 🆕 D.26：訓練屬性徽章（左側彩色小標籤） */
 .attr-badge {
   display: inline-block;
@@ -5303,6 +5330,7 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 <script src="src/systems/wounds.js"></script>
 <script src="src/systems/compulsion.js"></script>
 <script src="src/systems/equipment_quality.js"></script>
+<script src="src/systems/day1_tutorial.js"></script>
 <script src="src/ui/forge_modal.js"></script>
 <script src="src/content/books.js"></script>
 <script src="src/systems/birth_traits.js"></script>
