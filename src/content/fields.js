@@ -37,16 +37,18 @@ const FIELDS = {
     favorWeight: { CON:3, WIL:3, STR:2, DEX:1, AGI:1 },
     characters: [
       // 隊友（可發起切磋/友情練習）
+      // 🆕 2026-04-30：奴隸大部分時間都在訓練場、chance 整體拉高到 0.85
+      //   不在的原因（未來補事件）：被叫去競技場 / 跑腿 / 偷懶躲長官
       // 🆕 D.20：奧蘭永駐出現（同命兄弟，每天 100% 在場）
       { npcId: 'orlan',         role: 'teammate', chance: 1.00 },
       // 🆕 索爾（Day 1-4 在場，Day 5 後透過 alive:false 從隊伍消失）
       { npcId: 'sol',           role: 'teammate', chance: 1.00 },
-      // 🆕 D.28：赫克托 Day 1-10 幾乎必出（反派建立）、之後回到 0.80
-      { npcId: 'hector',        role: 'teammate', chance: 0.80, forceDays: { from:1, to:10, chance:0.95 } },
-      { npcId: 'cassius',       role: 'teammate', chance: 0.60 },
-      { npcId: 'ursa',          role: 'teammate', chance: 0.55 },
-      { npcId: 'dagiSlave',     role: 'teammate', chance: 0.50 },
-      { npcId: 'oldSlave',      role: 'teammate', chance: 0.35 },
+      // 🆕 D.28：赫克托 Day 1-10 幾乎必出（反派建立）、之後回到 0.85
+      { npcId: 'hector',        role: 'teammate', chance: 0.85, forceDays: { from:1, to:10, chance:0.95 } },
+      { npcId: 'cassius',       role: 'teammate', chance: 0.85 },
+      { npcId: 'ursa',          role: 'teammate', chance: 0.85 },
+      { npcId: 'dagiSlave',     role: 'teammate', chance: 0.85 },
+      { npcId: 'oldSlave',      role: 'teammate', chance: 0.75 },
       // 觀眾/權威（事件觸發目標）
       // 🆕 2026-04-25 v10：監督官（巴爺）大幅提高、塔倫長官加進來偶爾露面
       { npcId: 'overseer',      role: 'audience', chance: 0.85 },   // 巴爺 — 訓練場主場

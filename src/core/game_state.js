@@ -27,6 +27,10 @@ const GameState = (() => {
     // ── 每日 NPC 快取 ──────────────────────────────
     dailyNPCMap:    {},                        // { fieldId: { teammates, audience } }
     lastNPCRollDay: -1,                        // 最後一次 roll 的天數（避免同天重 roll）
+    // 🆕 2026-04-30 每天每個 NPC 隨機選一個訓練屬性（70% favoredAttr / 30% 隨機）
+    //   { npcId: 'STR'|'DEX'|'CON'|'AGI'|'WIL', ... }
+    //   玩家練同 attr → 跟那群 NPC 協力（不再固定看 favoredAttr）
+    dailyTrainingPicks: {},
 
     // ── 未來擴展（D.11 模板對應） ──────────────────
     season:      null,                         // 季節：spring/summer/autumn/winter
@@ -98,6 +102,36 @@ const GameState = (() => {
     _state.lastNPCRollDay = day;
   }
 
+  // 🆕 2026-04-30 NPC 今日訓練 pick
+  /**
+   * 取得某 NPC 今天選的訓練屬性（沒設則 fallback 到 favoredAttr）。
+   * @param {string} npcId
+   * @returns {string|null}
+   */
+  function getNpcTodayAttr(npcId) {
+    const pick = _state.dailyTrainingPicks && _state.dailyTrainingPicks[npcId];
+    if (pick) return pick;
+    // fallback：用既有的 favoredAttr（背景角鬥士 / 沒 roll 過的 NPC）
+    if (typeof teammates !== 'undefined' && teammates.getNPC) {
+      const npc = teammates.getNPC(npcId);
+      if (npc && npc.favoredAttr) return npc.favoredAttr;
+    }
+    return null;
+  }
+
+  function setNpcTodayAttr(npcId, attr) {
+    if (!_state.dailyTrainingPicks) _state.dailyTrainingPicks = {};
+    _state.dailyTrainingPicks[npcId] = attr;
+  }
+
+  function clearDailyTrainingPicks() {
+    _state.dailyTrainingPicks = {};
+  }
+
+  function getAllDailyTrainingPicks() {
+    return _state.dailyTrainingPicks || {};
+  }
+
   /**
    * 強制使下次 rollDailyNPCs 重 roll（破壞快取）。
    * 存檔載入後、特殊事件後呼叫。
@@ -148,6 +182,7 @@ const GameState = (() => {
       currentNPCs:    _state.currentNPCs    ? JSON.parse(JSON.stringify(_state.currentNPCs))    : { teammates:[], audience:[] },
       dailyNPCMap:    _state.dailyNPCMap    ? JSON.parse(JSON.stringify(_state.dailyNPCMap))    : {},
       lastNPCRollDay: _state.lastNPCRollDay,
+      dailyTrainingPicks: _state.dailyTrainingPicks ? JSON.parse(JSON.stringify(_state.dailyTrainingPicks)) : {},
     };
   }
 
@@ -167,6 +202,7 @@ const GameState = (() => {
     _state.currentNPCs    = data.currentNPCs    || { teammates:[], audience:[] };
     _state.dailyNPCMap    = data.dailyNPCMap    || {};
     _state.lastNPCRollDay = (typeof data.lastNPCRollDay === 'number') ? data.lastNPCRollDay : -1;
+    _state.dailyTrainingPicks = data.dailyTrainingPicks || {};
     _state.currentEncounter = null;
   }
 
@@ -178,6 +214,7 @@ const GameState = (() => {
     _state.currentNPCs      = { teammates: [], audience: [] };
     _state.dailyNPCMap      = {};
     _state.lastNPCRollDay   = -1;
+    _state.dailyTrainingPicks = {};
     _state.season           = null;
     _state.weather          = null;
     _state.worldState       = null;
@@ -210,6 +247,8 @@ const GameState = (() => {
     getDailyNPCs, setDailyNPCs, clearDailyNPCs,
     getLastNPCRollDay, setLastNPCRollDay,
     invalidateDailyRoll,
+    // 🆕 2026-04-30 NPC 今日訓練 pick
+    getNpcTodayAttr, setNpcTodayAttr, clearDailyTrainingPicks, getAllDailyTrainingPicks,
     // 季節 / 天氣 / 世界
     getSeason, setSeason,
     getWeather, setWeather,

@@ -1368,10 +1368,12 @@ const Game = (() => {
         const npc = teammates.getNPC(npcId);
         slot.classList.add('occupied');
         slot.classList.remove('empty', 'recruit-group');
-        const favorBadge = npc?.favoredAttr
-          ? `<span class="npc-favor-badge">${npc.favoredAttr}</span>`
+        // 🆕 2026-04-30 改顯示「今練 X」（用 dailyTrainingPicks）取代「特長」固定 badge
+        const todayAttr = _getNpcTodayAttr(npcId);
+        const todayBadge = todayAttr
+          ? `<span class="npc-favor-badge npc-today-badge">今練 ${todayAttr}</span>`
           : '';
-        slot.innerHTML = `<span class="npc-role-tag">${npc?.title || '隊友'}</span><span class="npc-name">${npc ? npc.name : npcId}</span>${favorBadge}`;
+        slot.innerHTML = `<span class="npc-role-tag">${npc?.title || '隊友'}</span><span class="npc-name">${npc ? npc.name : npcId}</span>${todayBadge}`;
         slot.onclick = () => onNPCClick(npcId);
       } else {
         slot.classList.remove('occupied', 'recruit-group');
@@ -1637,6 +1639,29 @@ const Game = (() => {
     });
     // Sync currentNPCs for current field
     _syncCurrentNPCs(dailyNPCMap[currentFieldId] || { teammates: [], audience: [] });
+
+    // 🆕 2026-04-30 每天每個 NPC 隨機選一個訓練屬性（傾向 favoredAttr 70%、隨機 30%）
+    _rollDailyTrainingPicks();
+  }
+
+  // 🆕 2026-04-30 NPC 今日訓練 pick — 70% 自己特長、30% 隨機其他
+  function _rollDailyTrainingPicks() {
+    if (typeof GameState === 'undefined' || !GameState.clearDailyTrainingPicks) return;
+    GameState.clearDailyTrainingPicks();
+    const ATTRS = ['STR','DEX','CON','AGI','WIL'];
+    // 蒐集所有今天在場的 teammate（用 currentNPCs.teammates、夠用）
+    const teamIds = (currentNPCs && currentNPCs.teammates) ? currentNPCs.teammates : [];
+    teamIds.forEach(npcId => {
+      const npc = teammates.getNPC && teammates.getNPC(npcId);
+      const fav = npc && npc.favoredAttr;
+      let pick;
+      if (fav && ATTRS.includes(fav) && Math.random() < 0.70) {
+        pick = fav;
+      } else {
+        pick = ATTRS[Math.floor(Math.random() * ATTRS.length)];
+      }
+      GameState.setNpcTodayAttr(npcId, pick);
+    });
   }
 
   // ── Time-slot helpers ──────────────────────────────────
@@ -1961,6 +1986,18 @@ const Game = (() => {
     return null;
   }
 
+  // 🆕 2026-04-30 取得 NPC 今日訓練 pick（用於協力判定、取代固定 favoredAttr）
+  //   有 dailyTrainingPicks → 用今日 pick
+  //   沒有（fallback、e.g. 背景角鬥士、剛存檔讀進來）→ 用 favoredAttr
+  function _getNpcTodayAttr(npcId) {
+    if (typeof GameState !== 'undefined' && GameState.getNpcTodayAttr) {
+      const a = GameState.getNpcTodayAttr(npcId);
+      if (a) return a;
+    }
+    const npc = teammates.getNPC && teammates.getNPC(npcId);
+    return (npc && npc.favoredAttr) || null;
+  }
+
   // 🆕 D.26：偷懶放空的動態代價（在場扣好感 / 無人時 30% 被抓）
   // 🆕 2026-04-25 v10：機率階梯 — 主人(5%) < 侍從(10%) < 塔倫(20%) < 監督(75%+)
   //   無人 = 25% 玩家好好休息時間（補 stamina）
@@ -2193,7 +2230,9 @@ const Game = (() => {
     const teamIds = Array.isArray(currentNPCs?.teammates) ? currentNPCs.teammates : [];
     teamIds.forEach(id => {
       const npc = teammates.getNPC(id);
-      if (!npc || npc.favoredAttr !== attrKey) return;
+      if (!npc) return;
+      // 🆕 2026-04-30 用今日 pick 而非固定 favoredAttr
+      if (_getNpcTodayAttr(id) !== attrKey) return;
       const aff = teammates.getAffection(id);
       let tier = 0;
       if      (aff >= 90) tier = 3;
@@ -2821,7 +2860,9 @@ const Game = (() => {
         if (tAttr) {
           (currentNPCs.teammates || []).forEach(nid => {
             const npc = teammates.getNPC(nid);
-            if (!npc || npc.favoredAttr !== tAttr) return;
+            if (!npc) return;
+            // 🆕 2026-04-30 用今日 pick
+            if (_getNpcTodayAttr(nid) !== tAttr) return;
             const a = teammates.getAffection(nid);
             if      (a >= 90) sAdd += 0.7;
             else if (a >= 60) sAdd += 0.5;
@@ -3134,7 +3175,8 @@ const Game = (() => {
     let bgNpcMult    = 1.0;
 
     if (hasAttrEffect) {
-      // ── 命名隊友協力（三段門檻，需 favoredAttr 匹配） ──
+      // ── 命名隊友協力（三段門檻，需「今日 pick」匹配） ──
+      // 🆕 2026-04-30 改用 _getNpcTodayAttr：NPC 每天獨立 roll 練啥（70% 自己特長、30% 隨機）
       (currentNPCs.teammates || []).forEach(npcId => {
         if (!npcId) return;
         const npc = teammates.getNPC(npcId);
@@ -3142,8 +3184,8 @@ const Game = (() => {
         const aff = teammates.getAffection(npcId);
         // partnerCount 用舊規則：只要 aff≥30 就算參與一起訓練（影響體力消耗）
         if (aff >= 30) partnerCount++;
-        // 協力加成：必須 favoredAttr 匹配
-        if (!trainedAttr || npc.favoredAttr !== trainedAttr) return;
+        // 協力加成：必須今日 pick 跟訓練屬性一致
+        if (!trainedAttr || _getNpcTodayAttr(npcId) !== trainedAttr) return;
         if      (aff >= 90) storyNpcMult *= 1.8;
         else if (aff >= 60) storyNpcMult *= 1.6;
         else if (aff >= 30) storyNpcMult *= 1.3;
@@ -3206,7 +3248,9 @@ const Game = (() => {
       (currentNPCs.teammates || []).forEach(npcId => {
         if (!npcId) return;
         const npc = teammates.getNPC(npcId);
-        if (!npc || !trainedAttr || npc.favoredAttr !== trainedAttr) return;
+        if (!npc || !trainedAttr) return;
+        // 🆕 2026-04-30 用今日 pick 而非固定 favoredAttr
+        if (_getNpcTodayAttr(npcId) !== trainedAttr) return;
         const aff = teammates.getAffection(npcId);
         if      (aff >= 90) staminaSynergyAdd += 0.7;
         else if (aff >= 60) staminaSynergyAdd += 0.5;
