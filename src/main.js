@@ -1368,12 +1368,12 @@ const Game = (() => {
         const npc = teammates.getNPC(npcId);
         slot.classList.add('occupied');
         slot.classList.remove('empty', 'recruit-group');
-        // 🆕 2026-04-30 改顯示「今練 X」（用 dailyTrainingPicks）取代「特長」固定 badge
-        const todayAttr = _getNpcTodayAttr(npcId);
-        const todayBadge = todayAttr
-          ? `<span class="npc-favor-badge npc-today-badge">今練 ${todayAttr}</span>`
+        // 🆕 2026-04-30 user 反饋：主畫面不秀「今練 X」、回去顯示固定「特長」
+        //   今天練什麼從訓練按鈕上的人頭+名字感受
+        const favorBadge = npc?.favoredAttr
+          ? `<span class="npc-favor-badge">${npc.favoredAttr}</span>`
           : '';
-        slot.innerHTML = `<span class="npc-role-tag">${npc?.title || '隊友'}</span><span class="npc-name">${npc ? npc.name : npcId}</span>${todayBadge}`;
+        slot.innerHTML = `<span class="npc-role-tag">${npc?.title || '隊友'}</span><span class="npc-name">${npc ? npc.name : npcId}</span>${favorBadge}`;
         slot.onclick = () => onNPCClick(npcId);
       } else {
         slot.classList.remove('occupied', 'recruit-group');
@@ -2256,14 +2256,15 @@ const Game = (() => {
     const roster = _computeSynergyRoster(attrKey);
     if (roster.length === 0) return '';
     const tierMult = { 1: '1.3', 2: '1.6', 3: '1.8' };
-    const icons = roster.map(r => {
+    // 🆕 2026-04-30 改成「人頭+名字」、玩家在按鈕上看到誰在練啥
+    const items = roster.map(r => {
       const cls   = `syn-t${r.tier}${r.isBg ? ' syn-bg' : ''}`;
       const title = r.tier === 0
-        ? `${r.name}（尚未協力）`
+        ? `${r.name}（在場、好感不足協力）`
         : `${r.name}（協力 ×${tierMult[r.tier]}）`;
-      return `<span class="syn-icon ${cls}" title="${title}">👤</span>`;
+      return `<span class="syn-chip ${cls}" title="${title}">👤<span class="syn-name">${r.name}</span></span>`;
     }).join('');
-    return `<div class="action-synergy">${icons}</div>`;
+    return `<div class="action-synergy">${items}</div>`;
   }
 
   /**
