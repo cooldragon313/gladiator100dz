@@ -1974,6 +1974,28 @@ const Battle = (() => {
       html += `</div></div>`;
     }
 
+    // 🆕 2026-04-30 戰利品掉落（competitive arena loot）
+    if (data.loot && Array.isArray(data.loot.items) && data.loot.items.length > 0) {
+      const qualityColor = (typeof EquipmentQuality !== 'undefined')
+        ? EquipmentQuality.getColor(data.loot.quality) : '#ffd060';
+      const qualityName = (typeof EquipmentQuality !== 'undefined')
+        ? EquipmentQuality.getName(data.loot.quality) : data.loot.quality;
+      html += `
+        <div class="bt-reward-section bt-reward-loot">
+          <div class="bt-reward-section-title">— 戰利品 —</div>
+          <div style="text-align:center;">`;
+      data.loot.items.forEach(it => {
+        html += `
+          <div class="bt-reward-loot-item" style="margin:6px 0;">
+            <span style="color:${qualityColor};font-weight:900;font-size:16px;">
+              ${it.name}（${qualityName}）
+            </span>
+            <span style="color:#888;font-size:12px;">　從對手身上拿</span>
+          </div>`;
+      });
+      html += `</div></div>`;
+    }
+
     html += `<button class="bt-reward-continue" id="bt-reward-continue-btn">繼 續 ▸</button>`;
     html += `</div>`;
     panel.innerHTML = html;
@@ -1992,6 +2014,105 @@ const Battle = (() => {
       if (data.won && data.rating === 'S')         SoundManager.playSfx('rating_s');
       else if (data.streakReward && data.streakReward.traitGranted) SoundManager.playSfx('achievement');
     }
+  }
+
+  // ══════════════════════════════════════════════════
+  // 🆕 2026-04-30 競技場戰利品掉落
+  //   設計：docs/systems/equipment-rework.md § 4.3
+  //   規格：
+  //     S 80% 觸發 / 觸發後 20%紫 30%藍 50%綠
+  //     A 60% 觸發 / 觸發後 20%藍 30%綠 50%白
+  //     B 40% 觸發 / 觸發後 20%綠 30%白 50%灰
+  //     C/D 0%
+  //     戰鬥狂熱中 → 觸發機率 +10%
+  //   掉落內容（簡化版、Phase 1）：
+  //     武器：對手主手武器（無詞綴、Phase 2 補）
+  //     胸甲：對手 armorId、25% 機率掉
+  // ══════════════════════════════════════════════════
+  function _rollArenaLoot(rating) {
+    if (!rating || !['S','A','B'].includes(rating)) return null;
+    if (!_isArenaBattle) return null;
+
+    // 觸發機率
+    const triggerMap = { S: 0.80, A: 0.60, B: 0.40 };
+    let triggerChance = triggerMap[rating];
+    // 戰鬥狂熱中 +10%
+    if (typeof Fervor !== 'undefined' && Fervor.isCombatActive && Fervor.isCombatActive()) {
+      triggerChance += 0.10;
+    }
+    if (Math.random() >= triggerChance) return null;
+
+    // 品質分布
+    const qualityMap = {
+      S: [['superb', 0.20], ['fine', 0.30], ['common', 0.50]],
+      A: [['fine', 0.20], ['common', 0.30], ['crude', 0.50]],
+      B: [['common', 0.20], ['crude', 0.30], ['crude', 0.50]],   // B 沒紫、用 crude 填底
+    };
+    // 注意 B 的設計是 20% 綠 30% 白 50% 灰，但綠 = fine、白 = common、灰 = crude
+    const qualityMapFixed = {
+      S: [['superb', 0.20], ['fine', 0.30], ['common', 0.50]],
+      A: [['fine', 0.20], ['common', 0.30], ['crude', 0.50]],
+      B: [['fine', 0.20], ['common', 0.30], ['crude', 0.50]],
+    };
+    const dist = qualityMapFixed[rating];
+    const r = Math.random();
+    let acc = 0;
+    let quality = 'common';
+    for (const [q, p] of dist) {
+      acc += p;
+      if (r < acc) { quality = q; break; }
+    }
+
+    // 抽武器（必掉、來自對手主手）
+    const lootItems = [];
+    if (_enemy && _enemy.weaponId && _enemy.weaponId !== 'fists') {
+      const weaponDef = (typeof Weapons !== 'undefined') ? Weapons[_enemy.weaponId] : null;
+      if (weaponDef) {
+        lootItems.push({
+          kind: 'weapon',
+          id: _enemy.weaponId,
+          tier: weaponDef.tier || 1,
+          quality,
+          name: weaponDef.name,
+        });
+      }
+    }
+    // 抽胸甲（25% 機率掉）
+    if (_enemy && _enemy.armorId && _enemy.armorId !== 'rags' && Math.random() < 0.25) {
+      const armorDef = (typeof Armors !== 'undefined') ? Armors[_enemy.armorId] : null;
+      if (armorDef && armorDef.type !== 'shield') {
+        lootItems.push({
+          kind: 'armor',
+          id: _enemy.armorId,
+          tier: armorDef.tier || 1,
+          quality,
+          name: armorDef.name,
+        });
+      }
+    }
+
+    if (lootItems.length === 0) return null;
+
+    // 套到玩家 inventory
+    const p = Stats.player;
+    if (!Array.isArray(p.weaponInventory)) p.weaponInventory = [];
+    if (!Array.isArray(p.armorInventory))  p.armorInventory  = [];
+    lootItems.forEach(it => {
+      const inv = (it.kind === 'weapon') ? p.weaponInventory : p.armorInventory;
+      // 同 ID 不重複加（避免一場戰鬥加 5 把短劍）
+      const existing = inv.find(e => e.id === it.id);
+      if (!existing) {
+        inv.push({ id: it.id, tier: it.tier, quality: it.quality });
+      } else {
+        // 同 ID 已有 → 升品質（如果新的比較好）
+        const order = ['crude','common','fine','superb','legendary'];
+        if (order.indexOf(it.quality) > order.indexOf(existing.quality || 'common')) {
+          existing.quality = it.quality;
+        }
+      }
+    });
+
+    return { quality, items: lootItems };
   }
 
   function _endBattle(won) {
@@ -2057,6 +2178,11 @@ const Battle = (() => {
       //   延後到 reward panel 之後演（避免跟 reward panel 撞）
       _rewardData._pendingMasterGrant = true;
 
+      // 🆕 2026-04-30 競技場戰利品掉落（規格：docs/systems/equipment-rework.md § 4.3）
+      //   依評分擲機率：S 80% / A 60% / B 40%（戰鬥狂熱中 +10%）
+      //   觸發後依品質分布抽武器/胸甲、塞 inventory
+      _rewardData.loot = _rollArenaLoot(_lastRating);
+
       // S/A rank affection bonuses (officer & master)
       // 🆕 2026-04-25c 平衡：8/4 → 4/2（同樣 ×0.5）
       if (_lastRating === 'S' || _lastRating === 'A') {
@@ -2120,6 +2246,7 @@ const Battle = (() => {
     // 🆕 2026-04-28 是否要顯示獎勵畫面（有任何收穫就顯示）
     const hasReward = (_rewardData.gains && Object.keys(_rewardData.gains).length)
                    || _rewardData.streakReward
+                   || _rewardData.loot
                    || (won && _isArenaBattle);
 
     const _afterRewardPanel = () => {
