@@ -43,13 +43,15 @@ const Day1Tutorial = (() => {
   /**
    * renderActionList 用：判斷此 actionId 是否該發亮。
    * 教學完成或 Day > 1 → 永遠不亮。
+   *
+   * 🆕 2026-04-29 改：訓練完後不亮按鈕、直接導向「點詳細升屬性」（既有金徽章）
+   *   升屬性後再亮冥想（奧蘭已邀）。soloThink 階段移除。
    */
   function shouldGlowAction(actionId) {
     if (typeof Stats === 'undefined' || !Stats.player) return false;
     if (Stats.player.day !== 1) return false;
     const step = getStep();
     if (step === 'train'    && actionId === 'basicSwing') return true;
-    if (step === 'rest'     && actionId === 'soloThink')  return true;
     if (step === 'meditate' && actionId === 'meditation') return true;
     return false;
   }
@@ -78,19 +80,70 @@ const Day1Tutorial = (() => {
       { text: '（你心想：免得等等真的被打。）' },
     ], {
       onComplete: () => {
-        if (typeof Stage !== 'undefined' && Stage.popupBig) {
-          Stage.popupBig({
-            icon: '⚔', title: '開始訓練', subtitle: '訓練動作會發光、點下去就能開始',
-            color: 'gold', duration: 1600, shake: false, sound: 'level_up',
-            onComplete: () => {
-              if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
-            },
-          });
-        } else if (typeof Game !== 'undefined' && Game.renderAll) {
-          Game.renderAll();
+        // 🆕 2026-04-29：有 origin 起手傷 → 演發現受傷 + 老默場景（強制治療流程）
+        if (typeof Wounds !== 'undefined' && Wounds.hasAnyWound && Wounds.hasAnyWound()) {
+          _playOriginWoundDiscovery();
+          return;
         }
+        // 沒傷 → 直接 popup「開始訓練」
+        _showStartTrainingPopup();
       }
     });
+  }
+
+  // 🆕 2026-04-29：開場有傷 → 演「發現受傷」 + 老默強制治療流程
+  function _playOriginWoundDiscovery() {
+    const p = Stats.player;
+    let worstPart = null, worstSev = 0;
+    Wounds.PARTS.forEach(part => {
+      const w = p.wounds[part];
+      if (!w || w.special) return;        // 特殊傷另議、不走標準 forced flow
+      if (w.severity > worstSev) { worstPart = part; worstSev = w.severity; }
+    });
+    if (!worstPart) {
+      // 全是特殊傷、跳過 forced flow、直接訓練 popup
+      _showStartTrainingPopup();
+      return;
+    }
+    const partName = Wounds.PART_NAMES[worstPart] || '身體';
+    const sevName  = Wounds.SEVERITY_NAMES[worstSev] || '傷';
+
+    if (typeof Stage !== 'undefined' && Stage.popupBig) {
+      Stage.popupBig({
+        icon: '💔',
+        title: `${partName}${sevName}！`,
+        subtitle: '⋯⋯昨天的傷還沒好',
+        color: 'red',
+        duration: 1600,
+        shake: worstSev >= 2,
+        sound: 'hit_crit',
+        onComplete: () => {
+          if (typeof DoctorEvents !== 'undefined' && DoctorEvents.tryForcedTreatment) {
+            DoctorEvents.tryForcedTreatment(worstPart, worstSev, 'capture');
+          } else {
+            _showStartTrainingPopup();
+          }
+        },
+      });
+    } else if (typeof DoctorEvents !== 'undefined' && DoctorEvents.tryForcedTreatment) {
+      DoctorEvents.tryForcedTreatment(worstPart, worstSev, 'capture');
+    } else {
+      _showStartTrainingPopup();
+    }
+  }
+
+  function _showStartTrainingPopup() {
+    if (typeof Stage !== 'undefined' && Stage.popupBig) {
+      Stage.popupBig({
+        icon: '⚔', title: '開始訓練', subtitle: '訓練動作會發光、點下去就能開始',
+        color: 'gold', duration: 1600, shake: false, sound: 'level_up',
+        onComplete: () => {
+          if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
+        },
+      });
+    } else if (typeof Game !== 'undefined' && Game.renderAll) {
+      Game.renderAll();
+    }
   }
 
   // ══════════════════════════════════════════════════
@@ -107,16 +160,26 @@ const Day1Tutorial = (() => {
       _playAfterFirstTrain();
       return;
     }
-    if (actionId === 'soloThink' && Flags.has('tut_first_train_done') && !Flags.has('tut_first_rest_done')) {
-      Flags.set('tut_first_rest_done', true);
-      _playRestCaughtAndOrlanInvite();
-      return;
-    }
+    // 🆕 2026-04-29 移除 soloThink 觸發（user 反饋：「點完屬性升級沒看到奧蘭」）
+    //   奧蘭改在升屬性後觸發、走 tryAfterAttrUpgrade
     if (actionId === 'meditation' && Flags.has('tut_first_rest_done') && !Flags.has('tut_first_meditate_done')) {
       Flags.set('tut_first_meditate_done', true);
       _playAfterMeditation();
       return;
     }
+  }
+
+  // 🆕 2026-04-29 升屬性後觸發奧蘭邀冥想
+  //   呼叫時機：main.js 升屬性按鈕成功後
+  function tryAfterAttrUpgrade(attr) {
+    if (typeof Flags === 'undefined') return;
+    if (typeof Stats === 'undefined' || !Stats.player) return;
+    if (Stats.player.day !== 1) return;
+    if (!Flags.has('tut_first_train_done')) return;
+    if (Flags.has('tut_first_rest_done')) return;   // 已演過奧蘭邀冥想
+
+    Flags.set('tut_first_rest_done', true);
+    _playOrlanInvite();
   }
 
   // 階段 2：訓練完 → 內心感受 EXP / 屬性
@@ -132,47 +195,41 @@ const Day1Tutorial = (() => {
       { text: '（你心想：⋯⋯力氣好像、增加了什麼。）' },
       { text: '（你心想：剛剛長官說「練了會變強」、原來是這意思？）' },
       { text: '（你低頭看手心。掌心裡沒東西、但你知道有東西進來了。）' },
+      { text: '（你心想：右上角那個「詳細」⋯⋯應該可以查看吧？）' },
     ], {
       onComplete: () => {
         if (typeof Stage !== 'undefined' && Stage.popupBig) {
           Stage.popupBig({
-            icon: '✦', title: '經驗累積', subtitle: '右上角「詳細」可以查看屬性、夠多 EXP 能升級',
-            color: 'green', duration: 2000, shake: false, sound: 'level_up',
+            icon: '✦', title: '去看詳細', subtitle: '右上角「詳細」按鈕花 EXP 升屬性',
+            color: 'gold', duration: 2000, shake: false, sound: 'level_up',
             onComplete: () => {
-              _log('💡 訓練累積 EXP、右上角「詳細」可以花 EXP 升屬性。先試試其他動作吧。', '#88cc77', false);
+              _log('💡 點右上角「詳細」按鈕、花 EXP 把力量升一級。', '#d4af37', true);
               if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
             },
           });
         } else {
-          _log('💡 訓練累積 EXP、右上角「詳細」可以花 EXP 升屬性。', '#88cc77', false);
+          _log('💡 點右上角「詳細」按鈕、花 EXP 升屬性。', '#d4af37', true);
           if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
         }
       }
     });
   }
 
-  // 階段 3：休息被抓 + 奧蘭出現邀冥想
-  function _playRestCaughtAndOrlanInvite() {
+  // 階段 3：升完屬性 → 奧蘭出現邀冥想
+  function _playOrlanInvite() {
     if (typeof DialogueModal === 'undefined') {
-      _log('塔倫長官：「誰准你休息了？」', '#cc6633', true);
       _log('奧蘭：「⋯⋯記得我嗎？我是同房的奧蘭。要不要一起打坐？」', '#88aacc', true);
       _addOrlanToScene();
       if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
       return;
     }
     DialogueModal.play([
-      { text: '（你正打算靠牆打盹⋯⋯）' },
-      { text: '（一個鞭頭從旁邊掃過、釘進牆裡。）' },
-      { speaker: '塔倫長官', text: '誰准你休息了？' },
-      { text: '（你低頭、不敢說話。）' },
-      { text: '（你心想：⋯⋯看來長官在的時候、皮還是繃緊點好。）' },
-      { text: '（塔倫嘖了一聲、繼續往別處巡。）' },
-      { text: '⋯⋯' },
-      { text: '（你還沒回過神、有人從你身後拍了一下。）' },
+      { text: '（你剛升完屬性、感覺身體裡的某個東西扎實了一點。）' },
+      { text: '（有人從你身後拍了一下。）' },
       { speaker: '奧蘭', text: '嘿。' },
       { speaker: '奧蘭', text: '⋯⋯記得我嗎？我是同房的、奧蘭。' },
-      { text: '（他嘴角還在抖、看起來也是剛被嚇到。）' },
-      { speaker: '奧蘭', text: '我看你需要喘口氣。' },
+      { text: '（他笑了一下、看起來剛練完一輪。）' },
+      { speaker: '奧蘭', text: '我看你練得挺認真。' },
       { speaker: '奧蘭', text: '要不要⋯⋯一起打坐？' },
       { speaker: '奧蘭', text: '我們家鄉的人相信、透過冥想能讓自己強大。' },
       { speaker: '奧蘭', text: '「相信自己」是一種很強的能力喔。' },
@@ -254,5 +311,6 @@ const Day1Tutorial = (() => {
     shouldGlowAction,
     tryAfterWakeup,
     tryAfterAction,
+    tryAfterAttrUpgrade,   // 🆕 2026-04-29 升屬性後 → 奧蘭邀冥想
   };
 })();

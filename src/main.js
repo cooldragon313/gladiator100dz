@@ -4958,6 +4958,10 @@ const Game = (() => {
           if (typeof Stats.renderAll === 'function') Stats.renderAll();
           // 🆕 D.28：同步更新右上角「詳細」按鈕的升級徽章
           _updateDetailReadyBadge();
+          // 🆕 2026-04-29 Day 1 教學：升屬性後 → 奧蘭邀冥想
+          if (typeof Day1Tutorial !== 'undefined' && Day1Tutorial.tryAfterAttrUpgrade) {
+            try { Day1Tutorial.tryAfterAttrUpgrade(attr); } catch (e) { console.error('[Day1Tutorial]', e); }
+          }
         } else {
           // 🆕 2026-04-24：失敗也許是 fervor 擋住了 — 給更具體訊息
           //   Fervor.checkBreakthroughNeeded 會吃掉這次升級並觸發狂熱
