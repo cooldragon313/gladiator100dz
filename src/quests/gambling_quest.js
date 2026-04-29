@@ -147,7 +147,7 @@ const GamblingQuest = (() => {
         },
         {
           id: 'decline',
-          label: '不睡了我累。',
+          label: '不了，累了，睡了。',
           hint: '退出、不影響任何狀態',
           effects: [],
           resultLog: `${name}: 「⋯⋯隨你。」`,
