@@ -4617,10 +4617,21 @@ const Game = (() => {
       else                     { return itemId; }
     }
     else if (source === 'chest') { baseName = Armors[itemId]?.name || itemId; slot = 'armor'; }
-    else { return '—'; }   // helmet/arms/legs Phase 3
+    // 🆕 2026-04-30 護飾類（頭盔/護臂/護腿）— 主人賜的可以看到
+    else if (source === 'helmet' || source === 'arms' || source === 'legs') {
+      baseName = Armors[itemId]?.name || itemId;
+      slot = 'armor';   // 品質查詢借用 armor slot（主畫面顯示用）
+    }
+    else { return '—'; }
     // 🆕 2026-04-28 套品質顏色
     if (typeof EquipmentQuality !== 'undefined') {
-      const q = EquipmentQuality.getEquippedQuality(Stats.player, slot);
+      // 護飾類用 armorInventory 找品質（getEquippedQuality 要 weapon/armor/offhand 之一）
+      let q = 'common';
+      if (source === 'helmet' || source === 'arms' || source === 'legs') {
+        q = EquipmentQuality.getInventoryQuality(Stats.player, 'armor', itemId);
+      } else {
+        q = EquipmentQuality.getEquippedQuality(Stats.player, slot);
+      }
       return EquipmentQuality.formatItemNameHTML(baseName, q);
     }
     return baseName;
@@ -4715,10 +4726,35 @@ const Game = (() => {
       return [...shields, ...oneHanders];
     }
     if (source === 'chest') {
+      // 🆕 2026-04-30：只列 slot==='chest' 或無 slot 欄位（舊資料）的胸甲
+      //   排除 arms/legs/helmet 護飾、避免亂塞到胸甲槽
       const inv = Array.isArray(p.armorInventory) ? p.armorInventory : [];
-      return inv.map(e => Armors[e.id]).filter(Boolean);
+      return inv.map(e => {
+        const armor = Armors[e.id];
+        if (!armor) return null;
+        const sl = armor.slot || 'chest';
+        if (sl !== 'chest') return null;
+        const quality = e.quality || 'common';
+        const formattedName = (typeof EquipmentQuality !== 'undefined')
+                                ? EquipmentQuality.formatItemNameHTML(armor.name, quality)
+                                : armor.name;
+        return { ...armor, name: formattedName, _quality: quality };
+      }).filter(Boolean);
     }
-    // helmet / arms / legs — 尚無資料表
+    // 🆕 2026-04-30 護飾類：頭盔 / 護臂 / 護腿
+    if (source === 'helmet' || source === 'arms' || source === 'legs') {
+      const inv = Array.isArray(p.armorInventory) ? p.armorInventory : [];
+      return inv.map(e => {
+        const armor = Armors[e.id];
+        if (!armor) return null;
+        if (armor.slot !== source) return null;
+        const quality = e.quality || 'common';
+        const formattedName = (typeof EquipmentQuality !== 'undefined')
+                                ? EquipmentQuality.formatItemNameHTML(armor.name, quality)
+                                : armor.name;
+        return { ...armor, name: formattedName, _quality: quality };
+      }).filter(Boolean);
+    }
     return [];
   }
 
