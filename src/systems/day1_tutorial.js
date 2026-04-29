@@ -49,7 +49,7 @@ const Day1Tutorial = (() => {
     if (Stats.player.day !== 1) return false;
     const step = getStep();
     if (step === 'train'    && actionId === 'basicSwing') return true;
-    if (step === 'rest'     && actionId === 'rest')       return true;
+    if (step === 'rest'     && actionId === 'soloThink')  return true;
     if (step === 'meditate' && actionId === 'meditation') return true;
     return false;
   }
@@ -107,7 +107,7 @@ const Day1Tutorial = (() => {
       _playAfterFirstTrain();
       return;
     }
-    if (actionId === 'rest' && Flags.has('tut_first_train_done') && !Flags.has('tut_first_rest_done')) {
+    if (actionId === 'soloThink' && Flags.has('tut_first_train_done') && !Flags.has('tut_first_rest_done')) {
       Flags.set('tut_first_rest_done', true);
       _playRestCaughtAndOrlanInvite();
       return;
