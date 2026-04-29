@@ -99,6 +99,11 @@ const Battle = (() => {
     if (typeof cb === 'function') {
       try { cb(); } catch (e) { console.error('[Battle] return callback error', e); }
     }
+    // 🆕 2026-04-30 主人賜護飾線 — 戰鬥畫面關掉、回訓練場後檢查推進
+    if (typeof MasterArmorGrant !== 'undefined' && MasterArmorGrant.tryGrantsAfterArenaWin) {
+      try { MasterArmorGrant.tryGrantsAfterArenaWin(); }
+      catch (e) { console.error('[MasterArmorGrant]', e); }
+    }
   }
 
   // ── ATB state ────────────────────────────────────────────
@@ -2047,6 +2052,10 @@ const Battle = (() => {
 
       // 🆕 2026-04-28 連勝獎勵 — 達 3/5/7/10 觸發
       _rewardData.streakReward = _applyStreakRewards(cs.winStreak);
+
+      // 🆕 2026-04-30 主人賜護飾線（依勝場推進、3 線各 3 件 + 第 4 件三選一）
+      //   延後到 reward panel 之後演（避免跟 reward panel 撞）
+      _rewardData._pendingMasterGrant = true;
 
       // S/A rank affection bonuses (officer & master)
       // 🆕 2026-04-25c 平衡：8/4 → 4/2（同樣 ×0.5）

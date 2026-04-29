@@ -82,6 +82,107 @@ const Armors = {
   //   皮系（輕路線）：rags → leatherArmor → thickLeather → studdedLeather → chainmail（轉板系）
   //   板系（重路線）：chainmail → ironPlate → steelPlate
   // 寫成全域 map 供 blacksmith_events 讀取
+  // ══════════════════════════════════════════════════
+  // 🆕 2026-04-30 主人賜護飾線（3 條：布護臂 / 皮護腿 / 鐵頭盔）
+  //   設計：[docs/systems/equipment-rework.md § 4.1](../../docs/systems/equipment-rework.md)
+  //   每條 3 件（粗灰/精藍/上紫）、勝場推進、第 4 件傳家獨立三選一
+  // ══════════════════════════════════════════════════
+
+  // 護臂線（布材質）
+  clothArm: {
+    id: 'clothArm', name: '布護臂',
+    type: 'cloth', slot: 'arms',
+    DEF: 1, SPD: 1, EVA: 1,
+    desc: '主人賜的第一件護臂——粗布裹腕。輕、不妨礙、能在你被打到那一下少留一道疤。',
+    price: 0,
+  },
+  clothArm_fine: {
+    id: 'clothArm_fine', name: '布精護臂',
+    type: 'cloth', slot: 'arms',
+    DEF: 2, SPD: 2, EVA: 2,
+    desc: '主人讓人重縫過的版本。內襯加厚、繡線整齊。穿戴時會聽到絲綢摩擦的聲音。',
+    price: 0,
+  },
+  clothArm_superb: {
+    id: 'clothArm_superb', name: '布上等護臂',
+    type: 'cloth', slot: 'arms',
+    DEF: 3, SPD: 3, EVA: 3,
+    desc: '南方絲、北方麻交織。染成深褐、繡紋暗紋。穿上去你會發現自己揮拳變快了一點。',
+    price: 0,
+  },
+
+  // 護腿線（皮材質）
+  leatherLeg: {
+    id: 'leatherLeg', name: '皮護腿',
+    type: 'leather', slot: 'legs',
+    DEF: 2, SPD: 0, EVA: 1,
+    desc: '主人賜的第一件護腿——硬皮綁腿。包裹小腿、護膝有銅釘。',
+    price: 0,
+  },
+  leatherLeg_fine: {
+    id: 'leatherLeg_fine', name: '皮精護腿',
+    type: 'leather', slot: 'legs',
+    DEF: 3, SPD: 0, EVA: 2,
+    desc: '兩層皮加棉襯、釘扣是黃銅。膝蓋部位有花紋——主人家的徽記簡化版。',
+    price: 0,
+  },
+  leatherLeg_superb: {
+    id: 'leatherLeg_superb', name: '皮上等護腿',
+    type: 'leather', slot: 'legs',
+    DEF: 5, SPD: 0, EVA: 3,
+    desc: '匠人花了整週縫的版本。皮革染成深紅、釘扣是真銀。穿上你會多一份重量、但也多一份底氣。',
+    price: 0,
+  },
+
+  // 頭盔線（鐵材質）
+  ironHelm: {
+    id: 'ironHelm', name: '鐵頭盔',
+    type: 'plate', slot: 'helmet',
+    DEF: 2, SPD: -1, EVA: 0,
+    desc: '主人賜的第一件頭盔——鐵半盔、護鼻無面甲。能擋一棍、但聽不太到自己的呼吸。',
+    price: 0,
+  },
+  ironHelm_fine: {
+    id: 'ironHelm_fine', name: '鐵精頭盔',
+    type: 'plate', slot: 'helmet',
+    DEF: 3, SPD: -1, EVA: 0,
+    desc: '葛拉重新校準過的版本。重心更穩、後腦多一塊鐵片。',
+    price: 0,
+  },
+  ironHelm_superb: {
+    id: 'ironHelm_superb', name: '鐵上等頭盔',
+    type: 'plate', slot: 'helmet',
+    DEF: 4, SPD: -1, EVA: 0,
+    desc: '鋼鐵打的、頭頂鏤空一個小徽記。戴上去你會感覺自己變成了某種雕像。',
+    price: 0,
+  },
+
+  // 🆕 第 4 件傳家三選一（35 場勝 + 5 連勝 + S 評達成、定型）
+  heirloomCloak: {
+    id: 'heirloomCloak', name: '主人傳家斗篷',
+    type: 'cloth', slot: 'chest',
+    DEF: 4, SPD: 5, EVA: 6,
+    flatBonus: { DEX: 5, AGI: 2 },
+    desc: '主人從家族長輩傳下的絲質斗篷。輕、滑、但不易破。「⋯⋯選這件、就要學會像風那樣打。」',
+    price: 0, isHeirloom: true,
+  },
+  heirloomLeather: {
+    id: 'heirloomLeather', name: '主人傳家護甲套',
+    type: 'leather', slot: 'chest',
+    DEF: 8, SPD: 0, EVA: 2,
+    flatBonus: { STR: 3, DEX: 3, CON: 3, AGI: 3, WIL: 3 },
+    desc: '主人家族世代傳的工匠皮甲、每一塊皮都有不同年代的補丁。「⋯⋯選這件、就要學會什麼都來一點。」',
+    price: 0, isHeirloom: true,
+  },
+  heirloomPlate: {
+    id: 'heirloomPlate', name: '主人傳家鎧甲',
+    type: 'plate', slot: 'chest',
+    DEF: 16, SPD: -4, EVA: -3,
+    flatBonus: { CON: 5 },
+    desc: '主人家族最古老的一件、傳了七代的鋼鐵鎧。每一道凹痕都有名字。「⋯⋯選這件、就要學會被打不倒。」',
+    price: 0, isHeirloom: true,
+  },
+
   // ── 盾牌 ──────────────────────────────────────────────
   woodShield: {
     id: 'woodShield', name: '木盾',
