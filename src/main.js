@@ -4316,6 +4316,10 @@ const Game = (() => {
   function closeDetailModal() {
     _closeEquipmentPicker();
     document.getElementById('modal-detail')?.classList.remove('open');
+    // 🆕 2026-04-29 Day 1 教學：升完屬性後關閉詳細 → 演奧蘭邀冥想
+    if (typeof Day1Tutorial !== 'undefined' && Day1Tutorial.tryAfterDetailClose) {
+      try { Day1Tutorial.tryAfterDetailClose(); } catch (e) { console.error('[Day1Tutorial]', e); }
+    }
   }
 
   /**

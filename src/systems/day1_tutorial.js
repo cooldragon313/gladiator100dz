@@ -169,17 +169,31 @@ const Day1Tutorial = (() => {
     }
   }
 
-  // 🆕 2026-04-29 升屬性後觸發奧蘭邀冥想
+  // 🆕 2026-04-29 升屬性後 → 標記奧蘭邀冥想 pending
   //   呼叫時機：main.js 升屬性按鈕成功後
+  //   不立即播 DialogueModal（玩家還在詳細 modal 裡、會被蓋住）
+  //   改在 tryAfterDetailClose（詳細關閉後）才演
   function tryAfterAttrUpgrade(attr) {
     if (typeof Flags === 'undefined') return;
     if (typeof Stats === 'undefined' || !Stats.player) return;
     if (Stats.player.day !== 1) return;
     if (!Flags.has('tut_first_train_done')) return;
     if (Flags.has('tut_first_rest_done')) return;   // 已演過奧蘭邀冥想
+    Flags.set('tut_orlan_invite_pending', true);
+  }
 
+  // 🆕 2026-04-29 詳細 modal 關閉時 → 看 pending 演奧蘭邀冥想
+  function tryAfterDetailClose() {
+    if (typeof Flags === 'undefined') return;
+    if (!Flags.has('tut_orlan_invite_pending')) return;
+    if (Flags.has('tut_first_rest_done')) {
+      Flags.unset && Flags.unset('tut_orlan_invite_pending');
+      return;
+    }
+    Flags.unset && Flags.unset('tut_orlan_invite_pending');
     Flags.set('tut_first_rest_done', true);
-    _playOrlanInvite();
+    // 延 200ms 等 modal 關閉動畫
+    setTimeout(_playOrlanInvite, 200);
   }
 
   // 階段 2：訓練完 → 內心感受 EXP / 屬性
@@ -271,16 +285,19 @@ const Day1Tutorial = (() => {
     DialogueModal.play([
       { text: '（你睜開眼。）' },
       { text: '（心比剛才靜一點。呼吸也順了。）' },
-      { speaker: '奧蘭', text: '嘿。怎樣？' },
-      { speaker: '奧蘭', text: '⋯⋯有朋友一起練、是不是真的比較有效率？' },
-      { speaker: '奧蘭', text: '我師父說、「兩個人想同一件事、力量會加倍」。' },
-      { speaker: '奧蘭', text: '我們倆現在的精神都比剛剛好——你感覺到了嗎？' },
-      { text: '（卡西烏斯遠遠走過來、看了你一眼、停下。）' },
-      { speaker: '卡西烏斯', text: '⋯⋯' },
-      { speaker: '卡西烏斯', text: '力氣、靈巧、體質、反應、意志、運氣。' },
-      { speaker: '卡西烏斯', text: '六種維度。' },
-      { speaker: '卡西烏斯', text: '你練什麼、那個就會長。' },
-      { speaker: '卡西烏斯', text: '練不夠、那個就空。' },
+      { speaker: '奧蘭', text: '怎樣？' },
+      { speaker: '奧蘭', text: '⋯⋯有沒有覺得跟一個人坐不一樣？' },
+      { speaker: '奧蘭', text: '我師父說過——「兩個人想同一件事、力量會加倍」。' },
+      { speaker: '奧蘭', text: '我們倆現在的精神、都比剛剛好。' },
+      { text: '（這時、卡西烏斯從旁邊走過、停下。）' },
+      { speaker: '卡西烏斯', text: '⋯⋯看來你跟人家一起練了。' },
+      { speaker: '卡西烏斯', text: '感覺到了沒？' },
+      { speaker: '卡西烏斯', text: '一個人練、跟兩個人一起練——效果不一樣。' },
+      { speaker: '卡西烏斯', text: '⋯⋯如果是好朋友、效果還會再加倍。' },
+      { text: '（他用下巴指了指奧蘭。）' },
+      { speaker: '卡西烏斯', text: '記住——同伴在場、就跟著一起練。' },
+      { speaker: '卡西烏斯', text: '六種維度——力氣、靈巧、體質、反應、意志、運氣。' },
+      { speaker: '卡西烏斯', text: '練什麼、那個就會長。練不夠、那個就空。' },
       { speaker: '卡西烏斯', text: '⋯⋯記住了。' },
       { text: '（他轉身走了、沒等你回話。）' },
       { text: '⋯⋯' },
@@ -311,6 +328,7 @@ const Day1Tutorial = (() => {
     shouldGlowAction,
     tryAfterWakeup,
     tryAfterAction,
-    tryAfterAttrUpgrade,   // 🆕 2026-04-29 升屬性後 → 奧蘭邀冥想
+    tryAfterAttrUpgrade,    // 🆕 2026-04-29 升屬性後 → 標記 pending
+    tryAfterDetailClose,    // 🆕 2026-04-29 詳細 modal 關閉後 → 演奧蘭邀冥想
   };
 })();
