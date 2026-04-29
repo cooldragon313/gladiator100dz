@@ -820,8 +820,174 @@ const DoctorEvents = (() => {
     _lastVisitDay = -1;
   }
 
+  // ══════════════════════════════════════════════════
+  // 🆕 2026-04-29 中/重傷強迫送老默事件
+  //   設計：[docs/systems/wounds.md] + 2026-04-29 user 規格
+  //   流程：受傷 popup → 監督官「送老默」對白 → 老默場景 → 玩家選治不治
+  //   第一次免費（flag doctor_first_visit_free_done）、之後依好感折扣
+  // ══════════════════════════════════════════════════
+  function tryForcedTreatment(part, severity, source) {
+    if (typeof DialogueModal === 'undefined') return;
+    if (typeof Wounds === 'undefined') return;
+    const p = Stats.player;
+    if (!p || !p.wounds || !p.wounds[part]) return;
+
+    const partName = Wounds.PART_NAMES[part] || '身體';
+    const sevName  = Wounds.SEVERITY_NAMES[severity] || '傷';
+    const officerPresent = (typeof GameState !== 'undefined' && GameState.getCurrentNPCs)
+                          ? (GameState.getCurrentNPCs().audience || []).includes('officer')
+                          : false;
+
+    // 先演對白：（沒監督官在場時、用一般敘事帶過、不出 speaker）
+    const introLines = officerPresent ? [
+      { speaker: '塔倫長官', text: `${partName}${sevName}？` },
+      { speaker: '塔倫長官', text: '⋯⋯老默那邊去一趟。' },
+      { speaker: '塔倫長官', text: '主人說，第一次免費。下次自己出錢。' },
+      { text: '（他指了指醫療房的方向、繼續巡。）' },
+    ] : [
+      { text: `（${partName}${sevName}——你撐不住一直練。）` },
+      { text: '（隊裡有人小聲說：「⋯⋯去找老默吧。他那邊。」）' },
+    ];
+
+    DialogueModal.play(introLines, {
+      onComplete: () => _playDoctorScene(part, severity, source)
+    });
+  }
+
+  function _playDoctorScene(part, severity, source) {
+    if (typeof DialogueModal === 'undefined' || typeof Wounds === 'undefined') return;
+    const p = Stats.player;
+    const partName = Wounds.PART_NAMES[part] || '身體';
+    const sevName  = Wounds.SEVERITY_NAMES[severity] || '傷';
+    const isFirst  = !Flags.has('doctor_first_visit_free_done');
+    const aff      = (typeof teammates !== 'undefined') ? teammates.getAffection('doctorMo') : 0;
+
+    // 計算費用（第一次免費；之後走 _calcWoundCost 折扣）
+    const { cost: baseCost, free: weeklyFree } = _calcWoundCost(severity);
+    const finalCost = isFirst ? 0 : baseCost;
+    const isFreeThisTime = isFirst || weeklyFree;
+
+    // 老默開場（含教學解釋；只在 isFirst 時演完整版）
+    let openLines;
+    if (isFirst) {
+      openLines = [
+        { text: '（你進到醫療房。老默正背對著你、整理一排小瓶。）' },
+        { speaker: '老默', text: '⋯⋯坐。' },
+        { text: '（他轉過來、看了你一眼、目光停在傷處。）' },
+        { speaker: '老默', text: `${partName}${sevName}。` },
+        { speaker: '老默', text: '聽好——傷分輕、中、重。' },
+        { speaker: '老默', text: '輕傷自己 3 天會好。中傷 6 天。重傷⋯⋯12 天起跳。' },
+        { speaker: '老默', text: '練到對應部位、傷會加重。盡量避開。' },
+        { speaker: '老默', text: '不然就來。我這。' },
+        { text: '（他遞出一塊乾淨的麻布。）' },
+        { speaker: '老默', text: '⋯⋯第一次不收。下次看狀況。' },
+      ];
+    } else {
+      openLines = [
+        { text: '（你進到醫療房。老默看到你那個傷處、嘆了一口氣。）' },
+        { speaker: '老默', text: `又是${partName}。` },
+        { speaker: '老默', text: isFreeThisTime ? '這次也不收。算我看不下去。' : `要 ${finalCost} 金。` },
+      ];
+    }
+
+    DialogueModal.play(openLines, {
+      onComplete: () => _showForcedTreatmentChoice(part, severity, finalCost, isFreeThisTime, isFirst)
+    });
+  }
+
+  function _showForcedTreatmentChoice(part, severity, finalCost, isFreeThisTime, isFirst) {
+    if (typeof ChoiceModal === 'undefined') {
+      // fallback：直接治
+      _performWoundHealForced(part, finalCost, isFreeThisTime, isFirst);
+      return;
+    }
+    const p = Stats.player;
+    const partName = Wounds.PART_NAMES[part] || '身體';
+    const sevName  = Wounds.SEVERITY_NAMES[severity] || '傷';
+    const naturalDays = severity === 1 ? 3 : (severity === 2 ? 6 : 12);
+    const canAfford = isFreeThisTime || (p.money || 0) >= finalCost;
+
+    const choices = [];
+    choices.push({
+      id: 'treat',
+      label: isFreeThisTime ? '接受治療（免費）' : `接受治療（${finalCost} 金）`,
+      hint: isFreeThisTime ? '（傷立刻消失）' : `（傷立刻消失、扣 ${finalCost} 金）`,
+      disabled: !canAfford,
+    });
+    choices.push({
+      id: 'refuse',
+      label: '不治、自己撐',
+      hint: `（${naturalDays} 天自然好、期間不能練對應部位）`,
+    });
+    // 重傷 + 不治 → 永久傷風險（換義肢線索、Phase 2 黑市）
+    if (severity === 3) {
+      choices.push({
+        id: 'prosthetic',
+        label: '⋯⋯換義肢？',
+        hint: '（黑市傳聞、Phase 2 待開放）',
+        disabled: true,
+      });
+    }
+
+    ChoiceModal.show({
+      id: 'doctor_forced_' + part + '_' + Date.now(),
+      icon: '⚕',
+      title: `${partName}${sevName}`,
+      body: '老默：「⋯⋯怎麼處理？」',
+      forced: true,
+      choices,
+    }, {
+      onChoose: (choiceId) => {
+        if (choiceId === 'treat') {
+          _performWoundHealForced(part, finalCost, isFreeThisTime, isFirst);
+        } else if (choiceId === 'refuse') {
+          _log(`⚕ 你拒絕治療。${partName}${sevName}會自己慢慢好（${severity === 1 ? 3 : severity === 2 ? 6 : 12} 天）。`, '#9a8866', true);
+          if (typeof DialogueModal !== 'undefined') {
+            DialogueModal.play([
+              { speaker: '老默', text: '⋯⋯隨你。' },
+              { speaker: '老默', text: '記得別練那邊。' },
+            ]);
+          }
+        }
+        // prosthetic disabled、不會跑到這
+      }
+    });
+  }
+
+  function _performWoundHealForced(part, finalCost, isFreeThisTime, isFirst) {
+    if (typeof Wounds === 'undefined') return;
+    const p = Stats.player;
+    const w = p.wounds && p.wounds[part];
+    if (!w) return;
+
+    const partName = Wounds.PART_NAMES[part] || '身體';
+    const origSev  = w.severity;
+
+    if (!isFreeThisTime && finalCost > 0) {
+      Stats.modMoney(-finalCost);
+    }
+    if (isFirst) Flags.set('doctor_first_visit_free_done', true);
+
+    Wounds.heal(part);
+    teammates.modAffection('doctorMo', +3);
+    Stats.advanceTime(origSev === 3 ? 90 : origSev === 2 ? 60 : 30);
+
+    const costStr = isFreeThisTime ? '免費' : `${finalCost} 金`;
+    _log(`⚕ 老默處理了你的${partName}（${costStr}）。傷消失了。`, '#88cc77', true);
+
+    if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
+
+    if (typeof DialogueModal !== 'undefined') {
+      DialogueModal.play([
+        { speaker: '老默', text: '⋯⋯走吧。' },
+        { speaker: '老默', text: '別再來太頻繁。' },
+      ]);
+    }
+  }
+
   return {
     tryVisit,
+    tryForcedTreatment,    // 🆕 2026-04-29 中/重傷強迫送老默
     serialize,
     restore,
     reset,

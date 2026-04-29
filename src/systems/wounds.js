@@ -188,7 +188,47 @@ const Wounds = (() => {
     // 重算屬性（派生值由 calcDerived 呼叫 eff() 自動吃到）
     if (typeof Stats.renderAll === 'function') Stats.renderAll();
 
+    // 🆕 2026-04-29 受傷視覺反饋 + 監督官強迫送老默
+    //   skip：origin 起手傷（source='capture'）/ 戰鬥中受傷（戰鬥引擎自有反饋）
+    if (opts.source !== 'capture' && !opts.cameFromCombat) {
+      _notifyInflicted(part, severity, opts.source);
+    }
+
     return wound;
+  }
+
+  // 🆕 2026-04-29 受傷視覺反饋 + 中/重傷送老默
+  function _notifyInflicted(part, severity, source) {
+    const partName = PART_NAMES[part] || '身體';
+    const sevName  = SEVERITY_NAMES[severity];
+    // 戰鬥畫面開著時不彈、避免遮擋
+    if (typeof Battle !== 'undefined' && Battle.isActive && Battle.isActive()) return;
+
+    // 大字 popup + 紅光震動（依嚴重度區分強度）
+    const isHeavy = severity >= 2;
+    if (typeof Stage !== 'undefined' && Stage.popupBig) {
+      Stage.popupBig({
+        icon: '💔',
+        title: `${partName}${sevName}！`,
+        subtitle: severity === 3 ? '⋯⋯快撐不住' : (severity === 2 ? '感覺不太對勁' : '擦傷'),
+        color: 'red',
+        duration: isHeavy ? 1800 : 1200,
+        shake: isHeavy,
+        sound: isHeavy ? 'hit_crit' : 'hit_flesh',
+      });
+    }
+    if (typeof Game !== 'undefined' && Game.shakeGameRoot && isHeavy) Game.shakeGameRoot();
+    _log(`💔 你的${partName}${sevName}了！（${source || '訓練'}）`, '#cc4422', true);
+
+    // 中/重傷 → 觸發監督官強迫送老默（severity ≥ 2、首次或一般情況都可走）
+    //   但若戰鬥中或場上沒監督官在 audience，延後到下一個有空時段（簡化：只在 audience 有監督官時才演）
+    if (isHeavy && typeof DoctorEvents !== 'undefined' && DoctorEvents.tryForcedTreatment) {
+      // 延 1.6s 等 popup 收完
+      setTimeout(() => {
+        try { DoctorEvents.tryForcedTreatment(part, severity, source); }
+        catch (e) { console.error('[DoctorEvents.tryForcedTreatment]', e); }
+      }, isHeavy ? 1900 : 1300);
+    }
   }
 
   /**

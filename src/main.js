@@ -4244,7 +4244,24 @@ const Game = (() => {
     Stats.renderAll();
     document.getElementById('player-name-display').textContent = Stats.player.name;
     _updateDetailReadyBadge();
+    _renderMainWoundsStrip();   // 🆕 2026-04-29 主畫面受傷狀態
     checkTimelineEvent();
+  }
+
+  // 🆕 2026-04-29 主畫面受傷狀態 — 沒受傷時整段隱藏
+  function _renderMainWoundsStrip() {
+    const section = document.getElementById('main-wounds-section');
+    if (!section) return;
+    if (typeof Wounds === 'undefined' || !Wounds.hasAnyWound || !Wounds.renderWoundsList) {
+      section.style.display = 'none';
+      return;
+    }
+    if (!Wounds.hasAnyWound()) {
+      section.style.display = 'none';
+      return;
+    }
+    section.style.display = 'block';
+    Wounds.renderWoundsList('main-wounds-list');
   }
 
   // 🆕 D.27：「詳細」按鈕上的升級提醒徽章
