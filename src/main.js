@@ -4349,6 +4349,23 @@ const Game = (() => {
 
   // ── Detail modal (full character sheet) ──────────────
   function openDetailModal() {
+    // 🆕 2026-04-30 故事/cutscene 中不能開詳細（避免劇情背景跳動）
+    if (_uiLocked) {
+      showToast('正在進行中⋯⋯');
+      return;
+    }
+    if (typeof DialogueModal !== 'undefined' && DialogueModal.isOpen && DialogueModal.isOpen()) {
+      showToast('對話中無法查看');
+      return;
+    }
+    if (typeof ChoiceModal !== 'undefined' && ChoiceModal.isOpen && ChoiceModal.isOpen()) {
+      showToast('選擇中無法查看');
+      return;
+    }
+    if (typeof Battle !== 'undefined' && Battle.isActive && Battle.isActive()) {
+      showToast('戰鬥中無法查看');
+      return;
+    }
     const modal = document.getElementById('modal-detail');
     if (!modal) return;
     _closeEquipmentPicker();     // 每次打開重置 picker
@@ -5240,6 +5257,23 @@ const Game = (() => {
       .sort(([, a], [, b]) => Math.abs(b) - Math.abs(a));
 
     if (summary) summary.textContent = `你已與 ${visible.length} 人建立連結`;
+
+    // 🆕 2026-04-30 關係圖內常駐說明（meta、玩家進來就看到）
+    let intro = '';
+    const introId = 'cs-people-intro';
+    let introEl = document.getElementById(introId);
+    if (!introEl && grid.parentNode) {
+      introEl = document.createElement('div');
+      introEl.id = introId;
+      introEl.className = 'cs-people-intro';
+      introEl.innerHTML = `
+        <div style="padding:10px 14px;background:#1a1410;border:1px solid #3a2a18;border-left:3px solid #d4af37;border-radius:3px;margin-bottom:12px;font-size:13px;line-height:1.7;color:#c8b898;">
+          ⚊ 跟你互動的每個人都記在這裡。<br>
+          ⚊ 好感越高、能解鎖的對白和事件越多——同伴會給你不同的回饋。<br>
+          ⚊ 一起訓練、共同經歷的選擇、戰鬥同伴關係 ——都會推進這份連結。
+        </div>`;
+      grid.parentNode.insertBefore(introEl, grid);
+    }
 
     if (visible.length === 0) {
       grid.innerHTML = '<div class="cs-people-empty">尚未與任何人建立連結。<br>訓練場的每一次互動都可能改變命運。</div>';

@@ -308,7 +308,11 @@ const ChoiceModal = (() => {
     _activeChoices = [];
   }
 
+  // 🆕 2026-04-30 給 main.js 用、判斷是否選擇中（擋詳細按鈕）
+  function isOpen() { return !!_activeEvent; }
+
   return {
     show,
+    isOpen,
   };
 })();
