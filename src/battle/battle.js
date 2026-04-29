@@ -222,6 +222,10 @@ const Battle = (() => {
       offhandId: _mapOffhand(p.equippedOffhand),
       amuletId:  'none',
       traitId:   'none',
+      // 🆕 2026-04-28 裝備品質（無則 'common'）
+      weaponQuality:  (typeof EquipmentQuality !== 'undefined') ? EquipmentQuality.getEquippedQuality(p, 'weapon')  : 'common',
+      armorQuality:   (typeof EquipmentQuality !== 'undefined') ? EquipmentQuality.getEquippedQuality(p, 'armor')   : 'common',
+      offhandQuality: (typeof EquipmentQuality !== 'undefined') ? EquipmentQuality.getEquippedQuality(p, 'offhand') : 'common',
     }, true);
 
     // 🆕 2026-04-25c：HP 共用 — 進場帶訓練場當前 HP（不是滿血上場）

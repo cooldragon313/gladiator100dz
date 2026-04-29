@@ -314,18 +314,33 @@ const TB_ENEMIES = {
 function TB_calcDerived(unit) {
   const S=unit.STR, D=unit.DEX, C=unit.CON,
         A=unit.AGI, W=unit.WIL, L=unit.LUK;
-  const w  = TB_WEAPONS[unit.weaponId]  || TB_WEAPONS.fists;
-  const ar = TB_ARMORS[unit.armorId]    || TB_ARMORS.rags;
+  let w  = TB_WEAPONS[unit.weaponId]  || TB_WEAPONS.fists;
+  let ar = TB_ARMORS[unit.armorId]    || TB_ARMORS.rags;
   const am = TB_AMULETS[unit.amuletId]  || TB_AMULETS.none;
   const af = am.flat || {};
+
+  // 🆕 2026-04-28 套品質倍率（粗灰 -15% / 普白 ±0% / 精藍 +15% / 上紫 +30% / 傳金 +50%）
+  if (typeof EquipmentQuality !== 'undefined') {
+    if (unit.weaponQuality && unit.weaponQuality !== 'common') {
+      w = EquipmentQuality.applyToWeapon(w, unit.weaponQuality);
+    }
+    if (unit.armorQuality && unit.armorQuality !== 'common') {
+      ar = EquipmentQuality.applyToArmor(ar, unit.armorQuality);
+    }
+  }
 
   // ── 副手判定 ──────────────────────────────────────────
   const offId = unit.offhandId || unit.shieldId || 'none';
   const isOffhandShield = (offId !== 'none') && !!TB_SHIELDS[offId];
   const isOffhandWeapon = (offId !== 'none') && !isOffhandShield && !!TB_WEAPONS[offId] && !TB_WEAPONS[offId].twoHanded;
   const isDualWield     = isOffhandWeapon;
-  const sh = isOffhandShield ? TB_SHIELDS[offId] : TB_SHIELDS.none;
-  const offW = isDualWield   ? TB_WEAPONS[offId] : null;
+  let sh   = isOffhandShield ? TB_SHIELDS[offId] : TB_SHIELDS.none;
+  let offW = isDualWield   ? TB_WEAPONS[offId] : null;
+  // 🆕 2026-04-28 副手品質
+  if (typeof EquipmentQuality !== 'undefined' && unit.offhandQuality && unit.offhandQuality !== 'common') {
+    if (isOffhandShield && sh) sh = EquipmentQuality.applyToArmor(sh, unit.offhandQuality);
+    if (isDualWield && offW)   offW = EquipmentQuality.applyToWeapon(offW, unit.offhandQuality);
+  }
 
   // Apply amulet flat stat bonuses first
   const aS = S+(af.STR||0), aD = D+(af.DEX||0), aC = C+(af.CON||0),
@@ -424,6 +439,10 @@ function TB_buildUnit(cfg, isPlayer=false) {
     armorId:   cfg.armorId   || def.armorId   || 'rags',
     shieldId:  cfg.shieldId  || def.shieldId  || 'none',   // 向下相容（敵人仍用 shieldId）
     offhandId: cfg.offhandId || cfg.shieldId || def.shieldId || 'none',
+    // 🆕 2026-04-28 裝備品質（玩家從 inventory、敵人 cfg 帶、否則 common）
+    weaponQuality:  cfg.weaponQuality  || def.weaponQuality  || 'common',
+    armorQuality:   cfg.armorQuality   || def.armorQuality   || 'common',
+    offhandQuality: cfg.offhandQuality || def.offhandQuality || 'common',
     amuletId: cfg.amuletId || 'none',
     traitId:  cfg.traitId  || def.traitId  || 'none',
     passive:  def.passive  || null,

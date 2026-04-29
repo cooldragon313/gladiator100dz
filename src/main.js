@@ -4487,15 +4487,21 @@ const Game = (() => {
   /** 取得裝備顯示名稱 */
   function _getEquipmentName(source, itemId) {
     if (!itemId) return '—';
-    if (source === 'weapons') return Weapons[itemId]?.name || itemId;
-    if (source === 'offhand') {
-      if (Armors[itemId])  return Armors[itemId].name;         // 盾牌
-      if (Weapons[itemId]) return Weapons[itemId].name + '（副）'; // 雙持
-      return itemId;
+    let baseName, slot;
+    if (source === 'weapons') { baseName = Weapons[itemId]?.name || itemId; slot = 'weapon'; }
+    else if (source === 'offhand') {
+      if (Armors[itemId])      { baseName = Armors[itemId].name; slot = 'offhand'; }
+      else if (Weapons[itemId]){ baseName = Weapons[itemId].name + '（副）'; slot = 'offhand'; }
+      else                     { return itemId; }
     }
-    if (source === 'chest') return Armors[itemId]?.name || itemId;
-    // helmet/arms/legs 尚無對應 item table（Phase 3 E10 D.2）
-    return '—';
+    else if (source === 'chest') { baseName = Armors[itemId]?.name || itemId; slot = 'armor'; }
+    else { return '—'; }   // helmet/arms/legs Phase 3
+    // 🆕 2026-04-28 套品質顏色
+    if (typeof EquipmentQuality !== 'undefined') {
+      const q = EquipmentQuality.getEquippedQuality(Stats.player, slot);
+      return EquipmentQuality.formatItemNameHTML(baseName, q);
+    }
+    return baseName;
   }
 
   // ── 🆕 Equipment picker inline ─────────────────────
@@ -4569,7 +4575,12 @@ const Game = (() => {
           const w = Weapons[entry.id];
           if (!w) return null;
           const tierLabel = entry.tier > 0 ? ` +${entry.tier}` : '';
-          return { ...w, name: w.name + tierLabel, _tier: entry.tier };
+          // 🆕 2026-04-28 加品質顏色
+          const quality = entry.quality || 'common';
+          const formattedName = (typeof EquipmentQuality !== 'undefined')
+                                  ? EquipmentQuality.formatItemNameHTML(w.name + tierLabel, quality)
+                                  : (w.name + tierLabel);
+          return { ...w, name: formattedName, _tier: entry.tier, _quality: quality };
         }).filter(Boolean);
       }
       // fallback：還沒拿到武器時顯示空
@@ -5474,6 +5485,11 @@ const Game = (() => {
     if (!Array.isArray(p.readBooks))  p.readBooks    = [];
     if (p.dullardStage === undefined) p.dullardStage = 0;
     if (!Array.isArray(p.weaponInventory)) p.weaponInventory = [];
+    if (!Array.isArray(p.armorInventory))  p.armorInventory  = [];
+    // 🆕 2026-04-28 裝備品質：舊存檔的 weaponInventory / armorInventory 補齊 quality:'common'
+    if (typeof EquipmentQuality !== 'undefined' && EquipmentQuality.sanitizeInventory) {
+      EquipmentQuality.sanitizeInventory(p);
+    }
     // 🆕 2026-04-19 傷勢系統（v5→v6 欄位 / v6→v7 加 mind）
     if (!p.wounds || typeof p.wounds !== 'object') {
       p.wounds = { head:null, torso:null, arms:null, legs:null, mind:null };
