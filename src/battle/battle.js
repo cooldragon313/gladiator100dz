@@ -1710,6 +1710,10 @@ const Battle = (() => {
       if (typeof Fervor !== 'undefined' && Fervor.onCombatStreak) {
         Fervor.onCombatStreak(streak);
       }
+      // 🆕 2026-04-29 5 連勝首次達到 → 標記下次訓練演主人召見大事件 + 解鎖鍛造坊
+      if (typeof Flags !== 'undefined' && !Flags.has('gra_forge_unlocked')) {
+        Flags.set('gra_forge_unlock_pending', true);
+      }
     } else if (streak === 7) {
       allBonus = 15; mainBonus = 60;  fameBonus = 20;
       dialog = '⚔ 七連勝！「你最近⋯⋯不太一樣了。」';

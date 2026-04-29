@@ -2899,6 +2899,14 @@ const Game = (() => {
       </button>`;
     });
 
+    // 🆕 2026-04-29 鍛造坊解鎖後出現「去找葛拉」鈕（不消耗時間/體力）
+    if (typeof Flags !== 'undefined' && Flags.has('gra_forge_unlocked')) {
+      html += `<button class="action-btn forge-action" onclick="Game.openForge()" style="margin-top:8px;border-color:#d4af37;color:#f0d878;">
+        <div class="action-name"><span class="action-title">⚒ 去找葛拉</span></div>
+        <div class="action-cost">鍛造坊・強化裝備</div>
+      </button>`;
+    }
+
     // Sleep button always at bottom
     html += `<button class="action-btn-sleep" onclick="Game.doAction('_sleep')" style="margin-top:8px;">就寢・結束今天</button>`;
     con.innerHTML = html;
@@ -3448,6 +3456,10 @@ const Game = (() => {
           OverseerEvents.tryCassiusHint();          // 回響期 — 卡西烏斯補刀
           OverseerEvents.tryEavesdrop();            // 證據期 — 偷聽密謀（條件嚴格）
           OverseerEvents.tryOverseerDrink();        // 選擇期 — 喝酒透漏選擇
+          // 🆕 2026-04-29 鍛造坊解鎖（5 連勝後設 pending flag、下次訓練後演大事件）
+          if (typeof BlacksmithEvents !== 'undefined' && BlacksmithEvents.tryMasterSummonsForUnlock) {
+            try { BlacksmithEvents.tryMasterSummonsForUnlock(); } catch (e) { console.error('[Forge unlock]', e); }
+          }
         }
       } catch (e) { console.error('[OverseerEvents]', e); }
     }
@@ -5490,6 +5502,8 @@ const Game = (() => {
     if (typeof EquipmentQuality !== 'undefined' && EquipmentQuality.sanitizeInventory) {
       EquipmentQuality.sanitizeInventory(p);
     }
+    // 🆕 2026-04-29 葛拉信用點（鍛造坊上交換點數）
+    if (typeof p.gra_credit !== 'number') p.gra_credit = 0;
     // 🆕 2026-04-19 傷勢系統（v5→v6 欄位 / v6→v7 加 mind）
     if (!p.wounds || typeof p.wounds !== 'object') {
       p.wounds = { head:null, torso:null, arms:null, legs:null, mind:null };
@@ -7521,6 +7535,15 @@ const Game = (() => {
     addLog(`\n[Debug] 已跳到第 ${targetDay} 天`, '#ff6600', true);
   }
 
+  // 🆕 2026-04-29 開鍛造坊（葛拉鋪 UI）
+  function openForge() {
+    if (typeof Forge === 'undefined' || !Forge.open) {
+      console.warn('Forge module not loaded');
+      return;
+    }
+    Forge.open();
+  }
+
   return {
     init, switchField, doAction,
     addLog, renderAll, showToast,
@@ -7530,6 +7553,7 @@ const Game = (() => {
     loadGameFromSlot,
     testChoice,
     skipToDay,    // 🆕 Debug 用
+    openForge,    // 🆕 2026-04-29 鍛造坊
     // 🆕 2026-04-23：視覺特效公開 API（供 ChoiceModal、狂熱獲得等使用）
     flashStageRed: _flashStageRed,
     shakeGameRoot: _shakeGameRoot,

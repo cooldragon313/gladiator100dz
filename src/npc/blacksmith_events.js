@@ -739,6 +739,61 @@ const BlacksmithEvents = (() => {
   }
 
   // ══════════════════════════════════════════
+  // 🆕 2026-04-29 主人召見大畫面（解鎖鍛造坊 UI）
+  //   設計：[docs/systems/equipment-rework.md](../../docs/systems/equipment-rework.md) § 4.2
+  //   觸發：首次連勝 5 場（battle.js 在 _applyStreakRewards 呼叫設 pending flag）
+  //   時機：下次訓練後 hook 檢查、playForge unlock 大事件
+  // ══════════════════════════════════════════
+  function tryMasterSummonsForUnlock() {
+    if (typeof Flags === 'undefined') return false;
+    if (Flags.has('gra_forge_unlocked')) return false;        // 已解鎖
+    if (!Flags.has('gra_forge_unlock_pending')) return false; // 沒被標記
+    if (typeof DialogueModal === 'undefined') {
+      // fallback：沒 modal 就直接解鎖、不演大事件
+      Flags.set('gra_forge_unlocked', true);
+      Flags.unset && Flags.unset('gra_forge_unlock_pending');
+      _log('✦ 主人召見：「⋯⋯你現在可以自己選武器、自己強化裝備了。」', '#d4af37', true);
+      return true;
+    }
+
+    // 立刻設 unlocked 防呆（避免 callback chain 斷掉每天重播）
+    Flags.set('gra_forge_unlocked', true);
+    if (Flags.unset) Flags.unset('gra_forge_unlock_pending');
+
+    DialogueModal.play([
+      { text: '（塔倫拍你肩、把你推到主人廳。）' },
+      { text: '（主人正在桌邊看一份報告。看到你進來，他抬頭。）' },
+      { speaker: '阿圖斯', text: '你很好！', color: '#f0d068' },
+      { speaker: '阿圖斯', text: '⋯⋯我這個訓練所、下一個招牌就是你。' },
+      { text: '（他轉身、招手叫葛拉過來。）' },
+      { speaker: '阿圖斯', text: '葛拉、他現在可以自己選武器、自己強化裝備了。' },
+      { speaker: '阿圖斯', text: '他要什麼你給他什麼。' },
+      { speaker: '阿圖斯', text: '⋯⋯我准了。' },
+      { text: '（葛拉低頭。）' },
+      { speaker: '葛拉', text: '⋯⋯遵命。' },
+      { text: '（主人拍拍你肩。）' },
+      { speaker: '阿圖斯', text: '走、去打你的鐵。' },
+    ], {
+      onComplete: () => {
+        if (typeof Stage !== 'undefined' && Stage.popupBig) {
+          Stage.popupBig({
+            icon: '⚒', title: '鍛造坊解鎖', subtitle: '主人允許你自己選武器、自己強化',
+            color: 'gold', duration: 2200, shake: true, sound: 'acquire',
+            onComplete: () => {
+              _log('✦ 鍛造坊解鎖！訓練場行動列出現「去找葛拉」。', '#d4af37', true);
+              if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
+            },
+          });
+        } else {
+          _log('✦ 鍛造坊解鎖！訓練場行動列出現「去找葛拉」。', '#d4af37', true);
+          if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
+        }
+      }
+    });
+    return true;
+  }
+
+  // ══════════════════════════════════════════
   // 存檔 / 讀檔（目前無狀態需序列化）
   // ══════════════════════════════════════════
   function serialize()      { return {}; }
@@ -746,14 +801,15 @@ const BlacksmithEvents = (() => {
   function reset()          { }
 
   return {
-    tryFirstArmor,           // 階段 2
-    tryFirstRepair,          // 階段 3
-    markWeaponNeedsRepair,   // 戰鬥後 hook
-    tryWeaponUpgradeT2,      // 階段 4
-    tryBlueprintCraft,       // 🆕 階段 5
-    tryWeaponUpgradeT3,      // 🆕 階段 6
-    tryArmorUpgrade,         // 🆕 階段 7
-    tryHeirloomWeapon,       // 🆕 階段 8
+    tryFirstArmor,                  // 階段 2
+    tryFirstRepair,                 // 階段 3
+    markWeaponNeedsRepair,          // 戰鬥後 hook
+    tryWeaponUpgradeT2,             // 階段 4
+    tryBlueprintCraft,              // 🆕 階段 5
+    tryWeaponUpgradeT3,             // 🆕 階段 6
+    tryArmorUpgrade,                // 🆕 階段 7
+    tryHeirloomWeapon,              // 🆕 階段 8
+    tryMasterSummonsForUnlock,      // 🆕 2026-04-29 鍛造坊解鎖（5 連勝）
     serialize, restore, reset,
   };
 })();
