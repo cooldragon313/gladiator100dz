@@ -2256,15 +2256,15 @@ const Game = (() => {
     const roster = _computeSynergyRoster(attrKey);
     if (roster.length === 0) return '';
     const tierMult = { 1: '1.3', 2: '1.6', 3: '1.8' };
-    // 🆕 2026-04-30 改成「人頭+名字」、玩家在按鈕上看到誰在練啥
-    const items = roster.map(r => {
+    // 🆕 2026-04-30 純人頭 icon、名字走 tooltip（保持按鈕橫向窄身）
+    const icons = roster.map(r => {
       const cls   = `syn-t${r.tier}${r.isBg ? ' syn-bg' : ''}`;
       const title = r.tier === 0
         ? `${r.name}（在場、好感不足協力）`
         : `${r.name}（協力 ×${tierMult[r.tier]}）`;
-      return `<span class="syn-chip ${cls}" title="${title}">👤<span class="syn-name">${r.name}</span></span>`;
+      return `<span class="syn-icon ${cls}" title="${title}">👤</span>`;
     }).join('');
-    return `<div class="action-synergy">${items}</div>`;
+    return `<div class="action-synergy">${icons}</div>`;
   }
 
   /**

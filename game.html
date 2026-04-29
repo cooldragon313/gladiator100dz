@@ -3653,67 +3653,46 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
 
 /* 🆕 D.28：訓練協力名單（置於動作名字右側，節省垂直空間） */
 .action-synergy {
-  display: flex;
-  gap: 4px 6px;
-  flex-wrap: wrap;
-  margin-left: auto;
-  flex-shrink: 1;
-  padding-left: 6px;
-  align-items: center;
-}
-/* 🆕 2026-04-30 人頭 + 名字 chip */
-.syn-chip {
   display: inline-flex;
-  align-items: center;
   gap: 2px;
-  font-size: 11px;
-  padding: 1px 5px 1px 2px;
-  border-radius: 8px;
-  border: 1px solid;
-  line-height: 1.4;
-  filter: grayscale(0.8) brightness(0.7);
-  opacity: 0.65;
-  transition: all .2s;
-  white-space: nowrap;
+  flex-wrap: nowrap;
+  margin-left: auto;
+  flex-shrink: 0;
+  padding-left: 4px;
 }
-.syn-chip .syn-name { font-size: 11px; letter-spacing: .02em; }
-.syn-chip.syn-bg .syn-name { font-size: 10px; opacity: 0.85; }
-.syn-chip.syn-t0 {
-  border-color: #4a4030;
-  color: #8a7d65;
-}
-.syn-chip.syn-t1 {
-  filter: none;
-  opacity: 1;
-  border-color: #44aa44;
-  color: #88e088;
-  background: rgba(40,80,40,.25);
-  box-shadow: 0 0 4px rgba(68,204,68,.5);
-}
-.syn-chip.syn-t2 {
-  filter: none;
-  opacity: 1;
-  border-color: #4488cc;
-  color: #88c0e8;
-  background: rgba(20,50,80,.3);
-  box-shadow: 0 0 5px rgba(68,160,255,.55);
-}
-.syn-chip.syn-t3 {
-  filter: none;
-  opacity: 1;
-  border-color: #aa44ee;
-  color: #c890e8;
-  background: rgba(60,30,90,.3);
-  box-shadow: 0 0 6px rgba(170,68,238,.6);
-}
-
-/* 舊 .syn-icon 樣式保留（向後相容、若還有別處用到） */
 .syn-icon {
   display: inline-block;
   font-size: 13px;
   line-height: 1;
   filter: grayscale(1) brightness(0.5);
   opacity: 0.65;
+  transition: filter .2s, opacity .2s, text-shadow .2s;
+  cursor: default;
+}
+.syn-icon.syn-bg { font-size: 11px; }   /* 背景角鬥士小一點 */
+/* 🆕 2026-04-30 tier 0 = 在場但好感不足、灰色 */
+.syn-icon.syn-t0 {
+  filter: grayscale(1) brightness(0.45);
+  opacity: 0.55;
+  color: #888;
+}
+.syn-icon.syn-t1 {
+  filter: none;
+  opacity: 1;
+  color: #88e088;
+  text-shadow: 0 0 4px #44cc44, 0 0 8px #44cc44;
+}
+.syn-icon.syn-t2 {
+  filter: none;
+  opacity: 1;
+  color: #88c0e8;
+  text-shadow: 0 0 5px #44a0ff, 0 0 10px #44a0ff;
+}
+.syn-icon.syn-t3 {
+  filter: none;
+  opacity: 1;
+  color: #c890e8;
+  text-shadow: 0 0 6px #aa44ee, 0 0 12px #aa44ee;
 }
 
 /* 🆕 受傷風險警告燈 */
