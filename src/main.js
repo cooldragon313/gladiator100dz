@@ -4700,9 +4700,11 @@ const Game = (() => {
 
   /** 列出此 source 可選擇的裝備 */
   function _getPickerOptions(source) {
+    // 🆕 2026-04-30 修：之前 p 只在 weapons 分支宣告、其他分支讀 p 是 ReferenceError
+    //   → 整個 picker 對 chest/helmet/arms/legs 都拋錯吃掉
+    const p = Stats.player;
     if (source === 'weapons') {
       // 🆕 只列出玩家擁有的武器（weaponInventory），不是全部 Weapons 表
-      const p = Stats.player;
       if (Array.isArray(p.weaponInventory) && p.weaponInventory.length > 0) {
         return p.weaponInventory.map(entry => {
           const w = Weapons[entry.id];
