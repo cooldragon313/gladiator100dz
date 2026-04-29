@@ -2,192 +2,132 @@
 
 > 跨電腦/跨 session 的「下一步該幹嘛」。
 > 新的一天開工先讀這份。
-> **最後更新：2026-04-28（晚）** — 裝備系統大設計 + 戰鬥屬性 EXP Phase 1 落地
-> **下一台機器**：拉最新（`git pull`）→ 看 § 4「明天開工：先做這個」開始動工
+> **最後更新：2026-04-30（晚）** — 教學鏈穩定 + 受傷流程 + 主人賜護飾 + 競技場掉落 + 護飾戰鬥整合
 
 ---
 
-## ✅ 今天做完了什麼（2026-04-28）
+## ✅ 今天做完了什麼（2026-04-29 ~ 30）
 
-### 對話脈絡
-從「老默為何要被截肢」（其實是傷兵被截肢、不是老默）開始、user 提出**事件太少 / 屬性 30+ 太硬**的痛點，
-討論演化成**戰鬥屬性 EXP + 連勝獎勵 + 戰鬥狂熱 + 裝備重構（品質+詞綴+多管道）+ 葛拉個人任務**整套設計。
+兩天連著做、跨多個系統、共 25+ commits。重點分四類：
 
-### 4 個 commit（已推遠端）
+### 1. Day 1 教學鏈 + 受傷流程
+- Day 1 鞭打 → 訓練（兩次達 EXP 才提詳細）→ 升屬性 → **奧蘭邀冥想**（在詳細關閉後才演、避免被蓋住）→ **卡西烏斯協力教學對白修順**
+- 開場有 origin 傷 → wakeup 後自動演**發現受傷 + 老默強迫治療流程**（中/重傷送老默、第一次免費）
+- 主畫面右側欄加**受傷狀態顯示**（重傷紅光呼吸）
+- 受傷觸發大字 popup「OOO 中傷！」+ 震動 + 音效
 
-| Commit | 內容 |
-|---|---|
-| `8163c76` | balance(hammer)：槌系列全面 buff（ATK +33% / ACC +3 / CDMG 大幅提升 / swingTime 快一拍）|
-| `91eec15` | docs：3 份 design doc（裝備重構 / 戰鬥屬性 EXP / 葛拉主武器）+ CLAUDE/CODEX 索引同步 |
-| `b11d7b3` | feat(battle)：**戰鬥屬性 EXP Phase 1 落地**（行為累積 + 評分加成 + 連勝獎勵 + bloodRoar）|
+### 2. NPC 出場 + 協力刷新
+- NPC 出場率全面拉高到 **0.85**（奴隸大部分時間都該在訓練場）
+- NPC 每天獨立 roll 訓練屬性（70% 自己特長 / 30% 隨機）
+- 訓練按鈕加**人頭 icon**（依好感色階：灰/綠/藍/紫）、hover 看名字
 
-### 3 份 design doc（必讀，明天動工前先看）
+### 3. 裝備系統三大整合
+- **主人賜 3 條護飾線**：護臂（布）/ 護腿（皮）/ 頭盔（鐵）、共 9 件（粗灰/精藍/上紫）+ 第 4 件**傳家三選一**
+- **競技場戰利品掉落**：S/A/B 觸發 80%/60%/40%、對手掉啥拿啥（武器+胸甲）
+- **護飾戰鬥派生整合**：DEF/SPD/EVA/BLK 累加、傳家件 flatBonus（CON +5 等）會體現
+- 修了 critical bug：`_getPickerOptions` p 變數 scope → 之前胸甲/護飾全壞、玩家以為「裝備不能放上去」
 
-1. **[docs/systems/equipment-rework.md](docs/systems/equipment-rework.md)** — 裝備重構主規格
-   - 5 級品質（粗灰/普白/精藍/上紫/傳金）+ 顏色 + 數值倍率
-   - 10 個詞綴（鋒利/精準/致命/嗜血/灼燒等）+ 套裝特效
-   - 主人賜 3 條護飾線（布/皮/鐵 各 4 階、起手就精藍）+ 第 4 件三選一定型
-   - 葛拉鐵匠鋪 UI（塔倫解鎖事件 + 主人付一半費用）+ 葛拉信用點上交
-   - 競技場戰利品（S/A/B 觸發 80/60/40 + 對手掉啥拿啥）
-   - 對手強度重新校準 + Boss 戰鐵則
-   - 27 格儲物 + 強制處置 ChoiceModal
-
-2. **[docs/systems/battle-attr-gain.md](docs/systems/battle-attr-gain.md)** — 戰鬥屬性 EXP（Phase 1 已實作）
-   - A 行為累積 / B 評分加成 / C 防刷
-   - 連勝獎勵階梯（3/5/7/10）
-   - 第 6 種狂熱 `COMBAT_fervor`（每天必打、漏 3 天 mood -10 + WIL +20）— **未實作**
-
-3. **[docs/quests/blacksmith-signature-weapon.md](docs/quests/blacksmith-signature-weapon.md)** — 葛拉主武器
-   - 8 階段：綁定 → 認可 → 強化透漏歷史 → 升 T3 刻名 → 葛拉兒子的劍獨白 → 鍛傳家準備 → 傳家武器送 → **葛拉不退休、繼續陪你看到底**
-   - 跟既有 [blacksmith-gra.md](docs/quests/blacksmith-gra.md) 整合、不另起爐灶
+### 4. UX / 細節
+- **故事/選擇/戰鬥/UI 鎖中不能開詳細**（4 道守衛 + toast）
+- **F5 重整 bug 修**：continue modal 開著時 timeline 事件不會自動跑
+- **第一次給錢主人解釋**（從侍從版升級成主人召見大事件）
+- **教學帶關係圖**：好感首破 30 卡西烏斯後加內心「右上詳細看關係」
+- **關係頁加常駐 intro**：解釋好感系統運作
 
 ---
 
-## 🧪 Phase 1 已實作 — 你需要在新電腦測這些
+## 🚨 明天該改的策略（user 已點出的方向）
 
-打開 `game.html`、隨便玩一場戰鬥、確認以下行為：
+### 🟥 優先 1：敵人強度全面拉強
 
-### 1. 戰鬥成長 log
-任何戰鬥結束後 → 戰鬥畫面 log 跑出：
+**Day 10 玩家 STR ~20、但 gladiatorB STR 18、arenaVet STR 26、Boss gruen STR 32**——除了 Day 1-5 開場戰、所有 tier 都比玩家弱。**競技場太好刷**。
+
+**動工方向**（user 之前說「裝備還沒全解開很難調整」、現在解開了）：
+1. 校準既有對手屬性 +5~10
+2. 寫**競技場 5 tier 對手池**（每 tier 5 個、共 13 新對手）
+3. 對手裝備也吃品質系統（玩家強裝備 → 對手該強裝備 + 詞綴）
+
+規格在 [docs/systems/equipment-rework.md § 7](docs/systems/equipment-rework.md)：
+- rookie：玩家屬性 -2~-3（給輾壓快感）
+- gladB：跟玩家**持平**
+- vet：玩家 +1~+3
+- champion：玩家 +5~+8
+
+### 🟧 優先 2：規劃新對手 MD（design phase）
+
+之前 user 確認 `docs/enemies/` 結構繼續用。要補的：
+
 ```
-◈ 戰鬥成長：STR +X / DEX +Y / AGI +Z / CON +W
-```
-也會在訓練場 log 跑「**【戰鬥成長】**」綠字。
-
-### 2. 評分加成
-競技場勝利 + S 評 → 全屬性 +8 EXP（含 LUK +4）
-A 評 → +5 / B 評 → +3 / C 不加。
-
-### 3. 連勝獎勵（達 3/5/7/10 觸發）
-連勝 3 場 → 戰後 log 大字框：
-```
-╔═══ 3 連勝獎勵 ═══╗
-  全屬性 +5 EXP　STR 額外 +20　名聲 +5
-╚════════════════════╝
-```
-連 5 → +10 / +40、設 flag `combat_fervor_streak_unlocked`
-連 7 → +15 / +60 / +20 名聲、跳「你最近⋯⋯不太一樣了」
-連 10 → +25 / +100 + 解鎖隱藏特性【嗜血之吼】
-
-### 4. bloodRoar 開場 ATK +5%
-獲得【嗜血之吼】後、每場戰鬥開頭 log：
-```
-🩸 【嗜血之吼】開場 ATK X → Y（+5%）
+docs/enemies/
+├── arena/           # 🆕 競技場 5 tier 對手池
+│   ├── README.md
+│   ├── tier1_*.md   # rookie 級 × 5
+│   ├── tier2_*.md   # 流派戰士 × 5
+│   ├── tier3_*.md   # 老兵 × 5
+│   ├── tier4_*.md   # 冠軍 × 5
+│   └── tier5_*.md   # 傳奇 × 5
+├── bosses/          # 🆕 主敘事 boss
+│   ├── README.md
+│   ├── overseer_boss_*.md     # 巴爺主線達官顯貴 boss
+│   └── final_*.md             # Day 100 三人眾屬性校準
+└── fixed/           # 既有、補隔壁訓練所招牌 5 個
+    ├── morras_ironarm.md  ← 既有
+    ├── ⬜ icebear（北方·冰原）
+    ├── ⬜ snake（南方·沙漠）
+    ├── ⬜ harbor（東方·港灣）
+    ├── ⬜ miner（山地·礦坑）
+    └── ⬜ berserker（北蠻）
 ```
 
-### 5. Sparring 也算連勝、屬性 EXP 給一半
-切磋戰勝 → 連勝 +1、但 EXP 全部 ×0.5。
+### 🟨 優先 3：詞綴系統 Phase 2（讓掉落更有靈魂）
 
-### 6. 防刷
-- 受 5 次重擊（≥ HP 10%）後 CON 不再加（單場硬上限）
-- 任何單屬性單場硬上限 +30 EXP（不會更多）
+掉落目前無詞綴、所以同 ID 的武器不論掉幾次都長一樣。Phase 2 加：
+- 詞綴池 10 個（鋒利/精準/致命/嗜血/灼燒等）
+- 對手身上的詞綴武器掉落時保留詞綴
+- 葛拉鋪「鍛新詞綴」功能解鎖
+- 武器命名「鋒利的短劍（精藍）」
 
-### 已知小問題（明天可決定要不要修）
-- ❌ **首勝甜頭**（首次擊敗 rookie/gladB/vet/champion → 對應主屬性 +20）— 規格寫了但 Phase 1 未實作（要 enemy.tier 或 fame 分級邏輯）
-- ❌ **同對手 24h 第二次戰勝 30%** — 規格寫了但 Phase 1 未實作（要追蹤 `lastBeatenTime[oppId]`）
-- ⚠️ Phase 1 未追蹤 `combatFervor`、所以 `戰利品觸發機率 +10%` 未生效（要 Phase 2 戰鬥狂熱實作後才會用到）
+規格：[docs/systems/equipment-rework.md § 3](docs/systems/equipment-rework.md)
 
----
+### 🟦 優先 4：黑鬍子 + 義肢系統（Phase 2 黑市）
 
-## 🎯 明天開工：先做這個
+user 已給概念：
+- 粗木義肢 100 金（屬性 -3）
+- 鐵骨義肢 250 金（屬性 -1）
+- 精工義肢 500 金 + 信用 50（±0、附 buff）
+- 戰用義肢 1000 金 + 隱藏條件（屬性 +2、ATK +5%）
 
-### 優先順序（4 個 Phase 候選、user 自選）
-
-#### **A. 戰鬥狂熱 `COMBAT_fervor`** ⭐ 我推薦先做
-**為什麼**：跟今天剛做的連勝/EXP 同一系統、立刻把刷裝/刷戰鬥動機補上。  
-**規格**：[docs/systems/battle-attr-gain.md](docs/systems/battle-attr-gain.md) § 6  
-**改的檔案**：`src/systems/compulsion.js`（IIFE 名 Fervor、加第 6 種）  
-**核心邏輯**：
-- 觸發：3 天內戰鬥 ≥ 5 場（自然）OR 5 連勝（強制）
-- 期間 buff：戰鬥 EXP +50% / 命中 +5% / 暴擊 +3% / 戰勝 mood +5 / 訓練 EXP -25%
-- 維持：每天必打 1 場
-- 漏 1 天 mood -3 / 漏 2 天 mood -8 / 漏 3 天結束 + mood -10 + WIL +20「也清醒了」+ 5 天冷卻
-- 累積 8 場戰鬥自然結束 + 主屬性 +20 EXP
-- UI 跟現有 5 種狂熱共用主畫面左上金色徽章
-
-**估時**：3-4 小時（中等複雜度）
+赫克托 Phase 2 也順帶補：賣情報 / 介入保護 / 嫁禍改版 / 私戰 mini-battle。
 
 ---
 
-#### **B. 品質系統 Phase 1（無詞綴）**
-**為什麼**：是裝備重構的基礎、所有後續（詞綴 / 鐵匠鋪 / 競技場掉落 / 主人賜）都依賴它。  
-**規格**：[docs/systems/equipment-rework.md](docs/systems/equipment-rework.md) § 2 + § 8 + § 9 Phase 1  
-**改的檔案**：
-- 新：`src/systems/equipment_quality.js`（getQualityMult、formatName、constants）
-- 改：`src/content/weapons.js` / `src/content/armors.js`（加 quality / baseQuality 欄位）
-- 改：玩家裝備物件存 `quality` 屬性
-- 改：`src/battle/battle.js`（`TB_buildUnit` 讀 quality 計算 ATK/DEF）
-- 改：`src/main.js`（裝備 picker / hover tooltip 顯示品質顏色）
-- 改：`save_system.js`（migration：舊存檔自動補 quality:'common'）
+## 我推薦明天動工順序
 
-**估時**：4-6 小時（牽涉多檔案）
+1. **早上**：A 校準既有對手屬性 +5~10（30 分鐘、立竿見影）
+2. **中午**：B 寫競技場 tier 1-5 對手池 MD（design 文件、~3 hr）
+3. **下午**：C 把 MD 落實到 testbattle.js TB_ENEMIES（實作、~2 hr）
+4. **後續**：D 詞綴系統 / 義肢
 
----
-
-#### **C. 葛拉鐵匠鋪 UI + 塔倫解鎖事件**
-**為什麼**：解「葛拉曝光太少 / 武器升級全卡死」痛點、玩家有主動權。  
-**規格**：[docs/systems/equipment-rework.md](docs/systems/equipment-rework.md) § 4.2  
-**改的檔案**：
-- 改：`src/npc/blacksmith_events.js`（加塔倫解鎖事件 + 鋪內 modal）
-- 新：玩家欄位 `gra_credit`（葛拉信用點）
-- 新：modal UI（強化品質 / 升 Tier / 鍛新詞綴 / 上交裝備）
-
-**前置**：要先做 B（品質系統）才能強化品質。如果先單做 C，只能做「升 Tier + 上交」基礎版。
-
-**估時**：5-7 小時（UI 工作量大）
-
----
-
-#### **D. 詞綴系統**
-**規格**：[docs/systems/equipment-rework.md](docs/systems/equipment-rework.md) § 3  
-**前置**：B 品質系統完成。
-**估時**：3-4 小時
-
----
-
-### 我的推薦動工順序
-
-1. **明天**：A 戰鬥狂熱（3-4 小時、跟剛做完的連動）
-2. **後天**：B 品質系統 Phase 1
-3. **後後天**：C 葛拉鋪 UI（依賴 B）
-4. **再後**：D 詞綴系統（依賴 B）
-
----
-
-## 📂 必看的文件（明天醒來先看）
-
-按重要性排序：
-
-1. **這份 NEXT.md**（你現在看的）
-2. **[CLAUDE.md](CLAUDE.md)**（專案約定、自動讀）
-3. **[docs/systems/battle-attr-gain.md](docs/systems/battle-attr-gain.md)** § 6 — 戰鬥狂熱規格
-4. **[docs/systems/equipment-rework.md](docs/systems/equipment-rework.md)** — 裝備重構主規格
-5. **[docs/CODEX.md](docs/CODEX.md)** § 旗標字典 / § 數字速查表 — 已加新章節「裝備重構 flag」「戰鬥 EXP 加成」「COMBAT_fervor 規格」
+或 user 想直接做別的、看你心情。
 
 ---
 
 ## 🎨 美術資產（已加）
 
-- **`asset/image/blacksmith.png`** — 鐵匠鋪內景（火爐 + 鐵砧 + 暗色調）
-  - **用途**：葛拉所有對話場景的 Stage 背景
-  - **觸發場合**：進入鍛造坊 / 找葛拉打造武器 / 葛拉鋪 UI / 葛拉個人任務各階段對話
-  - **配置**：背景圖鋪滿 Stage、上面跑既有 DialogueModal（**沒大頭照、用 `{ speaker: '葛拉', text: '...' }` 名字顯示、跟全遊戲一致**）
-  - **首句範本**：「今天來幹啥？」（葛拉開場常用）
-  - **明天做葛拉鋪 UI 時** — 把這張圖接進來、寫一個 `Stage.playForgeBackdrop()` 共用元件
+- **`asset/image/blacksmith.png`** — 鐵匠鋪內景（葛拉場景背景）
+  - 配合既有 DialogueModal、用 `{ speaker: '葛拉', text: '...' }` 名字顯示
 
 ## 🐛 上線前 todo（暫不處理）
 
-跟今天無關、但提醒自己：
-
 1. 葛拉鋪 UI 完成後、CLAUDE.md「Debug 工具清單」加新項目
 2. `combat_streak_max` flag 之後可在角色頁顯示成就
-3. 戰鬥 EXP 100 天後驗證：平均屬性是否在 35-40（如果 > 45 砍 30%、< 30 加 30%）
-4. `bloodRoar` 取得後可考慮加結局判定（10 連勝路線）
-5. ~~葛拉大頭照~~ — 確認不需要、全遊戲統一用名字（speaker name）顯示
+3. 戰鬥 EXP 100 天後驗證：平均屬性是否在 35-40
+4. `bloodRoar` 取得後可考慮加結局判定
+5. 戰鬥引擎 NPC 也吃 helmet/arms/legs（目前只有玩家）— 對手強化後再決定
 
 ---
 
 ## 💤 user 留言給明天的自己
 
-「**今天裝備設計都討論完了、3 份 doc 落地了、戰鬥 EXP Phase 1 也跑得起來。
-明天起來先測一下戰鬥成長 log 有沒有跳出來、然後挑一個 Phase 開始做（推 A）。**」
+「**今天裝備全坐上去了、護飾能裝、戰鬥也吃到。教學鏈順了、受傷流程戲劇化。
+明天先校準對手屬性、寫競技場 tier 對手池。或想直接看刷裝感受先測。**」
