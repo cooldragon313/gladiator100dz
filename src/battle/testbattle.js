@@ -342,21 +342,57 @@ function TB_calcDerived(unit) {
     if (isDualWield && offW)   offW = EquipmentQuality.applyToWeapon(offW, unit.offhandQuality);
   }
 
-  // Apply amulet flat stat bonuses first
-  const aS = S+(af.STR||0), aD = D+(af.DEX||0), aC = C+(af.CON||0),
-        aA = A+(af.AGI||0), aW = W+(af.WIL||0), aL = L+(af.LUK||0);
+  // 🆕 2026-04-30 護飾類（頭盔/護臂/護腿）— 套品質倍率、累加 DEF/SPD/EVA
+  //   還有可能的 flatBonus（傳家件給屬性 +N）
+  let helmetGear = null, armsGear = null, legsGear = null;
+  const armorMaster = (typeof Armors !== 'undefined') ? Armors : {};
+  if (unit.helmetId && armorMaster[unit.helmetId]) {
+    helmetGear = armorMaster[unit.helmetId];
+    if (typeof EquipmentQuality !== 'undefined' && unit.helmetQuality && unit.helmetQuality !== 'common') {
+      helmetGear = EquipmentQuality.applyToArmor(helmetGear, unit.helmetQuality);
+    }
+  }
+  if (unit.armsId && armorMaster[unit.armsId]) {
+    armsGear = armorMaster[unit.armsId];
+    if (typeof EquipmentQuality !== 'undefined' && unit.armsQuality && unit.armsQuality !== 'common') {
+      armsGear = EquipmentQuality.applyToArmor(armsGear, unit.armsQuality);
+    }
+  }
+  if (unit.legsId && armorMaster[unit.legsId]) {
+    legsGear = armorMaster[unit.legsId];
+    if (typeof EquipmentQuality !== 'undefined' && unit.legsQuality && unit.legsQuality !== 'common') {
+      legsGear = EquipmentQuality.applyToArmor(legsGear, unit.legsQuality);
+    }
+  }
+  // 護飾累加值（DEF / SPD / EVA / BLK 都加總）
+  const accDEF = (helmetGear?.DEF || 0) + (armsGear?.DEF || 0) + (legsGear?.DEF || 0);
+  const accSPD = (helmetGear?.SPD || 0) + (armsGear?.SPD || 0) + (legsGear?.SPD || 0);
+  const accEVA = (helmetGear?.EVA || 0) + (armsGear?.EVA || 0) + (legsGear?.EVA || 0);
+  const accBLK = (helmetGear?.BLK || 0) + (armsGear?.BLK || 0) + (legsGear?.BLK || 0);
+  // 護飾 flatBonus 屬性加成（傳家件用）
+  const gearBonus = { STR:0, DEX:0, CON:0, AGI:0, WIL:0, LUK:0, ATK:0, ACC:0, CRT:0, CDMG:0, PEN:0 };
+  [helmetGear, armsGear, legsGear, ar].forEach(g => {
+    if (!g || !g.flatBonus) return;
+    Object.keys(gearBonus).forEach(k => {
+      if (typeof g.flatBonus[k] === 'number') gearBonus[k] += g.flatBonus[k];
+    });
+  });
 
-  let ATK  = Math.round(1.5*aS + 0.5*aD + w.ATK  + (af.ATK||0));
-  let DEF  = Math.round(1.5*aC + 0.5*aS + ar.DEF + sh.DEF);
-  let ACC  = Math.min(92, Math.round(60 + 0.5*aD + 0.25*aL + (w.ACC||0) + (af.ACC||0)));
+  // Apply amulet flat stat bonuses first（含 gearBonus 護飾屬性加成）
+  const aS = S+(af.STR||0)+gearBonus.STR, aD = D+(af.DEX||0)+gearBonus.DEX, aC = C+(af.CON||0)+gearBonus.CON,
+        aA = A+(af.AGI||0)+gearBonus.AGI, aW = W+(af.WIL||0)+gearBonus.WIL, aL = L+(af.LUK||0)+gearBonus.LUK;
+
+  let ATK  = Math.round(1.5*aS + 0.5*aD + w.ATK  + (af.ATK||0) + gearBonus.ATK);
+  let DEF  = Math.round(1.5*aC + 0.5*aS + ar.DEF + sh.DEF + accDEF);   // 🆕 +護飾 DEF
+  let ACC  = Math.min(92, Math.round(60 + 0.5*aD + 0.25*aL + (w.ACC||0) + (af.ACC||0) + gearBonus.ACC));
   // 🆕 2026-04-23 Sprint 2：CRT cap 75 → 95
-  let CRT  = Math.min(95,  Math.round(0.25*aD + 0.5*aL + w.CRT + (af.CRT||0)));
-  let CDMG = Math.min(300, Math.round(150 + 0.5*aD + 0.3*aL + 0.5*aW + (w.CDMG||0) + (af.CDMG||0)));
-  let PEN  = Math.min(75,  Math.round(0.5*aD + 0.5*aS + w.PEN + (af.PEN||0)));
-  let BLK  = Math.min(75,  Math.round(0.5*aC + sh.BLK + (af.BLK||0)));          // 格擋觸發率%
+  let CRT  = Math.min(95,  Math.round(0.25*aD + 0.5*aL + w.CRT + (af.CRT||0) + gearBonus.CRT));
+  let CDMG = Math.min(300, Math.round(150 + 0.5*aD + 0.3*aL + 0.5*aW + (w.CDMG||0) + (af.CDMG||0) + gearBonus.CDMG));
+  let PEN  = Math.min(75,  Math.round(0.5*aD + 0.5*aS + w.PEN + (af.PEN||0) + gearBonus.PEN));
+  let BLK  = Math.min(75,  Math.round(0.5*aC + sh.BLK + (af.BLK||0) + accBLK));          // 格擋觸發率%
   let BpWr = Math.min(85,  Math.round(0.5*aS + sh.BLK * 1.5 + (af.BpWr||0)));  // 格擋減傷率%
-  let EVA  = Math.min(95,  Math.round(2*aA + 0.5*aL + ar.EVA + (af.EVA||0)));
-  let SPD  = Math.round(0.75*aA + 0.25*aD + w.SPD + ar.SPD + (af.SPD||0));
+  let EVA  = Math.min(95,  Math.round(2*aA + 0.5*aL + ar.EVA + (af.EVA||0) + accEVA));   // 🆕 +護飾 EVA
+  let SPD  = Math.round(0.75*aA + 0.25*aD + w.SPD + ar.SPD + (af.SPD||0) + accSPD);      // 🆕 +護飾 SPD
 
   // ── 雙持修正 ──────────────────────────────────────────
   if (isDualWield && offW) {
@@ -443,6 +479,13 @@ function TB_buildUnit(cfg, isPlayer=false) {
     weaponQuality:  cfg.weaponQuality  || def.weaponQuality  || 'common',
     armorQuality:   cfg.armorQuality   || def.armorQuality   || 'common',
     offhandQuality: cfg.offhandQuality || def.offhandQuality || 'common',
+    // 🆕 2026-04-30 護飾類（頭盔/護臂/護腿）— 主人賜的會生效
+    helmetId:  cfg.helmetId  || def.helmetId  || null,
+    armsId:    cfg.armsId    || def.armsId    || null,
+    legsId:    cfg.legsId    || def.legsId    || null,
+    helmetQuality: cfg.helmetQuality || def.helmetQuality || 'common',
+    armsQuality:   cfg.armsQuality   || def.armsQuality   || 'common',
+    legsQuality:   cfg.legsQuality   || def.legsQuality   || 'common',
     amuletId: cfg.amuletId || 'none',
     traitId:  cfg.traitId  || def.traitId  || 'none',
     passive:  def.passive  || null,

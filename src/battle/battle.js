@@ -231,6 +231,16 @@ const Battle = (() => {
       weaponQuality:  (typeof EquipmentQuality !== 'undefined') ? EquipmentQuality.getEquippedQuality(p, 'weapon')  : 'common',
       armorQuality:   (typeof EquipmentQuality !== 'undefined') ? EquipmentQuality.getEquippedQuality(p, 'armor')   : 'common',
       offhandQuality: (typeof EquipmentQuality !== 'undefined') ? EquipmentQuality.getEquippedQuality(p, 'offhand') : 'common',
+      // 🆕 2026-04-30 護飾類（頭盔/護臂/護腿）— 加進戰鬥派生
+      helmetId:  p.equippedHelmet || null,
+      armsId:    p.equippedArms   || null,
+      legsId:    p.equippedLegs   || null,
+      helmetQuality: (typeof EquipmentQuality !== 'undefined' && p.equippedHelmet)
+                       ? EquipmentQuality.getInventoryQuality(p, 'armor', p.equippedHelmet) : 'common',
+      armsQuality:   (typeof EquipmentQuality !== 'undefined' && p.equippedArms)
+                       ? EquipmentQuality.getInventoryQuality(p, 'armor', p.equippedArms)   : 'common',
+      legsQuality:   (typeof EquipmentQuality !== 'undefined' && p.equippedLegs)
+                       ? EquipmentQuality.getInventoryQuality(p, 'armor', p.equippedLegs)   : 'common',
     }, true);
 
     // 🆕 2026-04-25c：HP 共用 — 進場帶訓練場當前 HP（不是滿血上場）
