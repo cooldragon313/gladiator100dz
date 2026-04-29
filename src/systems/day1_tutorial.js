@@ -156,8 +156,7 @@ const Day1Tutorial = (() => {
     if (!Flags.has('tut_overseer_whipped')) return;
 
     if (actionId === 'basicSwing' && !Flags.has('tut_first_train_done')) {
-      Flags.set('tut_first_train_done', true);
-      _playAfterFirstTrain();
+      _handleBasicSwingTutorial();
       return;
     }
     // 🆕 2026-04-29 移除 soloThink 觸發（user 反饋：「點完屬性升級沒看到奧蘭」）
@@ -194,6 +193,42 @@ const Day1Tutorial = (() => {
     Flags.set('tut_first_rest_done', true);
     // 延 200ms 等 modal 關閉動畫
     setTimeout(_playOrlanInvite, 200);
+  }
+
+  // 🆕 2026-04-29 階段 2：basicSwing 完成判斷
+  //   EXP < 升級需求 → 內心「再練一次」、不開詳細
+  //   EXP ≥ 升級需求 → 設 flag + 內心「去看詳細」+ popup
+  function _handleBasicSwingTutorial() {
+    const p = Stats.player;
+    const cost = (typeof Stats.expToNext === 'function') ? Stats.expToNext(p.STR || 10) : 10;
+    const have = (p.exp && p.exp.STR) || 0;
+
+    if (have < cost) {
+      _playNeedMoreTraining();
+      return;
+    }
+    Flags.set('tut_first_train_done', true);
+    _playAfterFirstTrain();
+  }
+
+  // 🆕 2026-04-29 第一次訓練還不夠升級 → 提示再練一次
+  function _playNeedMoreTraining() {
+    if (typeof DialogueModal === 'undefined') {
+      _log('（你心想：⋯⋯力氣有一點點、但還不夠。再練一次。）', '#88aa88', false);
+      if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
+      return;
+    }
+    DialogueModal.play([
+      { text: '（你放下手裡的石頭。）' },
+      { text: '（手酸——但是好的那種酸。）' },
+      { text: '（你心想：⋯⋯力氣好像有一點點。）' },
+      { text: '（你心想：但這點⋯⋯感覺還不夠。）' },
+      { text: '（你心想：先好好再練一次吧、累積夠了再去升級。）' },
+    ], {
+      onComplete: () => {
+        if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
+      }
+    });
   }
 
   // 階段 2：訓練完 → 內心感受 EXP / 屬性
