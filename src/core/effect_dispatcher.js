@@ -187,6 +187,11 @@ const Effects = (() => {
       if (ctx.fervorSlackHit) {
         delta = delta * 0.5;
       }
+      // 🆕 2026-04-28：戰鬥狂熱中、訓練 EXP -25%（不能兩頭沾）
+      if (typeof Fervor !== 'undefined' && Fervor.getTrainingExpPenalty) {
+        const penalty = Fervor.getTrainingExpPenalty();
+        if (penalty !== 1.0) delta = delta * penalty;
+      }
     }
 
     // 最終 delta 四捨五入

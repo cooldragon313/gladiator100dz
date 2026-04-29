@@ -460,6 +460,18 @@ html, body {
   border-color: rgba(240,130,60,0.85);
   box-shadow: 0 0 14px rgba(240,130,60,0.4), inset 0 0 6px rgba(240,130,60,0.2);
 }
+/* 🆕 2026-04-28 戰鬥狂熱：紅色血脈動 */
+#fervor-badge.combat {
+  border-color: rgba(220,60,40,0.85);
+  box-shadow: 0 0 14px rgba(220,60,40,0.5), inset 0 0 6px rgba(220,60,40,0.25);
+  animation: fervor-combat-pulse 1.6s ease-in-out infinite;
+}
+#fervor-badge.combat .fervor-title { color: #ff8866; }
+#fervor-badge.combat .fervor-dot.on { background: #ff5544; box-shadow: 0 0 4px #ff5544; }
+@keyframes fervor-combat-pulse {
+  0%, 100% { box-shadow: 0 0 14px rgba(220,60,40,0.4), inset 0 0 6px rgba(220,60,40,0.2); }
+  50%      { box-shadow: 0 0 22px rgba(255,80,60,0.7), inset 0 0 10px rgba(255,80,60,0.35); }
+}
 
 /* 🆕 D.18 背景角鬥士小字條（疊在 scene-view 右側） */
 #bg-gladiator-strip {

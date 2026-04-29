@@ -467,6 +467,12 @@ const Config = (() => {
       fervorAttr: 'WIL', temporary: true,
       desc: '你正在突破——打坐冥想 EXP +25% / mood +5。練別的會分心：mood -5 + 15% 擺爛。對應訓練累積 5 次結束。',
     },
+    // 🆕 2026-04-28 戰鬥狂熱（第 6 種、不靠訓練）
+    COMBAT_fervor: {
+      id: 'COMBAT_fervor', name: '戰鬥狂熱', category: 'positive',
+      fervorAttr: 'COMBAT', temporary: true,
+      desc: '戰鬥停不下來——戰鬥 EXP +50% / 命中 +5 / 暴擊 +3 / 戰勝 mood +5 / 訓練 EXP -25%。每天必打 1 場、累積 8 場結束。漏 3 天 mood -10、WIL +20「也清醒了」+ 5 天冷卻。',
+    },
   };
 
   // ══════════════════════════════════════════════════

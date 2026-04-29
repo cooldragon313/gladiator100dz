@@ -64,6 +64,8 @@ const Battle = (() => {
     const w = Weapons[wId];
     return (w && w.weaponClass) || 'sword';
   }
+  // 🆕 2026-04-28 給 Fervor 模組讀（戰鬥狂熱結束時算主屬性）
+  function getEquippedWeaponClass() { return _getEquippedWeaponClass(); }
 
   // 🆕 2026-04-25c：自動戰鬥模式跨場記住（off / auto / hardcore）
   //   存 localStorage、新戰鬥開始自動套用、玩家手動切換才改變
@@ -1595,6 +1597,16 @@ const Battle = (() => {
       _player.derived.ATK = Math.round(before * 1.05);
       _appendLog(`  🩸 【嗜血之吼】開場 ATK ${before} → ${_player.derived.ATK}（+5%）`, 'log-special');
     }
+
+    // 🆕 2026-04-28 戰鬥狂熱 buff：開場 ACC +5 / CRT +3
+    if (typeof Fervor !== 'undefined' && Fervor.isCombatActive && Fervor.isCombatActive()
+        && _player && _player.derived) {
+      const accBonus = Fervor.getCombatHitBonus();
+      const crtBonus = Fervor.getCombatCritBonus();
+      _player.derived.ACC = (_player.derived.ACC || 0) + accBonus;
+      _player.derived.CRT = (_player.derived.CRT || 0) + crtBonus;
+      _appendLog(`  🩸 【戰鬥狂熱】ACC +${accBonus} / CRT +${crtBonus}`, 'log-special');
+    }
   }
 
   function _showAchievementToast(name) {
@@ -1651,8 +1663,11 @@ const Battle = (() => {
 
     // ── C. 防刷：sparring 50% / 單屬性硬上限 +30 ─────
     const sparringMult = _isArenaBattle ? 1.0 : 0.5;
+    // 🆕 2026-04-28 戰鬥狂熱 EXP +50%
+    const fervorMult = (typeof Fervor !== 'undefined' && Fervor.getCombatExpMultiplier)
+                        ? Fervor.getCombatExpMultiplier() : 1.0;
     Object.keys(expDelta).forEach(a => {
-      let v = Math.round(expDelta[a] * sparringMult);
+      let v = Math.round(expDelta[a] * sparringMult * fervorMult);
       if (v > 30) v = 30;
       expDelta[a] = v;
     });
@@ -1687,7 +1702,10 @@ const Battle = (() => {
       allBonus = 5;  mainBonus = 20;  fameBonus = 5;
     } else if (streak === 5) {
       allBonus = 10; mainBonus = 40;  fameBonus = 10;
-      if (typeof Flags !== 'undefined') Flags.set('combat_fervor_streak_unlocked', true);
+      // 🆕 2026-04-28 5 連勝強制觸發戰鬥狂熱（互斥訓練狂熱）
+      if (typeof Fervor !== 'undefined' && Fervor.onCombatStreak) {
+        Fervor.onCombatStreak(streak);
+      }
     } else if (streak === 7) {
       allBonus = 15; mainBonus = 60;  fameBonus = 20;
       dialog = '⚔ 七連勝！「你最近⋯⋯不太一樣了。」';
@@ -2070,6 +2088,17 @@ const Battle = (() => {
 
     // 🆕 2026-04-28 戰鬥屬性 EXP 結算（不論輸贏、競技場/sparring 都跑）
     _rewardData.gains = _settleBattleAttrExp(won);
+
+    // 🆕 2026-04-28 戰鬥狂熱：場次 +1 + 維持 lastBattleDay + 戰勝/敗 mood
+    if (typeof Fervor !== 'undefined') {
+      if (Fervor.isCombatActive && Fervor.isCombatActive()) {
+        // 戰勝/敗 mood
+        const moodDelta = won ? Fervor.getCombatMoodWin() : Fervor.getCombatMoodLose();
+        if (moodDelta) Stats.modVital('mood', moodDelta);
+      }
+      // 不論狂熱與否、都記錄這場戰鬥（用於滑動窗口判定自然觸發）
+      if (Fervor.onCombat) Fervor.onCombat(won);
+    }
 
     // 🆕 2026-04-28 是否要顯示獎勵畫面（有任何收穫就顯示）
     const hasReward = (_rewardData.gains && Object.keys(_rewardData.gains).length)
@@ -2831,5 +2860,5 @@ const Battle = (() => {
   // 🆕 D.28：對外暴露「戰鬥進行中」旗標，讓 main.js 可以擋住訓練動作
   function isActive() { return _active; }
 
-  return { start, startFromConfig, doAction, toggleAuto, getLastRating, finishChoice, isActive, returnToTraining, useActiveSkill };
+  return { start, startFromConfig, doAction, toggleAuto, getLastRating, finishChoice, isActive, returnToTraining, useActiveSkill, getEquippedWeaponClass };
 })();

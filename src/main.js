@@ -1532,11 +1532,17 @@ const Game = (() => {
       view.appendChild(badge);
     }
     badge.classList.toggle('breakthrough', status.source === 'breakthrough');
-    const titleIcon = status.source === 'breakthrough' ? '🔥' : '⚡';
-    const hint = status.source === 'breakthrough'
-                   ? `去${status.trainName}（突破必經）`
-                   : `去${status.trainName}`;
-    // 進度條視覺化（5 格，每完成 1 個亮一格）— 不顯示「N/5」純數字
+    badge.classList.toggle('combat', !!status.isCombat);   // 🆕 2026-04-28 戰鬥狂熱樣式
+    let titleIcon;
+    if (status.isCombat)                          titleIcon = '🩸';
+    else if (status.source === 'breakthrough')    titleIcon = '🔥';
+    else                                           titleIcon = '⚡';
+    const hint = status.isCombat
+                   ? '每天必打 1 場、累積 8 場結束'
+                   : (status.source === 'breakthrough'
+                        ? `去${status.trainName}（突破必經）`
+                        : `去${status.trainName}`);
+    // 進度條視覺化（每完成 1 個亮一格）— 不顯示「N/M」純數字
     let dots = '';
     for (let i = 0; i < status.target; i++) {
       dots += `<span class="fervor-dot${i < status.progress ? ' on' : ''}"></span>`;
@@ -2429,6 +2435,13 @@ const Game = (() => {
       Flags.increment('days_since_black_doc_hint', 1);
     }
   }, 15);
+
+  // 🆕 2026-04-28 戰鬥狂熱日結：每天必打 1 場、漏天 mood 懲罰、漏 3 天結束
+  DayCycle.onDayStart('combatFervorMaintenance', () => {
+    if (typeof Fervor !== 'undefined' && Fervor.onDayStart) {
+      try { Fervor.onDayStart(); } catch (e) { console.error('[Fervor combat day]', e); }
+    }
+  }, 16);
 
   // 🗑️ 2026-04-23：舊 hectorDay8（撞肩試探）/ hectorDay15（賣情報）已廢棄
   //     改為 hector_events.js 的笑臉/臭臉雙路線：

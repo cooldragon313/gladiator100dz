@@ -93,6 +93,18 @@ const Fervor = (() => {
   // 瓶頸門檻
   const BREAKTHROUGH_LEVELS = [20, 30, 40, 50, 60, 70, 80, 90, 100];
 
+  // 🆕 2026-04-28 戰鬥狂熱（COMBAT_fervor，第 6 種）
+  //   設計：[docs/systems/battle-attr-gain.md](../../docs/systems/battle-attr-gain.md) § 6
+  const COMBAT_NATURAL_WINDOW  = 3;     // 3 天內
+  const COMBAT_NATURAL_TRIGGER = 5;     // 累積 5 場
+  const COMBAT_TARGET          = 8;     // 結束需要 8 場
+  const COMBAT_COOLDOWN_DAYS   = 5;
+  // weaponClass → 主屬性（跟 battle.js 同步）
+  const COMBAT_MAIN_ATTR_MAP = {
+    dagger: 'DEX', sword: 'STR', blunt: 'STR', axe: 'STR',
+    spear: 'DEX', polearm: 'DEX', fist: 'AGI',
+  };
+
   // ══════════════════════════════════════════════════
   // 初始化 + 舊存檔遷移
   // ══════════════════════════════════════════════════
@@ -133,6 +145,34 @@ const Fervor = (() => {
     if (f.startDay === undefined) f.startDay = null;
     if (f.naturalCooldownUntil === undefined) f.naturalCooldownUntil = null;
     return f;
+  }
+
+  // 🆕 2026-04-28 戰鬥狂熱狀態初始化
+  function ensureInitCombat(p) {
+    const player = p || Stats.player;
+    if (!player) return null;
+    if (!player.combatFervor || typeof player.combatFervor !== 'object') {
+      player.combatFervor = {
+        active: false,
+        source: null,             // 'natural' | 'streak'
+        progress: 0,              // 累積戰鬥場次（含 sparring）
+        target: COMBAT_TARGET,
+        startDay: null,
+        battleLog: [],            // 滑動窗口[day]
+        lastBattleDay: null,
+        cooldownUntil: null,
+      };
+    }
+    const cf = player.combatFervor;
+    if (!Array.isArray(cf.battleLog)) cf.battleLog = [];
+    if (cf.active === undefined)        cf.active = false;
+    if (cf.source === undefined)        cf.source = null;
+    if (cf.progress === undefined)      cf.progress = 0;
+    if (cf.target === undefined)        cf.target = COMBAT_TARGET;
+    if (cf.startDay === undefined)      cf.startDay = null;
+    if (cf.lastBattleDay === undefined) cf.lastBattleDay = null;
+    if (cf.cooldownUntil === undefined) cf.cooldownUntil = null;
+    return cf;
   }
 
   // 🆕 2026-04-24：永久 strip 廢棄 _addict 特性（每次 ensureInit 都跑）
@@ -379,7 +419,10 @@ const Fervor = (() => {
     const f = ensureInit();
     const p = Stats.player;
     if (!ATTRS.includes(attr)) return;
-    if (f.active) return;  // 已有狂熱不重觸
+    if (f.active) return;  // 已有訓練狂熱不重觸
+    // 🆕 2026-04-28 互斥：戰鬥狂熱中不能觸發訓練狂熱
+    const cf = ensureInitCombat();
+    if (cf && cf.active) return;
 
     f.active = attr;
     f.source = source;
@@ -568,6 +611,230 @@ const Fervor = (() => {
   }
 
   // ══════════════════════════════════════════════════
+  // 🆕 2026-04-28 戰鬥狂熱（COMBAT_fervor）
+  //   設計：[docs/systems/battle-attr-gain.md](../../docs/systems/battle-attr-gain.md) § 6
+  // ══════════════════════════════════════════════════
+
+  function isCombatActive() {
+    const cf = ensureInitCombat();
+    return !!(cf && cf.active);
+  }
+
+  // 戰鬥內 buff（battle.js 讀）
+  function getCombatExpMultiplier() { return isCombatActive() ? 1.50 : 1.0; }
+  function getCombatHitBonus()      { return isCombatActive() ? 5 : 0; }
+  function getCombatCritBonus()     { return isCombatActive() ? 3 : 0; }
+  function getCombatMoodWin()       { return isCombatActive() ? 5 : 0; }
+  function getCombatMoodLose()      { return isCombatActive() ? -3 : 0; }
+  // 訓練 EXP 懲罰（main.js 訓練後讀）
+  function getTrainingExpPenalty()  { return isCombatActive() ? 0.75 : 1.0; }
+  // 戰利品掉落 +10%（B 品質系統實作後用）
+  function getLootBonusChance()     { return isCombatActive() ? 0.10 : 0; }
+
+  /**
+   * 戰鬥結束後呼叫（battle.js _endBattle）。
+   * @param {boolean} won  是否勝利（僅供將來擴充用、目前不影響觸發）
+   */
+  function onCombat(won) {
+    const cf = ensureInitCombat();
+    const p = Stats.player;
+    if (!p) return;
+    cf.lastBattleDay = p.day;
+
+    // 滑動窗口記錄（含當天）
+    cf.battleLog.push(p.day);
+    cf.battleLog = cf.battleLog.filter(d => d >= p.day - COMBAT_NATURAL_WINDOW + 1);
+
+    // 已活躍 → 進度 +1
+    if (cf.active) {
+      cf.progress++;
+      if (cf.progress >= cf.target) {
+        _completeCombat('natural');
+      } else if (typeof Game !== 'undefined' && Game.renderAll) {
+        Game.renderAll();
+      }
+      return;
+    }
+
+    // 冷卻中不觸發
+    if (cf.cooldownUntil && p.day < cf.cooldownUntil) return;
+    // 訓練狂熱中不觸發（互斥）
+    const f = ensureInit();
+    if (f.active) return;
+
+    // 自然觸發：3 天內累積 ≥ 5 場
+    if (cf.battleLog.length >= COMBAT_NATURAL_TRIGGER) {
+      _triggerCombat('natural');
+    }
+  }
+
+  /**
+   * 連勝 5 場強制觸發（battle.js _applyStreakRewards 呼叫）。
+   */
+  function onCombatStreak(streak) {
+    if (streak < 5) return;
+    const cf = ensureInitCombat();
+    const p = Stats.player;
+    if (cf.active) return;
+    if (cf.cooldownUntil && p.day < cf.cooldownUntil) return;
+    const f = ensureInit();
+    if (f.active) return;   // 訓練狂熱中跳過
+    _triggerCombat('streak');
+  }
+
+  function _triggerCombat(source) {
+    const cf = ensureInitCombat();
+    const p = Stats.player;
+    cf.active = true;
+    cf.source = source;
+    cf.progress = 0;
+    cf.target = COMBAT_TARGET;
+    cf.startDay = p.day;
+    cf.lastBattleDay = p.day;
+
+    // 加暫時特性（戰鬥狂熱）
+    if (!Array.isArray(p.traits)) p.traits = [];
+    if (!p.traits.includes('COMBAT_fervor')) p.traits.push('COMBAT_fervor');
+
+    _playCombatTriggerScene(source);
+  }
+
+  function _playCombatTriggerScene(source) {
+    const lines = (source === 'streak')
+      ? [
+          { text: '（連勝五場——拳頭沒停過。）' },
+          { text: '（你發現你開始等下一場了。）' },
+          { text: '（不打不舒服。這已經不是練習了。）' },
+        ]
+      : [
+          { text: '（這幾天打得勤——身體比腦子先想到要打。）' },
+          { text: '（剛剛走過廊柱、無意識做了一個格擋姿勢。）' },
+          { text: '（你的拳頭在發癢。你需要再打。）' },
+        ];
+
+    const finishWithPopup = () => {
+      if (typeof Stage !== 'undefined' && Stage.popupBig) {
+        Stage.popupBig({
+          icon: '🩸',
+          title: '戰鬥狂熱',
+          subtitle: source === 'streak' ? '連勝點燃了你' : '戰意上身',
+          color: 'red',
+          duration: 1800,
+          shake: true,
+          sound: 'level_up',
+          onComplete: () => {
+            _log('🩸 你進入【戰鬥狂熱】。每天必打 1 場、累積 8 場結束。', '#ff8866', true);
+            _log('　戰鬥 EXP +50% / 命中 +5 / 暴擊 +3 / 戰勝 mood +5 / 訓練 EXP -25%', '#aa7766', false);
+            if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
+          },
+        });
+      } else {
+        _log('🩸 你進入【戰鬥狂熱】。', '#ff8866', true);
+        if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
+      }
+    };
+
+    if (lines.length > 0 && typeof DialogueModal !== 'undefined') {
+      DialogueModal.play(lines, { onComplete: finishWithPopup });
+    } else {
+      finishWithPopup();
+    }
+  }
+
+  /**
+   * 每日維持檢查（DayCycle.onDayStart 呼叫）。
+   * 漏 1 天 mood -3 / 漏 2 天 mood -8 / 漏 3 天結束 + mood -10 + WIL +20
+   */
+  function checkCombatDailyMaintenance() {
+    const cf = ensureInitCombat();
+    if (!cf.active) return;
+    const p = Stats.player;
+    if (!cf.lastBattleDay) cf.lastBattleDay = p.day - 1;
+    const daysSince = p.day - cf.lastBattleDay;
+
+    if (daysSince <= 1) return;     // 今天 / 昨天打過、沒事
+    if (daysSince === 2) {
+      // 漏 1 天
+      Stats.modVital('mood', -3);
+      _log('（你的拳頭在發癢⋯⋯今天該打一場。）', '#cc6633', true);
+      return;
+    }
+    if (daysSince === 3) {
+      // 漏 2 天
+      Stats.modVital('mood', -8);
+      _log('（戰意正在退去⋯⋯再不打就回不去了。）', '#cc4422', true);
+      return;
+    }
+    // daysSince >= 4 → 漏 3 天結束（過完一整天的 day start 才算）
+    _completeCombat('expired');
+  }
+
+  function _completeCombat(reason) {
+    const cf = ensureInitCombat();
+    const p = Stats.player;
+    if (!cf.active) return;
+
+    // 移除暫時特性
+    if (Array.isArray(p.traits)) {
+      const idx = p.traits.indexOf('COMBAT_fervor');
+      if (idx >= 0) p.traits.splice(idx, 1);
+    }
+
+    // 結算
+    let popupTitle, popupSubtitle, popupColor, popupSound;
+    if (reason === 'expired') {
+      // 連 3 天沒打 → mood -10 + WIL +20「也清醒了」
+      Stats.modVital('mood', -10);
+      Stats.modExp('WIL', 20);
+      popupTitle    = '戰鬥狂熱 · 退去';
+      popupSubtitle = '也清醒了';
+      popupColor    = 'cyan';
+      popupSound    = 'sigh';
+      _log('（戰意褪去——但你也清醒了。WIL +20）', '#9c8866', true);
+    } else {
+      // 自然累積 8 場 → 主屬性 +20 EXP
+      const wc = (typeof Battle !== 'undefined' && Battle.getEquippedWeaponClass)
+                  ? Battle.getEquippedWeaponClass()
+                  : (() => {
+                      const wId = p.equippedWeapon;
+                      if (!wId || typeof Weapons === 'undefined') return 'sword';
+                      const w = Weapons[wId];
+                      return (w && w.weaponClass) || 'sword';
+                    })();
+      const mainAttr = COMBAT_MAIN_ATTR_MAP[wc] || 'STR';
+      Stats.modExp(mainAttr, 20);
+      popupTitle    = '戰鬥狂熱 · 沉澱';
+      popupSubtitle = `這份戰意化作 ${mainAttr} +20 EXP`;
+      popupColor    = 'gold';
+      popupSound    = 'acquire';
+      _log(`（戰意沉澱下來、化作肌肉的記憶。${mainAttr} +20 EXP）`, '#88cc77', true);
+    }
+
+    cf.cooldownUntil = p.day + COMBAT_COOLDOWN_DAYS;
+    cf.active = false;
+    cf.source = null;
+    cf.progress = 0;
+    cf.startDay = null;
+
+    if (typeof Stage !== 'undefined' && Stage.popupBig) {
+      Stage.popupBig({
+        icon: '🩸',
+        title: popupTitle,
+        subtitle: popupSubtitle,
+        color: popupColor,
+        duration: 1800,
+        shake: false,
+        sound: popupSound,
+        onComplete: () => {
+          if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
+        },
+      });
+    } else if (typeof Game !== 'undefined' && Game.renderAll) {
+      Game.renderAll();
+    }
+  }
+
+  // ══════════════════════════════════════════════════
   // 瓶頸檢查（stats.js spendExpOnAttr 呼叫）
   // ══════════════════════════════════════════════════
 
@@ -595,6 +862,20 @@ const Fervor = (() => {
   // ══════════════════════════════════════════════════
 
   function getStatusForUI() {
+    // 🆕 2026-04-28 戰鬥狂熱優先（互斥所以同時只會有一個）
+    const cf = ensureInitCombat();
+    if (cf && cf.active) {
+      return {
+        attr: 'COMBAT',
+        name: '戰鬥',           // 渲染端會補「狂熱」後綴
+        trainName: '上場戰鬥',
+        progress: cf.progress,
+        target: cf.target,
+        source: cf.source,
+        targetLevel: null,
+        isCombat: true,
+      };
+    }
     const f = ensureInit();
     if (!f || !f.active) return null;
     return {
@@ -619,7 +900,15 @@ const Fervor = (() => {
     ATTRS.forEach(attr => {
       f.trainingLog[attr] = f.trainingLog[attr].filter(d => d >= p.day - NATURAL_WINDOW + 1);
     });
-    // 冷卻自然過期（不主動清，靠 _isInNaturalCooldown 判斷）
+    // 🆕 2026-04-28 戰鬥滑動窗口也修剪
+    const cf = ensureInitCombat();
+    cf.battleLog = cf.battleLog.filter(d => d >= p.day - COMBAT_NATURAL_WINDOW + 1);
+    // 冷卻自然過期（不主動清，靠檢查邏輯判斷）
+  }
+
+  // 🆕 2026-04-28 每天開始時呼叫（DayCycle.onDayStart）
+  function onDayStart() {
+    checkCombatDailyMaintenance();
   }
 
   // ══════════════════════════════════════════════════
@@ -645,13 +934,16 @@ const Fervor = (() => {
     ACTION_TO_ATTR,              // 🆕 action.id → attr
     BREAKTHROUGH_LEVELS,
     ensureInit,
+    ensureInitCombat,            // 🆕 2026-04-28
     onTraining,
     onDayEnd,
+    onDayStart,                  // 🆕 2026-04-28
     // 狀態查詢
     isActive,
     activeAttr,
     getState,
     getStatusForUI,
+    isCombatActive,              // 🆕 2026-04-28
     // 加成計算
     getExpMultiplier,
     getMoodDelta,
@@ -659,6 +951,18 @@ const Fervor = (() => {
     getSlackChance,
     getSlackLine,
     getProgressLine,             // 🆕
+    // 🆕 2026-04-28 戰鬥狂熱 buff
+    getCombatExpMultiplier,
+    getCombatHitBonus,
+    getCombatCritBonus,
+    getCombatMoodWin,
+    getCombatMoodLose,
+    getTrainingExpPenalty,
+    getLootBonusChance,
+    // 🆕 2026-04-28 戰鬥狂熱觸發 / 維持
+    onCombat,
+    onCombatStreak,
+    checkCombatDailyMaintenance,
     // 瓶頸
     checkBreakthroughNeeded,
     // 舊相容
