@@ -499,6 +499,9 @@ const Game = (() => {
   let _lastTriggeredDay = 0;
 
   function checkTimelineEvent() {
+    // 🆕 2026-04-30 user 反饋：載入存檔時 continue modal 還沒按、timeline cutscene 就開跑
+    //   守衛：modal-name（continue / 名字輸入）開著時、不觸發任何 timeline 事件
+    if (document.getElementById('modal-name')?.classList.contains('open')) return;
     const p   = Stats.player;
     // 🆕 D.1.10: 使用條件化查詢
     const ev  = Events.getTimelineEvent(p.day);
