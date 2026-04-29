@@ -303,8 +303,8 @@ const Forge = (() => {
     const aff = (typeof teammates !== 'undefined') ? teammates.getAffection('blacksmithGra') : 0;
 
     const greetingHtml = (_mode === 'trade')
-      ? `<div><span class="speaker">葛拉：</span>給我吧。我熔一熔給其他兄弟用。</div>
-         <div><span class="speaker">葛拉：</span>⋯⋯點哪一件就換哪一件。</div>`
+      ? `<div><span class="speaker">葛拉：</span>有用不到的、我熔一熔給其他兄弟。</div>
+         <div><span class="speaker">葛拉：</span>⋯⋯沒有也沒事、不勉強。</div>`
       : `<div><span class="speaker">葛拉：</span>我收到命令了。主人允許你選武器、強化裝備。</div>
          <div><span class="speaker">葛拉：</span>⋯⋯說、要動哪一把。</div>`;
 
@@ -347,7 +347,7 @@ const Forge = (() => {
       actionsHtml = `
         <button class="forge-action-btn" data-act="upgrade" ${canUpgrade ? '' : 'disabled'}>
           強化品質
-          <span class="btn-cost">${COST_UPGRADE_GOLD} 金　/　信用 ${COST_UPGRADE_CREDIT} 抵半</span>
+          <span class="btn-cost">${COST_UPGRADE_GOLD} 金</span>
         </button>
         <button class="forge-action-btn" data-act="tier" ${canTier ? '' : 'disabled'} title="${tierTitle}">
           升 Tier
@@ -357,7 +357,7 @@ const Forge = (() => {
           鍛新詞綴
           <span class="btn-cost">${COST_AFFIX_GOLD} 金　Phase 2 待開放</span>
         </button>
-        <button class="forge-action-btn trade" data-act="trade-mode">上交（換信用點）</button>
+        <button class="forge-action-btn trade" data-act="trade-mode">上交（多餘裝備換信用點、可選）</button>
       `;
     } else {
       // trade mode
@@ -373,7 +373,7 @@ const Forge = (() => {
       </div>
       <div class="forge-actions">${actionsHtml}</div>
       <div class="forge-footer">
-        <span>金錢：${p.money || 0}　·　葛拉信用：<span class="forge-credit">${credit}</span></span>
+        <span>金錢：${p.money || 0}${credit > 0 ? `　·　葛拉信用：<span class="forge-credit">${credit}</span>（強化可抵半價）` : ''}</span>
         <button class="forge-leave-btn" id="forge-leave">離開</button>
       </div>
     `;
@@ -462,26 +462,65 @@ const Forge = (() => {
     if (!entry || !_canUpgrade(entry)) return;
     const p = Stats.player;
     const credit = p.gra_credit || 0;
-    const useCredit = (credit >= COST_UPGRADE_CREDIT);
-    const goldCost  = useCredit ? Math.floor(COST_UPGRADE_GOLD / 2) : COST_UPGRADE_GOLD;
-    if ((p.money || 0) < goldCost) {
-      _log(`⚒ 金錢不足：強化需 ${goldCost} 金。`, '#cc6633', false);
-      return;
-    }
     const nextQuality = _nextQuality(entry.quality);
     const qName = (typeof EquipmentQuality !== 'undefined') ? EquipmentQuality.getName(nextQuality) : nextQuality;
+    const goldFull = COST_UPGRADE_GOLD;
+    const goldHalf = Math.floor(COST_UPGRADE_GOLD / 2);
+    const hasGoldFull   = (p.money || 0) >= goldFull;
+    const canUseCredit  = (credit >= COST_UPGRADE_CREDIT) && (p.money || 0) >= goldHalf;
 
-    const confirmText = useCredit
-      ? `強化「${entry.baseName}」到 ${qName}：花 ${goldCost} 金 + 信用 ${COST_UPGRADE_CREDIT} 點？`
-      : `強化「${entry.baseName}」到 ${qName}：花 ${goldCost} 金？`;
+    if (!hasGoldFull && !canUseCredit) {
+      _log(`⚒ 金錢不足：強化需 ${goldFull} 金（或 ${goldHalf} 金 + ${COST_UPGRADE_CREDIT} 信用）。`, '#cc6633', false);
+      return;
+    }
 
-    _quickConfirm(confirmText, () => {
-      Stats.modMoney(-goldCost);
-      if (useCredit) p.gra_credit = credit - COST_UPGRADE_CREDIT;
+    // 沒 ChoiceModal fallback：直接全付金
+    if (typeof ChoiceModal === 'undefined') {
+      Stats.modMoney(-goldFull);
       _setEntryQuality(entry, nextQuality);
-      _log(`⚒ 葛拉強化「${entry.baseName}」→ ${qName}。`, '#d4af37', true);
+      _log(`⚒ 葛拉強化「${entry.baseName}」→ ${qName}（${goldFull} 金）。`, '#d4af37', true);
       _render();
       if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
+      return;
+    }
+
+    // 玩家自選：付全金 / 信用抵半 / 取消
+    const choices = [];
+    choices.push({
+      id: 'pay_full',
+      label: `付 ${goldFull} 金`,
+      hint: hasGoldFull ? '' : '（金錢不足）',
+      disabled: !hasGoldFull,
+    });
+    if (canUseCredit) {
+      choices.push({
+        id: 'pay_credit',
+        label: `${goldHalf} 金 + ${COST_UPGRADE_CREDIT} 信用點（省半價）`,
+        hint: `（你有 ${credit} 點信用）`,
+      });
+    }
+    choices.push({ id: 'cancel', label: '取消', hint: '' });
+
+    ChoiceModal.show({
+      id: 'forge_upgrade_' + Date.now(),
+      icon: '⚒',
+      title: `強化「${entry.baseName}」→ ${qName}`,
+      body: '葛拉：「⋯⋯怎麼付？」',
+      forced: true,
+      choices,
+    }, {
+      onChoose: (choiceId) => {
+        if (choiceId === 'cancel') return;
+        const useCredit = (choiceId === 'pay_credit');
+        const goldCost  = useCredit ? goldHalf : goldFull;
+        Stats.modMoney(-goldCost);
+        if (useCredit) p.gra_credit = credit - COST_UPGRADE_CREDIT;
+        _setEntryQuality(entry, nextQuality);
+        const costStr = useCredit ? `${goldCost} 金 + 信用 ${COST_UPGRADE_CREDIT}` : `${goldCost} 金`;
+        _log(`⚒ 葛拉強化「${entry.baseName}」→ ${qName}（${costStr}）。`, '#d4af37', true);
+        _render();
+        if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
+      }
     });
   }
 
