@@ -360,7 +360,8 @@ function TB_calcDerived(unit) {
 
   // 🆕 2026-04-30 護飾類（頭盔/護臂/護腿）— 套品質倍率、累加 DEF/SPD/EVA
   //   還有可能的 flatBonus（傳家件給屬性 +N）
-  let helmetGear = null, armsGear = null, legsGear = null;
+  // 🆕 2026-04-29 掛件 (accessory) — 第 4 件傳家、永不淘汰
+  let helmetGear = null, armsGear = null, legsGear = null, accessoryGear = null;
   const armorMaster = (typeof Armors !== 'undefined') ? Armors : {};
   if (unit.helmetId && armorMaster[unit.helmetId]) {
     helmetGear = armorMaster[unit.helmetId];
@@ -380,14 +381,20 @@ function TB_calcDerived(unit) {
       legsGear = EquipmentQuality.applyToArmor(legsGear, unit.legsQuality);
     }
   }
-  // 護飾累加值（DEF / SPD / EVA / BLK 都加總）
-  const accDEF = (helmetGear?.DEF || 0) + (armsGear?.DEF || 0) + (legsGear?.DEF || 0);
-  const accSPD = (helmetGear?.SPD || 0) + (armsGear?.SPD || 0) + (legsGear?.SPD || 0);
-  const accEVA = (helmetGear?.EVA || 0) + (armsGear?.EVA || 0) + (legsGear?.EVA || 0);
-  const accBLK = (helmetGear?.BLK || 0) + (armsGear?.BLK || 0) + (legsGear?.BLK || 0);
-  // 護飾 flatBonus 屬性加成（傳家件用）
+  if (unit.accessoryId && armorMaster[unit.accessoryId]) {
+    accessoryGear = armorMaster[unit.accessoryId];
+    if (typeof EquipmentQuality !== 'undefined' && unit.accessoryQuality && unit.accessoryQuality !== 'common') {
+      accessoryGear = EquipmentQuality.applyToArmor(accessoryGear, unit.accessoryQuality);
+    }
+  }
+  // 護飾累加值（DEF / SPD / EVA / BLK 都加總）+ 掛件
+  const accDEF = (helmetGear?.DEF || 0) + (armsGear?.DEF || 0) + (legsGear?.DEF || 0) + (accessoryGear?.DEF || 0);
+  const accSPD = (helmetGear?.SPD || 0) + (armsGear?.SPD || 0) + (legsGear?.SPD || 0) + (accessoryGear?.SPD || 0);
+  const accEVA = (helmetGear?.EVA || 0) + (armsGear?.EVA || 0) + (legsGear?.EVA || 0) + (accessoryGear?.EVA || 0);
+  const accBLK = (helmetGear?.BLK || 0) + (armsGear?.BLK || 0) + (legsGear?.BLK || 0) + (accessoryGear?.BLK || 0);
+  // 護飾 + 掛件 flatBonus 屬性加成（傳家件用）
   const gearBonus = { STR:0, DEX:0, CON:0, AGI:0, WIL:0, LUK:0, ATK:0, ACC:0, CRT:0, CDMG:0, PEN:0 };
-  [helmetGear, armsGear, legsGear, ar].forEach(g => {
+  [helmetGear, armsGear, legsGear, accessoryGear, ar].forEach(g => {
     if (!g || !g.flatBonus) return;
     Object.keys(gearBonus).forEach(k => {
       if (typeof g.flatBonus[k] === 'number') gearBonus[k] += g.flatBonus[k];

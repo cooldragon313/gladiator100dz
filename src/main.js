@@ -4431,14 +4431,15 @@ const Game = (() => {
   // 🆕 D.7 階段 B：角色頁渲染（拆成 14 個小函式）
   // ══════════════════════════════════════════════════
 
-  // 裝備 6 槽定義
+  // 裝備 7 槽定義（🆕 2026-04-29 加 accessory 掛件槽 — 永不淘汰、傳家件用）
   const _EQUIP_SLOTS = [
-    { id: 'weapon',  label: '主手', field: 'equippedWeapon',  source: 'weapons' },
-    { id: 'offhand', label: '副手', field: 'equippedOffhand', source: 'offhand' },
-    { id: 'helmet',  label: '頭盔', field: 'equippedHelmet',  source: 'helmet'  },
-    { id: 'chest',   label: '胸甲', field: 'equippedArmor',   source: 'chest'   },
-    { id: 'arms',    label: '護臂', field: 'equippedArms',    source: 'arms'    },
-    { id: 'legs',    label: '護腿', field: 'equippedLegs',    source: 'legs'    },
+    { id: 'weapon',    label: '主手', field: 'equippedWeapon',    source: 'weapons'   },
+    { id: 'offhand',   label: '副手', field: 'equippedOffhand',   source: 'offhand'   },
+    { id: 'helmet',    label: '頭盔', field: 'equippedHelmet',    source: 'helmet'    },
+    { id: 'chest',     label: '胸甲', field: 'equippedArmor',     source: 'chest'     },
+    { id: 'arms',      label: '護臂', field: 'equippedArms',      source: 'arms'      },
+    { id: 'legs',      label: '護腿', field: 'equippedLegs',      source: 'legs'      },
+    { id: 'accessory', label: '掛件', field: 'equippedAccessory', source: 'accessory' },
   ];
   let _pickerOpenSlot = null;
 
@@ -4636,8 +4637,8 @@ const Game = (() => {
     let adj = it;
     if (typeof EquipmentQuality !== 'undefined' && it._quality && it._quality !== 'common') {
       // 武器/護甲分開套（applyToWeapon vs applyToArmor）
-      if (it.type === 'shield' || (it.slot && ['arms','legs','helmet','chest'].includes(it.slot)) ||
-          ['cloth','leather','plate'].includes(it.type)) {
+      if (it.type === 'shield' || (it.slot && ['arms','legs','helmet','chest','accessory'].includes(it.slot)) ||
+          ['cloth','leather','plate','accessory'].includes(it.type)) {
         adj = EquipmentQuality.applyToArmor(it, it._quality);
       } else if (it.weaponClass || ['blade1h','blade2h','blunt1h','blunt2h','polearm','heavy2h','unarmed'].includes(it.type)) {
         adj = EquipmentQuality.applyToWeapon(it, it._quality);
@@ -4671,8 +4672,8 @@ const Game = (() => {
     if (it.desc) lines.push(it.desc.replace(/<[^>]+>/g, ''));
     let adj = it;
     if (typeof EquipmentQuality !== 'undefined' && it._quality && it._quality !== 'common') {
-      if (it.type === 'shield' || (it.slot && ['arms','legs','helmet','chest'].includes(it.slot)) ||
-          ['cloth','leather','plate'].includes(it.type)) {
+      if (it.type === 'shield' || (it.slot && ['arms','legs','helmet','chest','accessory'].includes(it.slot)) ||
+          ['cloth','leather','plate','accessory'].includes(it.type)) {
         adj = EquipmentQuality.applyToArmor(it, it._quality);
       } else if (it.weaponClass || ['blade1h','blade2h','blunt1h','blunt2h','polearm','heavy2h','unarmed'].includes(it.type)) {
         adj = EquipmentQuality.applyToWeapon(it, it._quality);
@@ -4703,7 +4704,8 @@ const Game = (() => {
     }
     else if (source === 'chest') { baseName = Armors[itemId]?.name || itemId; slot = 'armor'; }
     // 🆕 2026-04-30 護飾類（頭盔/護臂/護腿）— 主人賜的可以看到
-    else if (source === 'helmet' || source === 'arms' || source === 'legs') {
+    // 🆕 2026-04-29 掛件 (accessory) — 傳家件
+    else if (source === 'helmet' || source === 'arms' || source === 'legs' || source === 'accessory') {
       baseName = Armors[itemId]?.name || itemId;
       slot = 'armor';   // 品質查詢借用 armor slot（主畫面顯示用）
     }
@@ -4712,7 +4714,7 @@ const Game = (() => {
     if (typeof EquipmentQuality !== 'undefined') {
       // 護飾類用 armorInventory 找品質（getEquippedQuality 要 weapon/armor/offhand 之一）
       let q = 'common';
-      if (source === 'helmet' || source === 'arms' || source === 'legs') {
+      if (source === 'helmet' || source === 'arms' || source === 'legs' || source === 'accessory') {
         q = EquipmentQuality.getInventoryQuality(Stats.player, 'armor', itemId);
       } else {
         q = EquipmentQuality.getEquippedQuality(Stats.player, slot);
@@ -4790,8 +4792,6 @@ const Game = (() => {
 
   /** 列出此 source 可選擇的裝備 */
   function _getPickerOptions(source) {
-    // 🆕 2026-04-30 修：之前 p 只在 weapons 分支宣告、其他分支讀 p 是 ReferenceError
-    //   → 整個 picker 對 chest/helmet/arms/legs 都拋錯吃掉
     const p = Stats.player;
     if (source === 'weapons') {
       // 🆕 只列出玩家擁有的武器（weaponInventory），不是全部 Weapons 表
@@ -4860,7 +4860,8 @@ const Game = (() => {
       }).filter(Boolean);
     }
     // 🆕 2026-04-30 護飾類：頭盔 / 護臂 / 護腿
-    if (source === 'helmet' || source === 'arms' || source === 'legs') {
+    // 🆕 2026-04-29 掛件 accessory — 傳家件用
+    if (source === 'helmet' || source === 'arms' || source === 'legs' || source === 'accessory') {
       const inv = Array.isArray(p.armorInventory) ? p.armorInventory : [];
       return inv.map(e => {
         const armor = Armors[e.id];
@@ -5753,10 +5754,17 @@ const Game = (() => {
     if (!p.staminaPenalty) p.staminaPenalty = { STR:0, DEX:0, CON:0, AGI:0, WIL:0, LUK:0 };
 
     // v4→v5 欄位補齊（D.1.4 + D.1.6 新增欄位）
-    if (p.equippedHelmet === undefined) p.equippedHelmet = null;
-    if (p.equippedChest  === undefined) p.equippedChest  = null;
-    if (p.equippedArms   === undefined) p.equippedArms   = null;
-    if (p.equippedLegs   === undefined) p.equippedLegs   = null;
+    if (p.equippedHelmet    === undefined) p.equippedHelmet    = null;
+    if (p.equippedChest     === undefined) p.equippedChest     = null;
+    if (p.equippedArms      === undefined) p.equippedArms      = null;
+    if (p.equippedLegs      === undefined) p.equippedLegs      = null;
+    if (p.equippedAccessory === undefined) p.equippedAccessory = null;   // 🆕 2026-04-29 掛件槽
+    // 🆕 2026-04-29 遷移：heirloom 從胸甲槽 → 掛件槽（slot 從 chest 改為 accessory）
+    const HEIRLOOM_IDS = ['heirloomCloak', 'heirloomLeather', 'heirloomPlate'];
+    if (HEIRLOOM_IDS.includes(p.equippedArmor)) {
+      p.equippedAccessory = p.equippedArmor;
+      p.equippedArmor = null;
+    }
     if (p.money       === undefined) p.money       = 0;
     if (p.moneyEarned === undefined) p.moneyEarned = 0;
     if (p.moneySpent  === undefined) p.moneySpent  = 0;
@@ -6035,8 +6043,9 @@ const Game = (() => {
         mood:50, moodMax:100,
         STR:10, DEX:10, CON:10, AGI:10, WIL:10, LUK:10,
         inventory:[], equippedWeapon:null, equippedArmor:null, equippedOffhand:null,
-        // 🆕 多部位裝備
+        // 🆕 多部位裝備（含 2026-04-29 加的 accessory 掛件）
         equippedHelmet:null, equippedChest:null, equippedArms:null, equippedLegs:null,
+        equippedAccessory:null,
         // 🆕 金錢
         money:0, moneyEarned:0, moneySpent:0,
         // 🆕 EXP / SP

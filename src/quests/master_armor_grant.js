@@ -55,21 +55,24 @@ const MasterArmorGrant = (() => {
   };
 
   // ─── 主人對白依階段 ────────────────────────────────
+  // 🆕 2026-04-29 加強進階感 — 主人愈來愈把你當回事
   const STAGE_DIALOGUES = [
-    [   // 階段 1（第 1 件）
-      { text: '（侍從來把你帶到主人廳。）' },
+    [   // 階段 1（第 1 件）— 試水溫
+      { text: '（侍從來把你帶到主人廳。盒子很普通、沒什麼裝飾。）' },
       { speaker: '阿圖斯', text: '⋯⋯不錯。' },
-      { speaker: '阿圖斯', text: '給你件像樣的。' },
+      { speaker: '阿圖斯', text: '給你件像樣的。先穿著、別摔。' },
     ],
-    [   // 階段 2（第 2 件）
-      { text: '（侍從又來了。今天他臉上有點笑意。）' },
-      { speaker: '阿圖斯', text: '我看你能再走遠一點。' },
-      { speaker: '阿圖斯', text: '⋯⋯這件我家匠人重新校過。拿去。' },
+    [   // 階段 2（第 2 件）— 升級
+      { text: '（侍從又來了。這次盒子上有家族徽。）' },
+      { speaker: '阿圖斯', text: '上次那件、我看你穿得勤。' },
+      { speaker: '阿圖斯', text: '⋯⋯換一件好的。我家匠人重新校過、貴一倍。' },
+      { speaker: '阿圖斯', text: '去把舊的丟了——那件對你已經不夠了。' },
     ],
-    [   // 階段 3（第 3 件）
-      { text: '（這次主人親自從盒子裡拿出來。）' },
+    [   // 階段 3（第 3 件）— 真投資
+      { text: '（這次主人親自把盒子打開。裡頭墊著絲布。）' },
       { speaker: '阿圖斯', text: '我認真考慮投資你了。' },
-      { speaker: '阿圖斯', text: '⋯⋯這件不便宜。別讓它在你身上斷。' },
+      { speaker: '阿圖斯', text: '⋯⋯這件不便宜。葛拉看了三遍才肯放手。' },
+      { speaker: '阿圖斯', text: '別讓它在你身上斷。也別丟。我會記得。' },
     ],
   ];
 
@@ -144,42 +147,44 @@ const MasterArmorGrant = (() => {
       Flags.set('master_heirloom_chosen', true);
       Flags.set('master_heirloom_choice', 'leather');
       _addToInventory('heirloomLeather', 'legendary');
-      _log('✦ 主人傳家：皮甲套（平衡 build）', '#ffaa20', true);
+      _log('✦ 主人傳家：皮傳家家徽（平衡 build）', '#ffaa20', true);
       return;
     }
 
     DialogueModal.play([
-      { text: '（侍從帶你進主人廳。今天廳裡擺了三個檀木盒。）' },
+      { text: '（侍從帶你進主人廳。今天廳裡擺了三個檀木小盒——比你想像的小得多。）' },
       { speaker: '阿圖斯', text: '⋯⋯到了這份上、給你選一件吧。' },
       { speaker: '阿圖斯', text: '我家族傳下來的。三件、選一件。' },
       { speaker: '阿圖斯', text: '選了——就走那條路、別回頭。' },
-      { text: '（他打開三個盒子。）' },
-      { text: '（一件絲斗篷、輕得像影子。）' },
-      { text: '（一件皮甲套、補丁有七種顏色。）' },
-      { text: '（一件鋼鎧甲、表面有七代主人的凹痕。）' },
+      { text: '（他打開三個盒子。每個盒子裡躺著一件小東西。）' },
+      { text: '（一個絲質飾結、繫在腰間像一縷風。）' },
+      { text: '（一塊銅製家徽、補了七層、每一層代表一代主人。）' },
+      { text: '（一枚鐵戒、內側刻了七個名字、最後一個是空白。）' },
+      { speaker: '阿圖斯', text: '⋯⋯這三件、跟著我家七代了。再大的鎧甲、再好的劍、都會被打爛、會生鏽、會丟。' },
+      { speaker: '阿圖斯', text: '只有這三件、傳下來了。' },
     ], {
       onComplete: () => {
         ChoiceModal.show({
           id: 'master_heirloom_choice',
           icon: '⚜',
           title: '主人傳家・三選一',
-          body: '阿圖斯：「選一件、走一條路。」',
+          body: '阿圖斯：「選一件、走一條路。這件不會被淘汰、跟你一輩子。」',
           forced: true,
           choices: [
             {
               id: 'cloak',
-              label: '布傳家斗篷（風 build）',
-              hint: 'DEX +5 / SPD +5 / AGI +2 / EVA +6 — 速度與閃避的化身',
+              label: '布傳家飾結（風 build）',
+              hint: 'DEX +5 / AGI +3 / SPD +5 / EVA +6 — 速度與閃避的化身',
             },
             {
               id: 'leather',
-              label: '皮傳家護甲套（平衡 build）',
-              hint: '全屬性 +3 — 什麼都來一點',
+              label: '皮傳家家徽（平衡 build）',
+              hint: '全屬性 +3 / DEF +2 — 什麼都來一點',
             },
             {
               id: 'plate',
-              label: '鐵傳家鎧甲（鐵壁 build）',
-              hint: 'DEF +16 / CON +5 — 站得住就贏了',
+              label: '鐵傳家戒指（鐵壁 build）',
+              hint: 'CON +5 / STR +2 / DEF +8 — 站得住就贏了',
             },
           ],
         }, {
@@ -187,9 +192,9 @@ const MasterArmorGrant = (() => {
             Flags.set('master_heirloom_chosen', true);
             Flags.set('master_heirloom_choice', choiceId);
             const map = {
-              cloak:   { id: 'heirloomCloak',   label: '布傳家斗篷' },
-              leather: { id: 'heirloomLeather', label: '皮傳家護甲套' },
-              plate:   { id: 'heirloomPlate',   label: '鐵傳家鎧甲' },
+              cloak:   { id: 'heirloomCloak',   label: '布傳家飾結' },
+              leather: { id: 'heirloomLeather', label: '皮傳家家徽' },
+              plate:   { id: 'heirloomPlate',   label: '鐵傳家戒指' },
             };
             const choice = map[choiceId];
             if (!choice) return;
@@ -200,11 +205,11 @@ const MasterArmorGrant = (() => {
                 icon: '⚜', title: choice.label, subtitle: '身份定型',
                 color: 'gold', duration: 2400, shake: true, sound: 'acquire',
                 onComplete: () => {
-                  // 後話：主人說「我問了葛拉、剩兩件熔給其他兄弟」
+                  // 後話：主人說「剩兩件回到盒子裡、繼續傳下去」
                   if (typeof DialogueModal !== 'undefined') {
                     DialogueModal.play([
                       { speaker: '阿圖斯', text: '⋯⋯好。拿去。' },
-                      { speaker: '阿圖斯', text: '我問了葛拉。剩兩件、他熔掉給其他兄弟。' },
+                      { speaker: '阿圖斯', text: '剩兩件、回到盒子裡。或許下一個——下一個會選別的。' },
                       { speaker: '阿圖斯', text: '記住——你選的這條路、走到底。' },
                     ]);
                   }
