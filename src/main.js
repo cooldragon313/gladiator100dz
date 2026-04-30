@@ -4624,6 +4624,74 @@ const Game = (() => {
   }
 
   /** 取得裝備顯示名稱 */
+  // 🆕 2026-04-30 picker 用：把裝備屬性渲染成可讀字串（依品質倍率調整）
+  function _formatItemStats(it) {
+    if (!it) return '';
+    // 武器類關鍵屬性
+    const weaponKeys = ['ATK', 'ACC', 'CRT', 'CDMG', 'SPD', 'PEN'];
+    // 護甲類關鍵屬性
+    const armorKeys  = ['DEF', 'EVA', 'BLK', 'SPD'];
+
+    // 套品質倍率
+    let adj = it;
+    if (typeof EquipmentQuality !== 'undefined' && it._quality && it._quality !== 'common') {
+      // 武器/護甲分開套（applyToWeapon vs applyToArmor）
+      if (it.type === 'shield' || (it.slot && ['arms','legs','helmet','chest'].includes(it.slot)) ||
+          ['cloth','leather','plate'].includes(it.type)) {
+        adj = EquipmentQuality.applyToArmor(it, it._quality);
+      } else if (it.weaponClass || ['blade1h','blade2h','blunt1h','blunt2h','polearm','heavy2h','unarmed'].includes(it.type)) {
+        adj = EquipmentQuality.applyToWeapon(it, it._quality);
+      }
+    }
+
+    const parts = [];
+    const isWeapon = !!(it.weaponClass || it.hands);
+    const keys = isWeapon ? weaponKeys : armorKeys;
+    keys.forEach(k => {
+      const v = adj[k];
+      if (typeof v !== 'number' || v === 0) return;
+      const sign = v > 0 ? '+' : '';
+      parts.push(`<span class="cs-stat-${v >= 0 ? 'pos' : 'neg'}">${k} ${sign}${v}</span>`);
+    });
+    // flatBonus 屬性加成（傳家件）
+    if (it.flatBonus) {
+      Object.entries(it.flatBonus).forEach(([k, v]) => {
+        if (!v) return;
+        const sign = v > 0 ? '+' : '';
+        parts.push(`<span class="cs-stat-bonus">${k} ${sign}${v}</span>`);
+      });
+    }
+    return parts.join(' · ');
+  }
+
+  // 🆕 2026-04-30 hover tooltip text（純文字、無 HTML、給 title 屬性用）
+  function _buildItemTooltip(it) {
+    if (!it) return '';
+    const lines = [];
+    if (it.desc) lines.push(it.desc.replace(/<[^>]+>/g, ''));
+    let adj = it;
+    if (typeof EquipmentQuality !== 'undefined' && it._quality && it._quality !== 'common') {
+      if (it.type === 'shield' || (it.slot && ['arms','legs','helmet','chest'].includes(it.slot)) ||
+          ['cloth','leather','plate'].includes(it.type)) {
+        adj = EquipmentQuality.applyToArmor(it, it._quality);
+      } else if (it.weaponClass || ['blade1h','blade2h','blunt1h','blunt2h','polearm','heavy2h','unarmed'].includes(it.type)) {
+        adj = EquipmentQuality.applyToWeapon(it, it._quality);
+      }
+    }
+    const isWeapon = !!(it.weaponClass || it.hands);
+    const keys = isWeapon ? ['ATK','ACC','CRT','CDMG','SPD','PEN']
+                          : ['DEF','EVA','BLK','SPD'];
+    const stats = keys.filter(k => typeof adj[k] === 'number' && adj[k] !== 0)
+                       .map(k => `${k} ${adj[k] > 0 ? '+' : ''}${adj[k]}`)
+                       .join(' / ');
+    if (stats) lines.push('屬性：' + stats);
+    if (it._quality && it._quality !== 'common' && typeof EquipmentQuality !== 'undefined') {
+      lines.push('品質：' + EquipmentQuality.getName(it._quality));
+    }
+    if (it._tier && it._tier > 1) lines.push(`Tier ${it._tier}`);
+    return lines.join('\n').replace(/"/g, '&quot;');
+  }
+
   function _getEquipmentName(source, itemId) {
     if (!itemId) return '—';
     let baseName, slot;
@@ -4690,9 +4758,14 @@ const Game = (() => {
         </div>`;
       const itemHtml = options.map(it => {
         const equipped = (it.id === currentId);
+        // 🆕 2026-04-30 tier 標籤（不打 +N、改顯【T2】等清楚標籤）+ 詞綴在 stats row
+        const tierTag = (it._tier && it._tier > 1)
+                          ? `<span class="cs-picker-tier">T${it._tier}</span>` : '';
+        const statsHtml = _formatItemStats(it);
         return `
-          <div class="cs-picker-item ${equipped ? 'equipped' : ''}" data-item="${it.id}">
-            <div class="cs-picker-name">${it.name}${equipped ? '<span class="eq-tag">裝備中</span>' : ''}</div>
+          <div class="cs-picker-item ${equipped ? 'equipped' : ''}" data-item="${it.id}" title="${_buildItemTooltip(it)}">
+            <div class="cs-picker-name">${tierTag}${it.name}${equipped ? '<span class="eq-tag">裝備中</span>' : ''}</div>
+            <div class="cs-picker-stats">${statsHtml}</div>
             <div class="cs-picker-desc">${it.desc || ''}</div>
           </div>`;
       }).join('');
@@ -4757,7 +4830,8 @@ const Game = (() => {
         p.weaponInventory.forEach(entry => {
           const w = Weapons[entry.id];
           if (!w || w.id === 'fists' || w.hands !== 1) return;
-          // 🆕 2026-04-30 拿掉 +N tier 標籤（同武器槽）
+          // 🆕 2026-04-30 修：主手已裝備同 ID 的武器、副手不能再裝（否則一把武器當兩把用）
+          if (entry.id === p.equippedWeapon) return;
           const quality = entry.quality || 'common';
           const baseName = (w.name || entry.id) + '（副）';
           const formattedName = (typeof EquipmentQuality !== 'undefined')
