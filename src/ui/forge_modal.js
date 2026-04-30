@@ -593,16 +593,15 @@ const Forge = (() => {
       _log('⚒ 葛拉：「這件熔不了什麼東西。」', '#886655', false);
       return;
     }
-    _quickConfirm(`上交「${entry.baseName}」換 ${credits} 信用點？`, () => {
-      const p = Stats.player;
-      const inv = (kind === 'weapon') ? p.weaponInventory : p.armorInventory;
-      const idx = inv.findIndex(e => e.id === itemId);
-      if (idx >= 0) inv.splice(idx, 1);
-      p.gra_credit = (p.gra_credit || 0) + credits;
-      _log(`⚒ 上交「${entry.baseName}」→ 葛拉信用 +${credits}（總 ${p.gra_credit}）`, '#88cc77', true);
-      _render();
-      if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
-    });
+    // 🆕 2026-04-30 user 反饋：上交不要每次彈確認、直接點即交、可連續上交
+    const p = Stats.player;
+    const inv = (kind === 'weapon') ? p.weaponInventory : p.armorInventory;
+    const idx = inv.findIndex(e => e.id === itemId);
+    if (idx >= 0) inv.splice(idx, 1);
+    p.gra_credit = (p.gra_credit || 0) + credits;
+    _log(`⚒ 上交「${entry.baseName}」→ 葛拉信用 +${credits}（總 ${p.gra_credit}）`, '#88cc77', true);
+    _render();
+    if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
   }
 
   // 修改 inventory 內某 entry 的 quality

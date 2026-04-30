@@ -1430,6 +1430,11 @@ html, body {
 }
 .modal-overlay.open { display: flex; }
 
+/* 🆕 2026-04-30 ChoiceModal 永遠在最上層（forge / battle 等高 z-index overlay 也擋不住） */
+#modal-choice { z-index: 99999 !important; }
+/* 同理 DialogueModal — 對話/選擇都要永遠最上 */
+#modal-dialogue { z-index: 99998 !important; }
+
 .modal-box {
   background: #100c08;
   border: 1px solid var(--border-hi);
