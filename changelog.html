@@ -208,6 +208,136 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       2026-05-01 萬骸祭 spec 鎖定 + Phase 1A 結局框架開工
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag new">NEW + DOCS</span>
+      <span class="version-title">arena-events-roster 完整 spec 鎖定 + Phase 1A 結局/萬骸祭框架 + CANON 同步</span>
+      <span class="version-date">2026-05-01</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-data">DOCS</span>
+        <span class="change-text"><strong>arena-events-roster.md 完整 spec（5 輪迭代鎖整份）</strong>
+          <span class="file-tag">docs/quests/arena-events-roster.md</span>
+          — 1300+ 行整套規格：蓋烏斯·維努斯（隔壁訓練所主人 / 30 年競爭對手 / 維努斯場規格高、力量帥哥）+
+          領主提圖斯（新領主 / 軍人家族 / 偽旗滅村）+ 凱德（B7、同村大哥哥、Day 100 故意輸給玩家）+
+          維努斯場 6 NPC（4 討厭鬼 + 2 招敵候選）+ 萬骸祭 5 Wave Gauntlet（雜兵 1v3 → 重甲 → 雙刀 1v2 →
+          黑豹 → 凱德故意輸）+ 三結局路徑（A 加冕 / B 殘血反撲 / C 比拉斯地道逃跑）+
+          衝動 vs 冷靜分支（pride/patience 雙軌制）+ 領主夜宴瓦倫演戲場景。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DOCS</span>
+        <span class="change-text"><strong>CANON.md 同步：領主線 / 凱德線 / 維努斯場 CANON 級事實</strong>
+          <span class="file-tag">docs/CANON.md</span>
+          — 新增 5 條 CANON 級鐵律（玩家被抓不久、凱德村被滅同期、領主提圖斯不認玩家、玩家認領主、
+          提圖斯是新領主訓練所主人巴結）+ 6 個新角色卡（提圖斯/凱德/蓋烏斯/瓦倫/比拉斯/狄圖斯）+
+          時間線新增 8 條事件（偽旗滅村 / 玩家流浪 / 提圖斯升領主 / 萬骸祭 5 trigger）+
+          5 個新知識矩陣 + 玩家家鄉村「老麥可養豬戶 vs 瓦倫編的老盧夏」事實。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DOCS</span>
+        <span class="change-text"><strong>IMPLEMENTATION-ROADMAP.md：6 Phase 36 任務拆解</strong>
+          <span class="file-tag">docs/IMPLEMENTATION-ROADMAP.md</span>
+          — Phase 1A foundation（結局 + Day 100 框架）→ P1B 領主主線（8 任務）→
+          P1C 凱德主線（6 任務）→ P2 蓋烏斯線（8）→ P3 訓練所內事件（7）→
+          P4 中段 BOSS（7）→ P5 大會 + 比拉斯（4）→ P6 平衡校準（3）。
+          總工時估 135h（實際 200-270h）。每任務含依賴 / 預估工 / 狀態追蹤。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text"><strong>Phase 1A 落地 — 結局 + 萬骸祭 wave 框架</strong>
+          <span class="file-tag">src/ending.js / src/quests/wanguji.js / src/systems/moral.js</span>
+          — (1) ending.js 加 8 個新結局 stub：B 路徑 4（自由人 / 血祭 / 殉道者 / 無名死）+
+          C 路徑 1（地道逃亡）+ 衝動 3（無名死 / 殉道弒主 / 血路逃亡）+
+          3 個 dispatcher 入口（playRebellion / playEscape / playImpulse）。
+          (2) wanguji.js 新模組：萬骸祭 5 Wave Gauntlet orchestrator、用 Battle.startFromConfig
+          callback 鏈、wave 間 HP/體力小幅恢復、凱德倒下後 ChoiceModal「最後決意」分流 A/B/C。
+          (3) Moral.getDispositionType() API：傳回 impulsive/calm/neutral、Day 65 衝動冷靜分支用。
+          測試：console 跑 WangujiQuest.start() / Endings.test('rebel_freedom') 等。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">FIX</span>
+        <span class="change-text"><strong>主人傳家件 → 掛件 (accessory) 槽位重設計</strong>
+          <span class="file-tag">src/content/armors.js / src/main.js / src/battle/* / src/quests/master_armor_grant.js</span>
+          — user 反饋：主人賜永遠是 T1、後期被淘汰沒儀式感。修：(1) 9 件護飾 raw DEF buff +
+          全部加 flatBonus 屬性加成（布護臂走 DEX/AGI、皮護腿走 CON/AGI、鐵頭盔走 WIL/STR）；
+          (2) 3 件傳家件 slot 從 'chest' 改 'accessory'（永不淘汰、不佔胸甲）：
+          斗篷→飾結（風 build）/ 護甲套→家徽（平衡）/ 鎧甲→戒指（鐵壁）；
+          (3) main.js 加第 7 個 _EQUIP_SLOTS（accessory）+ picker 篩選邏輯 + 存檔遷移舊 heirloom 自動移槽；
+          (4) battle.js / testbattle.js 把 accessory 接進戰鬥派生（DEF/SPD/EVA/flatBonus 全加）；
+          (5) master_armor_grant.js 對白加強升級感 + 三選一改成「小檀木盒 + 絲結/家徽/戒指」傳家小物風。</span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       2026-04-30 裝備系統大重整 + 競技場全面校準
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag new">NEW + BALANCE + FIX</span>
+      <span class="version-title">裝備品質 5 級色階 + 主人賜 3 條護飾線 + 葛拉鋪 forge UI + 競技場戰利品 + 對手強度兩輪校準</span>
+      <span class="version-date">2026-04-30</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text"><strong>裝備品質 5 級色階（白/綠/藍/紫/金）+ 玩家擁有過濾</strong>
+          <span class="file-tag">src/systems/equipment_quality.js / src/main.js</span>
+          — user 偏好白綠藍紫金、不要灰；DEFS 改名（普通/良品/精品/上品/傳家）+ 顏色（白 #ddd、綠 #88dd66、
+          藍 #5a9aff、紫 #c060ff、金 #ffaa20）。Equipment picker 全面升級：只列玩家擁有的
+          weaponInventory / armorInventory（不是全表）+ T2/T3 tier 標籤（不再用 +N）+
+          屬性行依品質倍率即時換算 + hover tooltip 顯示完整 desc/stats + 副手 picker 排除主手已裝備同把武器。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>主人賜 3 條護飾線（護臂/護腿/頭盔）+ 第 4 件傳家三選一</strong>
+          <span class="file-tag">src/quests/master_armor_grant.js / src/content/armors.js</span>
+          — 競技場累積 5/15/25 場勝推進護臂線（布護臂 → 布精護臂 → 布上等護臂）；8/18/28 護腿；
+          12/22/32 頭盔。每階段觸發主人召見對白 + popup「主人賞賜」+ 自動加進 armorInventory。
+          35 場勝 + 5 連勝 + S 評達標 → 第 4 件傳家三選一 ChoiceModal（風/平衡/鐵壁 build）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>葛拉鐵匠鋪 UI（forge_modal）+ 強化 / 升 tier / 上交</strong>
+          <span class="file-tag">src/ui/forge_modal.js</span>
+          — 5 連勝首次解鎖（gra_forge_unlocked flag）+ 主人召見大事件解釋。Forge 三功能：
+          (1) 品質強化（白→綠→藍→紫→金，每階段消耗信用點 + 主人付一半）；
+          (2) 升 tier（保留品質、tier+1、需信用點）；(3) 上交（換信用點、不需確認可連續）。
+          isEquipped 同時查武器槽 + 4 個護甲槽（之前護飾不顯示「裝備中」bug 修了）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-new">NEW</span>
+        <span class="change-text"><strong>競技場戰利品掉落 — S/A/B 觸發 80%/60%/40% + 對手掉啥拿啥</strong>
+          <span class="file-tag">src/battle/battle.js _rollArenaLoot</span>
+          — 60% 掉武器、40% 掉護甲/副手；品質繼承對手裝備品質 + 小機率升一階。
+          這套讓玩家裝備池逐場補強、不再只靠葛拉鋪。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">BALANCE</span>
+        <span class="change-text"><strong>ARENA_TIERS 兩輪校準 + 鏈甲拉強</strong>
+          <span class="file-tag">src/main.js ARENA_TIERS / src/content/armors.js</span>
+          — user 反饋上等場還是輾壓 → 兩輪拉強：rookie 持平、gladB +2、vet +3、champion +5、
+          武器/裝備池升級到對應 tier 品質（精英場有 25% 紫品）。鏈甲 base DEF 8 → 12、SPD/EVA
+          -2 → -3（皮系頂峰 studded 10、板系起點該 ≥ 12 才合升級邏輯）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">FIX</span>
+        <span class="change-text"><strong>大量裝備系統 bug 修復（6 連環）</strong>
+          — (1) _getPickerOptions p 變數 scope bug：之前 p 只在 weapons 分支宣告、其他分支拋
+          ReferenceError、整個 picker 對 chest/helmet/arms/legs 都壞；(2) 木盾被誤列到胸甲槽
+          （因 type='shield' 沒明示排除）；(3) 副手裝備同把武器（主手裝了還能裝副手）；
+          (4) ChoiceModal z-index 被 forge-overlay 蓋住、強化要離開才能；(5) 葛拉升 tier reset 品質
+          （紫匕首升 T2 變普通）；(6) 武器名字 +N tier 標籤拔掉、改用名字暗示 + tooltip 顯示。</span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
        2026-04-28 戰鬥屬性 EXP Phase 1 + 3 份 design doc
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">
