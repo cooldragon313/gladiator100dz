@@ -4726,12 +4726,11 @@ const Game = (() => {
         return p.weaponInventory.map(entry => {
           const w = Weapons[entry.id];
           if (!w) return null;
-          const tierLabel = entry.tier > 0 ? ` +${entry.tier}` : '';
-          // 🆕 2026-04-28 加品質顏色
+          // 🆕 2026-04-30 拿掉 +N tier 標籤（武器名字已經暗示 tier、+N 重複）
           const quality = entry.quality || 'common';
           const formattedName = (typeof EquipmentQuality !== 'undefined')
-                                  ? EquipmentQuality.formatItemNameHTML(w.name + tierLabel, quality)
-                                  : (w.name + tierLabel);
+                                  ? EquipmentQuality.formatItemNameHTML(w.name, quality)
+                                  : w.name;
           return { ...w, name: formattedName, _tier: entry.tier, _quality: quality };
         }).filter(Boolean);
       }
@@ -4758,9 +4757,9 @@ const Game = (() => {
         p.weaponInventory.forEach(entry => {
           const w = Weapons[entry.id];
           if (!w || w.id === 'fists' || w.hands !== 1) return;
-          const tierLabel = entry.tier > 0 ? ` +${entry.tier}` : '';
+          // 🆕 2026-04-30 拿掉 +N tier 標籤（同武器槽）
           const quality = entry.quality || 'common';
-          const baseName = (w.name || entry.id) + tierLabel + '（副）';
+          const baseName = (w.name || entry.id) + '（副）';
           const formattedName = (typeof EquipmentQuality !== 'undefined')
                                   ? EquipmentQuality.formatItemNameHTML(baseName, quality)
                                   : baseName;

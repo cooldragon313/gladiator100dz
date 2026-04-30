@@ -212,7 +212,7 @@ Object.assign(Weapons, {
     route: 'fury', swingTime: 3, cap: 11, special: 'gra_signature',
     hitParts: ['身體', '頭'],
     ATK: 16, ACC: 9, CRT: 9, CDMG: 16, SPD: 6, PEN: 10,
-    desc: '葛拉這輩子打過最好的劍。劍背刻著兩個字——他的名字。「拿好。⋯⋯這把不該斷。」',
+    desc: '【葛拉傳家・第 4 階】葛拉這輩子打過最好的劍。劍背刻著兩個字——他的名字。「拿好。⋯⋯這把不該斷。」',
     price: 0,
   },
   longSword_t4: {
@@ -222,7 +222,7 @@ Object.assign(Weapons, {
     route: 'fury', swingTime: 5, cap: 9, special: 'gra_signature',
     hitParts: ['身體', '頭'],
     ATK: 26, ACC: 7, CRT: 8, CDMG: 18, SPD: 0, PEN: 18,
-    desc: '葛拉的傳家。「這是我這輩子最後一把這樣的劍。⋯⋯帶它出去。別讓它斷在你之前。」',
+    desc: '【葛拉傳家・第 4 階】葛拉的傳家。「這是我這輩子最後一把這樣的劍。⋯⋯帶它出去。別讓它斷在你之前。」',
     price: 0,
   },
 });
