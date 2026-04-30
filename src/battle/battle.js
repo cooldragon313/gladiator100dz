@@ -2087,8 +2087,8 @@ const Battle = (() => {
         });
       }
     }
-    // 抽胸甲（25% 機率掉）
-    if (_enemy && _enemy.armorId && _enemy.armorId !== 'rags' && Math.random() < 0.25) {
+    // 🆕 2026-04-30 抽胸甲機率 25% → 60%（user 反饋裝備只掉武器）
+    if (_enemy && _enemy.armorId && _enemy.armorId !== 'rags' && Math.random() < 0.60) {
       const armorDef = (typeof Armors !== 'undefined') ? Armors[_enemy.armorId] : null;
       if (armorDef && armorDef.type !== 'shield') {
         lootItems.push({
@@ -2097,6 +2097,22 @@ const Battle = (() => {
           tier: armorDef.tier || 1,
           quality,
           name: armorDef.name,
+        });
+      }
+    }
+    // 🆕 2026-04-30 抽副手（盾或匕首副手）40% 機率
+    const offId = _enemy && (_enemy.shieldId || _enemy.offhandId);
+    if (offId && offId !== 'none' && Math.random() < 0.40) {
+      // 盾 → armorInventory；副手武器 → weaponInventory
+      const shieldDef = (typeof Armors !== 'undefined') ? Armors[offId] : null;
+      const weaponDef = (typeof Weapons !== 'undefined') ? Weapons[offId] : null;
+      if (shieldDef && shieldDef.type === 'shield') {
+        lootItems.push({
+          kind: 'armor', id: offId, tier: shieldDef.tier || 1, quality, name: shieldDef.name,
+        });
+      } else if (weaponDef && weaponDef.id !== 'fists' && weaponDef.hands === 1) {
+        lootItems.push({
+          kind: 'weapon', id: offId, tier: weaponDef.tier || 1, quality, name: weaponDef.name,
         });
       }
     }

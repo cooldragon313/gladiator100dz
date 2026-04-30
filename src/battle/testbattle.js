@@ -173,32 +173,31 @@ const TB_ENEMIES = {
     desc:'比你早來幾個月的傢伙。不算強，但有經驗。',
   },
 
-  // 🆕 2026-04-30 重新校準：玩家 Day 25-50 約 STR 24-30、對手該跟玩家持平
-  //   裝備也升級：gladB 用普白裝、armor 用 thickLeather（葛拉非凡品）
+  // 🆕 2026-04-30 第二輪校準：HP 再升、增加威嚇 + 加 traitId 模擬被動
+  //   理由：玩家測試發現 vet 還是場場 S、太好刷
   gladiatorB: {
     name:'黑面鬥士', title:'中階角鬥士',
-    STR:26, DEX:22, CON:26, AGI:20, WIL:18, LUK:14, hpBase:95,
+    STR:28, DEX:24, CON:30, AGI:22, WIL:20, LUK:16, hpBase:120,
     weaponId:'shortSword_t2', armorId:'thickLeather', shieldId:'woodShield',
     weaponQuality:'common', armorQuality:'common',
-    traitId:'none',
+    traitId:'survivor',                                    // 🆕 ACC +3
     ai:'normal', passive:null, specialCD:99,
-    fame:30, intimidation:0.04,
-    fameReward:18,
+    fame:30, intimidation:0.06,
+    fameReward:20,
     desc:'臉上總是塗著黑色的顏料。他說那是戰友的血——你不確定他是認真的。手裡那把劍經過葛拉以外的鐵匠重打過。',
   },
 
-  // 🆕 2026-04-30 vet 級：玩家 Day 50+ 約 STR 30+、對手 +2 為標準
-  //   裝備上精藍品質（戰利品掉落能拿到精藍才合理）
+  // 🆕 2026-04-30 第二輪 vet：HP +35、屬性再 +2、加 unbreakable 特性
   arenaVet: {
     name:'競技場老手', title:'資深鬥士',
-    STR:32, DEX:28, CON:32, AGI:24, WIL:22, LUK:18, hpBase:115,
+    STR:34, DEX:30, CON:36, AGI:26, WIL:24, LUK:20, hpBase:150,
     weaponId:'longSword_t2', armorId:'studdedLeather', shieldId:'ironShield',
-    weaponQuality:'fine', armorQuality:'fine',
-    traitId:'none',
+    weaponQuality:'fine', armorQuality:'fine', offhandQuality:'fine',
+    traitId:'unbreakable',                                  // 🆕 HP < 20% 時 ATK +15%
     ai:'normal', passive:null, specialCD:99,
-    fame:50, intimidation:0.06,
-    fameReward:30,
-    desc:'身上的傷疤多過臉上的皺紋。懂得把握時機，不會輕易露出破綻。手裡的精鐵長劍砍過七十場。',
+    fame:50, intimidation:0.10,
+    fameReward:32,
+    desc:'身上的傷疤多過臉上的皺紋。懂得把握時機，不會輕易露出破綻。手裡的精鐵長劍砍過七十場。打到他剩半條命的時候、注意他的眼神——會變。',
   },
 
   // ═══════════════════════════════════════════════════════
