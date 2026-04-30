@@ -280,13 +280,22 @@ const Forge = (() => {
       .map(e => {
         const a = (typeof Armors !== 'undefined') ? Armors[e.id] : null;
         if (!a) return null;
+        // 🆕 2026-04-30 修：isEquipped 也要查 helmet/arms/legs slot
+        //   之前只查 equippedArmor、護臂/護腿/頭盔被誤判成「未裝備」
+        //   → forge 沒顯示「裝備中」、上交時也沒擋下
+        const isEquipped = (
+          p.equippedArmor  === e.id ||
+          p.equippedHelmet === e.id ||
+          p.equippedArms   === e.id ||
+          p.equippedLegs   === e.id
+        );
         return {
           kind: 'armor',
           id: e.id,
           baseName: a.name || e.id,
           quality: e.quality || 'common',
           tier: e.tier || 1,
-          isEquipped: (p.equippedArmor === e.id),
+          isEquipped,
         };
       })
       .filter(Boolean);
@@ -598,6 +607,11 @@ const Forge = (() => {
     const inv = (kind === 'weapon') ? p.weaponInventory : p.armorInventory;
     const idx = inv.findIndex(e => e.id === itemId);
     if (idx >= 0) inv.splice(idx, 1);
+    // 🆕 2026-04-30 防呆：如果該 ID 還掛在裝備 slot 上、也要清掉（避免戰鬥引擎讀到不存在的 ID）
+    ['equippedWeapon','equippedOffhand','equippedArmor','equippedHelmet','equippedArms','equippedLegs']
+      .forEach(slot => {
+        if (p[slot] === itemId) p[slot] = null;
+      });
     p.gra_credit = (p.gra_credit || 0) + credits;
     _log(`⚒ 上交「${entry.baseName}」→ 葛拉信用 +${credits}（總 ${p.gra_credit}）`, '#88cc77', true);
     _render();
