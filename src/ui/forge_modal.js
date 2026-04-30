@@ -518,8 +518,17 @@ const Forge = (() => {
         _setEntryQuality(entry, nextQuality);
         const costStr = useCredit ? `${goldCost} 金 + 信用 ${COST_UPGRADE_CREDIT}` : `${goldCost} 金`;
         _log(`⚒ 葛拉強化「${entry.baseName}」→ ${qName}（${costStr}）。`, '#d4af37', true);
+        // 🆕 2026-04-30 立刻 render + 延遲再 render（防 ChoiceModal close 動畫遮擋）
         _render();
         if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
+        setTimeout(() => _render(), 250);
+        // 🆕 強化成功 popup 反饋（玩家立即看到效果）
+        if (typeof Stage !== 'undefined' && Stage.popupBig) {
+          Stage.popupBig({
+            icon: '⚒', title: `${entry.baseName} → ${qName}`, subtitle: '強化完成',
+            color: 'gold', duration: 1200, shake: false, sound: 'level_up',
+          });
+        }
       }
     });
   }
@@ -553,8 +562,16 @@ const Forge = (() => {
         _selectedItemId = newId;   // 保持選中
       }
       _log(`⚒ 葛拉把「${entry.baseName}」升到 ${newW.name}！`, '#d4af37', true);
+      // 🆕 2026-04-30 立刻 render + 延遲再 render
       _render();
       if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
+      setTimeout(() => _render(), 250);
+      if (typeof Stage !== 'undefined' && Stage.popupBig) {
+        Stage.popupBig({
+          icon: '⚒', title: newW.name, subtitle: 'Tier 升級完成',
+          color: 'gold', duration: 1500, shake: true, sound: 'acquire',
+        });
+      }
     });
   }
 

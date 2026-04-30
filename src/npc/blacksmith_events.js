@@ -324,11 +324,22 @@ const BlacksmithEvents = (() => {
     const p = Stats.player;
     if (!Array.isArray(p.weaponInventory)) p.weaponInventory = [];
 
-    // 移除舊武器（如果在 inventory）+ 加新武器
+    // 🆕 2026-04-30 修：保留舊武器的品質、tier 升一階（之前 push({id:newId}) 會把紫匕首歸零成 common）
     const oldIdx = p.weaponInventory.findIndex(e => (e.id || e) === oldId);
+    const oldEntry = oldIdx >= 0 ? p.weaponInventory[oldIdx] : null;
+    const oldQuality = (oldEntry && oldEntry.quality) || 'common';
+    const oldTier    = (oldEntry && oldEntry.tier) || 1;
+
     if (oldIdx >= 0) p.weaponInventory.splice(oldIdx, 1);
-    if (!p.weaponInventory.find(e => (e.id || e) === newId)) {
-      p.weaponInventory.push({ id: newId });
+    const existingNew = p.weaponInventory.find(e => (e.id || e) === newId);
+    if (!existingNew) {
+      p.weaponInventory.push({ id: newId, tier: oldTier + 1, quality: oldQuality });
+    } else {
+      // 同 ID 已有 → 升品質到舊品質（如果舊的更好）
+      const order = ['crude','common','fine','superb','legendary'];
+      if (order.indexOf(oldQuality) > order.indexOf(existingNew.quality || 'common')) {
+        existingNew.quality = oldQuality;
+      }
     }
 
     // 自動裝備新武器（替換當前裝備的舊版）
@@ -339,7 +350,7 @@ const BlacksmithEvents = (() => {
     Flags.set(flagKey, true);
     Flags.set('gra_weapon_t2', true);  // 一次性 flag（任一武器升 T2 都 set，方便階段 6 判斷）
     if (teammates && teammates.modAffection) teammates.modAffection('blacksmithGra', +8);
-    _log(`✦ 你獲得了【${newName}】（從 ${oldName} 升級）。`, '#c8a060', true);
+    _log(`✦ 你獲得了【${newName}】（從 ${oldName} 升級、保留品質：${oldQuality}）。`, '#c8a060', true);
   }
 
   // ══════════════════════════════════════════
@@ -440,10 +451,21 @@ const BlacksmithEvents = (() => {
     const p = Stats.player;
     if (!Array.isArray(p.weaponInventory)) p.weaponInventory = [];
 
+    // 🆕 2026-04-30 修：保留舊武器的品質、tier 升一階
     const oldIdx = p.weaponInventory.findIndex(e => (e.id || e) === oldId);
+    const oldEntry = oldIdx >= 0 ? p.weaponInventory[oldIdx] : null;
+    const oldQuality = (oldEntry && oldEntry.quality) || 'common';
+    const oldTier    = (oldEntry && oldEntry.tier) || 2;
+
     if (oldIdx >= 0) p.weaponInventory.splice(oldIdx, 1);
-    if (!p.weaponInventory.find(e => (e.id || e) === newId)) {
-      p.weaponInventory.push({ id: newId });
+    const existingNew = p.weaponInventory.find(e => (e.id || e) === newId);
+    if (!existingNew) {
+      p.weaponInventory.push({ id: newId, tier: oldTier + 1, quality: oldQuality });
+    } else {
+      const order = ['crude','common','fine','superb','legendary'];
+      if (order.indexOf(oldQuality) > order.indexOf(existingNew.quality || 'common')) {
+        existingNew.quality = oldQuality;
+      }
     }
 
     if (p.equippedWeapon === oldId) {
@@ -453,7 +475,7 @@ const BlacksmithEvents = (() => {
     Flags.set(flagKey, true);
     Flags.set('gra_weapon_t3', true);
     if (teammates && teammates.modAffection) teammates.modAffection('blacksmithGra', +12);
-    _log(`✦ 你獲得了【${newName}】（從 ${oldName} 升級）。`, '#c8a060', true);
+    _log(`✦ 你獲得了【${newName}】（從 ${oldName} 升級、保留品質：${oldQuality}）。`, '#c8a060', true);
     if (typeof Stage !== 'undefined' && Stage.popupBig) {
       Stage.popupBig({
         icon: '⚔', title: newName, subtitle: '葛拉的鍛造',
@@ -556,8 +578,21 @@ const BlacksmithEvents = (() => {
     const p = Stats.player;
     if (!Array.isArray(p.armorInventory)) p.armorInventory = [];
 
-    if (!p.armorInventory.find(e => (e.id || e) === newId)) {
-      p.armorInventory.push({ id: newId });
+    // 🆕 2026-04-30 修：保留舊護甲的品質、tier 升一階
+    const oldIdx = p.armorInventory.findIndex(e => (e.id || e) === oldId);
+    const oldEntry = oldIdx >= 0 ? p.armorInventory[oldIdx] : null;
+    const oldQuality = (oldEntry && oldEntry.quality) || 'common';
+    const oldTier    = (oldEntry && oldEntry.tier) || 1;
+    if (oldIdx >= 0) p.armorInventory.splice(oldIdx, 1);
+
+    const existingNew = p.armorInventory.find(e => (e.id || e) === newId);
+    if (!existingNew) {
+      p.armorInventory.push({ id: newId, tier: oldTier + 1, quality: oldQuality });
+    } else {
+      const order = ['crude','common','fine','superb','legendary'];
+      if (order.indexOf(oldQuality) > order.indexOf(existingNew.quality || 'common')) {
+        existingNew.quality = oldQuality;
+      }
     }
     if (p.equippedArmor === oldId) {
       p.equippedArmor = newId;
@@ -649,7 +684,8 @@ const BlacksmithEvents = (() => {
     const p = Stats.player;
     if (!Array.isArray(p.weaponInventory)) p.weaponInventory = [];
     if (!p.weaponInventory.find(e => (e.id || e) === 'twinblade')) {
-      p.weaponInventory.push({ id: 'twinblade' });
+      // 🆕 2026-04-30 加 tier + quality 預設（雙刃 T2.5 階段、葛拉精製品 = fine）
+      p.weaponInventory.push({ id: 'twinblade', tier: 2, quality: 'fine' });
     }
     Flags.set('gra_blueprint_done', true);
     if (teammates && teammates.modAffection) teammates.modAffection('blacksmithGra', +10);
@@ -721,8 +757,9 @@ const BlacksmithEvents = (() => {
   function _grantHeirloom(oldId, newId, oldName, newName) {
     const p = Stats.player;
     if (!Array.isArray(p.weaponInventory)) p.weaponInventory = [];
+    // 🆕 2026-04-30 傳家武器永遠是 legendary 品質、tier 4
     if (!p.weaponInventory.find(e => (e.id || e) === newId)) {
-      p.weaponInventory.push({ id: newId });
+      p.weaponInventory.push({ id: newId, tier: 4, quality: 'legendary' });
     }
     if (p.equippedWeapon === oldId) {
       p.equippedWeapon = newId;
