@@ -575,6 +575,336 @@ const Endings = (() => {
     _finishEnding(ov, box, '— 自 由 —', '#e8d070', d);
   }
 
+  // ══════════════════════════════════════════════════
+  // 🆕 2026-05-01：B 路徑大反撲結局（4 種）+ C 路徑逃跑（1 種）+ 衝動分支（3 種）
+  //   詳細設計：[docs/quests/arena-events-roster.md § 6d](../docs/quests/arena-events-roster.md)
+  //   stub 版本 — 對白先用 spec 草稿、未來 polish
+  // ══════════════════════════════════════════════════
+
+  // ── B 路徑 1：自由人（大反撲大勝） ───────────────────
+  function rebelFreedom(playerName, allyCount) {
+    _injectStyle();
+    const ov = _overlay('e-rebel-freedom');
+    _glow(ov, 'rgba(212,175,55,.32)');
+    _particles(ov, 'gold', 50);
+    const vg = document.createElement('div'); vg.className = 'e-vignette';
+    ov.appendChild(vg);
+    const box = document.createElement('div'); box.className = 'e-box';
+    ov.appendChild(box);
+    _addTitle(box, '自 由 人', 700);
+
+    const lines = [
+      { text: '提圖斯倒下了。' },
+      { text: '衛兵亂了。觀眾席的奴隸跳下來。' },
+      { cls: 'e-gap' },
+      { text: '你不知道是誰先喊的——' },
+      { text: '「殺！」' },
+      { text: '整座競技場、像被撕開。' },
+      { cls: 'e-gap' },
+      { text: `凱德躺在沙地中央、看著天。`, cls: 'e-hi' },
+      { text: '你跨過他的身體、繼續往前殺。' },
+      { cls: 'e-gap' },
+      { text: `${allyCount} 個兄弟跟你並肩。` },
+      { text: '殘血、瘸腿、缺臂。' },
+      { text: '但站著。' },
+      { cls: 'e-gap' },
+      { text: '日落時、城門大開。' },
+      { text: '你騎上一匹搶來的馬、回頭看了競技場一眼。' },
+      { text: '凱德的屍體已經被拖走了。' },
+      { cls: 'e-gap' },
+      { text: `<strong>${playerName}</strong>——`, cls: 'e-hi' },
+      { text: '從今天起、地下傳奇。' },
+      { text: '帝國通緝令上有你的名字、但沒人知道你的臉。' },
+    ];
+    const d = _revealLines(box, lines, 1300, 580);
+    _finishEnding(ov, box, '— 自 由 —', '#d4af37', d);
+  }
+
+  // ── B 路徑 2：血祭（大反撲小勝、盟友幾乎全滅） ─────
+  function rebelBloody(playerName) {
+    _injectStyle();
+    const ov = _overlay('e-rebel-bloody');
+    _glow(ov, 'rgba(180,30,30,.30)');
+    _particles(ov, 'blood', 35);
+    const vg = document.createElement('div'); vg.className = 'e-vignette';
+    ov.appendChild(vg);
+    const box = document.createElement('div'); box.className = 'e-box';
+    ov.appendChild(box);
+    _addTitle(box, '血 祭', 700);
+
+    const lines = [
+      { text: '你跪在沙地上、喘氣。' },
+      { text: '提圖斯死了。' },
+      { text: '你也是這場屠殺裡最後一個站著的。' },
+      { cls: 'e-gap' },
+      { text: '凱德躺在你左邊。' },
+      { text: '赫克特、奧蘭、一個個你叫得出名字的兄弟、躺在你身邊。' },
+      { text: '所有人為你死、你贏了。' },
+      { cls: 'e-gap' },
+      { text: '你站起來。沒有歡呼。' },
+      { text: '觀眾席空了。倖存的奴隸都逃了。' },
+      { text: '只有你、跟一地的屍體。', cls: 'e-hi' },
+      { cls: 'e-gap' },
+      { text: `<strong>${playerName}</strong>——你贏了。`, cls: 'e-speech' },
+      { text: '但這場勝利、值得嗎？' },
+      { text: '你沒答案。' },
+    ];
+    const d = _revealLines(box, lines, 1200, 580);
+    _finishEnding(ov, box, '— 孤 勝 —', '#8b0000', d);
+  }
+
+  // ── B 路徑 3：殉道者（玩家死、提圖斯死） ───────────
+  function rebelMartyr(playerName) {
+    _injectStyle();
+    const ov = _overlay('e-rebel-martyr');
+    _glow(ov, 'rgba(150,100,50,.28)');
+    _particles(ov, 'blood', 25);
+    const vg = document.createElement('div'); vg.className = 'e-vignette';
+    ov.appendChild(vg);
+    const box = document.createElement('div'); box.className = 'e-box';
+    ov.appendChild(box);
+    _addTitle(box, '殉 道 者', 700);
+
+    const lines = [
+      { text: '你看到提圖斯倒下。' },
+      { text: '你也倒下。' },
+      { cls: 'e-gap' },
+      { text: '沙地很溫。' },
+      { text: '凱德的臉就在你旁邊、眼睛還睜著。' },
+      { text: '他笑了一下、像是在說「⋯⋯做完了」。' },
+      { cls: 'e-gap' },
+      { text: '你走的時候、聽到城裡傳出第一聲喊話——' },
+      { text: '「領主死了！」', cls: 'e-hi' },
+      { cls: 'e-gap' },
+      { text: '幾年後、有人會傳：' },
+      { text: `「<strong>${playerName}</strong>那年的血、洗開了真相。」`, cls: 'e-speech' },
+      { text: '偽旗的事被翻出來、家鄉的冤魂被祭奠。' },
+      { cls: 'e-gap' },
+      { text: '你沒看到。' },
+      { text: '但你做到了。' },
+    ];
+    const d = _revealLines(box, lines, 1300, 600);
+    _finishEnding(ov, box, '— 殉 道 —', '#c89060', d);
+  }
+
+  // ── B 路徑 4：無名死（反撲失敗） ─────────────────
+  function rebelFailed(playerName) {
+    _injectStyle();
+    const ov = _overlay('e-rebel-failed');
+    _particles(ov, 'blood', 18);
+    const vg = document.createElement('div'); vg.className = 'e-vignette';
+    ov.appendChild(vg);
+    const box = document.createElement('div'); box.className = 'e-box';
+    ov.appendChild(box);
+    _addTitle(box, '無 名 死', 600);
+
+    const lines = [
+      { text: '你撲上去的那一刀、慢了一步。' },
+      { text: '衛兵的長矛先到。' },
+      { cls: 'e-gap' },
+      { text: '提圖斯閃身、面無表情看你倒下。' },
+      { text: '凱德躺在你不遠處、已經閉眼了。' },
+      { cls: 'e-gap' },
+      { text: '主人來收屍體的時候罵了一句：「⋯⋯沒用的東西。」' },
+      { text: '帳本上、你的名字被劃掉了。', cls: 'e-hi' },
+      { cls: 'e-gap' },
+      { text: '城裡這天有點亂。' },
+      { text: '但很快就沒事了。' },
+      { text: '提圖斯第二天還是領主、還是笑著上朝。' },
+      { cls: 'e-gap' },
+      { text: `<strong>${playerName}</strong>——沒人記得這個名字。`, cls: 'e-speech' },
+    ];
+    const d = _revealLines(box, lines, 1100, 560);
+    _finishEnding(ov, box, '— 無 名 —', '#5a3030', d);
+  }
+
+  // ── C 路徑：逃亡者（比拉斯地道逃跑） ────────────
+  function escapeTunnel(playerName, bilasAlive) {
+    _injectStyle();
+    const ov = _overlay('e-escape');
+    _particles(ov, 'gold', 12);
+    const vg = document.createElement('div'); vg.className = 'e-vignette';
+    ov.appendChild(vg);
+    const box = document.createElement('div'); box.className = 'e-box';
+    ov.appendChild(box);
+    _addTitle(box, '逃 亡 者', 600);
+
+    const lines = [
+      { text: '地道很窄。土腥味很重。' },
+      { text: '比拉斯在前面爬。你跟著。' },
+      { cls: 'e-gap' },
+      { text: '上頭傳來追兵的腳步聲。' },
+      { text: '你們爬得更快。' },
+      { cls: 'e-gap' },
+      bilasAlive
+        ? { text: '出口在天亮前到。比拉斯先跳出去、回頭拉你。' }
+        : { text: '出口在天亮前到。比拉斯沒撐過最後一個轉角、你只能自己爬出去。' },
+      { cls: 'e-gap' },
+      { text: '城外的風很冷。', cls: 'e-hi' },
+      { text: '你站在山坡上、回頭看城牆。' },
+      { text: '萬骸祭的火光還在燒。' },
+      { cls: 'e-gap' },
+      { text: `<strong>${playerName}</strong>——`, cls: 'e-speech' },
+      { text: '從今天起、你沒名字、沒身份、沒家。' },
+      { text: '但活著。' },
+      { cls: 'e-gap' },
+      { text: '多年後、城裡的人偶爾會提到「萬骸祭那年發生了什麼」。' },
+      { text: '你不會回去了。' },
+    ];
+    const d = _revealLines(box, lines, 1200, 580);
+    _finishEnding(ov, box, '— 逃 —', '#aa9060', d);
+  }
+
+  // ── 衝動 1：當場 GG（衝動失敗） ──────────────────
+  function impulseFailed(playerName) {
+    _injectStyle();
+    const ov = _overlay('e-impulse-failed');
+    _particles(ov, 'blood', 20);
+    const vg = document.createElement('div'); vg.className = 'e-vignette';
+    ov.appendChild(vg);
+    const box = document.createElement('div'); box.className = 'e-box';
+    ov.appendChild(box);
+    _addTitle(box, '無 名 死', 500);
+
+    const lines = [
+      { text: '你看到那張臉。' },
+      { text: '想都沒想、衝出去。' },
+      { cls: 'e-gap' },
+      { text: '訓練場的圍欄被你撞翻。' },
+      { text: '衛兵的長矛來得快。' },
+      { text: '阿圖斯也叫人圍上來。' },
+      { cls: 'e-gap' },
+      { text: '你倒下時、嘴裡是血。' },
+      { text: '提圖斯連看都沒看你一眼。' },
+      { cls: 'e-gap' },
+      { text: '阿圖斯隔天罵：「沒用的東西。」', cls: 'e-hi' },
+      { text: '訓練所恢復正常。' },
+      { text: '家鄉冤魂無報。' },
+      { cls: 'e-gap' },
+      { text: `<strong>${playerName}</strong>——沒人知道你為什麼忽然爆走。`, cls: 'e-speech' },
+    ];
+    const d = _revealLines(box, lines, 1000, 560);
+    _finishEnding(ov, box, '— 終 —', '#4a2020', d);
+  }
+
+  // ── 衝動 2：殉道弒主（夢幻屬性、殺到領主） ─────
+  function impulseLordKilled(playerName) {
+    _injectStyle();
+    const ov = _overlay('e-impulse-killed');
+    _glow(ov, 'rgba(150,80,30,.30)');
+    _particles(ov, 'blood', 30);
+    const vg = document.createElement('div'); vg.className = 'e-vignette';
+    ov.appendChild(vg);
+    const box = document.createElement('div'); box.className = 'e-box';
+    ov.appendChild(box);
+    _addTitle(box, '殉 道 弒 主', 700);
+
+    const lines = [
+      { text: '你撞翻圍欄、衝過衛兵、撲上提圖斯的台。' },
+      { text: '那一瞬、所有人都沒反應過來。' },
+      { cls: 'e-gap' },
+      { text: '你的劍刺進了他的胸口。' },
+      { text: '你看到他眼裡的不解——' },
+      { text: '「⋯⋯為什麼？」' },
+      { cls: 'e-gap' },
+      { text: '你沒回答。' },
+      { text: '衛兵的劍從你背後插進來。' },
+      { cls: 'e-gap' },
+      { text: '你跟提圖斯一起倒在台上。' },
+      { text: '阿圖斯尖叫。', cls: 'e-hi' },
+      { cls: 'e-gap' },
+      { text: '城裡有人傳：「⋯⋯有個瘋子衝上去把領主殺了。」' },
+      { text: `<strong>${playerName}</strong>——沒人知道你的本名。`, cls: 'e-speech' },
+      { text: '但這個城市再也不一樣了。' },
+    ];
+    const d = _revealLines(box, lines, 1300, 600);
+    _finishEnding(ov, box, '— 弒 —', '#8b3030', d);
+  }
+
+  // ── 衝動 3：殺出血路逃跑（AGI 高） ───────────────
+  function impulseEscape(playerName) {
+    _injectStyle();
+    const ov = _overlay('e-impulse-escape');
+    _particles(ov, 'gold', 10);
+    const vg = document.createElement('div'); vg.className = 'e-vignette';
+    ov.appendChild(vg);
+    const box = document.createElement('div'); box.className = 'e-box';
+    ov.appendChild(box);
+    _addTitle(box, '血 路 逃 亡', 600);
+
+    const lines = [
+      { text: '你衝出去、卻發現衝不過。' },
+      { text: '剎那間身體比腦子快——' },
+      { text: '你閃身、翻牆、跳屋頂。' },
+      { cls: 'e-gap' },
+      { text: '衛兵追不上。' },
+      { text: '阿圖斯的人也追不上。' },
+      { text: '你的腳像沒接過地。' },
+      { cls: 'e-gap' },
+      { text: '城外的山林、是你接下來的家。', cls: 'e-hi' },
+      { cls: 'e-gap' },
+      { text: '通緝令貼遍各城。' },
+      { text: '你沒有名字、沒有身份、沒有家。' },
+      { text: '但你活著。' },
+      { cls: 'e-gap' },
+      { text: `<strong>${playerName}</strong>——`, cls: 'e-speech' },
+      { text: '逃亡的後半輩子、你沒有再見過提圖斯。' },
+      { text: '但每個夜裡、那張臉都在你夢裡。' },
+    ];
+    const d = _revealLines(box, lines, 1200, 580);
+    _finishEnding(ov, box, '— 逃 —', '#9a8050', d);
+  }
+
+  // ══════════════════════════════════════════════════
+  // 🆕 2026-05-01：B / C / 衝動分支結局調度入口
+  // ══════════════════════════════════════════════════
+
+  /**
+   * B 路徑（大反撲）結局調度
+   * @param {object} ctx
+   * @param {number} ctx.allyCount       存活盟友數
+   * @param {boolean} ctx.lordKilled     提圖斯是否死
+   * @param {boolean} ctx.playerSurvived 玩家是否活
+   */
+  function playRebellion(ctx) {
+    const p = (typeof Stats !== 'undefined') ? Stats.player : null;
+    const name = p?.name || '無名';
+    const ac = ctx?.allyCount || 0;
+    const lordDead = !!ctx?.lordKilled;
+    const playerAlive = !!ctx?.playerSurvived;
+
+    if (playerAlive && lordDead && ac >= 5)  { rebelFreedom(name, ac); return; }
+    if (playerAlive && lordDead)             { rebelBloody(name);     return; }
+    if (!playerAlive && lordDead)            { rebelMartyr(name);     return; }
+    rebelFailed(name);
+  }
+
+  /**
+   * C 路徑（提早溜走）結局
+   * @param {object} ctx
+   * @param {boolean} ctx.bilasAlive  比拉斯是否活著出去
+   */
+  function playEscape(ctx) {
+    const p = (typeof Stats !== 'undefined') ? Stats.player : null;
+    const name = p?.name || '無名';
+    escapeTunnel(name, !!ctx?.bilasAlive);
+  }
+
+  /**
+   * 衝動分支結局調度（Day 65 領主訪場、玩家衝出去）
+   * @param {object} ctx
+   * @param {boolean} ctx.lordKilled    殺到領主了嗎
+   * @param {boolean} ctx.escaped       逃跑了嗎（AGI 高）
+   *   都沒 → 失敗 GG
+   */
+  function playImpulse(ctx) {
+    const p = (typeof Stats !== 'undefined') ? Stats.player : null;
+    const name = p?.name || '無名';
+    if (ctx?.lordKilled) { impulseLordKilled(name); return; }
+    if (ctx?.escaped)    { impulseEscape(name);     return; }
+    impulseFailed(name);
+  }
+
   // 共用結尾按鈕
   function _finishEnding(ov, box, finalText, color, delayMs) {
     const fin = document.createElement('div');
@@ -635,6 +965,7 @@ const Endings = (() => {
   function test(endingId) {
     const name = (typeof Stats !== 'undefined') ? Stats.player.name : '無名英雄';
     const map = {
+      // 既有 8 結局
       survivor:    () => survivorEnding(name),
       death:       () => deathEnding(name),
       lone:        () => loneVictor(name),
@@ -643,6 +974,18 @@ const Endings = (() => {
       brotherhood: () => brotherhoodEnding(name),
       bloody:      () => bloodyCrown(name),
       miracle:     () => miracleEnding(name),
+      // 🆕 2026-05-01 B 路徑反撲（4 種）
+      rebel_freedom: () => rebelFreedom(name, 10),
+      rebel_bloody:  () => rebelBloody(name),
+      rebel_martyr:  () => rebelMartyr(name),
+      rebel_failed:  () => rebelFailed(name),
+      // 🆕 C 路徑逃跑
+      escape:        () => escapeTunnel(name, true),
+      escape_alone:  () => escapeTunnel(name, false),
+      // 🆕 衝動分支（3 種）
+      impulse_failed: () => impulseFailed(name),
+      impulse_killed: () => impulseLordKilled(name),
+      impulse_escape: () => impulseEscape(name),
     };
     if (map[endingId]) map[endingId]();
     else console.log('[Endings] test():', Object.keys(map).join(' / '));
@@ -651,7 +994,13 @@ const Endings = (() => {
   return {
     survivorEnding, deathEnding,
     loneVictor, championEnding, survivorPlain, brotherhoodEnding, bloodyCrown, miracleEnding,
-    pickAndPlay,   // 🆕 主要入口
+    // 🆕 2026-05-01 B/C/衝動分支結局
+    rebelFreedom, rebelBloody, rebelMartyr, rebelFailed,
+    escapeTunnel,
+    impulseFailed, impulseLordKilled, impulseEscape,
+    // 🆕 2026-05-01 結局調度入口
+    playRebellion, playEscape, playImpulse,
+    pickAndPlay,   // 既有主要入口（A 路徑用）
     test,
   };
 })();

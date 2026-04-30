@@ -172,6 +172,33 @@ const Moral = (() => {
     return [...(player.moralHistory[axis] || [])];
   }
 
+  // ══════════════════════════════════════════════════
+  // 🆕 2026-05-01：衝動 vs 冷靜傾向判定（Day 65 領主相認分支用）
+  //   設計：[docs/quests/arena-events-roster.md § 6b.5](../../docs/quests/arena-events-roster.md)
+  //   - impulsive：玩家有 prideful (pride 軸 negative) 或 impulsive (patience 軸 negative)
+  //   - calm：玩家有 humble (pride 軸 positive) 或 patient (patience 軸 positive)
+  //   - neutral：兩者都沒、Day 65 觸發時讓玩家自選
+  //   未來可擴充：出生特性「暴怒/不屈」歸 impulsive、「沉著/堅忍」歸 calm
+  // ══════════════════════════════════════════════════
+  const IMPULSIVE_TRAITS = ['prideful', 'impulsive'];
+  const CALM_TRAITS      = ['humble', 'patient'];
+
+  /**
+   * 取得玩家「衝動 vs 冷靜」傾向
+   * @returns {'impulsive' | 'calm' | 'neutral'}
+   */
+  function getDispositionType() {
+    const player = (typeof Stats !== 'undefined') ? Stats.player : null;
+    if (!player || !Array.isArray(player.traits)) return 'neutral';
+    const traits = player.traits;
+    const isImpulsive = IMPULSIVE_TRAITS.some(t => traits.includes(t));
+    const isCalm      = CALM_TRAITS.some(t => traits.includes(t));
+    // 兩者都有 → 衝動勝出（更戲劇）
+    if (isImpulsive) return 'impulsive';
+    if (isCalm)      return 'calm';
+    return 'neutral';
+  }
+
   return {
     WINDOW_SIZE,
     AXIS_TRAITS,
@@ -183,5 +210,6 @@ const Moral = (() => {
     recomputeAll,
     getEarnedTraits,
     getAxisHistory,
+    getDispositionType,   // 🆕 2026-05-01
   };
 })();
