@@ -4753,12 +4753,13 @@ const Game = (() => {
       return out;
     }
     if (source === 'chest') {
-      // 🆕 2026-04-30：只列 slot==='chest' 或無 slot 欄位（舊資料）的胸甲
-      //   排除 arms/legs/helmet 護飾、避免亂塞到胸甲槽
+      // 🆕 2026-04-30：只列 slot==='chest' 或無 slot 欄位（舊胸甲）
+      //   排除 arms/legs/helmet 護飾 + 排除 type='shield' 盾（木盾被誤列到胸甲槽）
       const inv = Array.isArray(p.armorInventory) ? p.armorInventory : [];
       return inv.map(e => {
         const armor = Armors[e.id];
         if (!armor) return null;
+        if (armor.type === 'shield') return null;   // 🆕 排除盾
         const sl = armor.slot || 'chest';
         if (sl !== 'chest') return null;
         const quality = e.quality || 'common';
