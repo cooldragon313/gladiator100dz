@@ -173,28 +173,31 @@ const TB_ENEMIES = {
     desc:'比你早來幾個月的傢伙。不算強，但有經驗。',
   },
 
-  // Day 50 大型競技用：中階對手（gladiatorB）
-  // 🆕 2026-04-25c 退回：cbfb6b5 升太多（24/20/24/...+T2）→ 玩家連輸；現在退到中等強度
+  // 🆕 2026-04-30 重新校準：玩家 Day 25-50 約 STR 24-30、對手該跟玩家持平
+  //   裝備也升級：gladB 用普白裝、armor 用 thickLeather（葛拉非凡品）
   gladiatorB: {
     name:'黑面鬥士', title:'中階角鬥士',
-    STR:18, DEX:15, CON:18, AGI:14, WIL:14, LUK:11, hpBase:70,
-    weaponId:'shortSword', armorId:'leatherArmor', shieldId:'woodShield',
+    STR:26, DEX:22, CON:26, AGI:20, WIL:18, LUK:14, hpBase:95,
+    weaponId:'shortSword_t2', armorId:'thickLeather', shieldId:'woodShield',
+    weaponQuality:'common', armorQuality:'common',
     traitId:'none',
     ai:'normal', passive:null, specialCD:99,
-    fame:25, intimidation:0.03,
-    fameReward:15,
+    fame:30, intimidation:0.04,
+    fameReward:18,
     desc:'臉上總是塗著黑色的顏料。他說那是戰友的血——你不確定他是認真的。手裡那把劍經過葛拉以外的鐵匠重打過。',
   },
 
-  // 🆕 2026-04-25c 退回：原 32/26/30/...+T2/chainmail/ironShield 太硬
+  // 🆕 2026-04-30 vet 級：玩家 Day 50+ 約 STR 30+、對手 +2 為標準
+  //   裝備上精藍品質（戰利品掉落能拿到精藍才合理）
   arenaVet: {
     name:'競技場老手', title:'資深鬥士',
-    STR:26, DEX:22, CON:25, AGI:19, WIL:17, LUK:14, hpBase:90,
-    weaponId:'longSword', armorId:'chainmail', shieldId:'woodShield',
+    STR:32, DEX:28, CON:32, AGI:24, WIL:22, LUK:18, hpBase:115,
+    weaponId:'longSword_t2', armorId:'studdedLeather', shieldId:'ironShield',
+    weaponQuality:'fine', armorQuality:'fine',
     traitId:'none',
     ai:'normal', passive:null, specialCD:99,
-    fame:45, intimidation:0.05,
-    fameReward:25,
+    fame:50, intimidation:0.06,
+    fameReward:30,
     desc:'身上的傷疤多過臉上的皺紋。懂得把握時機，不會輕易露出破綻。手裡的精鐵長劍砍過七十場。',
   },
 
@@ -203,76 +206,88 @@ const TB_ENEMIES = {
   //   詳見 docs/enemies/
   // ═══════════════════════════════════════════════════════
 
-  // 莫拉斯的鐵臂 — 隔壁訓練所招牌（Day 35 賭局對手）
+  // 🆕 2026-04-30 校準：玩家 Day 35 約 STR 26-28、隔壁招牌該稍強 +2~5
+  //   裝備升級：T2 重斧、上紫品質（boss 等級）
   morras_ironarm: {
     name:'烏勒克', title:'「鐵臂」',
-    STR:14, DEX:8,  CON:14, AGI:7,  WIL:11, LUK:5, hpBase:55,
-    weaponId:'hammer', armorId:'leatherArmor', shieldId:'none',
+    STR:30, DEX:22, CON:28, AGI:32, WIL:25, LUK:18, hpBase:100,
+    weaponId:'heavyAxe_t2', armorId:'studdedLeather', shieldId:'none',
+    weaponQuality:'fine', armorQuality:'fine',
     traitId:'none',
-    ai:'normal', passive:null, specialCD:99,
-    fame:22, intimidation:0.03,
-    fameReward:18,   // 🆕 跨訓練所賭局
+    ai:'normal', passive:'warrior_instinct', specialCD:6,
+    fame:30, intimidation:0.05,
+    fameReward:25,
+    passiveDesc:'戰場本能 — 戰鬥每 5 秒 SPD +2（上限 +10）',
+    specialName:'鐵臂壓制',
+    specialDesc:'重擊 + 對方下回合命中 -30%',
     desc:'莫拉斯大人家的招牌鬥士。跨場二十二勝四敗。左臂有一條從手腕到肘窩的舊疤——所以叫「鐵臂」。',
   },
 
-  // 海龍幫的影子 — 速度型刺客（Day 55-62 賭局）
+  // 🆕 2026-04-30 校準：Day 55、玩家 STR 30+、純速度型
   dragonbay_shadow: {
     name:'???', title:'「影子」',
-    STR:9,  DEX:16, CON:10, AGI:15, WIL:12, LUK:8, hpBase:38,
-    weaponId:'dagger', armorId:'rags', shieldId:'none',
-    traitId:'none',
-    ai:'normal', passive:null, specialCD:99,
-    fame:0, intimidation:0.08,
-    fameReward:20,   // 🆕 黑道對戰、不公開但賭客在看
-    desc:'全身黑、面罩只露眼睛。海龍幫的代理鬥士——不是正規角鬥士。打起來的風格完全不同。',
-  },
-
-  // 毒牙 — 強盜首領（Day 55-70 外出押運）
-  bandit_fang: {
-    name:'葛雷德', title:'「毒牙」',
-    STR:13, DEX:10, CON:12, AGI:11, WIL:8,  LUK:6, hpBase:48,
-    weaponId:'heavyAxe', armorId:'leatherArmor', shieldId:'none',
-    traitId:'none',
-    ai:'normal', passive:null, specialCD:99,
-    fame:0, intimidation:0.05,
-    fameReward:22,   // 🆕 護衛立功
-    desc:'流民出身的強盜頭子。嘴巴不停，一邊打一邊罵。殺過至少十五個商隊護衛。',
-  },
-
-  // 夜鷹 — 夜間刺客（Day 65+ 夜間事件）
-  assassin_nighthawk: {
-    name:'???', title:'「夜鷹」',
-    STR:11, DEX:15, CON:9,  AGI:16, WIL:13, LUK:7, hpBase:36,
-    weaponId:'shortSword', armorId:'rags', shieldId:'none',
-    traitId:'none',
-    ai:'normal', passive:null, specialCD:99,
-    fame:0, intimidation:0.06,
-    fameReward:25,   // 🆕 殺退刺客傳開
-    desc:'全身黑、戴黑色指套。血環公會（？）的刺客。首擊極猛——如果你沒察覺他靠近。',
-  },
-
-  // 斑虎 — 野獸（Day 70+ 狩獵事件）
-  tiger_striped: {
-    name:'斑虎', title:'山林大虎',
-    STR:18, DEX:12, CON:16, AGI:14, WIL:5,  LUK:8, hpBase:75,
-    weaponId:'fists', armorId:'leatherArmor', shieldId:'none',   // fists 代表爪；暫用 leather 表獸皮
+    STR:14, DEX:30, CON:18, AGI:32, WIL:20, LUK:14, hpBase:60,
+    weaponId:'dagger_t2', armorId:'rags', shieldId:'dagger_t2',   // 雙匕首
+    weaponQuality:'fine',
     traitId:'none',
     ai:'normal', passive:null, specialCD:99,
     fame:0, intimidation:0.10,
-    fameReward:30,   // 🆕 殺虎傳奇
+    fameReward:28,
+    desc:'全身黑、面罩只露眼睛。海龍幫的代理鬥士——不是正規角鬥士。打起來的風格完全不同。',
+  },
+
+  // 🆕 2026-04-30 校準：Day 55-70 強盜、玩家 32+
+  bandit_fang: {
+    name:'葛雷德', title:'「毒牙」',
+    STR:22, DEX:18, CON:22, AGI:18, WIL:12, LUK:10, hpBase:75,
+    weaponId:'heavyAxe', armorId:'leatherArmor', shieldId:'none',
+    weaponQuality:'common', armorQuality:'common',
+    traitId:'none',
+    ai:'normal', passive:'bloodlust', specialCD:99,
+    fame:0, intimidation:0.07,
+    fameReward:25,
+    desc:'流民出身的強盜頭子。嘴巴不停，一邊打一邊罵。殺過至少十五個商隊護衛。',
+  },
+
+  // 🆕 2026-04-30 校準：Day 65+ 刺客、極端速度型
+  assassin_nighthawk: {
+    name:'???', title:'「夜鷹」',
+    STR:18, DEX:28, CON:16, AGI:30, WIL:20, LUK:14, hpBase:55,
+    weaponId:'shortSword_t2', armorId:'rags', shieldId:'dagger',
+    weaponQuality:'fine',
+    traitId:'none',
+    ai:'normal', passive:null, specialCD:99,
+    fame:0, intimidation:0.10,
+    fameReward:30,
+    desc:'全身黑、戴黑色指套。血環公會（？）的刺客。首擊極猛——如果你沒察覺他靠近。',
+  },
+
+  // 🆕 2026-04-30 校準：Day 70+ 野獸、抗打 + 中等速度
+  tiger_striped: {
+    name:'斑虎', title:'山林大虎',
+    STR:28, DEX:18, CON:26, AGI:22, WIL:8,  LUK:12, hpBase:110,
+    weaponId:'fists', armorId:'studdedLeather', shieldId:'none',   // fists 代表爪；皮甲表獸皮
+    armorQuality:'fine',
+    traitId:'none',
+    ai:'normal', passive:null, specialCD:99,
+    fame:0, intimidation:0.14,
+    fameReward:35,
     desc:'成年公虎。左眼上有老傷疤，暗示牠跟人打過且活下來。無法溝通、無法逃。戰鬥節奏完全不同。',
   },
 
-  // ── 固定三人眾 ────────────────────────────────────────
+  // ── 固定三人眾（萬骸祭 Day 100）─────────────────────
+  // 🆕 2026-04-30 校準：玩家 Day 100 約 STR 40-45、boss 該 +5~10 + 上紫裝備
+  //   設計：「沒認真配裝刷屬性的玩家別奢望過」（user 鐵則）
   gruen: {
     name:'葛倫', title:'鐵面・均衡男',
-    STR:32, DEX:30, CON:36, AGI:30, WIL:35, LUK:28, hpBase:100,
-    weaponId:'longSword', armorId:'chainmail', shieldId:'ironShield',
+    STR:42, DEX:40, CON:46, AGI:38, WIL:45, LUK:35, hpBase:140,
+    weaponId:'longSword_t3', armorId:'steelPlate', shieldId:'ironShield',
+    weaponQuality:'superb', armorQuality:'superb', offhandQuality:'superb',
     traitId:'none',
     ai:'boss_gruen', passive:'regen5', specialCD:3,
-    fame:85, intimidation:0.06,
-    fameReward:50,   // 🆕 萬骸祭三人眾
-    passiveDesc:'每回合回復 3 HP（上限50%最大值）',
+    fame:85, intimidation:0.10,
+    fameReward:55,
+    passiveDesc:'每回合回復 4 HP（上限50%最大值）',
     specialName:'反制姿態',
     specialDesc:'每3回合進入反制姿態。玩家若在此回合攻擊，傷害減半且葛倫直接反擊。',
     weakPoint:'EVA 最低——速度型連擊積累傷害最有效。',
@@ -280,12 +295,13 @@ const TB_ENEMIES = {
   },
   voda: {
     name:'沃達', title:'碎骨・蠻力怪',
-    STR:55, DEX:34, CON:50, AGI:30, WIL:30, LUK:30, hpBase:120,
-    weaponId:'warHammer', armorId:'ironPlate', shieldId:'none',
+    STR:62, DEX:38, CON:55, AGI:32, WIL:32, LUK:32, hpBase:165,
+    weaponId:'warHammer_t3', armorId:'steelPlate', shieldId:'none',
+    weaponQuality:'superb', armorQuality:'superb',
     traitId:'none',
     ai:'boss_voda', passive:'armorPierce40', specialCD:4,
-    fame:90, intimidation:0.14,
-    fameReward:50,   // 🆕 萬骸祭三人眾
+    fame:90, intimidation:0.16,
+    fameReward:55,
     passiveDesc:'所有攻擊無視對手 40% DEF',
     specialName:'山崩',
     specialDesc:'每4回合蓄力一回合（跳過攻擊），下一擊傷害×2.5，觸發重傷判定。',
@@ -294,12 +310,13 @@ const TB_ENEMIES = {
   },
   seira: {
     name:'賽拉', title:'幻影・快手刺客',
-    STR:15, DEX:45, CON:14, AGI:44, WIL:35, LUK:38, hpBase:55,
-    weaponId:'dagger', armorId:'leatherArmor', shieldId:'none',
+    STR:22, DEX:55, CON:20, AGI:52, WIL:42, LUK:45, hpBase:85,
+    weaponId:'dagger_t3', armorId:'studdedLeather', shieldId:'dagger_t2',   // 雙匕首
+    weaponQuality:'superb', armorQuality:'superb', offhandQuality:'fine',
     traitId:'none',
     ai:'boss_seira', passive:'firstCrit', specialCD:3,
-    fame:75, intimidation:0.10,
-    fameReward:50,   // 🆕 萬骸祭三人眾
+    fame:75, intimidation:0.12,
+    fameReward:55,
     passiveDesc:'本場戰鬥第一擊必定暴擊',
     specialName:'三連刺',
     specialDesc:'每3回合發動三次快速攻擊，各自獨立計算命中與暴擊。',
