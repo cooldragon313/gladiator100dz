@@ -23,7 +23,7 @@
 
 | Phase | 狀態 | 主題 | 完成度 |
 |---|---|---|---|
-| **P1A** | 🟢 進行中 | 結局 + Day 100 框架 | 3/4 |
+| **P1A** | ✅ 完成 | 結局 + Day 100 框架 | 4/4 |
 | **P1B** | ⚪ 待開工 | 領主提圖斯主線 | 0/8 |
 | **P1C** | ⚪ 待開工 | 凱德主線 | 0/6 |
 | **P2** | ⚪ 待開工 | 蓋烏斯 + 維努斯場 | 0/8 |
@@ -43,9 +43,9 @@
 | P1A-1 | `Moral.getDispositionType()` API（衝動/冷靜/中性） | src/systems/moral.js | — | 0.5h | ✅ |
 | P1A-2 | ending.js 8 新結局 stub（B 4 + C 1 + 衝動 3） | src/ending.js | — | 2h | ✅ |
 | P1A-3 | wanguji.js wave orchestrator + Day 100 ChoiceModal | src/quests/wanguji.js | P1A-2 | 3h | ✅ |
-| P1A-4 | Day 100 自動觸發（接 day_cycle） | src/core/day_cycle.js | P1A-3 | 1h | ⚪ |
+| P1A-4 | Day 100 自動觸發（攔 final_festival 按鈕、改走 WangujiQuest） | src/main.js（戰鬥按鈕 click handler）| P1A-3 | 0.3h | ✅ |
 
-**P1A 驗收**：console 跑 `WangujiQuest.start()` 可以走完 5 wave + ChoiceModal + 結局
+**P1A 驗收**：✅ console 跑 `WangujiQuest.start()` 走完 5 wave + ChoiceModal + 結局；遊戲跑到 Day 100 點「踏入萬骸祭」按鈕也會走 WangujiQuest（不再是單場 champion 戰）
 
 ---
 
@@ -192,7 +192,7 @@ P3 (訓練所事件)  P4 (中段 BOSS)  P5 (大會 + 比拉斯)
 
 | Phase | 總工時 | 累積 |
 |---|---|---|
-| P1A | 6.5h | 6.5h（已完成 5.5h、剩 1h） |
+| P1A | 6.5h | ✅ 完成（實作 ~6h）|
 | P1B | 22h | 28.5h |
 | P1C | 11h | 39.5h |
 | P2 | 30h | 69.5h |
@@ -209,22 +209,25 @@ P3 (訓練所事件)  P4 (中段 BOSS)  P5 (大會 + 比拉斯)
 
 ## 🚦 推薦下一步
 
-**選項 A — 完成 P1A 收尾**（1h）
-- P1A-4：Day 100 自動觸發 hook（接 day_cycle）
-- 收益：整個 P1A 結束、結局系統閉環
+**Phase 1A 已收尾** ✅。下一步從 P1B / P1C 開始。
 
-**選項 B — 直接開 P1B 主線**（最有戲劇感）
-- 從 P1B-1 開始（提圖斯角色卡）
-- 直接做 P1B-3（Day 65 相認）— 整個遊戲最高潮
-- 收益：能立刻測試「玩家認出領主」這場戲
+**選項 A — 補 character files（半小時、輕鬆）**
+- 建 [docs/characters/titus.md](characters/titus.md) / [kade.md](characters/kade.md) / [gaius.md](characters/gaius.md)
+- 從 [arena-events-roster.md § 0 / § 6.3 / § 6b](quests/arena-events-roster.md) 抽出來、按 [characters/orlan.md](characters/orlan.md) 既有格式
+- 收益：實作 P1B/P1C 時對白有依據、不會寫到不一致的個性
 
-**選項 C — 同步 CANON.md 後再開 P1B**
-- 已在第 5 輪做了大部分（[CANON.md](CANON.md)）
-- 但 [docs/characters/](characters/) 還沒有 titus.md / kade.md / gaius.md
-- 收益：實作 P1B 時對白有依據
+**選項 B — 直接開 P1B-1（提圖斯角色卡 code）**
+- 1h、建 src/npc/lord_titus.js（NPC 定義 + 好感欄位 + 不可被招募標記等）
+- 接著 P1B-2 春季大會首次出場（2h）
+- 收益：開始累積領主主線
 
-**個人推薦：A 收尾 → C CANON 補完 → B 開幹**
-（總耗時約 3-4 小時可以站到能寫 P1B-3 的位置）
+**選項 C — 跳到 P1B-3 戲劇高潮（4h）**
+- 直接做 Day 65 領主訪訓練所 + 相認 storyReveal（柴堆後 / 鐵味 / 認臉）
+- 但會依賴 P1B-1 的 NPC 定義先有
+- 收益：能立刻測試整個遊戲最重的一場戲
+
+**個人推薦：A 補檔（30 分）→ B 提圖斯 NPC（1h）→ C 相認場景（4h）**
+（總約 5.5h、跑完整條提圖斯 Day 25/45/65 入場）
 
 ---
 

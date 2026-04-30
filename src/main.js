@@ -1263,12 +1263,21 @@ const Game = (() => {
       // 🆕 D.28：戰前武器安全網——若沒裝備但身上有武器 → 自動裝備
       _ensureWeaponBeforeBattle();
 
+      // 🆕 2026-05-01 P1A-4：Day 100 萬骸祭 → 走 WangujiQuest 5 wave gauntlet
+      //   不再呼叫 Battle.start(champion)、改用 WangujiQuest.start() 內部跑完
+      //   雜兵 1v3 → 重甲 → 雙刀 1v2 → 黑豹 → 凱德故意輸 → ChoiceModal → A/B/C 結局
+      const launchBattle = () => {
+        if (ev.id === 'final_festival' && typeof WangujiQuest !== 'undefined' && WangujiQuest.start) {
+          WangujiQuest.start();   // 內部處理 wave 鏈 + ChoiceModal + Endings 結局
+        } else {
+          Battle.start(ev.opponent, onWin, onLose);
+        }
+      };
+
       if (preBattleLines.length > 0 && typeof DialogueModal !== 'undefined') {
-        DialogueModal.play(preBattleLines, {
-          onComplete: () => { Battle.start(ev.opponent, onWin, onLose); },
-        });
+        DialogueModal.play(preBattleLines, { onComplete: launchBattle });
       } else {
-        Battle.start(ev.opponent, onWin, onLose);
+        launchBattle();
       }
     };
     stageCenter.appendChild(btn);
