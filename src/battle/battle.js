@@ -2052,17 +2052,14 @@ const Battle = (() => {
     }
     if (Math.random() >= triggerChance) return null;
 
-    // 品質分布
-    const qualityMap = {
-      S: [['superb', 0.20], ['fine', 0.30], ['common', 0.50]],
-      A: [['fine', 0.20], ['common', 0.30], ['crude', 0.50]],
-      B: [['common', 0.20], ['crude', 0.30], ['crude', 0.50]],   // B 沒紫、用 crude 填底
-    };
-    // 注意 B 的設計是 20% 綠 30% 白 50% 灰，但綠 = fine、白 = common、灰 = crude
+    // 🆕 2026-04-30 5 級色階對應（白綠藍紫金 = crude/common/fine/superb/legendary）
+    //   S：紫 / 藍 / 綠
+    //   A：藍 / 綠 / 白
+    //   B：綠 / 白 / 白（多兩成白底）
     const qualityMapFixed = {
-      S: [['superb', 0.20], ['fine', 0.30], ['common', 0.50]],
-      A: [['fine', 0.20], ['common', 0.30], ['crude', 0.50]],
-      B: [['fine', 0.20], ['common', 0.30], ['crude', 0.50]],
+      S: [['superb', 0.20], ['fine', 0.50], ['common', 0.30]],   // 紫/藍/綠
+      A: [['fine',   0.20], ['common', 0.50], ['crude', 0.30]],  // 藍/綠/白
+      B: [['common', 0.30], ['crude',  0.70]],                    // 綠/白
     };
     const dist = qualityMapFixed[rating];
     const r = Math.random();

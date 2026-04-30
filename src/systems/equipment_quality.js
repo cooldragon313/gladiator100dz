@@ -18,12 +18,14 @@
  */
 const EquipmentQuality = (() => {
 
+  // 🆕 2026-04-30 user 改 5 級色階：去掉灰、加綠在中間（白綠藍紫金）
+  //   ID 保留（avoid save migration）、但名字 + 顏色改
   const QUALITY_DEFS = {
-    crude:     { id: 'crude',     name: '粗糙', mult: 0.85, color: '#888888', order: 1 },
-    common:    { id: 'common',    name: '普通', mult: 1.00, color: '#dddddd', order: 2 },
-    fine:      { id: 'fine',      name: '精良', mult: 1.15, color: '#5a9aff', order: 3 },
-    superb:    { id: 'superb',    name: '上等', mult: 1.30, color: '#c060ff', order: 4 },
-    legendary: { id: 'legendary', name: '傳家', mult: 1.50, color: '#ffaa20', order: 5 },
+    crude:     { id: 'crude',     name: '普通', mult: 0.85, color: '#dddddd', order: 1 },  // 白
+    common:    { id: 'common',    name: '良品', mult: 1.00, color: '#88dd66', order: 2 },  // 綠
+    fine:      { id: 'fine',      name: '精品', mult: 1.15, color: '#5a9aff', order: 3 },  // 藍
+    superb:    { id: 'superb',    name: '上品', mult: 1.30, color: '#c060ff', order: 4 },  // 紫
+    legendary: { id: 'legendary', name: '傳家', mult: 1.50, color: '#ffaa20', order: 5 },  // 金
   };
 
   const DEFAULT_QUALITY = 'common';
