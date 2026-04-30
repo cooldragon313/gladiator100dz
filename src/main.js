@@ -4722,10 +4722,35 @@ const Game = (() => {
       return [];
     }
     if (source === 'offhand') {
-      // 盾牌（Armors type='shield'）+ 單手武器（可雙持）
-      const shields = Object.values(Armors).filter(a => a.type === 'shield');
-      const oneHanders = Object.values(Weapons).filter(w => w.id !== 'fists' && w.hands === 1);
-      return [...shields, ...oneHanders];
+      // 🆕 2026-04-30 改成跟其他槽一樣 — 只列玩家擁有的盾 + 單手副武器、套品質色
+      const out = [];
+      // 盾（armorInventory 中 type='shield' 的）
+      if (Array.isArray(p.armorInventory)) {
+        p.armorInventory.forEach(entry => {
+          const armor = Armors[entry.id];
+          if (!armor || armor.type !== 'shield') return;
+          const quality = entry.quality || 'common';
+          const formattedName = (typeof EquipmentQuality !== 'undefined')
+                                  ? EquipmentQuality.formatItemNameHTML(armor.name, quality)
+                                  : armor.name;
+          out.push({ ...armor, name: formattedName, _quality: quality });
+        });
+      }
+      // 單手武器（weaponInventory 中 hands=1 的、可雙持）
+      if (Array.isArray(p.weaponInventory)) {
+        p.weaponInventory.forEach(entry => {
+          const w = Weapons[entry.id];
+          if (!w || w.id === 'fists' || w.hands !== 1) return;
+          const tierLabel = entry.tier > 0 ? ` +${entry.tier}` : '';
+          const quality = entry.quality || 'common';
+          const baseName = (w.name || entry.id) + tierLabel + '（副）';
+          const formattedName = (typeof EquipmentQuality !== 'undefined')
+                                  ? EquipmentQuality.formatItemNameHTML(baseName, quality)
+                                  : baseName;
+          out.push({ ...w, name: formattedName, _tier: entry.tier, _quality: quality });
+        });
+      }
+      return out;
     }
     if (source === 'chest') {
       // 🆕 2026-04-30：只列 slot==='chest' 或無 slot 欄位（舊資料）的胸甲
