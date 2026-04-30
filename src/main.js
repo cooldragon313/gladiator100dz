@@ -4078,53 +4078,61 @@ const Game = (() => {
 
   // 🆕 2026-04-25 平衡調整：玩家 Day 50 ~ avg 26，舊 tier 太弱
   //   錨點：「avg 25 = T1 裝備」（中等場），上面 tier 往上推
-  // 🆕 2026-04-25c 全面退回難度（cbfb6b5 整體拉太兇）
-  //   設計原則：玩家是上升中的明星 — 應該大多場勝利、偶爾吃苦
-  //   數值錨：對手平均屬性比玩家當期預期略低 2-4 點、武器低半 tier
-  //   玩家當期預期屬性：D10 ~10、D30 ~20、D50 ~28、D70 ~34
+  // 🆕 2026-04-30 v3 全面拉強（user 反饋上等場還是輾壓）
+  //   設計原則（NEXT.md）：
+  //     初等場（rookie）：玩家 -2~-3、教學輾壓
+  //     中等場（gladB）：跟玩家持平
+  //     上等場（vet）：玩家 +1~+3、需要技術
+  //     精英場（champion）：玩家 +5~+8、需要配裝
+  //   玩家當期預期屬性：D10 ~14 / D30 ~24 / D50 ~30 / D70 ~36
+  //   對手裝備也加 qualityPool（依 tier 升）
   const ARENA_TIERS = [
     {
       minDay: 10, maxDay: 20,
       label: '初等場・試煉', color: '#8a8060',
-      statsMin: 8, statsMax: 14,                      // avg 11（玩家 ~10）
-      hpMin: 35, hpMax: 50,
-      weaponPool: ['fists', 'fists', 'dagger'],       // 多數沒武器
-      armorPool:  ['rags'],
-      shieldPool: ['none'],
+      statsMin: 12, statsMax: 16,                      // avg 14（玩家 14、持平）
+      hpMin: 50, hpMax: 65,
+      weaponPool: ['dagger', 'shortSword', 'spear'],   // T1 基本
+      armorPool:  ['rags', 'leatherArmor'],
+      shieldPool: ['none', 'none', 'woodShield'],
+      qualityPool:['crude', 'crude', 'common'],        // 70% 白 / 30% 綠
       fameMin: 3, fameMax: 8,
       titleStr: '試煉者',
     },
     {
       minDay: 20, maxDay: 40,
       label: '中等場・角鬥', color: '#b08040',
-      statsMin: 16, statsMax: 22,                     // avg 19（玩家 ~20）
-      hpMin: 50, hpMax: 70,
-      weaponPool: ['dagger', 'dagger', 'shortSword', 'spear'],  // T1 但偏廉
-      armorPool:  ['rags', 'leatherArmor'],
-      shieldPool: ['none', 'woodShield'],
-      fameMin: 6, fameMax: 14,
+      statsMin: 22, statsMax: 28,                     // avg 25（玩家 ~24、持平 +1）
+      hpMin: 75, hpMax: 100,
+      weaponPool: ['shortSword', 'shortSword', 'spear', 'longSword', 'heavyAxe'],
+      armorPool:  ['leatherArmor', 'thickLeather', 'chainmail'],
+      shieldPool: ['woodShield', 'woodShield', 'ironShield', 'none'],
+      qualityPool:['crude', 'common', 'common'],       // 33% 白 / 67% 綠
+      fameMin: 8, fameMax: 16,
       titleStr: '角鬥士',
     },
     {
       minDay: 40, maxDay: 60,
       label: '上等場・血鬥', color: '#c05020',
-      statsMin: 20, statsMax: 28,                     // avg 24（玩家 ~28）
-      hpMin: 65, hpMax: 90,
-      weaponPool: ['shortSword', 'spear', 'longSword', 'heavyAxe'],  // 純 T1
-      armorPool:  ['leatherArmor', 'leatherArmor', 'chainmail'],
-      shieldPool: ['woodShield', 'woodShield', 'ironShield', 'none'],
-      fameMin: 12, fameMax: 22,
+      statsMin: 28, statsMax: 36,                     // avg 32（玩家 ~30、+2）
+      hpMin: 100, hpMax: 140,
+      weaponPool: ['longSword', 'heavyAxe', 'shortSword_t2', 'spear_t2', 'longSword_t2'],
+      armorPool:  ['thickLeather', 'studdedLeather', 'chainmail', 'chainmail'],
+      shieldPool: ['ironShield', 'ironShield', 'woodShield'],
+      qualityPool:['common', 'common', 'fine'],        // 67% 綠 / 33% 藍
+      fameMin: 14, fameMax: 26,
       titleStr: '老手鬥士',
     },
     {
       minDay: 60, maxDay: 81,
       label: '精英場・死鬥', color: '#d03010',
-      statsMin: 26, statsMax: 34,                     // avg 30（玩家 ~34）
-      hpMin: 90, hpMax: 115,
-      weaponPool: ['longSword', 'warHammer', 'heavyAxe', 'shortSword_t2', 'spear_t2'],  // T1 為主、T2 偶爾
-      armorPool:  ['chainmail', 'chainmail', 'leatherArmor'],
-      shieldPool: ['ironShield', 'woodShield'],
-      fameMin: 18, fameMax: 35,
+      statsMin: 38, statsMax: 46,                     // avg 42（玩家 ~36、+6 真挑戰）
+      hpMin: 145, hpMax: 185,
+      weaponPool: ['longSword_t2', 'warHammer_t2', 'heavyAxe_t2', 'shortSword_t3', 'longSword_t3'],
+      armorPool:  ['studdedLeather', 'chainmail', 'ironPlate'],
+      shieldPool: ['ironShield', 'ironShield'],
+      qualityPool:['common', 'fine', 'fine', 'superb'],// 25% 綠 / 50% 藍 / 25% 紫
+      fameMin: 22, fameMax: 40,
       titleStr: '精英鬥士',
     },
   ];
@@ -4154,6 +4162,11 @@ const Game = (() => {
     const tierIdx = ARENA_TIERS.indexOf(tier);
     const name = _arenaPickRandom(ARENA_NAME_POOLS[tierIdx]);
     const s = () => _arenaRandInt(tier.statsMin, tier.statsMax);
+    // 🆕 2026-04-30 對手裝備品質：依 tier 隨機（戰利品也會跟著掉好品質）
+    const quality = (tier.qualityPool && tier.qualityPool.length)
+                      ? _arenaPickRandom(tier.qualityPool) : 'common';
+    // 威嚇也依 tier（玩家面對高 tier 應該有壓力）
+    const intimidationByTier = [0.02, 0.04, 0.08, 0.14];
     return {
       name,
       title:        tier.titleStr,
@@ -4162,9 +4175,13 @@ const Game = (() => {
       weaponId:     _arenaPickRandom(tier.weaponPool),
       armorId:      _arenaPickRandom(tier.armorPool),
       shieldId:     _arenaPickRandom(tier.shieldPool),
+      // 🆕 2026-04-30 套品質欄位（戰鬥引擎自動加倍率）
+      weaponQuality: quality,
+      armorQuality:  quality,
+      offhandQuality: quality,
       ai:           'normal',
       fame:         _arenaRandInt(5, 15 * (tierIdx + 1)),
-      intimidation: 0,
+      intimidation: intimidationByTier[tierIdx] || 0,
       fameReward:   _arenaRandInt(tier.fameMin, tier.fameMax),
       tierColor:    tier.color,
       tierLabel:    tier.label,
