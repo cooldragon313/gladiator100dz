@@ -951,6 +951,40 @@ const teammates = (() => {
       dislikedTraits: { coward:2, impulsive:1, opportunist:1 },
     },
 
+    // 🆕 2026-05-01 P1B-1：提圖斯 — 本城新領主
+    //   詳見 docs/characters/titus.md + arena-events-roster.md § 6b
+    //   軍人家族、剛升官 1-2 個月、偽旗滅村執行者（玩家家鄉的兇手）
+    //   不主動 audience pool 出場（不在 fields.js）— 由 lord_events.js 在 Day 25/45/65/80/100 強制觸發
+    titus: {
+      id: 'titus', name: '提圖斯',
+      role: 'audience',
+      title: '本城領主',
+      desc: '剛上任的新領主。軍人家族出身、講話直、嫌貴族繁文縟節。表面嚴肅、底下有一段沒人知道的過去。',
+      baseAffection: 0,
+      personality: 'aggressive',
+      favoredAttr: null,
+      // 軍人領主的價值觀：看重可靠 + 鐵意志、討厭軟弱衝動
+      likedTraits:    { reliable:3, iron_will:3, loyal:2, patient:1 },
+      dislikedTraits: { coward:3, impulsive:2, opportunist:2 },
+      background: '軍人家族世代從軍。年輕時擔任邊境執行軍官、奉命執行偽旗行動（假扮敵國軍隊滅自己邊境的村莊、給帝國對外開戰的理由）。三個月後帝國以「為民復仇」名義出兵、勝利、獲領土。提圖斯因「平亂有功」（公開：剿滅敵國掠奪隊）剛升任本城領主。',
+
+      // ── 故事揭露（最少 — 大部分劇情在 lord_events.js 強制觸發）──
+      storyReveals: [
+        {
+          id: 'titus_first_glance', type: 'flavor', affection: 0,
+          text: '他坐在主席台、嚴肅、不太笑。所有訓練所主人都拼命巴結他、他卻淡淡地點頭。',
+        },
+        {
+          id: 'titus_military_air', type: 'flavor', affection: 5,
+          text: '他講話直、不演風雅。看人的時候眼睛不眨、像在估算對方的價值。',
+        },
+        {
+          id: 'titus_white_tiger', type: 'flavor', affection: 5,
+          text: '聽說他從遠方買了一頭白虎。喜歡看實打實的戰鬥——人虎對決那種。',
+        },
+      ],
+    },
+
     // 🆕 D.22：醫生老默（治療系統入口）
     // 曾是帝國軍隊戰地醫官，某場戰役後被貶為訓練所奴隸醫生。
     // 看太多年輕人死在他桌上，變得很難露出表情。

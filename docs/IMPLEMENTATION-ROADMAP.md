@@ -24,7 +24,7 @@
 | Phase | 狀態 | 主題 | 完成度 |
 |---|---|---|---|
 | **P1A** | ✅ 完成 | 結局 + Day 100 框架 | 4/4 |
-| **P1B** | ⚪ 待開工 | 領主提圖斯主線 | 0/8 |
+| **P1B** | 🟢 進行中 | 領主提圖斯主線 | 4/8 |
 | **P1C** | ⚪ 待開工 | 凱德主線 | 0/6 |
 | **P2** | ⚪ 待開工 | 蓋烏斯 + 維努斯場 | 0/8 |
 | **P3** | ⚪ 待開工 | 訓練所內部事件 | 0/7 |
@@ -55,16 +55,16 @@
 
 | ID | 任務 | 檔案 | 依賴 | 工 | 狀態 |
 |---|---|---|---|---|---|
-| P1B-1 | 提圖斯角色卡（NPC 定義、年齡、人設） | src/npc/lord_titus.js（新）| — | 1h | ⚪ |
-| P1B-2 | Day 25 春季大會 — 提圖斯首次遠望 | src/quests/lord_events.js（新）| P1B-1 | 2h | ⚪ |
-| P1B-3 | Day 65 領主訪訓練所 + 相認 storyReveal（柴堆後 / 鐵味 / 認臉） | src/quests/lord_events.js | P1B-1, P1A-1 | 4h | ⚪ |
-| P1B-4 | Day 65 衝動 vs 冷靜分支實作（依 disposition 分流） | src/quests/lord_events.js | P1B-3, P1A-1 | 3h | ⚪ |
-| P1B-5 | Day 65 衝動分支戰鬥（衛兵戰 + GG / 殉道 / 逃跑判定） | src/quests/lord_events.js | P1B-4, P1A-2 | 4h | ⚪ |
-| P1B-6 | Day 80 領主夜宴 + 瓦倫演戲（DialogueModal 完整橋段） | src/quests/lord_events.js | P1B-3 | 3h | ⚪ |
-| P1B-7 | 偽旗背景 storyReveal 系統（農家 origin 限定） | src/content/origins.js + lord_events | P1B-3 | 2h | ⚪ |
-| P1B-8 | Day 45 白虎獸場（領主買白虎、強推玩家） | src/quests/lord_events.js | P1B-1 | 3h | ⚪ |
+| P1B-1 | 提圖斯角色卡 + character md | src/npc/npc.js（直接加進去、不開新檔）+ docs/characters/titus.md | — | 0.5h | ✅ |
+| P1B-2 | Day 25 春季大會 — 提圖斯首次遠望（log + flavor） | src/quests/lord_events.js | P1B-1 | 0.3h | ✅ |
+| P1B-3 | Day 65 領主訪訓練所 + 相認 storyReveal（柴堆後 / 鐵味 / 認臉） | src/quests/lord_events.js | P1B-1, P1A-1 | 1h | ✅ |
+| P1B-4 | Day 65 衝動 vs 冷靜分支實作（依 disposition 分流） | src/quests/lord_events.js | P1B-3, P1A-1 | 0.5h | ✅ |
+| P1B-5 | Day 65 衝動分支戰鬥結果判定（屬性門檻 → impulseFailed/Killed/Escape）| src/quests/lord_events.js | P1B-4, P1A-2 | 已併入 P1B-4 | ✅ |
+| P1B-6 | Day 80 領主夜宴 + 瓦倫演戲（完整 DialogueModal 橋段、4 破綻）| src/quests/lord_events.js | P1B-3 | 3h | ⚪（目前 stub）|
+| P1B-7 | 偽旗背景 storyReveal 系統（農家 origin 限定 deeper reveal）| src/content/origins.js + lord_events | P1B-3 | 2h | ⚪ |
+| P1B-8 | Day 45 白虎獸場（特殊機制：SPD 80 / ACC 100 / 需 DEX 高閃 / WIL 嚇）| src/quests/lord_events.js | P1B-1 | 3h | ⚪（目前 stub）|
 
-**P1B 驗收**：農家 origin 玩家從 Day 25 跑到 Day 80、能體驗完整領主認知 → 復仇動機建立
+**P1B 驗收**：✅ 農家 origin 玩家 Day 25 遠望 → Day 65 完整相認 storyReveal → 衝動/冷靜/中性自動分流（衝動可能直接 GG / 殉道弒主 / 逃跑結局）/ Day 80 stub 確認（瓦倫演戲）。剩 P1B-6 / P1B-7 / P1B-8 完整 polish 即收尾。
 
 ---
 
