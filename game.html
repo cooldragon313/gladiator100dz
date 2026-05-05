@@ -3477,9 +3477,25 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   border: 1px solid var(--border); border-radius: 2px;
   padding: 10px 12px; margin-bottom: 8px;
   background: var(--raised);
+  border-left: 3px solid var(--border);
 }
-.cs-skill-name { font-size: 15px; font-weight: 700; color: var(--text-hi); margin-bottom: 3px; }
-.cs-skill-type { font-size: 11px; letter-spacing: .1em; color: var(--text-dim); margin-bottom: 5px; }
+.cs-skill-item.type-passive { border-left-color: #5a9aff; }
+.cs-skill-item.type-active  { border-left-color: #d4af37; }
+.cs-skill-item.type-story   { border-left-color: #c060ff; }
+.cs-skill-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+.cs-skill-name { font-size: 15px; font-weight: 700; color: var(--text-hi); }
+.cs-skill-type {
+  font-size: 11px; letter-spacing: .1em;
+  padding: 1px 8px; border-radius: 2px; background: rgba(0,0,0,.3);
+  color: var(--text-dim);
+}
+.cs-skill-item.type-passive .cs-skill-type { color: #5a9aff; }
+.cs-skill-item.type-active  .cs-skill-type { color: #d4af37; }
+.cs-skill-item.type-story   .cs-skill-type { color: #c060ff; }
+.cs-skill-bonus {
+  font-size: 12px; color: #88dd66; margin-bottom: 4px;
+  font-family: monospace; letter-spacing: .05em;
+}
 .cs-skill-desc { font-size: 13px; color: var(--text-dim); line-height: 1.65; }
 
 /* ═══════════════════════════════════════════════════════════

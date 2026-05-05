@@ -5369,15 +5369,33 @@ const Game = (() => {
     const known = Object.values(Skills).filter(sk => _playerKnowsSkill(sk));
     if (known.length === 0) {
       skillList.innerHTML = '<div class="cs-skill-empty">尚未習得任何技能</div>';
-    } else {
-      skillList.innerHTML = known.map(sk => `
-        <div class="cs-skill-item">
-          <div class="cs-skill-name">${sk.name}</div>
-          <div class="cs-skill-type">${sk.type === 'passive' ? '被動' : '主動'}</div>
+      return;
+    }
+    // 🆕 2026-05-02：被動 / 主動 / 劇情三類分別顯示、被動加成具體列出
+    skillList.innerHTML = known.map(sk => {
+      let typeLabel = sk.type === 'passive' ? '被動' : '主動';
+      if (sk.storyOnly) typeLabel = '劇情';
+      let bonusText = '';
+      if (sk.passiveBonus && Object.keys(sk.passiveBonus).length > 0) {
+        bonusText = Object.entries(sk.passiveBonus)
+          .map(([k, v]) => `${k} ${v >= 0 ? '+' : ''}${v}`).join(' / ');
+      } else if (sk.type === 'active') {
+        const cd  = sk.cooldown ? `cd ${sk.cooldown}` : '';
+        const sta = sk.staminaCost ? `⚡${sk.staminaCost}` : '';
+        bonusText = [sta, cd].filter(Boolean).join(' · ');
+      }
+      const typeCls = sk.storyOnly ? 'story' : sk.type;
+      return `
+        <div class="cs-skill-item type-${typeCls}">
+          <div class="cs-skill-row">
+            <span class="cs-skill-name">${sk.name}</span>
+            <span class="cs-skill-type">${typeLabel}</span>
+          </div>
+          ${bonusText ? `<div class="cs-skill-bonus">${bonusText}</div>` : ''}
           <div class="cs-skill-desc">${sk.desc}</div>
         </div>
-      `).join('');
-    }
+      `;
+    }).join('');
   }
 
   // ══════════════════════════════════════════════════
@@ -5596,15 +5614,12 @@ const Game = (() => {
     });
   }
 
+  // 🆕 2026-05-02 修：之前是 placeholder 永遠回傳 false → 角色頁側欄技能列永遠空
+  //   實際的 source of truth 是 Stats.hasSkill(skillId) 讀 player.learnedSkills
   function _playerKnowsSkill(skill) {
-    // Placeholder: check unlock requirements vs current stats
-    const p = Stats.player;
-    const req = skill.unlockReq || {};
-    for (const [key, minVal] of Object.entries(req)) {
-      if (key === 'fame') { if (p.fame < minVal) return false; }
-      else { if (Stats.eff(key) < minVal) return false; }
-    }
-    return false; // default false until player actually learns skills
+    if (!skill || !skill.id) return false;
+    if (typeof Stats === 'undefined' || typeof Stats.hasSkill !== 'function') return false;
+    return Stats.hasSkill(skill.id);
   }
 
   // ── Settings modal (D.1.7 重構為結構化) ──────────────
