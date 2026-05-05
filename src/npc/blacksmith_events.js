@@ -833,6 +833,202 @@ const BlacksmithEvents = (() => {
   // ══════════════════════════════════════════
   // 存檔 / 讀檔（目前無狀態需序列化）
   // ══════════════════════════════════════════
+  // ══════════════════════════════════════════════════
+  // 🆕 2026-05-06 葛拉私人教學系統（5 階段、累積觀察觸發）
+  // ══════════════════════════════════════════════════
+  // 觸發條件：
+  //   - 每次 STR 訓練動作完成時呼叫（main.js _scanNpcNotice 內）
+  //   - 葛拉在當天場景內（teammates 或 audience 都可）
+  //   - 同一天最多累 1 次（避免一天連發）
+  //   - 累積到 3 次 → 觸發下一階段（前提：好感達當階門檻）
+  //
+  // 5 階段獎勵：
+  //   階段 1（aff ≥ 30）：STR EXP +30 — 「握力」
+  //   階段 2（aff ≥ 40）：STR EXP +60 — 「出力」
+  //   階段 3（aff ≥ 50）：STR +1 直接屬性 — 「腰胯傳力」
+  //   階段 4（aff ≥ 60）：STR +3 直接屬性 — 「震勁」
+  //   階段 5（aff ≥ 70）：STR +5 直接屬性 — 「崩」
+  //
+  // Flags：
+  //   gra_teach_count   — 自上次觸發以來累積觀察次數（達 3 重置）
+  //   gra_teach_stage   — 已完成的階段（0~5）
+  //   gra_teach_today   — 當天已累過（鎖 1/day）
+  // ══════════════════════════════════════════════════
+
+  const GRA_TEACH_THRESHOLD = 3;
+  const GRA_TEACH_STAGES = [
+    {
+      stage: 1, affNeed: 30,
+      title: '葛拉教你 — 握力', subtitle: 'STR EXP +30',
+      reward: { type: 'exp', attr: 'STR', delta: 30 },
+      lines: [
+        { text: '（你又推完一輪石頭、手在抖。）' },
+        { text: '（葛拉走過來、什麼話都沒說、抓起你的手。）' },
+        { speaker: '葛拉', text: '⋯⋯握法錯了。' },
+        { speaker: '葛拉', text: '拇指扣下面。不是包外面。' },
+        { speaker: '葛拉', text: '來、再推一次。' },
+        { text: '（他親自示範握法、然後鬆手。）' },
+        { text: '（你跟著做。）' },
+        { text: '（——對。這次力沒散。）' },
+        { speaker: '葛拉', text: '⋯⋯記住。' },
+        { text: '（他轉身回鍛造坊、一句廢話都沒有。）' },
+      ],
+    },
+    {
+      stage: 2, affNeed: 40,
+      title: '葛拉教你 — 出力', subtitle: 'STR EXP +60',
+      reward: { type: 'exp', attr: 'STR', delta: 60 },
+      lines: [
+        { speaker: '葛拉', text: '⋯⋯你還在用手臂硬推。' },
+        { speaker: '葛拉', text: '力是從腳跟出來的。' },
+        { speaker: '葛拉', text: '站穩。膝蓋微彎。屁股壓低。' },
+        { speaker: '葛拉', text: '然後從這裡——' },
+        { text: '（他用拳頭輕敲你的腰。）' },
+        { speaker: '葛拉', text: '——一路頂上來。' },
+        { text: '（你照他說的試。）' },
+        { text: '（——對。完全不一樣的感覺。）' },
+        { text: '（同樣的石頭、突然輕了。）' },
+      ],
+    },
+    {
+      stage: 3, affNeed: 50,
+      title: '葛拉教你 — 腰胯傳力', subtitle: 'STR +1（永久屬性）',
+      reward: { type: 'attr', attr: 'STR', delta: 1 },
+      lines: [
+        { speaker: '葛拉', text: '⋯⋯出力對了、但力沒傳出去。' },
+        { speaker: '葛拉', text: '你出去的拳是直線。太老實。' },
+        { speaker: '葛拉', text: '腰要先轉。肩跟後到。' },
+        { text: '（他比劃了一下。動作不大、但你看到他袖子破風的聲。）' },
+        { speaker: '葛拉', text: '打鐵也一樣——錘下去前、腰先動。' },
+        { text: '（你試。）' },
+        { text: '（震——你的拳第一次有重量感了。）' },
+        { speaker: '葛拉', text: '⋯⋯有那個意思了。' },
+      ],
+    },
+    {
+      stage: 4, affNeed: 60,
+      title: '葛拉教你 — 震勁', subtitle: 'STR +3（永久屬性）',
+      reward: { type: 'attr', attr: 'STR', delta: 3 },
+      lines: [
+        { speaker: '葛拉', text: '⋯⋯今天教你個別人不會的。' },
+        { speaker: '葛拉', text: '短距離。' },
+        { speaker: '葛拉', text: '把全身力氣壓進三寸內。' },
+        { text: '（他握拳、貼著木樁、什麼都沒做、然後——）' },
+        { text: '（喀。木樁裂了。）' },
+        { speaker: '葛拉', text: '⋯⋯試試。' },
+        { text: '（你照做。第一次手骨震得發麻。）' },
+        { text: '（但——木樁也裂了。）' },
+        { speaker: '葛拉', text: '⋯⋯這招、別到處用。' },
+      ],
+    },
+    {
+      stage: 5, affNeed: 70,
+      title: '葛拉教你 — 崩', subtitle: 'STR +5（永久屬性、葛拉私傳）',
+      reward: { type: 'attr', attr: 'STR', delta: 5 },
+      lines: [
+        { speaker: '葛拉', text: '⋯⋯最後一招。' },
+        { speaker: '葛拉', text: '我教兒子、教過一次。' },
+        { text: '（他停了一下。看著遠方。）' },
+        { speaker: '葛拉', text: '把腳跟抬離地、一瞬間落下。' },
+        { speaker: '葛拉', text: '然後——所有東西、都跟著落下。' },
+        { text: '（他示範。地上的灰、跟著震起來。）' },
+        { text: '（你試。第一次差點摔倒。）' },
+        { text: '（第二次——你打出去的拳、自己都嚇到。）' },
+        { speaker: '葛拉', text: '⋯⋯記住這個感覺。' },
+        { speaker: '葛拉', text: '⋯⋯以後都用得到。' },
+        { text: '（他拍了拍你的肩、轉身走了。）' },
+        { text: '（你站在訓練場、感覺自己跟剛才不太一樣。）' },
+      ],
+    },
+  ];
+
+  /**
+   * 試觸發葛拉私人教學（每次 STR 訓練 + 葛拉在場時呼叫）
+   * @param {object} npcs  currentNPCs { teammates, audience }
+   * @returns {boolean} true 若觸發了某階段
+   */
+  function tryTeaching(npcs) {
+    if (typeof teammates === 'undefined') return false;
+    // 葛拉是否在場
+    const inScene = [...(npcs.teammates || []), ...(npcs.audience || [])].includes('blacksmithGra');
+    if (!inScene) return false;
+
+    // 一天只累 1 次
+    if (Flags.has('gra_teach_today')) return false;
+
+    // 階段已全部走完
+    const stage = Flags.get('gra_teach_stage') || 0;
+    if (stage >= GRA_TEACH_STAGES.length) return false;
+
+    // 累積觀察次數
+    Flags.set('gra_teach_today', true);
+    const newCount = Flags.increment('gra_teach_count');
+    if (newCount < GRA_TEACH_THRESHOLD) return false;
+
+    // 達門檻 — 檢查當階段好感
+    const nextStage = GRA_TEACH_STAGES[stage];
+    const aff = teammates.getAffection('blacksmithGra');
+    if (aff < nextStage.affNeed) {
+      // 好感不夠 — 計數歸零等下一輪（玩家養感情後再觸發）
+      Flags.set('gra_teach_count', 0);
+      _log(`（葛拉看著你訓練、嘴邊像要說什麼、又轉身回去了。）（好感未達 ${nextStage.affNeed}、教學暫停）`, '#888', false);
+      return false;
+    }
+
+    // 觸發！
+    Flags.set('gra_teach_count', 0);
+    Flags.set('gra_teach_stage', stage + 1);
+    _playTeachingStage(nextStage);
+    return true;
+  }
+
+  function _playTeachingStage(stageData) {
+    if (typeof DialogueModal === 'undefined') {
+      // fallback
+      _applyStageReward(stageData);
+      _log(`✦ ${stageData.title}：${stageData.subtitle}`, '#d4af37', true);
+      return;
+    }
+    DialogueModal.play(stageData.lines, {
+      onComplete: () => {
+        _applyStageReward(stageData);
+        // popupBig 提示
+        if (typeof Stage !== 'undefined' && Stage.popupBig) {
+          Stage.popupBig({
+            icon: '⚒', title: stageData.title, subtitle: stageData.subtitle,
+            color: 'gold', duration: 2000, shake: false, sound: 'levelup',
+          });
+        }
+        _log(`✦ ${stageData.title}：${stageData.subtitle}`, '#d4af37', true);
+        // 葛拉好感 +3（教學累積、不只獎勵屬性）
+        if (typeof teammates !== 'undefined') teammates.modAffection('blacksmithGra', 3);
+      },
+    });
+  }
+
+  function _applyStageReward(stageData) {
+    const r = stageData.reward;
+    if (!r || !r.attr) return;
+    if (r.type === 'exp') {
+      Stats.modExp(r.attr, r.delta);
+    } else if (r.type === 'attr') {
+      // 直接加屬性（永久）— Stats.modAttr 會處理 round + cap
+      if (typeof Stats.modAttr === 'function') {
+        Stats.modAttr(r.attr, r.delta);
+      } else {
+        Stats.player[r.attr] = (Stats.player[r.attr] || 10) + r.delta;
+      }
+    }
+    // refresh UI
+    if (typeof Stats.renderAll === 'function') Stats.renderAll();
+    if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
+  }
+
+  /** 每天結束時呼叫、清除 today flag（讓明天可以再累一次）*/
+  function clearTeachingDailyFlag() {
+    Flags.set('gra_teach_today', false);
+  }
+
   function serialize()      { return {}; }
   function restore(_data)   { }
   function reset()          { }
@@ -847,6 +1043,8 @@ const BlacksmithEvents = (() => {
     tryArmorUpgrade,                // 🆕 階段 7
     tryHeirloomWeapon,              // 🆕 階段 8
     tryMasterSummonsForUnlock,      // 🆕 2026-04-29 鍛造坊解鎖（5 連勝）
+    tryTeaching,                    // 🆕 2026-05-06 私人教學 5 階段
+    clearTeachingDailyFlag,         // 🆕 2026-05-06 day end hook
     serialize, restore, reset,
   };
 })();

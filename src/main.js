@@ -3318,6 +3318,27 @@ const Game = (() => {
     });
     // 🆕 D.6 v2：訓練只累積 EXP，不自動升級。升級請到角色頁手動花 EXP。
 
+    // 🆕 2026-05-06：打坐 + 紫色協力（aff ≥ 70 + 今日 pick='WIL' 的隊友）→ 額外體力恢復
+    //   每位紫色協力 NPC = 體力 +10、上限 30（最多 3 位）
+    if (actionId === 'meditation') {
+      let purpleCount = 0;
+      const purpleNames = [];
+      (currentNPCs.teammates || []).forEach(npcId => {
+        if (!npcId) return;
+        const aff = teammates.getAffection(npcId);
+        if (aff < 70) return;
+        if (_getNpcTodayAttr(npcId) !== 'WIL') return;
+        purpleCount++;
+        const npc = teammates.getNPC(npcId);
+        if (npc && npc.name) purpleNames.push(npc.name);
+      });
+      if (purpleCount > 0) {
+        const stamGain = Math.min(30, purpleCount * 10);
+        Stats.modVital('stamina', stamGain);
+        addLog(`✦ 紫色協力 ×${purpleCount}（${purpleNames.join('、')}）：心神同步、體力 +${stamGain}`, '#c060ff', true);
+      }
+    }
+
     // 🆕 2026-04-19 訓練成功跳 EXP emoji 特效（依實際 gain 計算數量/大小）
     if (hasAttrEffect) {
       const fervorMult = (typeof Fervor !== 'undefined' && Fervor.getExpMultiplier && trainedAttr)
@@ -3680,16 +3701,9 @@ const Game = (() => {
    * condition(p, act, npcsPresent) → boolean
    */
   const _NPC_NOTICE_RULES = [
-    {
-      npcId:     'blacksmithGra',
-      threshold: 3,
-      eventId:   'gra_notice_invite',
-      condition: (p, act, npcs) => {
-        const inScene = [...(npcs.teammates||[]), ...(npcs.audience||[])].includes('blacksmithGra');
-        const isStr   = (act.effects||[]).some(e => (e.type === 'attr' || e.type === 'exp') && e.key === 'STR');
-        return inScene && isStr;
-      },
-    },
+    // 🆕 2026-05-06：葛拉教學改成 5 階段累積教學（BlacksmithEvents.tryTeaching）
+    //   舊規則改為自動觸發（threshold 0、condition 直接呼叫 tryTeaching）— 不走 NPC_NOTICE_EVENTS 表
+    //   保留為「同 NPC、同條件」的單一入口、避免雙重判定
     {
       npcId:     'melaKook',
       threshold: 2,
@@ -3720,6 +3734,13 @@ const Game = (() => {
   function _scanNpcNotice(act) {
     const p    = Stats.player;
     const npcs = currentNPCs;
+
+    // 🆕 2026-05-06：葛拉私人教學 — 葛拉在場 + STR 訓練 + 1/day → 累 3 次觸發階段
+    //   用獨立 hook、不走 NPC_NOTICE_RULES（多階段、需查好感）
+    const isStr = (act.effects || []).some(e => (e.type === 'attr' || e.type === 'exp') && e.key === 'STR');
+    if (isStr && typeof BlacksmithEvents !== 'undefined' && BlacksmithEvents.tryTeaching) {
+      BlacksmithEvents.tryTeaching(npcs);
+    }
 
     for (const rule of _NPC_NOTICE_RULES) {
       const todayKey  = `notice_today_${rule.npcId}`;
@@ -7157,6 +7178,10 @@ const Game = (() => {
   DayCycle.onDayStart('clearNoticeToday', (newDay) => {
     const todayFlags = Object.keys(Flags.getByPrefix('notice_today_'));
     todayFlags.forEach(k => Flags.unset(k));
+    // 🆕 2026-05-06：清葛拉教學的 daily flag
+    if (typeof BlacksmithEvents !== 'undefined' && BlacksmithEvents.clearTeachingDailyFlag) {
+      BlacksmithEvents.clearTeachingDailyFlag();
+    }
   }, 20);
 
   // ══════════════════════════════════════════════════
