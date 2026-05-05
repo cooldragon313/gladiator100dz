@@ -260,6 +260,13 @@ const Config = (() => {
       desc: '十場不敗的證明。戰鬥開場 +5% ATK（永久）。',
       hidden: true,   // 不從軸擲取得、只能 10 連勝解鎖
     },
+    // 🆕 2026-05-02 P1B-8：白虎獸場戰勝獎勵
+    //   解鎖：Day 45 領主白虎獸場戰勝
+    whiteTigerHunter: {
+      id: 'whiteTigerHunter', name: '白虎獵者', category: 'positive', icon: '🐅',
+      desc: '殺過領主從遠方買來的白虎。對野獸類敵人 ATK +15%、城裡傳說中的獵者。',
+      hidden: true,
+    },
     // 🆕 D.12 / D.13 新增：解鎖睡前活動與故事共鳴
     literate: {
       id: 'literate', name: '識字', category: 'positive',
