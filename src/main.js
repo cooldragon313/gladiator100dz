@@ -4702,20 +4702,33 @@ const Game = (() => {
     return lines.join('\n').replace(/"/g, '&quot;');
   }
 
-  // 🆕 2026-05-06：找 inventory 中該 itemId 的 tier（沒有就 1）
+  // 🆕 2026-05-06：取裝備的「族系內進化階」(family tier)
+  //   武器：解 _t2 / _t3 / _t4 後綴（既有 itemId pattern）
+  //   護甲：讀 Armors[id].tier 靜態欄位（leather/plate 各 3 階）
+  //   也疊加 inventory.tier（葛拉強化次數）— 取較高值
   function _getEquippedTier(source, itemId) {
     const p = Stats.player;
     if (!p || !itemId) return 1;
-    // weapons 主手 + 副手裝武器都查 weaponInventory
+    let staticTier = 1;
+    let invTier = 1;
+
+    // 武器：靜態 tier 從 id 後綴解
     if (source === 'weapons' || (source === 'offhand' && Weapons[itemId])) {
+      const m = itemId.match(/_t(\d)$/);
+      if (m) staticTier = parseInt(m[1], 10);
       const inv = Array.isArray(p.weaponInventory) ? p.weaponInventory : [];
       const e = inv.find(it => it && it.id === itemId);
-      return (e && e.tier) || 1;
+      if (e && e.tier) invTier = e.tier;
+    } else {
+      // 護甲類：靜態 tier 從 Armors def 讀
+      const def = (typeof Armors !== 'undefined') ? Armors[itemId] : null;
+      if (def && typeof def.tier === 'number') staticTier = def.tier;
+      const inv = Array.isArray(p.armorInventory) ? p.armorInventory : [];
+      const e = inv.find(it => it && it.id === itemId);
+      if (e && e.tier) invTier = e.tier;
     }
-    // armor 類（chest / offhand 盾 / helmet / arms / legs / accessory）查 armorInventory
-    const inv = Array.isArray(p.armorInventory) ? p.armorInventory : [];
-    const e = inv.find(it => it && it.id === itemId);
-    return (e && e.tier) || 1;
+
+    return Math.max(staticTier, invTier);
   }
 
   function _getEquipmentName(source, itemId) {
@@ -4820,6 +4833,19 @@ const Game = (() => {
     _renderEquipmentSlots();
   }
 
+  // 🆕 2026-05-06：給 picker 用的 family tier helper
+  function _resolveFamilyTier(source, id, invTier) {
+    let staticTier = 1;
+    if (source === 'weapons' || source === 'offhand') {
+      const m = id.match(/_t(\d)$/);
+      if (m) staticTier = parseInt(m[1], 10);
+    }
+    if (typeof Armors !== 'undefined' && Armors[id] && typeof Armors[id].tier === 'number') {
+      staticTier = Math.max(staticTier, Armors[id].tier);
+    }
+    return Math.max(staticTier, invTier || 1);
+  }
+
   /** 列出此 source 可選擇的裝備 */
   function _getPickerOptions(source) {
     const p = Stats.player;
@@ -4829,12 +4855,11 @@ const Game = (() => {
         return p.weaponInventory.map(entry => {
           const w = Weapons[entry.id];
           if (!w) return null;
-          // 🆕 2026-04-30 拿掉 +N tier 標籤（武器名字已經暗示 tier、+N 重複）
           const quality = entry.quality || 'common';
           const formattedName = (typeof EquipmentQuality !== 'undefined')
                                   ? EquipmentQuality.formatItemNameHTML(w.name, quality)
                                   : w.name;
-          return { ...w, name: formattedName, _tier: entry.tier, _quality: quality };
+          return { ...w, name: formattedName, _tier: _resolveFamilyTier('weapons', entry.id, entry.tier), _quality: quality };
         }).filter(Boolean);
       }
       // fallback：還沒拿到武器時顯示空
@@ -4852,7 +4877,7 @@ const Game = (() => {
           const formattedName = (typeof EquipmentQuality !== 'undefined')
                                   ? EquipmentQuality.formatItemNameHTML(armor.name, quality)
                                   : armor.name;
-          out.push({ ...armor, name: formattedName, _quality: quality });
+          out.push({ ...armor, name: formattedName, _tier: _resolveFamilyTier('offhand', entry.id, entry.tier), _quality: quality });
         });
       }
       // 單手武器（weaponInventory 中 hands=1 的、可雙持）
@@ -4867,7 +4892,7 @@ const Game = (() => {
           const formattedName = (typeof EquipmentQuality !== 'undefined')
                                   ? EquipmentQuality.formatItemNameHTML(baseName, quality)
                                   : baseName;
-          out.push({ ...w, name: formattedName, _tier: entry.tier, _quality: quality });
+          out.push({ ...w, name: formattedName, _tier: _resolveFamilyTier('offhand', entry.id, entry.tier), _quality: quality });
         });
       }
       return out;
@@ -4886,7 +4911,7 @@ const Game = (() => {
         const formattedName = (typeof EquipmentQuality !== 'undefined')
                                 ? EquipmentQuality.formatItemNameHTML(armor.name, quality)
                                 : armor.name;
-        return { ...armor, name: formattedName, _quality: quality };
+        return { ...armor, name: formattedName, _tier: _resolveFamilyTier('chest', e.id, e.tier), _quality: quality };
       }).filter(Boolean);
     }
     // 🆕 2026-04-30 護飾類：頭盔 / 護臂 / 護腿
@@ -4901,7 +4926,7 @@ const Game = (() => {
         const formattedName = (typeof EquipmentQuality !== 'undefined')
                                 ? EquipmentQuality.formatItemNameHTML(armor.name, quality)
                                 : armor.name;
-        return { ...armor, name: formattedName, _quality: quality };
+        return { ...armor, name: formattedName, _tier: _resolveFamilyTier(source, e.id, e.tier), _quality: quality };
       }).filter(Boolean);
     }
     return [];

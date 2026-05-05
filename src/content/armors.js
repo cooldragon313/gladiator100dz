@@ -31,49 +31,50 @@ const Armors = {
   },
 
   // ── 皮系 ──────────────────────────────────────────────
+  // 🆕 2026-05-06 平衡 + 加 tier 欄位（族系內進化階、給 UI 顯示用）
+  //   舊：4 / 6 / 10 — studded 跳太大、+4 DEF 只 -1 SPD 比鏈甲還划算 → 沒人穿鏈甲
+  //   新：4 / 7 / 8 + EVA -1 — peak 皮系開始有真實代價、轉板甲身份才明確
   leatherArmor: {
     id: 'leatherArmor', name: '皮甲',
-    type: 'leather',
+    type: 'leather', tier: 1,
     DEF: 4, SPD: 0, EVA: 0,
     desc: '輕便的皮革護甲，不妨礙移動。',
     price: 40,
   },
   thickLeather: {
     id: 'thickLeather', name: '加厚皮甲',
-    type: 'leather',
-    DEF: 6, SPD: 0, EVA: 0,
+    type: 'leather', tier: 2,
+    DEF: 7, SPD: 0, EVA: 0,
     desc: '多層鞣製皮革壓合，比普通皮甲吸衝擊。葛拉打的。',
     price: 70,
   },
   studdedLeather: {
     id: 'studdedLeather', name: '鉚釘皮甲',
-    type: 'leather',
-    DEF: 10, SPD: -1, EVA: 0,
-    desc: '皮革上釘了鐵釘，兼顧防禦與輕便。能看出打造者的心思。',
+    type: 'leather', tier: 3,
+    DEF: 8, SPD: -1, EVA: -1,
+    desc: '皮革上釘了鐵釘、皮系護甲的頂峰。重量比預期沉、開始考驗你的腿力。',
     price: 110,
   },
 
   // ── 板系 ──────────────────────────────────────────────
-  // 🆕 2026-04-30 拉強：base 8 → 12（皮系頂峰 studded 10、板系起點該 ≥ 12 才合升級邏輯）
-  //   SPD/EVA 加大懲罰：-2 → -3（板甲就是肉盾、犧牲機動風味出來）
+  //   板甲就是肉盾、犧牲機動風味、DEF 換大
   chainmail: {
     id: 'chainmail', name: '鏈甲',
-    type: 'plate',
+    type: 'plate', tier: 1,
     DEF: 12, SPD: -3, EVA: -3,
-    desc: '由鐵環編織而成，比皮甲堅固，但重量也更大。',
+    desc: '由鐵環編織而成、比皮甲堅固、進入板甲家族的入門。',
     price: 80,
   },
   ironPlate: {
     id: 'ironPlate', name: '鐵板甲',
-    type: 'plate',
+    type: 'plate', tier: 2,
     DEF: 14, SPD: -6, EVA: -4,
     desc: '幾乎刀槍不入，但你每走一步都像拖著鐵錨。',
     price: 150,
   },
-  // 🆕 2026-04-25b：板甲 T3（葛拉階段 7 終階）
   steelPlate: {
     id: 'steelPlate', name: '鋼板甲',
-    type: 'plate',
+    type: 'plate', tier: 3,
     DEF: 18, SPD: -7, EVA: -5,
     desc: '葛拉打過最重的一件。穿上去能擋兩記重斧、但你也走不快。「這套不是給普通人穿的。」',
     price: 350,
