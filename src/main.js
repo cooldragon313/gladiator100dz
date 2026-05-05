@@ -4702,6 +4702,22 @@ const Game = (() => {
     return lines.join('\n').replace(/"/g, '&quot;');
   }
 
+  // 🆕 2026-05-06：找 inventory 中該 itemId 的 tier（沒有就 1）
+  function _getEquippedTier(source, itemId) {
+    const p = Stats.player;
+    if (!p || !itemId) return 1;
+    // weapons 主手 + 副手裝武器都查 weaponInventory
+    if (source === 'weapons' || (source === 'offhand' && Weapons[itemId])) {
+      const inv = Array.isArray(p.weaponInventory) ? p.weaponInventory : [];
+      const e = inv.find(it => it && it.id === itemId);
+      return (e && e.tier) || 1;
+    }
+    // armor 類（chest / offhand 盾 / helmet / arms / legs / accessory）查 armorInventory
+    const inv = Array.isArray(p.armorInventory) ? p.armorInventory : [];
+    const e = inv.find(it => it && it.id === itemId);
+    return (e && e.tier) || 1;
+  }
+
   function _getEquipmentName(source, itemId) {
     if (!itemId) return '—';
     let baseName, slot;
@@ -4719,6 +4735,11 @@ const Game = (() => {
       slot = 'armor';   // 品質查詢借用 armor slot（主畫面顯示用）
     }
     else { return '—'; }
+
+    // 🆕 2026-05-06：tier 標籤（T2 / T3 / T4）— 之前只有 picker 有、裝備槽看不出 tier
+    const tier = _getEquippedTier(source, itemId);
+    const tierTag = (tier > 1) ? `<span class="cs-eqslot-tier">T${tier}</span> ` : '';
+
     // 🆕 2026-04-28 套品質顏色
     if (typeof EquipmentQuality !== 'undefined') {
       // 護飾類用 armorInventory 找品質（getEquippedQuality 要 weapon/armor/offhand 之一）
@@ -4728,9 +4749,9 @@ const Game = (() => {
       } else {
         q = EquipmentQuality.getEquippedQuality(Stats.player, slot);
       }
-      return EquipmentQuality.formatItemNameHTML(baseName, q);
+      return tierTag + EquipmentQuality.formatItemNameHTML(baseName, q);
     }
-    return baseName;
+    return tierTag + baseName;
   }
 
   // ── 🆕 Equipment picker inline ─────────────────────
