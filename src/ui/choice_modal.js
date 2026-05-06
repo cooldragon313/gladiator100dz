@@ -67,6 +67,8 @@
  */
 const ChoiceModal = (() => {
   let _activeEvent  = null;
+  // 🆕 2026-05-07：戰鬥中觸發 show() 暫存佇列、戰後 flushDeferred() 才放
+  let _deferredDuringBattle = [];
   let _activeChoices = [];
   let _injected     = false;
 
@@ -151,6 +153,13 @@ const ChoiceModal = (() => {
     _ensureElements();
     if (!eventData || !Array.isArray(eventData.choices)) {
       console.warn('[ChoiceModal] invalid eventData', eventData);
+      return;
+    }
+
+    // 🆕 2026-05-07：戰鬥中不立刻開、排到 _deferredDuringBattle、戰後 flushDeferred() 才播
+    if (typeof Battle !== 'undefined' && Battle.isActive && Battle.isActive()) {
+      console.warn('[ChoiceModal] battle active — choice deferred until battle ends');
+      _deferredDuringBattle.push({ eventData, opts });
       return;
     }
 
@@ -311,8 +320,25 @@ const ChoiceModal = (() => {
   // 🆕 2026-04-30 給 main.js 用、判斷是否選擇中（擋詳細按鈕）
   function isOpen() { return !!_activeEvent; }
 
+  // 🆕 2026-05-07：把戰鬥期間 deferred 的選擇事件依序顯示
+  function flushDeferred() {
+    if (_deferredDuringBattle.length === 0) return;
+    const items = _deferredDuringBattle.slice();
+    _deferredDuringBattle = [];
+    // ChoiceModal 一次只能顯示一個（沒 queue 機制）— 直接 show 第一個、剩下就丟掉
+    //   因為 deferred 通常都是個別事件、且 ChoiceModal 不是用來連續排隊的
+    if (items.length > 0) {
+      const first = items[0];
+      if (items.length > 1) {
+        console.warn(`[ChoiceModal] flushDeferred: ${items.length - 1} more choices dropped (no queue)`);
+      }
+      show(first.eventData, first.opts);
+    }
+  }
+
   return {
     show,
     isOpen,
+    flushDeferred,    // 🆕 2026-05-07
   };
 })();

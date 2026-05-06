@@ -3788,6 +3788,17 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   border-color: var(--blood);
   color: #cc5040;
 }
+/* 🆕 2026-05-07：UI 阻塞中禁用動作按鈕（modal / battle / animation 期間）
+   user 反饋：戰鬥中事件彈出時、左邊動作按鍵還能戳 → 多重觸發 bug
+   配合 main.js _isUiInputBlocked() + setInterval body class toggle */
+body.ui-input-blocked .action-btn,
+body.ui-input-blocked .action-btn-sleep,
+body.ui-input-blocked .forge-action {
+  pointer-events: none !important;
+  opacity: 0.35 !important;
+  cursor: not-allowed !important;
+  filter: grayscale(0.4);
+}
 .action-empty {
   font-size: 15px;
   color: var(--text-dim);

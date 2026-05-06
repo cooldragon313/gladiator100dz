@@ -29,6 +29,8 @@ const DialogueModal = (() => {
   const TYPE_SPEED_FAST_MS = 4;    // 按住 Ctrl 時的速度
 
   let _isOpen     = false;
+  // 🆕 2026-05-07：戰鬥中觸發 play() 暫存佇列、戰後 flushDeferred() 才放
+  let _deferredDuringBattle = [];
   let _lines      = [];
   let _lineIdx    = 0;
   let _typeTimer  = null;
@@ -88,6 +90,14 @@ const DialogueModal = (() => {
     _ensureElements();
     if (!Array.isArray(lines) || lines.length === 0) {
       if (typeof opts.onComplete === 'function') opts.onComplete();
+      return;
+    }
+
+    // 🆕 2026-05-07：戰鬥中不立刻開、排到 _deferredDuringBattle、戰後 flushDeferred() 才播
+    //   user 反饋：戰鬥中故事彈出 → 多重觸發 bug
+    if (typeof Battle !== 'undefined' && Battle.isActive && Battle.isActive()) {
+      console.warn('[DialogueModal] battle active — dialogue deferred until battle ends');
+      _deferredDuringBattle.push({ lines, opts });
       return;
     }
 
@@ -333,8 +343,24 @@ const DialogueModal = (() => {
     }
   }
 
+  // 🆕 2026-05-07：把戰鬥期間 deferred 的對白依序播
+  function flushDeferred() {
+    if (_deferredDuringBattle.length === 0) return;
+    const items = _deferredDuringBattle.slice();
+    _deferredDuringBattle = [];
+    if (_isOpen) {
+      // 已有對白在播 → 全部塞進既有 _queue（會自動接續）
+      items.forEach(it => _queue.push(it));
+    } else {
+      const first = items.shift();
+      items.forEach(it => _queue.push(it));
+      play(first.lines, first.opts);
+    }
+  }
+
   return {
     play,
     isOpen: () => _isOpen,
+    flushDeferred,    // 🆕 2026-05-07
   };
 })();

@@ -2989,12 +2989,27 @@ const Game = (() => {
   // 🆕 Stage/對話動畫中禁止操作
   let _uiLocked = false;
 
+  // 🆕 2026-05-07：統一 UI 阻塞判定 — 任一狀態 active 都禁止 doAction + 視覺禁用按鈕
+  //   user 反饋：戰鬥中故事彈出 / 故事播放時動作鍵還能按 → 多重觸發 bug
+  function _isUiInputBlocked() {
+    if (_uiLocked) return true;
+    if (typeof DialogueModal !== 'undefined' && DialogueModal.isOpen && DialogueModal.isOpen()) return true;
+    if (typeof ChoiceModal   !== 'undefined' && ChoiceModal.isOpen   && ChoiceModal.isOpen())   return true;
+    if (typeof Battle        !== 'undefined' && Battle.isActive      && Battle.isActive())      return true;
+    return false;
+  }
+
+  // 200ms 輪詢、視覺禁用按鈕（CSS 走 body.ui-input-blocked）
+  if (typeof window !== 'undefined') {
+    setInterval(() => {
+      const blocked = _isUiInputBlocked();
+      document.body.classList.toggle('ui-input-blocked', blocked);
+    }, 200);
+  }
+
   function doAction(actionId) {
-    // 🆕 動畫播放中 → 禁止操作
-    if (_uiLocked) return;
-    if (typeof DialogueModal !== 'undefined' && DialogueModal.isOpen()) return;
-    // 🆕 D.28：戰鬥中禁止觸發其他動作
-    if (typeof Battle !== 'undefined' && Battle.isActive && Battle.isActive()) return;
+    // 🆕 動畫 / modal / 戰鬥 中 → 禁止操作（統一 helper）
+    if (_isUiInputBlocked()) return;
 
     const p = Stats.player;
 

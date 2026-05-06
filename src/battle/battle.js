@@ -104,6 +104,15 @@ const Battle = (() => {
       try { MasterArmorGrant.tryGrantsAfterArenaWin(); }
       catch (e) { console.error('[MasterArmorGrant]', e); }
     }
+    // 🆕 2026-05-07：放戰鬥期間被擋下來的對白 / 選擇事件
+    setTimeout(() => {
+      if (typeof DialogueModal !== 'undefined' && DialogueModal.flushDeferred) {
+        try { DialogueModal.flushDeferred(); } catch (e) { console.error('[DialogueModal flushDeferred]', e); }
+      }
+      if (typeof ChoiceModal !== 'undefined' && ChoiceModal.flushDeferred) {
+        try { ChoiceModal.flushDeferred(); } catch (e) { console.error('[ChoiceModal flushDeferred]', e); }
+      }
+    }, 200);   // 給 onWin/onLose callback 先跑（可能本身會觸發新對白）
   }
 
   // ── ATB state ────────────────────────────────────────────
