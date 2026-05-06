@@ -1002,6 +1002,32 @@ const teammates = (() => {
       dislikedTraits: { coward:2, impulsive:1, opportunist:1 },
     },
 
+    // 🆕 2026-05-07 P1C-1：凱德 — 同村大哥哥、Day 100 故意輸給玩家的「無名者」
+    //   詳見 docs/characters/kade.md + arena-events-roster.md § 6.3
+    //   別家訓練所、自由人、戰績 30 連勝零敗、整場遊戲 6 個出場點（25/49/70/80/90/100）
+    //   不在 fields.js audience pool — 由 kade_events.js 強制觸發
+    kade: {
+      id: 'kade', name: '凱德',
+      role: 'audience',
+      title: '無名者',
+      desc: '別家訓練所的傳奇選手。30 連勝零敗、人稱「無名者」。沒人知道他真名。沒人知道他從哪來。',
+      baseAffection: 0,
+      personality: 'balanced',
+      favoredAttr: null,
+      // 自由人鬥士、看重生存意志、討厭逃避
+      likedTraits:    { iron_will:3, reliable:2, kindness:1, merciful:1 },
+      dislikedTraits: { coward:2, opportunist:2, prideful:1 },
+      background: '本名 Kade。跟農家 origin 玩家同村。幾年前被賣（成年後、不是童年）、進別家訓練所、為主人賺大錢、半年到 1 年前掙得自由人身份。但繼續打 — 因為除了打架什麼都不會。靠主人寄錢回家鄉以為家人都好、其實主人吞錢、家鄉幾個月前被滅村也不知道。',
+      storyReveals: [
+        // 大部分劇情走 kade_events.js 強制觸發、這裡只放 1-2 個被動 flavor
+        {
+          id: 'kade_first_seen', type: 'flavor', affection: 0,
+          requireFlag: 'kade_first_glimpse_d25',
+          text: '春季大會看到的那個披深色斗篷的人。「無名者」。他看了你一眼。',
+        },
+      ],
+    },
+
     // 🆕 2026-05-01 P1B-1：提圖斯 — 本城新領主
     //   詳見 docs/characters/titus.md + arena-events-roster.md § 6b
     //   軍人家族、剛升官 1-2 個月、偽旗滅村執行者（玩家家鄉的兇手）

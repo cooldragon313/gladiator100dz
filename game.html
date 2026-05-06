@@ -2401,6 +2401,24 @@ body.colorblind-mode .bar-fill[style*="cc2200"] { background: #ff6b35 !important
   letter-spacing: .05em;
   vertical-align: 1px;
 }
+/* 🆕 2026-05-07 護甲類型標籤（布/皮/板/盾/掛）— picker + 槽都用 */
+.cs-eqslot-type, .cs-picker-type {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 900;
+  padding: 1px 5px;
+  margin-right: 4px;
+  background: #1a1f1a;
+  border: 1px solid #3a4a3a;
+  border-radius: 3px;
+  letter-spacing: .05em;
+  vertical-align: 1px;
+}
+.cs-eqslot-type.type-cloth,    .cs-picker-type.type-cloth     { color: #d8d0b8; border-color: #6a6048; }   /* 布 — 白色 */
+.cs-eqslot-type.type-leather,  .cs-picker-type.type-leather   { color: #c89878; border-color: #6a4830; }   /* 皮 — 棕褐 */
+.cs-eqslot-type.type-plate,    .cs-picker-type.type-plate     { color: #8aaacc; border-color: #486078; }   /* 板 — 鋼藍 */
+.cs-eqslot-type.type-shield,   .cs-picker-type.type-shield    { color: #c0a868; border-color: #6a5a30; }   /* 盾 — 銅黃 */
+.cs-eqslot-type.type-accessory, .cs-picker-type.type-accessory { color: #d8a8d8; border-color: #6a4868; }  /* 掛 — 紫 */
 .cs-eqslot-arrow { font-size: 16px; color: var(--text); opacity: .85; }
 
 /* Equipment picker inline panel */
@@ -5459,6 +5477,7 @@ body.ui-input-blocked .forge-action {
 <script src="src/battle/battle.js"></script>
 <script src="src/quests/wanguji.js"></script>
 <script src="src/quests/lord_events.js"></script>
+<script src="src/quests/kade_events.js"></script>
 <script src="src/quests/errand_outings.js"></script>
 <script src="src/actions/actions.js"></script>
 <script src="src/main.js"></script>

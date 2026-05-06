@@ -4767,27 +4767,42 @@ const Game = (() => {
     return Math.max(staticTier, invTier);
   }
 
+  // 🆕 2026-05-07：護甲/盾/掛件 type → 中文標籤（布/皮/板/盾/掛）
+  //   user 反饋：T2/T3 之外也想看出材質類別
+  function _getArmorTypeTag(itemId) {
+    if (!itemId || typeof Armors === 'undefined' || !Armors[itemId]) return '';
+    const t = Armors[itemId].type;
+    const map = { cloth: '布', leather: '皮', plate: '板', shield: '盾', accessory: '掛' };
+    const label = map[t];
+    if (!label) return '';
+    return `<span class="cs-eqslot-type type-${t}">${label}</span> `;
+  }
+
   function _getEquipmentName(source, itemId) {
     if (!itemId) return '—';
-    let baseName, slot;
+    let baseName, slot, isArmor = false;
     if (source === 'weapons') { baseName = Weapons[itemId]?.name || itemId; slot = 'weapon'; }
     else if (source === 'offhand') {
-      if (Armors[itemId])      { baseName = Armors[itemId].name; slot = 'offhand'; }
+      if (Armors[itemId])      { baseName = Armors[itemId].name; slot = 'offhand'; isArmor = true; }
       else if (Weapons[itemId]){ baseName = Weapons[itemId].name + '（副）'; slot = 'offhand'; }
       else                     { return itemId; }
     }
-    else if (source === 'chest') { baseName = Armors[itemId]?.name || itemId; slot = 'armor'; }
+    else if (source === 'chest') { baseName = Armors[itemId]?.name || itemId; slot = 'armor'; isArmor = true; }
     // 🆕 2026-04-30 護飾類（頭盔/護臂/護腿）— 主人賜的可以看到
     // 🆕 2026-04-29 掛件 (accessory) — 傳家件
     else if (source === 'helmet' || source === 'arms' || source === 'legs' || source === 'accessory') {
       baseName = Armors[itemId]?.name || itemId;
       slot = 'armor';   // 品質查詢借用 armor slot（主畫面顯示用）
+      isArmor = true;
     }
     else { return '—'; }
 
     // 🆕 2026-05-06：tier 標籤（T2 / T3 / T4）— 之前只有 picker 有、裝備槽看不出 tier
     const tier = _getEquippedTier(source, itemId);
     const tierTag = (tier > 1) ? `<span class="cs-eqslot-tier">T${tier}</span> ` : '';
+
+    // 🆕 2026-05-07：護甲類型標籤（布/皮/板/盾/掛）
+    const typeTag = isArmor ? _getArmorTypeTag(itemId) : '';
 
     // 🆕 2026-04-28 套品質顏色
     if (typeof EquipmentQuality !== 'undefined') {
@@ -4798,9 +4813,9 @@ const Game = (() => {
       } else {
         q = EquipmentQuality.getEquippedQuality(Stats.player, slot);
       }
-      return tierTag + EquipmentQuality.formatItemNameHTML(baseName, q);
+      return typeTag + tierTag + EquipmentQuality.formatItemNameHTML(baseName, q);
     }
-    return tierTag + baseName;
+    return typeTag + tierTag + baseName;
   }
 
   // ── 🆕 Equipment picker inline ─────────────────────
@@ -4842,10 +4857,12 @@ const Game = (() => {
         // 🆕 2026-04-30 tier 標籤（不打 +N、改顯【T2】等清楚標籤）+ 詞綴在 stats row
         const tierTag = (it._tier && it._tier > 1)
                           ? `<span class="cs-picker-tier">T${it._tier}</span>` : '';
+        // 🆕 2026-05-07 type 標籤（布/皮/板/盾/掛）
+        const typeTag = _getArmorTypeTag(it.id);
         const statsHtml = _formatItemStats(it);
         return `
           <div class="cs-picker-item ${equipped ? 'equipped' : ''}" data-item="${it.id}" title="${_buildItemTooltip(it)}">
-            <div class="cs-picker-name">${tierTag}${it.name}${equipped ? '<span class="eq-tag">裝備中</span>' : ''}</div>
+            <div class="cs-picker-name">${typeTag}${tierTag}${it.name}${equipped ? '<span class="eq-tag">裝備中</span>' : ''}</div>
             <div class="cs-picker-stats">${statsHtml}</div>
             <div class="cs-picker-desc">${it.desc || ''}</div>
           </div>`;

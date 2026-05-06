@@ -496,11 +496,18 @@ const LordEvents = (() => {
           if (typeof Moral !== 'undefined' && Moral.push) {
             Moral.push('patience', 'positive');
           }
+          // 🆕 2026-05-07 P1C-5：瓦倫戲後接凱德相認場景（如果條件符合）
+          if (typeof KadeEvents !== 'undefined' && KadeEvents.tryDay80Recognition) {
+            setTimeout(() => KadeEvents.tryDay80Recognition(), 800);
+          }
         },
       });
     } else {
       lines.forEach(l => _log(l.speaker ? `${l.speaker}：${l.text}` : l.text, '#888', false));
       Flags.set('lord_self_glorification_witnessed', true);
+      if (typeof KadeEvents !== 'undefined' && KadeEvents.tryDay80Recognition) {
+        KadeEvents.tryDay80Recognition();
+      }
     }
   }
 
