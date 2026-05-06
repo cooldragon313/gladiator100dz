@@ -345,6 +345,22 @@ function TB_calcDerived(unit) {
     }
   }
 
+  // 🆕 2026-05-08 詞綴系統 — 武器/護甲詞綴的被動加成
+  //   主手武器詞綴 → ATK/ACC/CRT/SPD/PEN/CDMG
+  //   主護甲詞綴 → DEF/EVA/DMG_REDUCE
+  //   副手詞綴 → 跟主手/盾的類別匹配
+  let _affixBonus = { ATK:0, ACC:0, CRT:0, SPD:0, PEN:0, CDMG:0, DEF:0, EVA:0, DMG_REDUCE:0 };
+  if (typeof Affixes !== 'undefined' && Affixes.computePassiveBonus) {
+    if (Array.isArray(unit.weaponAffixes) && unit.weaponAffixes.length > 0) {
+      const wb = Affixes.computePassiveBonus(unit.weaponAffixes);
+      Object.keys(_affixBonus).forEach(k => _affixBonus[k] += wb[k] || 0);
+    }
+    if (Array.isArray(unit.armorAffixes) && unit.armorAffixes.length > 0) {
+      const ab = Affixes.computePassiveBonus(unit.armorAffixes);
+      Object.keys(_affixBonus).forEach(k => _affixBonus[k] += ab[k] || 0);
+    }
+  }
+
   // ── 副手判定 ──────────────────────────────────────────
   const offId = unit.offhandId || unit.shieldId || 'none';
   const isOffhandShield = (offId !== 'none') && !!TB_SHIELDS[offId];
@@ -405,17 +421,17 @@ function TB_calcDerived(unit) {
   const aS = S+(af.STR||0)+gearBonus.STR, aD = D+(af.DEX||0)+gearBonus.DEX, aC = C+(af.CON||0)+gearBonus.CON,
         aA = A+(af.AGI||0)+gearBonus.AGI, aW = W+(af.WIL||0)+gearBonus.WIL, aL = L+(af.LUK||0)+gearBonus.LUK;
 
-  let ATK  = Math.round(1.5*aS + 0.5*aD + w.ATK  + (af.ATK||0) + gearBonus.ATK);
-  let DEF  = Math.round(1.5*aC + 0.5*aS + ar.DEF + sh.DEF + accDEF);   // 🆕 +護飾 DEF
-  let ACC  = Math.min(92, Math.round(60 + 0.5*aD + 0.25*aL + (w.ACC||0) + (af.ACC||0) + gearBonus.ACC));
+  let ATK  = Math.round(1.5*aS + 0.5*aD + w.ATK  + (af.ATK||0) + gearBonus.ATK + _affixBonus.ATK);
+  let DEF  = Math.round(1.5*aC + 0.5*aS + ar.DEF + sh.DEF + accDEF + _affixBonus.DEF);   // 🆕 +護飾 DEF + 詞綴
+  let ACC  = Math.min(92, Math.round(60 + 0.5*aD + 0.25*aL + (w.ACC||0) + (af.ACC||0) + gearBonus.ACC + _affixBonus.ACC));
   // 🆕 2026-04-23 Sprint 2：CRT cap 75 → 95
-  let CRT  = Math.min(95,  Math.round(0.25*aD + 0.5*aL + w.CRT + (af.CRT||0) + gearBonus.CRT));
-  let CDMG = Math.min(300, Math.round(150 + 0.5*aD + 0.3*aL + 0.5*aW + (w.CDMG||0) + (af.CDMG||0) + gearBonus.CDMG));
-  let PEN  = Math.min(75,  Math.round(0.5*aD + 0.5*aS + w.PEN + (af.PEN||0) + gearBonus.PEN));
+  let CRT  = Math.min(95,  Math.round(0.25*aD + 0.5*aL + w.CRT + (af.CRT||0) + gearBonus.CRT + _affixBonus.CRT));
+  let CDMG = Math.min(300, Math.round(150 + 0.5*aD + 0.3*aL + 0.5*aW + (w.CDMG||0) + (af.CDMG||0) + gearBonus.CDMG + _affixBonus.CDMG));
+  let PEN  = Math.min(75,  Math.round(0.5*aD + 0.5*aS + w.PEN + (af.PEN||0) + gearBonus.PEN + _affixBonus.PEN));
   let BLK  = Math.min(75,  Math.round(0.5*aC + sh.BLK + (af.BLK||0) + accBLK));          // 格擋觸發率%
   let BpWr = Math.min(85,  Math.round(0.5*aS + sh.BLK * 1.5 + (af.BpWr||0)));  // 格擋減傷率%
-  let EVA  = Math.min(95,  Math.round(2*aA + 0.5*aL + ar.EVA + (af.EVA||0) + accEVA));   // 🆕 +護飾 EVA
-  let SPD  = Math.round(0.75*aA + 0.25*aD + w.SPD + ar.SPD + (af.SPD||0) + accSPD);      // 🆕 +護飾 SPD
+  let EVA  = Math.min(95,  Math.round(2*aA + 0.5*aL + ar.EVA + (af.EVA||0) + accEVA + _affixBonus.EVA));   // 🆕 +護飾 EVA + 詞綴
+  let SPD  = Math.round(0.75*aA + 0.25*aD + w.SPD + ar.SPD + (af.SPD||0) + accSPD + _affixBonus.SPD);      // 🆕 +護飾 SPD + 詞綴
 
   // ── 雙持修正 ──────────────────────────────────────────
   if (isDualWield && offW) {

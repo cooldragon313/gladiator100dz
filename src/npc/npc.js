@@ -951,6 +951,15 @@ const teammates = (() => {
       },
       // 🆕 2026-05-07 E-6：鳶尾紋飾辨認（梅拉廚房記憶版）
       storyReveals: [
+        // 🆕 2026-05-08 一般 flavor 4 階段
+        { id: 'mela_kitchen', type: 'flavor', affection: 15,
+          text: '廚房長。她從不主動跟你講話、但你的飯總是稍微多一勺。' },
+        { id: 'mela_smile',   type: 'flavor', affection: 30,
+          text: '她開始對你笑了。「孩子⋯⋯多吃點、別餓壞了。」' },
+        { id: 'mela_sneak',   type: 'flavor', affection: 50,
+          text: '她偶爾把麵包塞進你口袋、眼神四處飄。「⋯⋯別說是我給的。」' },
+        { id: 'mela_mother',  type: 'flavor', affection: 70,
+          text: '她叫你「我的孩子」。她曾經有過孩子的眼神。' },
         {
           id: 'mela_iris_recognize', type: 'event', affection: 50,
           chance: 0.50, onceOnly: true,
@@ -987,6 +996,19 @@ const teammates = (() => {
       // 🆕 D.19：精算的主人 — 最愛能賺錢的殘忍鐵血，最厭軟弱的膽小
       likedTraits:    { cruel:3, reliable:3, iron_will:2, loyal:1 },
       dislikedTraits: { coward:3, merciful:2, opportunist:2, impulsive:1 },
+      // 🆕 2026-05-08：5 階段 flavor（玩家好感升、卡片描述進化）
+      storyReveals: [
+        { id: 'master_distant',     type: 'flavor', affection: 0,
+          text: '他遠遠看著你訓練、像在估算一件貨物的價值。' },
+        { id: 'master_notice',      type: 'flavor', affection: 30,
+          text: '他開始記住你的名字了。每次你打贏、他都會在帳本上劃幾個圈。' },
+        { id: 'master_invest',      type: 'flavor', affection: 50,
+          text: '他願意花錢買裝備給你。對他來說、這是「投資」。' },
+        { id: 'master_pride',       type: 'flavor', affection: 70,
+          text: '他在宴會上提到你的時候、會多停一秒。對其他主人說：「⋯⋯我這的小子。」' },
+        { id: 'master_signature',   type: 'flavor', affection: 90,
+          text: '他叫你過去喝酒了。不是吩咐——是真的喝酒。「⋯⋯你是我招牌。」他從沒對誰講過這個詞。' },
+      ],
     },
 
     masterServant: {
@@ -1000,6 +1022,17 @@ const teammates = (() => {
       // 🆕 D.19：侍從鏡像主人的價值觀，強度稍弱
       likedTraits:    { reliable:2, loyal:2, humble:1 },
       dislikedTraits: { coward:2, impulsive:1, opportunist:1 },
+      // 🆕 2026-05-08：4 階段 flavor（鏡像主人態度）
+      storyReveals: [
+        { id: 'servant_eyes',       type: 'flavor', affection: 0,
+          text: '他從袖子裡盯著你。每天都在盯。' },
+        { id: 'servant_hesitate',   type: 'flavor', affection: 30,
+          text: '他偶爾路過你身邊、看你一眼、欲言又止。「⋯⋯主人最近常提您。」' },
+        { id: 'servant_friendly',   type: 'flavor', affection: 50,
+          text: '他開始用「您」稱呼你了。鞭子也越來越少從他袖子裡出來。' },
+        { id: 'servant_flatter',    type: 'flavor', affection: 70,
+          text: '他偷偷塞給你梅拉的麵包、還眨眼。「⋯⋯這事不用提。是我自己想的。」' },
+      ],
     },
 
     // 🆕 2026-05-07 P2-1：蓋烏斯 — 隔壁訓練所「維努斯場」主人
@@ -1017,6 +1050,17 @@ const teammates = (() => {
       likedTraits:    { opportunist:3, prideful:2, cruel:1 },
       dislikedTraits: { humble:2, merciful:2, kindness:2 },
       background: '阿圖斯 30 年青梅竹馬。維努斯場規格高於阿圖斯場、近 5 年大會冠軍幾乎全包。對阿圖斯：公開親兄弟、私下小動作。對提圖斯：拼命奉承但被冷待 → 焦躁。',
+      // 🆕 2026-05-08：4 階段 flavor
+      storyReveals: [
+        { id: 'gaius_smiling',  type: 'flavor', affection: -100,
+          text: '他笑著看你、眼神飄到別處。永遠拖著「⋯⋯啊」、像不經意。' },
+        { id: 'gaius_estimate', type: 'flavor', affection: -50,
+          text: '他開始記住你了。打了贏的場次他會皺一下眉、像有人欠他錢。' },
+        { id: 'gaius_taunt',    type: 'flavor', affection: -20,
+          text: '他在阿圖斯耳邊低語、那笑容是給你看的。「⋯⋯阿圖斯啊、你這寵物挺有戲。」' },
+        { id: 'gaius_target',   type: 'flavor', affection: 0,
+          text: '他對你異常客氣了。但你知道——他客氣的時候、暗算來得最快。' },
+      ],
     },
 
     // 🆕 2026-05-07 P2-2：維努斯場 6 NPC（4 討厭鬼 + 2 招敵候選）
@@ -1027,6 +1071,12 @@ const teammates = (() => {
       desc: '維努斯場最自大的人。看不起阿圖斯場、講話從不繞彎子、必出嘲諷對白。',
       baseAffection: -20, personality: 'aggressive', favoredAttr: null,
       likedTraits: { cruel:2, prideful:2 }, dislikedTraits: { kindness:3, humble:2, merciful:1 },
+      storyReveals: [
+        { id: 'brutus_taunt', type: 'flavor', affection: -100,
+          text: '「你們那邊是垃圾場吧。」 — 他每次見你都這句、從沒變。' },
+        { id: 'brutus_grudge', type: 'flavor', affection: -10,
+          text: '你打贏過他幾次。他不講話了、但眼神更難看。' },
+      ],
     },
     vesnusDecius: {
       id: 'vesnusDecius', name: '德基烏斯',
@@ -1034,6 +1084,12 @@ const teammates = (() => {
       desc: '蓋烏斯的得力幹將。會偷偷下藥、Day 60 雙主人陰招場主使。',
       baseAffection: -15, personality: 'cunning', favoredAttr: null,
       likedTraits: { opportunist:3, prideful:1 }, dislikedTraits: { reliable:2, humble:1 },
+      storyReveals: [
+        { id: 'decius_oily', type: 'flavor', affection: -100,
+          text: '他笑著對你舉杯、酒杯裡是什麼你不確定。' },
+        { id: 'decius_dosed', type: 'flavor', affection: -50,
+          text: '你知道他下過藥。他也知道你知道。但他繼續笑。' },
+      ],
     },
     vesnusFaus: {
       id: 'vesnusFaus', name: '法烏斯',
@@ -1041,6 +1097,12 @@ const teammates = (() => {
       desc: '沉默、冷血、最強的執行者。長劍、不講廢話、上場直接殺。',
       baseAffection: -10, personality: 'aggressive', favoredAttr: null,
       likedTraits: { cruel:3, iron_will:2 }, dislikedTraits: { merciful:3, coward:2 },
+      storyReveals: [
+        { id: 'faus_silent', type: 'flavor', affection: -100,
+          text: '他從來不講話。打你的時候、收劍的時候、走過你身邊的時候——都不講話。' },
+        { id: 'faus_respect', type: 'flavor', affection: 20,
+          text: '他打過你以後、看你的眼神不太一樣。但他還是不講話。' },
+      ],
     },
     vesnusQuinctus: {
       id: 'vesnusQuinctus', name: '奎因圖斯',
@@ -1048,6 +1110,12 @@ const teammates = (() => {
       desc: '浮誇、愛現、總在女性觀眾面前耍帥。雙劍、賽前對群眾鞠躬。',
       baseAffection: -10, personality: 'cunning', favoredAttr: null,
       likedTraits: { prideful:3, opportunist:1 }, dislikedTraits: { humble:3, patient:1 },
+      storyReveals: [
+        { id: 'quinctus_pose', type: 'flavor', affection: -100,
+          text: '他賽前要對群眾鞠躬。賽後也要。摔倒的時候也要。' },
+        { id: 'quinctus_shaken', type: 'flavor', affection: 0,
+          text: '你打贏他之後、他笑容停了一下、又裝回來。但你看到了。' },
+      ],
     },
     // 招敵變友候選（2 個）
     vesnusCaelius: {
@@ -1057,6 +1125,14 @@ const teammates = (() => {
       baseAffection: 0, personality: 'balanced', favoredAttr: null,
       likedTraits: { kindness:2, merciful:2, reliable:1 }, dislikedTraits: { cruel:2, prideful:1 },
       background: '維努斯場明星劍士、蓋烏斯特別不准他學讀寫（怕他知道可以離開）。心裡知道有問題、但沒地方去。是招敵變友的核心候選。',
+      storyReveals: [
+        { id: 'caelius_calm',     type: 'flavor', affection: 0,
+          text: '他看你的眼神平靜、像在估算你能信不能信。' },
+        { id: 'caelius_owe',      type: 'flavor', affection: 30,
+          text: '他開始用「小弟」叫你。「⋯⋯記住、我欠你一次。」' },
+        { id: 'caelius_tied',     type: 'flavor', affection: 60,
+          text: '他暗示蓋烏斯不准他學讀寫。「⋯⋯我猜、是怕我看到外面的世界。」' },
+      ],
     },
     vesnusNox: {
       id: 'vesnusNox', name: '諾克斯',
@@ -1065,6 +1141,14 @@ const teammates = (() => {
       baseAffection: -5, personality: 'balanced', favoredAttr: null,
       likedTraits: { reliable:3, iron_will:2 }, dislikedTraits: { opportunist:3, coward:1 },
       background: '老兵級鬥士、為蓋烏斯打了多年、薪水卻一直被拖欠。內心已經知道蓋烏斯不會兌現承諾、想另謀出路。招敵變友的另一個核心候選。',
+      storyReveals: [
+        { id: 'nox_tired',     type: 'flavor', affection: -100,
+          text: '他喘氣的聲音比講話還大聲。腰似乎不太行了。' },
+        { id: 'nox_complaint', type: 'flavor', affection: 20,
+          text: '「⋯⋯蓋烏斯欠我兩年薪水。你說、我還能撐多久？」' },
+        { id: 'nox_bond',      type: 'flavor', affection: 50,
+          text: '他喝醉時跟你講過。「⋯⋯放過我那次、我記住了。老頭子說話算話。」' },
+      ],
     },
 
     // 🆕 2026-05-07 P1C-1：凱德 — 同村大哥哥、Day 100 故意輸給玩家的「無名者」
@@ -1084,11 +1168,31 @@ const teammates = (() => {
       dislikedTraits: { coward:2, opportunist:2, prideful:1 },
       background: '本名 Kade。跟農家 origin 玩家同村。幾年前被賣（成年後、不是童年）、進別家訓練所、為主人賺大錢、半年到 1 年前掙得自由人身份。但繼續打 — 因為除了打架什麼都不會。靠主人寄錢回家鄉以為家人都好、其實主人吞錢、家鄉幾個月前被滅村也不知道。',
       storyReveals: [
-        // 大部分劇情走 kade_events.js 強制觸發、這裡只放 1-2 個被動 flavor
         {
           id: 'kade_first_seen', type: 'flavor', affection: 0,
           requireFlag: 'kade_first_glimpse_d25',
           text: '春季大會看到的那個披深色斗篷的人。「無名者」。他看了你一眼。',
+        },
+        // 🆕 2026-05-08 補階段 flavor（隨主線推進、卡片描述進化）
+        {
+          id: 'kade_familiar', type: 'flavor', affection: 0,
+          requireFlag: 'kade_second_glimpse_d49',
+          text: '又是他。你第三次看到他了。但他從沒主動講話。',
+        },
+        {
+          id: 'kade_recognized', type: 'flavor', affection: 30,
+          requireFlag: 'kade_recognized',
+          text: '凱哥。同村的、年紀大幾歲的那個。你叫他「凱哥」、他叫你「小弟」。',
+        },
+        {
+          id: 'kade_truth', type: 'flavor', affection: 50,
+          requireFlag: 'kade_truth_known',
+          text: '他這幾年寄回去的錢、養了騙他的主人的小老婆。他知道之後、變得很安靜。',
+        },
+        {
+          id: 'kade_promise', type: 'flavor', affection: 70,
+          requireFlag: 'kade_will_throw_fight',
+          text: '他翻牆來找過你一次。說 Day 100 他會把命給你用。從那天起、你睡不太著。',
         },
       ],
     },

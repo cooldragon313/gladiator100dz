@@ -215,7 +215,97 @@ const CrossLudusEvents = (() => {
     if (newDay !== 35) return false;
     if (Flags.has('coop_fight_d35_done')) return false;
     Flags.set('coop_fight_d35_done', true);
-    _log('（蓋烏斯派法烏斯來、要跟你組隊打第三家。— P2-4 stub、後續實作完整版。）', '#888', false);
+    if (typeof DialogueModal !== 'undefined') {
+      DialogueModal.play([
+        { text: '（侍從匆匆來通報。）' },
+        { speaker: '侍從', text: '⋯⋯今天阿圖斯跟蓋烏斯聯手派人打第三家。你要跟法烏斯組隊。' },
+        { text: '（你跟著走到競技場、看到法烏斯已經在那等了。）' },
+        { speaker: '法烏斯', text: '⋯⋯', color: '#888' },
+        { text: '（他不講話、跟你站一起。）' },
+        { text: '（——P2-4 完整 2v2 戰待後續實作。今天 stub 帶過：兩家聯手贏了。）' },
+      ]);
+    }
+    if (typeof Stats !== 'undefined') {
+      Stats.modFame(15);
+      Stats.modMoney(50);
+    }
+    _log('✦ Day 35 雙主人合作場（stub）：贏了、+15 名聲 +50 銅幣。', '#88dd66', true);
+    return true;
+  }
+
+  // ═══════════════════════════════════════════════════
+  // P2-5 雙主人陰招場（Day 60、stub）
+  // ═══════════════════════════════════════════════════
+  function trySchemerFight(newDay) {
+    if (newDay !== 60) return false;
+    if (Flags.has('schemer_fight_d60_done')) return false;
+    Flags.set('schemer_fight_d60_done', true);
+    if (typeof DialogueModal !== 'undefined') {
+      DialogueModal.play([
+        { text: '（賽前你聽到對手的劍聞起來不太對。）' },
+        { text: '（你看到場邊的德基烏斯笑了一下。）' },
+        { speaker: '德基烏斯', text: '⋯⋯祝你好運啊、阿圖斯這寵物。', color: '#aa7755' },
+        { text: '（戰鬥中你發現對手武器塗了藥、招招要害。）' },
+        { text: '（——這是蓋烏斯下的手。）' },
+        { text: '（——P2-5 完整版待後續：DEBUFF + ChoiceModal 玩家可舉發 / 沉默 / 反陰）' },
+        { text: '（暫時 stub：你撐贏了、知道是德基烏斯下的手。）' },
+      ]);
+    }
+    if (typeof Stats !== 'undefined') Stats.modVital('hp', -25);
+    if (typeof teammates !== 'undefined') teammates.modAffection('vesnusDecius', -20);
+    Flags.set('decius_betrayal_witnessed', true);
+    _log('✦ Day 60 雙主人陰招場（stub）：你被陰但贏了、HP -25。', '#aa7755', true);
+    return true;
+  }
+
+  // ═══════════════════════════════════════════════════
+  // P2-6 互換新兵（Day 50 + Day 80、stub）
+  // ═══════════════════════════════════════════════════
+  function tryCadetSwap(newDay) {
+    if (newDay !== 50 && newDay !== 80) return false;
+    const flag = `cadet_swap_d${newDay}_done`;
+    if (Flags.has(flag)) return false;
+    Flags.set(flag, true);
+    if (typeof DialogueModal !== 'undefined') {
+      DialogueModal.play([
+        { text: '（侍從來通報。）' },
+        { speaker: '侍從', text: `⋯⋯主人吩咐、${newDay === 50 ? '今天' : '今天'}你要去維努斯場一週。蓋烏斯老爺借你「練手」。` },
+        { text: '（你一週後回來。）' },
+        { text: '（——P2-6 完整版待後續：UI 場景切換、見到蓋烏斯本人、知道對方訓練所內幕。）' },
+        { text: '（暫時 stub：你帶回了一些八卦。對維努斯場了解 +1。）' },
+      ]);
+    }
+    if (typeof teammates !== 'undefined') {
+      teammates.modAffection('gaius', 5);   // 蓋烏斯短暫好感（演的）
+      teammates.modAffection('vesnusCaelius', 10);  // 跟招敵候選混熟
+      teammates.modAffection('vesnusNox', 10);
+    }
+    Flags.set(`cadet_swap_${newDay}_intel`, true);
+    _log(`✦ Day ${newDay} 互換新兵（stub）：你回來了、對維努斯場 NPC 好感 +10。`, '#88dd66', true);
+    return true;
+  }
+
+  // ═══════════════════════════════════════════════════
+  // P2-* 公開宴會撕逼（Day 75、stub）
+  // ═══════════════════════════════════════════════════
+  function tryPublicBanquetBicker(newDay) {
+    if (newDay !== 75) return false;
+    if (Flags.has('public_banquet_d75_done')) return false;
+    Flags.set('public_banquet_d75_done', true);
+    if (typeof DialogueModal !== 'undefined') {
+      DialogueModal.play([
+        { text: '（你被選為阿圖斯的隨從、出席公開宴會。）' },
+        { text: '（阿圖斯跟蓋烏斯坐在主席台兩側。）' },
+        { speaker: '蓋烏斯', text: '⋯⋯阿圖斯啊、聽說你最近運氣不錯。', color: '#aa7755' },
+        { speaker: '阿圖斯', text: '⋯⋯比你前年那次「弔唁」運氣好。' },
+        { text: '（場面瞬間冷。其他主人別過頭、假裝沒聽到。）' },
+        { speaker: '蓋烏斯', text: '⋯⋯（他笑了。但眼神冷。）' },
+        { text: '（你聽出來——這是他們 30 年的舊帳。）' },
+        { text: '（——這條八卦你會記住。Phase 2 整合 § 6b.6 領主夜宴。）', color: '#d4af37' },
+      ]);
+    }
+    Flags.set('public_banquet_witnessed', true);
+    _log('✦ Day 75 公開宴會撕逼（stub）：你目擊兩主人 30 年舊帳的暗釘。', '#d4af37', true);
     return true;
   }
 
@@ -226,6 +316,9 @@ const CrossLudusEvents = (() => {
     if (typeof DayCycle === 'undefined' || typeof DayCycle.onDayStart !== 'function') return;
 
     DayCycle.onDayStart('crossLudusEvents', (newDay) => {
+      if (tryPublicBanquetBicker(newDay)) return;
+      if (trySchemerFight(newDay)) return;
+      if (tryCadetSwap(newDay)) return;
       if (tryCooperationFight(newDay)) return;
       if (tryFriendlySparring(newDay)) return;
     }, 50);
@@ -237,6 +330,9 @@ const CrossLudusEvents = (() => {
     init,
     tryFriendlySparring,
     tryCooperationFight,
+    trySchemerFight,
+    tryCadetSwap,
+    tryPublicBanquetBicker,
     // debug
     testSparring: () => _playFriendlySparring(),
   };

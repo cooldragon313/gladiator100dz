@@ -31,9 +31,10 @@ const Armors = {
   },
 
   // ── 皮系 ──────────────────────────────────────────────
-  // 🆕 2026-05-06 平衡 + 加 tier 欄位（族系內進化階、給 UI 顯示用）
-  //   舊：4 / 6 / 10 — studded 跳太大、+4 DEF 只 -1 SPD 比鏈甲還划算 → 沒人穿鏈甲
-  //   新：4 / 7 / 8 + EVA -1 — peak 皮系開始有真實代價、轉板甲身份才明確
+  // 🆕 2026-05-08 二次平衡：user 反饋「T2 T3 差沒多少、扣很多」
+  //   舊：4 / 7 / 8 + (-1 SPD/-1 EVA) — T3 只 +1 DEF 卻罰 -2 = 不划算
+  //   新：4 / 7 / 10 + (-1 SPD/-1 EVA) — T3 +3 DEF 為小罰 = 有感升級
+  //   平衡考量：T3 leather 10 仍 < T1 plate (chainmail) 12、轉板甲身份保留
   leatherArmor: {
     id: 'leatherArmor', name: '皮甲',
     type: 'leather', tier: 1,
@@ -51,9 +52,9 @@ const Armors = {
   studdedLeather: {
     id: 'studdedLeather', name: '鉚釘皮甲',
     type: 'leather', tier: 3,
-    DEF: 8, SPD: -1, EVA: -1,
+    DEF: 10, SPD: -1, EVA: -1,
     desc: '皮革上釘了鐵釘、皮系護甲的頂峰。重量比預期沉、開始考驗你的腿力。',
-    price: 110,
+    price: 130,
   },
 
   // ── 板系 ──────────────────────────────────────────────

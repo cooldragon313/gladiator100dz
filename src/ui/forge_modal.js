@@ -529,6 +529,23 @@ const Forge = (() => {
         _setEntryQuality(entry, nextQuality);
         const costStr = useCredit ? `${goldCost} 金 + 信用 ${COST_UPGRADE_CREDIT}` : `${goldCost} 金`;
         _log(`⚒ 葛拉強化「${entry.baseName}」→ ${qName}（${costStr}）。`, '#d4af37', true);
+        // 🆕 2026-05-08：升級品質自動加詞綴（依新品質允許的 maxAffixCount）
+        //   common→fine 解 1 詞綴 / fine→superb 加到 2 / superb→legendary 加到 3
+        if (typeof Affixes !== 'undefined') {
+          const inv2 = (entry.kind === 'weapon') ? p.weaponInventory : p.armorInventory;
+          const item2 = inv2.find(e => e.id === entry.id);
+          if (item2) {
+            if (!Array.isArray(item2.affixes)) item2.affixes = [];
+            const slot2 = (entry.kind === 'weapon') ? 'weapon' : 'armor';
+            const targetCount = Affixes.maxAffixCountForQuality(nextQuality);
+            while (item2.affixes.length < targetCount) {
+              const newA = Affixes.rollAffix(slot2, Affixes.maxTierForQuality(nextQuality), item2.affixes);
+              if (!newA) break;
+              item2.affixes.push(newA);
+              _log(`⚒ 隨升級獲得詞綴【${Affixes.getName(newA)}】(${Affixes.getDesc(newA)})`, '#d4af37', false);
+            }
+          }
+        }
         // 🆕 2026-04-30 立刻 render + 延遲再 render（防 ChoiceModal close 動畫遮擋）
         _render();
         if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
@@ -586,9 +603,63 @@ const Forge = (() => {
     });
   }
 
+  // 🆕 2026-05-08：詞綴系統開啟（user 要求）
+  //   條件：上紫以上品質 + 葛拉好感 ≥ 70 + 50 金 + 詞綴未滿
+  //   每件武器 max 3 詞綴、護甲 max 2、依品質 maxAffixCountForQuality
   function _doAffix() {
-    // Phase 2 待開放
-    _log('⚒ 葛拉：「⋯⋯詞綴系統還沒開、改天再來。」（Phase 2 待開放）', '#886655', false);
+    if (typeof Affixes === 'undefined') {
+      _log('⚒ 葛拉：「⋯⋯詞綴系統未載入。」', '#886655', false);
+      return;
+    }
+    const entry = _getSelectedEntry();
+    if (!entry) {
+      _log('⚒ 先選一件裝備。', '#886655', false);
+      return;
+    }
+    const aff = (typeof teammates !== 'undefined') ? teammates.getAffection('blacksmithGra') : 0;
+    if (!_canAffix(entry, aff)) {
+      _log(`⚒ 葛拉：「⋯⋯這件還不夠格。需上紫以上 + 我好感 ≥ ${AFFIX_AFFINITY_REQ}。」`, '#886655', false);
+      return;
+    }
+
+    const p = Stats.player;
+    if ((p.money || 0) < COST_AFFIX_GOLD) {
+      _log(`⚒ 葛拉：「⋯⋯詞綴貴。要 ${COST_AFFIX_GOLD} 金。」`, '#cc6633', false);
+      return;
+    }
+
+    // 詞綴上限
+    const slot = (entry.kind === 'weapon') ? 'weapon' : 'armor';
+    const inv = (entry.kind === 'weapon') ? p.weaponInventory : p.armorInventory;
+    const item = inv.find(e => e.id === entry.id);
+    if (!item) return;
+    if (!Array.isArray(item.affixes)) item.affixes = [];
+    const maxCount = Affixes.maxAffixCountForQuality(item.quality);
+    if (item.affixes.length >= maxCount) {
+      _log(`⚒ 葛拉：「⋯⋯這件詞綴已滿（${item.affixes.length}/${maxCount}）。再強化品質才能加。」`, '#886655', false);
+      return;
+    }
+
+    _quickConfirm(
+      `鍛新詞綴：「${entry.baseName}」<br>消耗 ${COST_AFFIX_GOLD} 金<br>葛拉幫你抽一個（隨機）`,
+      () => {
+        // 抽詞綴
+        const maxTier = Affixes.maxTierForQuality(item.quality);
+        const newAffix = Affixes.rollAffix(slot, maxTier, item.affixes);
+        if (!newAffix) {
+          _log('⚒ 葛拉：「⋯⋯沒法再加了、所有詞綴都鍛過了。」', '#886655', false);
+          return;
+        }
+        // 扣錢、加詞綴
+        Stats.modMoney(-COST_AFFIX_GOLD);
+        item.affixes.push(newAffix);
+        const affixName = Affixes.getName(newAffix);
+        const affixDesc = Affixes.getDesc(newAffix);
+        _log(`⚒ 鍛成功！「${entry.baseName}」獲得詞綴【${affixName}】(${affixDesc})。`, '#d4af37', true);
+        _render();
+        if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
+      }
+    );
   }
 
   function _doTrade(kind, itemId) {

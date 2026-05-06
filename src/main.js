@@ -4849,6 +4849,23 @@ const Game = (() => {
     return `<span class="cs-eqslot-type type-${t}">${label}</span> `;
   }
 
+  // 🆕 2026-05-08：詞綴前綴（讀 inventory entry.affixes）
+  function _getAffixPrefix(source, itemId) {
+    if (!itemId || typeof Affixes === 'undefined') return '';
+    const p = Stats.player;
+    if (!p) return '';
+    let inv;
+    if (source === 'weapons' || (source === 'offhand' && Weapons[itemId])) {
+      inv = Array.isArray(p.weaponInventory) ? p.weaponInventory : [];
+    } else {
+      inv = Array.isArray(p.armorInventory) ? p.armorInventory : [];
+    }
+    const e = inv.find(x => x && x.id === itemId);
+    if (!e || !Array.isArray(e.affixes) || e.affixes.length === 0) return '';
+    const prefix = Affixes.formatPrefix(e.affixes);
+    return `<span class="cs-eqslot-affix">${prefix}</span>`;
+  }
+
   function _getEquipmentName(source, itemId) {
     if (!itemId) return '—';
     let baseName, slot, isArmor = false;
@@ -4875,6 +4892,9 @@ const Game = (() => {
     // 🆕 2026-05-07：護甲類型標籤（布/皮/板/盾/掛）
     const typeTag = isArmor ? _getArmorTypeTag(itemId) : '';
 
+    // 🆕 2026-05-08：詞綴前綴（鋒利的、致命的⋯）
+    const affixPrefix = _getAffixPrefix(source, itemId);
+
     // 🆕 2026-04-28 套品質顏色
     if (typeof EquipmentQuality !== 'undefined') {
       // 護飾類用 armorInventory 找品質（getEquippedQuality 要 weapon/armor/offhand 之一）
@@ -4884,9 +4904,9 @@ const Game = (() => {
       } else {
         q = EquipmentQuality.getEquippedQuality(Stats.player, slot);
       }
-      return typeTag + tierTag + EquipmentQuality.formatItemNameHTML(baseName, q);
+      return typeTag + tierTag + affixPrefix + EquipmentQuality.formatItemNameHTML(baseName, q);
     }
-    return typeTag + tierTag + baseName;
+    return typeTag + tierTag + affixPrefix + baseName;
   }
 
   // ── 🆕 Equipment picker inline ─────────────────────
@@ -4930,10 +4950,12 @@ const Game = (() => {
                           ? `<span class="cs-picker-tier">T${it._tier}</span>` : '';
         // 🆕 2026-05-07 type 標籤（布/皮/板/盾/掛）
         const typeTag = _getArmorTypeTag(it.id);
+        // 🆕 2026-05-08 詞綴前綴（鋒利的⋯）
+        const affixPrefix = _getAffixPrefix(slot.source, it.id);
         const statsHtml = _formatItemStats(it);
         return `
           <div class="cs-picker-item ${equipped ? 'equipped' : ''}" data-item="${it.id}" title="${_buildItemTooltip(it)}">
-            <div class="cs-picker-name">${typeTag}${tierTag}${it.name}${equipped ? '<span class="eq-tag">裝備中</span>' : ''}</div>
+            <div class="cs-picker-name">${typeTag}${tierTag}${affixPrefix}${it.name}${equipped ? '<span class="eq-tag">裝備中</span>' : ''}</div>
             <div class="cs-picker-stats">${statsHtml}</div>
             <div class="cs-picker-desc">${it.desc || ''}</div>
           </div>`;

@@ -182,6 +182,19 @@ const Battle = (() => {
   let _playerDelay      = 0;    // 剩餘蓄力 tick 數
   let _playerDelaySkill = null; // 'half_focus' | null
 
+  // 🆕 2026-05-08：取裝備詞綴（給 TB_buildUnit 用）
+  //   slot: 'weapon' / 'armor' / 'offhand'
+  function _getEquippedAffixes(p, slot) {
+    if (!p) return [];
+    let id, inv;
+    if (slot === 'weapon')  { id = p.equippedWeapon;  inv = p.weaponInventory; }
+    else if (slot === 'offhand') { id = p.equippedOffhand; inv = p.weaponInventory; }
+    else /* armor */         { id = p.equippedArmor;   inv = p.armorInventory;  }
+    if (!id || !Array.isArray(inv)) return [];
+    const e = inv.find(x => x && x.id === id);
+    return (e && Array.isArray(e.affixes)) ? e.affixes : [];
+  }
+
   function _routeLabel(r) {
     return { rage:'狂暴', focus:'集中', fury:'怒氣' }[r] || r;
   }
@@ -240,6 +253,9 @@ const Battle = (() => {
       weaponQuality:  (typeof EquipmentQuality !== 'undefined') ? EquipmentQuality.getEquippedQuality(p, 'weapon')  : 'common',
       armorQuality:   (typeof EquipmentQuality !== 'undefined') ? EquipmentQuality.getEquippedQuality(p, 'armor')   : 'common',
       offhandQuality: (typeof EquipmentQuality !== 'undefined') ? EquipmentQuality.getEquippedQuality(p, 'offhand') : 'common',
+      // 🆕 2026-05-08 詞綴（從 inventory entry.affixes 讀）
+      weaponAffixes:  _getEquippedAffixes(p, 'weapon'),
+      armorAffixes:   _getEquippedAffixes(p, 'armor'),
       // 🆕 2026-04-30 護飾類（頭盔/護臂/護腿）— 加進戰鬥派生
       // 🆕 2026-04-29 掛件 (accessory) — 傳家件用、永不淘汰
       helmetId:    p.equippedHelmet    || null,
