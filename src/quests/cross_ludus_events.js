@@ -67,6 +67,29 @@ const CrossLudusEvents = (() => {
         '⋯⋯', // 真的不講話
       ],
     },
+    // 🆕 P2-7：招敵變友候選（凱里烏斯、諾克斯）— 也加進切磋池
+    {
+      npcId: 'vesnusCaelius', name: '凱里烏斯', title: '維努斯場・帥氣劍士',
+      STR: 0.9, DEX: 1.1, CON: 0.8, AGI: 1.0, WIL: 0.9, LUK: 0.8,
+      hpBase: 110,
+      weaponId: 'shortSword', armorId: 'leatherArmor',
+      taunts: [
+        '⋯⋯（他看了你一眼、眼神平靜、沒有惡意。）',
+        '⋯⋯來吧。我也想看看你練的是什麼。',
+        '⋯⋯（他不說廢話、姿勢很穩。）',
+      ],
+    },
+    {
+      npcId: 'vesnusNox', name: '諾克斯', title: '維努斯場・鐵漢老兵',
+      STR: 1.1, DEX: 0.7, CON: 1.2, AGI: 0.6, WIL: 0.9, LUK: 0.5,
+      hpBase: 145,
+      weaponId: 'warHammer', armorId: 'chainmail',
+      taunts: [
+        '⋯⋯老頭子上場、別客氣。',
+        '⋯⋯（他喘了一聲、像是腰不太行。）',
+        '⋯⋯打完讓我回去領薪水。如果蓋烏斯還記得欠我的話。',
+      ],
+    },
   ];
 
   function tryFriendlySparring(newDay) {
@@ -146,6 +169,12 @@ const CrossLudusEvents = (() => {
             { text: '（他撣了撣袍子、轉身就走、沒回頭。）' },
             { speaker: '阿圖斯', text: '⋯⋯不錯。回去訓練。' },
           ]);
+        }
+        // 🆕 P2-7：招敵變友 — 若對手是候選 NPC、嘗試種下種子
+        if (typeof RecruitEnemyQuest !== 'undefined' && RecruitEnemyQuest.trySeedFromSparring) {
+          // 切磋對手目前是布魯圖/法烏斯/奎因圖斯（討厭鬼）— 暫無候選
+          // 但留 hook 給未來擴充（如果切磋對手池加 Caelius/Nox）
+          setTimeout(() => RecruitEnemyQuest.trySeedFromSparring(opp.npcId), 600);
         }
       };
 
