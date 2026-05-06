@@ -117,6 +117,7 @@ const LordEvents = (() => {
         ai: 'aggressive',
         fame: 30,
         fameReward: 50,
+        isBeast: true,       // 🆕 2026-05-07：跳過砍首/饒 ChoiceModal、用獸氣氛
       };
 
       const onWin = () => {

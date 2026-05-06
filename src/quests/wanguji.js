@@ -65,6 +65,7 @@ const WangujiQuest = (() => {
       hpBase: 180,
       weaponId: 'fists', armorId: 'rags',  // 獸 = 無武器無甲
       ai: 'aggressive', fame: 20, fameReward: 25,
+      isBeast: true,       // 🆕 2026-05-07：跳過砍首/饒 ChoiceModal
       _recoverAfter: { hp: 20, stamina: 20 },
     },
     // Wave 5：凱德（故意輸版本、屬性 -20%）

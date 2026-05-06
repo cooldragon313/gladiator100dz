@@ -2286,6 +2286,11 @@ const Battle = (() => {
                    || (won && _isArenaBattle);
 
     const _afterRewardPanel = () => {
+      // 🆕 2026-05-07：獸鬥（白虎/黑豹等）跳過砍首面板、用獸專屬氣氛
+      if (won && _isArenaBattle && _enemy && _enemy._isBeast) {
+        _playBeastVictoryAtmosphere();
+        return;
+      }
       if (won && _isArenaBattle) {
         _showFinishPanel();   // 砍首/踩臉/饒恕
       } else {
@@ -2294,6 +2299,24 @@ const Battle = (() => {
         _showReturnButton();
       }
     };
+
+    // 🆕 2026-05-07：獸鬥勝利氣氛（取代砍首面板）
+    function _playBeastVictoryAtmosphere() {
+      Game.renderAll();
+      _pendingReturnAction = _onWin;
+      _showReturnButton();
+      const beastName = (_enemy && _enemy.name) || '野獸';
+      const lines = [
+        { text: `（${beastName}倒下、不再動。）` },
+        { text: '（觀眾爆。比看到人死還要瘋狂。）' },
+        { text: '（你站在屍體旁、喘氣。手心是血。）' },
+        { text: '（不是人的血。但跟人血味道一樣。）' },
+        { text: '（——這也是一條命。）' },
+      ];
+      if (typeof DialogueModal !== 'undefined') {
+        DialogueModal.play(lines);
+      }
+    }
 
     if (hasReward) {
       setTimeout(() => _showBattleRewardPanel(_rewardData, _afterRewardPanel), 800);
@@ -2994,6 +3017,8 @@ const Battle = (() => {
       fame:         enemyCfg.fame      || 0,
       intimidation: enemyCfg.intimidation || 0,
     });
+    // 🆕 2026-05-07：標記獸鬥（白虎/黑豹等）— 跳過砍首/饒/踩 ChoiceModal、改用獸專屬氣氛
+    _enemy._isBeast = !!enemyCfg.isBeast;
     _active = true;
 
     _showOverlay();
