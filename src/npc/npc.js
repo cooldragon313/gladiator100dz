@@ -872,6 +872,32 @@ const teammates = (() => {
           id: 'overseer_loyal', type: 'flavor', affection: 75,
           text: '塔倫私下叫巴爺去做事——巴爺立刻就去。沒有半句話。他對你說過：「跟著長官混不會吃虧。」',
         },
+        // 🆕 2026-05-07 E-6：鳶尾紋飾辨認（巴爺老兵記憶版）
+        //   觸發：玩家攜帶鳶尾紋飾 + 巴爺好感 ≥ 50 + 一次性
+        //   揭露：30 年前那個對手戴鳶尾紋、姓德拉格、政變沒了
+        {
+          id: 'overseer_iris_recognize', type: 'event', affection: 50,
+          chance: 0.50, onceOnly: true,
+          requireFlag: 'has_dragow_iris',
+          logColor: '#9a8050',
+          text: '巴爺看到你身上的鳶尾紋飾、停了一會。「⋯⋯老兵的東西。30 年前的事。」',
+          dialogueLines: [
+            { text: '（你蹲在訓練場角落綁鞋帶。鳶尾紋飾從衣襟掉出來。）' },
+            { text: '（巴爺剛好走過、停了一會。）' },
+            { speaker: '巴爺', text: '⋯⋯你哪裡來的這個？' },
+            { text: '（你解釋市集那天。）' },
+            { speaker: '巴爺', text: '⋯⋯老兵的東西。' },
+            { speaker: '巴爺', text: '我年輕時在競技場、有個對手戴一樣的紋。' },
+            { speaker: '巴爺', text: '⋯⋯打不死。是真的打不死。' },
+            { speaker: '巴爺', text: '我打過他三次、三次都他贏。' },
+            { speaker: '巴爺', text: '最後一次他傷得很重、退役了。' },
+            { speaker: '巴爺', text: '⋯⋯後來人家說、他姓德拉格。' },
+            { speaker: '巴爺', text: '30 年前那家貴族、政變的時候沒了。' },
+            { speaker: '巴爺', text: '⋯⋯如果你哪天遇到一個老角鬥士戴這個、你就知道是誰。' },
+            { text: '（他點點頭、轉身走了。）' },
+            { text: '（你看著鳶尾紋飾、覺得它變重了一點。）', color: '#d4af37' },
+          ],
+        },
       ],
     },
 
@@ -923,6 +949,31 @@ const teammates = (() => {
         allies:   ['orlan', 'doctorMo', 'cassius'],
         enemies:  ['officer', 'hector'],
       },
+      // 🆕 2026-05-07 E-6：鳶尾紋飾辨認（梅拉廚房記憶版）
+      storyReveals: [
+        {
+          id: 'mela_iris_recognize', type: 'event', affection: 50,
+          chance: 0.50, onceOnly: true,
+          requireFlag: 'has_dragow_iris',
+          logColor: '#9dbf80',
+          text: '梅拉看到你的鳶尾紋飾。「⋯⋯主人家庫房裡見過。但很多年前的事了。」',
+          dialogueLines: [
+            { text: '（你拿著飯碗排隊、鳶尾紋飾從衣襟露出。）' },
+            { text: '（梅拉的眼神停了一下。）' },
+            { speaker: '梅拉', text: '⋯⋯這塊飾品。' },
+            { text: '（她從你身上拿起鳶尾紋飾、放在掌心看。）' },
+            { speaker: '梅拉', text: '⋯⋯主人家庫房裡也有類似的。' },
+            { speaker: '梅拉', text: '但比這個舊很多、塵埃積得很厚。' },
+            { text: '（她抬頭看你、眼神複雜。）' },
+            { speaker: '梅拉', text: '⋯⋯主人收過很多老貴族家的東西。' },
+            { speaker: '梅拉', text: '不是搶來的、是收的。商人嘛、都這樣。' },
+            { speaker: '梅拉', text: '⋯⋯但你別到處秀。' },
+            { speaker: '梅拉', text: '有些人看到、不會高興。' },
+            { text: '（她把飾品塞回你手裡、轉身回廚房。）' },
+            { text: '（——「不會高興的人」⋯⋯她指誰？）', color: '#888' },
+          ],
+        },
+      ],
     },
 
     masterArtus: {
@@ -1111,6 +1162,35 @@ const teammates = (() => {
             { speaker: '老默', text: '還有事情要做。' },
             { text: '他轉過身。你看見他的手背在微微顫動。' },
             { text: '你假裝沒看見。' },
+          ],
+        },
+        // 🆕 2026-05-07 E-6：鳶尾紋飾辨認（老默北境戰場記憶版）
+        //   觸發：玩家攜帶鳶尾紋飾 + 老默好感 ≥ 30 + 一次性
+        //   揭露：北境治過一個鳶尾紋的隊、那批人後來全沒了（30 年前政變受害方）
+        {
+          id: 'mo_iris_recognize', type: 'event', affection: 30,
+          chance: 0.50, onceOnly: true,
+          requireFlag: 'has_dragow_iris',
+          logColor: '#8899aa',
+          text: '老默看到你的鳶尾紋飾、眼神不一樣了。「⋯⋯我在北境治過一個鳶尾紋的隊、那批人後來全沒了。」',
+          dialogueLines: [
+            { text: '（老默正在整理藥瓶。你的鳶尾紋飾從衣襟掉出來。）' },
+            { text: '（他看了一眼、停下手中動作。）' },
+            { speaker: '老默', text: '⋯⋯這個。' },
+            { speaker: '老默', text: '⋯⋯你從哪裡得來的？' },
+            { text: '（你解釋市集那天。）' },
+            { text: '（老默坐下來、慢慢倒了一杯水給自己。）' },
+            { speaker: '老默', text: '⋯⋯我在北境的時候、治過一個戴這紋飾的隊。' },
+            { speaker: '老默', text: '一群老兵、紀律好、護著一個年輕人。' },
+            { speaker: '老默', text: '⋯⋯那年輕人傷得很重、我救了他。' },
+            { speaker: '老默', text: '⋯⋯但回到首都後、整個隊都沒了。' },
+            { speaker: '老默', text: '官方說是「邊境失蹤」。' },
+            { speaker: '老默', text: '我那時候才知道、政變從首都打到邊境。' },
+            { speaker: '老默', text: '⋯⋯那年輕人活下來沒、我不知道。' },
+            { text: '（他別過頭、看牆。）' },
+            { speaker: '老默', text: '⋯⋯你撿到的這個、是個倖存者的東西。' },
+            { speaker: '老默', text: '⋯⋯收好。別到處秀。' },
+            { text: '（你看著鳶尾紋飾、第一次覺得它沉。）', color: '#d4af37' },
           ],
         },
       ],

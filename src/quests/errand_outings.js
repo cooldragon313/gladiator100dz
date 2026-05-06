@@ -282,6 +282,11 @@ const ErrandOutings = (() => {
 
   // ─── 階段 2：路上閒聊（50% 觸發）+ 中段事件（30% 機率）─
   function _phasePathChatter(src) {
+    // 🆕 E-8 防逃機制：標記今天有同行者見證
+    //   未來「衝動逃跑」類事件可讀此 flag 判定可不可逃
+    Flags.set('errand_companion_witnessing', src.companionName || true);
+    Flags.set(`errand_companion_today_${src.id}`, true);
+
     const chatter50 = Math.random() < 0.50;
 
     // 高好感才解鎖的對白（看哪個 NPC）
@@ -293,6 +298,20 @@ const ErrandOutings = (() => {
       } else if (src.pathChatter) {
         src.pathChatter.forEach(l => lines.push(l));
       }
+    }
+
+    // 🆕 E-8 narrative：衝動 / prideful 玩家有 30% 機率閃過「為什麼不跑」的念頭
+    //   只是內心戲、不能真逃 — 同行者 + 城裡守衛 = 社會壓力防線
+    const p = Stats.player;
+    const isImpulsive = Array.isArray(p?.traits) && (p.traits.includes('impulsive') || p.traits.includes('prideful'));
+    if (isImpulsive && Math.random() < 0.30) {
+      lines.push({ text: '⋯⋯' });
+      lines.push({ text: '（人潮這麼擠。你可以閃進那條巷子、消失。）', color: '#888' });
+      lines.push({ text: '（——你回頭看了一眼。）', color: '#888' });
+      lines.push({ text: `（${src.companionName} 走在前面、沒回頭。）`, color: '#888' });
+      lines.push({ text: '（——但你沒動。）', color: '#888' });
+      lines.push({ text: '（你沒地方去。家鄉沒了。城裡守衛很多。）', color: '#666' });
+      lines.push({ text: '（你跟上去。）' });
     }
 
     if (lines.length === 0) {
@@ -333,6 +352,8 @@ const ErrandOutings = (() => {
   // ─── 階段 4：回程 + 獎勵 ───────────────────────
   function _phaseReturn(src) {
     _giveRewards(src);
+    // 🆕 E-8：清除 witnessing flag（回到訓練場、同行者解散）
+    Flags.set('errand_companion_witnessing', false);
     if (typeof DialogueModal !== 'undefined') {
       DialogueModal.play([
         { text: `（${src.companionName} 點點頭。「回去吧。」）` },
@@ -367,10 +388,10 @@ const ErrandOutings = (() => {
     }
     Flags.set('errand_child_bump_done', true);
 
-    // E-3：50% 機率有護衛（占位、E-3 完整實作）
+    // 50% 機率有護衛（E-3 / E-4 / E-7）
     const hasGuards = Math.random() < 0.50;
-    if (hasGuards && typeof ErrandOutings._playGuardSplit === 'function') {
-      ErrandOutings._playGuardSplit(src, onComplete);
+    if (hasGuards) {
+      _playGuardSplit(src, onComplete);
       return;
     }
 
@@ -504,6 +525,295 @@ const ErrandOutings = (() => {
           Effects.apply(effects, { source: 'errand:child_bump:' + path });
         }
         if (postLog) _log(postLog, path === 'merciful' ? '#d4af37' : (path === 'cruel' ? '#aa5050' : '#888'), true);
+        onComplete && onComplete();
+      },
+    });
+  }
+
+  // ═══════════════════════════════════════════════════
+  // E-3 / E-4 / E-7：護衛分支（50% 機率小孩家有護衛）
+  // ═══════════════════════════════════════════════════
+  // 設計：[errand-outings.md § 4 路徑 2](../../docs/quests/errand-outings.md)
+  //   小孩家有錢 → 兩個壯漢護衛擋下 → ChoiceModal
+  //   選項：道歉 / 幹架 / 逃（AGI ≥ 25 才出現）
+  //
+  // 40% 機率小孩是維努斯場主人家的（蓋烏斯遠親 / 私生子）→ E-7 boss 戰
+  // ═══════════════════════════════════════════════════
+  function _playGuardSplit(src, onComplete) {
+    // 40% 機率撞到的是維努斯場小孩
+    const isVesnus = Math.random() < 0.40;
+    if (isVesnus) Flags.set('errand_bumped_vesnus_kid', true);
+
+    const intro = [
+      ..._CHILD_BUMP_INTRO,
+      // 護衛擋下
+      { text: '（兩個壯漢從人群中分開、擋在你前面。）', effect: 'shake' },
+      { speaker: '護衛', text: '⋯⋯你瞎了？', color: '#cc6666' },
+      { speaker: '護衛', text: '⋯⋯小公子、有沒有事？' },
+      { text: '（小孩在哭、母親從後方走出來、皺眉看你。）' },
+      isVesnus
+        ? { text: '（你看到母親身後跟著一個熟臉的人——維努斯場的某人。）', color: '#aa7755' }
+        : { text: '（這家人穿得不錯。看起來是城裡的有錢人。）' },
+    ];
+
+    const p = Stats.player;
+    const playerAGI = (typeof Stats.eff === 'function') ? Stats.eff('AGI') : (p?.AGI || 10);
+    const playerSTR = (typeof Stats.eff === 'function') ? Stats.eff('STR') : (p?.STR || 10);
+    const isCruel    = Array.isArray(p.traits) && p.traits.includes('cruel');
+    const isPrideful = Array.isArray(p.traits) && p.traits.includes('prideful');
+    const canFight = playerSTR >= 20 || isCruel || isPrideful;
+    const canFlee  = playerAGI >= 25;
+
+    const choices = [
+      { id: 'apologize', label: '低頭道歉', hint: '不爽但無事、走完差事' },
+    ];
+    if (canFight) {
+      choices.push({
+        id: 'fight',
+        label: '幹架（不爽）',
+        hint: isVesnus
+          ? '對方似乎是維努斯場的人 — 風險高、但贏了給主人面子'
+          : '一打三護衛、看你能不能扛',
+      });
+    }
+    if (canFlee) {
+      choices.push({
+        id: 'flee',
+        label: `逃（AGI ${playerAGI}）`,
+        hint: 'AGI ≥ 40 安全跑掉、AGI 低被抓回',
+      });
+    }
+
+    const showChoice = () => {
+      if (typeof ChoiceModal === 'undefined') {
+        // fallback: 道歉
+        _resolveGuardApologize(src, onComplete);
+        return;
+      }
+      ChoiceModal.show({
+        id: 'errand_guard_split',
+        icon: '⚔',
+        title: '兩個護衛擋在你前面',
+        body: '小孩在哭、母親在看、護衛眼神不友善。你怎麼辦？',
+        forced: true,
+        choices,
+      }, {
+        onChoose: (choiceId) => {
+          if (choiceId === 'fight') _resolveGuardFight(src, isVesnus, onComplete);
+          else if (choiceId === 'flee') _resolveGuardFlee(src, playerAGI, onComplete);
+          else _resolveGuardApologize(src, onComplete);
+        },
+      });
+    };
+
+    if (typeof DialogueModal !== 'undefined') {
+      DialogueModal.play(intro, { onComplete: showChoice });
+    } else {
+      showChoice();
+    }
+  }
+
+  // ─── 道歉路徑 ─────────────────────────────
+  function _resolveGuardApologize(src, onComplete) {
+    const lines = [
+      { text: '（你低頭。）' },
+      { speaker: '玩家', text: '⋯⋯我沒看到。對不起。' },
+      { text: '（護衛冷哼一聲。）' },
+      { speaker: '護衛', text: '⋯⋯下次小心點。' },
+      { text: '（他們帶著小孩跟母親離開。）' },
+      { text: '（——你看到母親回頭看了你一眼、欲言又止。）' },
+      { speaker: src.companionName, text: '⋯⋯走吧、回家了。' },
+    ];
+    DialogueModal.play(lines, {
+      onComplete: () => {
+        if (typeof Stats !== 'undefined') Stats.modVital('mood', -3);
+        if (typeof Moral !== 'undefined' && Moral.push) Moral.push('pride', 'positive'); // 謙遜
+        _log('（你低了頭。心情有點悶、但人沒事。）', '#888', false);
+        onComplete && onComplete();
+      },
+    });
+  }
+
+  // ─── 幹架路徑（E-4 / E-7）────────────────────
+  function _resolveGuardFight(src, isVesnus, onComplete) {
+    const lines = [
+      { text: '（你抓緊腰間。）' },
+      { speaker: '玩家', text: '⋯⋯誰瞎了？' },
+      { text: '（護衛眼睛一瞇。）' },
+      { speaker: '護衛', text: '⋯⋯有趣。' },
+      { text: '（旁邊的人群開始散開。）' },
+      { speaker: '護衛', text: '跟我走一趟。後巷說。' },
+    ];
+    DialogueModal.play(lines, {
+      onComplete: () => _startGuardBattle(src, isVesnus, onComplete),
+    });
+  }
+
+  function _startGuardBattle(src, isVesnus, onComplete) {
+    if (typeof Battle === 'undefined' || !Battle.startFromConfig) {
+      _log('[ErrandOutings] Battle 不可用、跳過戰鬥。', '#888', false);
+      onComplete && onComplete();
+      return;
+    }
+
+    // E-7 維努斯場小孩 → 1v1 vs 維努斯場某招牌（隨機）
+    // 一般護衛 → 1v3 中階（用單個 STR 中等的護衛代替、簡化版多人戰）
+    let opponentCfg;
+    if (isVesnus) {
+      // 隨機抽維努斯場 4 討厭鬼之一作為「小孩的舅舅 / 護衛長」
+      const vesnus = [
+        { name: '布魯圖', title: '維努斯場・大斧手', STR: 55, DEX: 30, CON: 50, AGI: 25, WIL: 30, LUK: 10,
+          hpBase: 220, weaponId: 'heavyAxe', armorId: 'chainmail' },
+        { name: '法烏斯', title: '維努斯場・冷血', STR: 50, DEX: 40, CON: 40, AGI: 35, WIL: 40, LUK: 10,
+          hpBase: 200, weaponId: 'longSword', armorId: 'chainmail' },
+        { name: '奎因圖斯', title: '維努斯場・耍帥男', STR: 45, DEX: 50, CON: 30, AGI: 50, WIL: 30, LUK: 15,
+          hpBase: 170, weaponId: 'shortSword', armorId: 'studdedLeather' },
+      ];
+      opponentCfg = vesnus[Math.floor(Math.random() * vesnus.length)];
+      opponentCfg.fame = 25;
+      opponentCfg.fameReward = 30;
+    } else {
+      // 一般有錢人家護衛（單體強化版代替 1v3）
+      opponentCfg = {
+        name: '護衛長', title: '城裡有錢人家護衛',
+        STR: 35, DEX: 30, CON: 35, AGI: 25, WIL: 25, LUK: 10,
+        hpBase: 160, weaponId: 'shortSword', armorId: 'leatherArmor', shieldId: 'woodShield',
+        fame: 12, fameReward: 15,
+      };
+    }
+    opponentCfg.ai = 'aggressive';
+
+    const onWin = () => {
+      _log(`✦ 你打倒了 ${opponentCfg.name}。觀眾散去、護衛們扶他離開。`, '#88dd66', true);
+
+      // 戰利品（不剝光對方、就是「掉一份」）
+      _grantBattleLoot(opponentCfg, isVesnus);
+
+      // 主人反應 — 看好感
+      const masterAff = (typeof teammates !== 'undefined') ? teammates.getAffection('masterArtus') : 0;
+      const isVesnusVictoryBig = isVesnus && masterAff >= 50;
+
+      if (isVesnusVictoryBig) {
+        // 主人有面子、加碼獎勵
+        if (typeof DialogueModal !== 'undefined') {
+          DialogueModal.play([
+            { text: '（晚上你被叫到主人廳。）' },
+            { speaker: '阿圖斯', text: '⋯⋯聽說你今天打贏了維努斯場的人？' },
+            { text: '（他笑了。第一次看到他這樣笑。）' },
+            { speaker: '阿圖斯', text: '⋯⋯好。' },
+            { speaker: '阿圖斯', text: '蓋烏斯那老狐狸這幾年壓著我、終於有一次扳回來。' },
+            { speaker: '阿圖斯', text: '⋯⋯今晚加菜。明天你休息一天。' },
+          ], { onComplete: () => onComplete && onComplete() });
+        } else {
+          onComplete && onComplete();
+        }
+        if (typeof Stats !== 'undefined') {
+          Stats.modMoney(20);
+          Stats.modVital('mood', 15);
+        }
+        if (typeof teammates !== 'undefined') teammates.modAffection('masterArtus', 5);
+        Flags.set('errand_vesnus_victory', true);
+        Flags.set('rest_day_granted', true);
+      } else {
+        // 主人不爽（公然鬥毆藏不住）
+        if (typeof DialogueModal !== 'undefined') {
+          DialogueModal.play([
+            { text: '（晚上侍從來。語氣冷。）' },
+            { speaker: '侍從', text: '⋯⋯主人聽說你今天在市集打架。' },
+            { speaker: '侍從', text: '⋯⋯主人說、罰款。下次別再這樣。' },
+          ], { onComplete: () => onComplete && onComplete() });
+        } else {
+          onComplete && onComplete();
+        }
+        if (typeof Stats !== 'undefined') Stats.modMoney(-50);
+        if (typeof teammates !== 'undefined') teammates.modAffection('masterArtus', -3);
+      }
+
+      // 推 pride 軸
+      if (typeof Moral !== 'undefined' && Moral.push) Moral.push('pride', 'negative');
+    };
+
+    const onLose = () => {
+      _log('✦ 你被打倒在後巷。重傷退場。', '#aa3030', true);
+      if (typeof Stats !== 'undefined') {
+        Stats.modVital('hp', -50);
+        Stats.modVital('stamina', -50);
+        Stats.modVital('mood', -30);
+        Stats.modMoney(-100);
+      }
+      if (typeof teammates !== 'undefined') teammates.modAffection('masterArtus', -10);
+      _log('（主人破費保你出來。你欠他一筆。）', '#888', false);
+      onComplete && onComplete();
+    };
+
+    Battle.startFromConfig(opponentCfg, onWin, onLose);
+  }
+
+  // ─── 戰利品掉落 ───────────────────────────
+  function _grantBattleLoot(opponentCfg, isVesnus) {
+    const p = Stats.player;
+    if (!p) return;
+
+    if (isVesnus) {
+      // 維努斯場招牌 → 給 T2 武器或精品護甲
+      const lootPool = ['shortSword_t2', 'longSword_t2', 'heavyAxe_t2'];
+      const loot = lootPool[Math.floor(Math.random() * lootPool.length)];
+      if (!Array.isArray(p.weaponInventory)) p.weaponInventory = [];
+      p.weaponInventory.push({ id: loot, tier: 1, quality: 'fine' });
+      _log(`✦ 戰利品：${loot}（精品）。維努斯場一定氣壞了。`, '#d4af37', true);
+    } else {
+      // 一般護衛 → 普通武器或皮甲
+      const lootPool = [
+        { id: 'shortSword', kind: 'weapon' },
+        { id: 'leatherArmor', kind: 'armor' },
+        { id: 'woodShield', kind: 'armor' },
+      ];
+      const loot = lootPool[Math.floor(Math.random() * lootPool.length)];
+      if (loot.kind === 'weapon') {
+        if (!Array.isArray(p.weaponInventory)) p.weaponInventory = [];
+        p.weaponInventory.push({ id: loot.id, tier: 1, quality: 'common' });
+      } else {
+        if (!Array.isArray(p.armorInventory)) p.armorInventory = [];
+        p.armorInventory.push({ id: loot.id, tier: 1, quality: 'common' });
+      }
+      _log(`✦ 戰利品：${loot.id}（普品）。`, '#88dd66', true);
+    }
+    if (typeof Stats !== 'undefined') Stats.modMoney(30);
+  }
+
+  // ─── 逃跑路徑 ─────────────────────────────
+  function _resolveGuardFlee(src, playerAGI, onComplete) {
+    const success = playerAGI >= 40;
+    const lines = success
+      ? [
+          { text: '（你轉身、衝進人群。）' },
+          { speaker: '護衛', text: '站住——!', color: '#cc6666' },
+          { text: '（你閃身、翻牆、跳屋頂。）' },
+          { text: '（衛兵追不上。）' },
+          { text: '（你回到主人家、心臟還在跳。）' },
+          { speaker: src.companionName, text: '⋯⋯你瘋了。下次別這樣。' },
+          { text: '（——但他沒打小報告。）', color: '#888' },
+        ]
+      : [
+          { text: '（你轉身要跑、但腿不夠快。）' },
+          { speaker: '護衛', text: '抓住他——!', color: '#cc6666' },
+          { text: '（兩條街後、你被衛兵抓回。）' },
+          { text: '（他們把你丟回主人家。）' },
+          { speaker: '阿圖斯', text: '⋯⋯讓我多花錢。', color: '#666' },
+        ];
+    DialogueModal.play(lines, {
+      onComplete: () => {
+        if (success) {
+          if (typeof Stats !== 'undefined') Stats.modVital('mood', -5);
+          if (typeof Moral !== 'undefined' && Moral.push) Moral.push('pride', 'negative');
+        } else {
+          if (typeof Stats !== 'undefined') {
+            Stats.modVital('hp', -10);
+            Stats.modVital('mood', -15);
+            Stats.modMoney(-100);
+          }
+          if (typeof teammates !== 'undefined') teammates.modAffection('masterArtus', -10);
+        }
         onComplete && onComplete();
       },
     });
