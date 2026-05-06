@@ -106,6 +106,26 @@ const WangujiQuest = (() => {
     }
   }
 
+  // 🆕 2026-05-08：等戰後對白播完才開下一 wave
+  //   bug：之前固定 setTimeout 1500ms 後就開下一場、但砍首氣氛對白
+  //   通常還沒播完 → 玩家還在看上一場對白、第二場已經跳出來
+  //   修：poll DialogueModal.isOpen() 直到關閉、再延 500ms 讓玩家喘口氣
+  function _waitDialogueClose(cb, maxWaitMs) {
+    const start = Date.now();
+    const limit = maxWaitMs || 30000;   // 最多等 30 秒（防卡死）
+    const poll = () => {
+      const open = (typeof DialogueModal !== 'undefined'
+                    && typeof DialogueModal.isOpen === 'function'
+                    && DialogueModal.isOpen());
+      if (!open || (Date.now() - start) > limit) {
+        cb();
+      } else {
+        setTimeout(poll, 400);
+      }
+    };
+    poll();
+  }
+
   // ─── 開始下一 wave（callback chain） ─────────────
   function _startWave(idx) {
     if (idx >= WAVE_CONFIGS.length) {
@@ -125,8 +145,10 @@ const WangujiQuest = (() => {
         return;
       }
       _recoverBetweenWaves(cfg._recoverAfter);
-      // 用 setTimeout 讓 Stage 動畫先播完
-      setTimeout(() => _startWave(idx + 1), 1500);
+      // 🆕 2026-05-08：等戰後對白關閉再開下一 wave（poll DialogueModal.isOpen）
+      _waitDialogueClose(() => {
+        setTimeout(() => _startWave(idx + 1), 800);   // 對白關後喘 800ms
+      });
     };
     const onWaveLose = () => {
       _log(`✦ Wave ${idx + 1} 戰敗 — 萬骸祭結束`, '#d04040', true);
