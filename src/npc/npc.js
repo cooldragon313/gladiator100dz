@@ -1002,6 +1002,71 @@ const teammates = (() => {
       dislikedTraits: { coward:2, impulsive:1, opportunist:1 },
     },
 
+    // 🆕 2026-05-07 P2-1：蓋烏斯 — 隔壁訓練所「維努斯場」主人
+    //   詳見 docs/characters/gaius.md + arena-events-roster.md § 0
+    //   阿圖斯 30 年青梅竹馬+對手、油滑奉承、底下藏刀
+    gaius: {
+      id: 'gaius', name: '蓋烏斯',
+      role: 'audience',
+      title: '維努斯場主人',
+      desc: '阿圖斯的青梅竹馬 + 30 年競爭對手。維努斯場主人。表面親兄弟、私下小動作不斷、有壞事絕不出手相救。',
+      baseAffection: -10,
+      personality: 'cunning',
+      favoredAttr: null,
+      // 油滑、看重會奉承的、討厭直白
+      likedTraits:    { opportunist:3, prideful:2, cruel:1 },
+      dislikedTraits: { humble:2, merciful:2, kindness:2 },
+      background: '阿圖斯 30 年青梅竹馬。維努斯場規格高於阿圖斯場、近 5 年大會冠軍幾乎全包。對阿圖斯：公開親兄弟、私下小動作。對提圖斯：拼命奉承但被冷待 → 焦躁。',
+    },
+
+    // 🆕 2026-05-07 P2-2：維努斯場 6 NPC（4 討厭鬼 + 2 招敵候選）
+    //   不在 fields.js audience pool — 由 cross_ludus_events.js 跨訓練所事件中觸發
+    vesnusBrutus: {
+      id: 'vesnusBrutus', name: '布魯圖',
+      role: 'audience', title: '維努斯場・大斧手',
+      desc: '維努斯場最自大的人。看不起阿圖斯場、講話從不繞彎子、必出嘲諷對白。',
+      baseAffection: -20, personality: 'aggressive', favoredAttr: null,
+      likedTraits: { cruel:2, prideful:2 }, dislikedTraits: { kindness:3, humble:2, merciful:1 },
+    },
+    vesnusDecius: {
+      id: 'vesnusDecius', name: '德基烏斯',
+      role: 'audience', title: '維努斯場・滑頭',
+      desc: '蓋烏斯的得力幹將。會偷偷下藥、Day 60 雙主人陰招場主使。',
+      baseAffection: -15, personality: 'cunning', favoredAttr: null,
+      likedTraits: { opportunist:3, prideful:1 }, dislikedTraits: { reliable:2, humble:1 },
+    },
+    vesnusFaus: {
+      id: 'vesnusFaus', name: '法烏斯',
+      role: 'audience', title: '維努斯場・冷血執行者',
+      desc: '沉默、冷血、最強的執行者。長劍、不講廢話、上場直接殺。',
+      baseAffection: -10, personality: 'aggressive', favoredAttr: null,
+      likedTraits: { cruel:3, iron_will:2 }, dislikedTraits: { merciful:3, coward:2 },
+    },
+    vesnusQuinctus: {
+      id: 'vesnusQuinctus', name: '奎因圖斯',
+      role: 'audience', title: '維努斯場・愛現男',
+      desc: '浮誇、愛現、總在女性觀眾面前耍帥。雙劍、賽前對群眾鞠躬。',
+      baseAffection: -10, personality: 'cunning', favoredAttr: null,
+      likedTraits: { prideful:3, opportunist:1 }, dislikedTraits: { humble:3, patient:1 },
+    },
+    // 招敵變友候選（2 個）
+    vesnusCaelius: {
+      id: 'vesnusCaelius', name: '凱里烏斯',
+      role: 'audience', title: '維努斯場・帥氣劍士',
+      desc: '蓋烏斯不准他學讀寫、抑制著他。DEX/AGI 路線、有獨立想法但被困住。',
+      baseAffection: 0, personality: 'balanced', favoredAttr: null,
+      likedTraits: { kindness:2, merciful:2, reliable:1 }, dislikedTraits: { cruel:2, prideful:1 },
+      background: '維努斯場明星劍士、蓋烏斯特別不准他學讀寫（怕他知道可以離開）。心裡知道有問題、但沒地方去。是招敵變友的核心候選。',
+    },
+    vesnusNox: {
+      id: 'vesnusNox', name: '諾克斯',
+      role: 'audience', title: '維努斯場・鐵漢老兵',
+      desc: '蓋烏斯欠他薪水多年。CON/STR 路線、知道蓋烏斯坑他、想自由。',
+      baseAffection: -5, personality: 'balanced', favoredAttr: null,
+      likedTraits: { reliable:3, iron_will:2 }, dislikedTraits: { opportunist:3, coward:1 },
+      background: '老兵級鬥士、為蓋烏斯打了多年、薪水卻一直被拖欠。內心已經知道蓋烏斯不會兌現承諾、想另謀出路。招敵變友的另一個核心候選。',
+    },
+
     // 🆕 2026-05-07 P1C-1：凱德 — 同村大哥哥、Day 100 故意輸給玩家的「無名者」
     //   詳見 docs/characters/kade.md + arena-events-roster.md § 6.3
     //   別家訓練所、自由人、戰績 30 連勝零敗、整場遊戲 6 個出場點（25/49/70/80/90/100）
