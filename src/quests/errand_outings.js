@@ -147,23 +147,27 @@ const ErrandOutings = (() => {
       returnLog: '✦ 侍從接過回信、塞給你一袋銅幣。「⋯⋯主人說的。」（+35）',
     },
 
-    // ─── 巴爺拿器材修補 ────────────────────────────
+    // ─── 巴爺批訓練消耗品 ────────────────────────────
+    // 🆕 2026-05-08：destination 從「舊鐵匠街」改成「舊街批發鋪」、拿的是
+    //   訓練木劍/皮繩/繃帶這類消耗品（葛拉做正規兵器、便宜貨他沒空管）
+    //   修自家有葛拉的世界觀漏洞
     overseer: {
       id: 'overseer',
-      label: '巴爺拿器材',
-      destination: '舊鐵匠街',
+      label: '巴爺批訓練消耗品',
+      destination: '舊街批發鋪',
       companionName: '巴爺',
       requireOverseerAff: 50,
       requireMasterAff:   0,   // 巴爺自己出面、不用主人允許
       companionLines: [
-        { speaker: '巴爺', text: '⋯⋯走、跟我去拿東西。' },
+        { speaker: '巴爺', text: '⋯⋯走、跟我去領東西。' },
+        { speaker: '巴爺', text: '葛拉做正規兵器、訓練消耗品這種便宜貨他沒空管。' },
         { speaker: '巴爺', text: '別講話、聽我講就好。' },
         { text: '（巴爺步伐不快、但每一步都穩。你跟在他後面。）' },
       ],
       pathChatter: [
         { speaker: '巴爺', text: '⋯⋯這條街、20 年前我每天走。' },
-        { speaker: '巴爺', text: '那時候我還在打。武器壞了、自己來這修。' },
-        { speaker: '巴爺', text: '⋯⋯這家鐵匠、是我以前的對手介紹的。' },
+        { speaker: '巴爺', text: '那時候我還在打。練習用的木劍、皮繩、繃帶——都從這批。' },
+        { speaker: '巴爺', text: '⋯⋯這家批發鋪老闆、是我以前的對手介紹的。' },
         { speaker: '巴爺', text: '他打不死。每次都是平手。' },
         { speaker: '巴爺', text: '⋯⋯後來他傷了腿、退役。我再也沒見過他。' },
       ],
@@ -183,7 +187,7 @@ const ErrandOutings = (() => {
         { type: 'money',     delta: 20 },   // 巴爺從口袋掏的
         { type: 'flag',      key: 'overseer_warstory_heard' },
       ],
-      returnLog: '✦ 巴爺把修好的器材交給你扛回去、又塞給你幾個銅幣。「⋯⋯買碗酒喝。」（+20）',
+      returnLog: '✦ 巴爺把一捆木劍跟皮繩塞給你扛回去、又給你幾個銅幣。「⋯⋯買碗酒喝。」（+20）',
     },
   };
 

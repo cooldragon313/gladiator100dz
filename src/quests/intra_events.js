@@ -22,6 +22,14 @@ const IntraEvents = (() => {
     }
   }
 
+  // 🆕 2026-05-08：NPC 是否在場（給死人事件用）
+  function _isPresent(npcId) {
+    if (typeof GameState === 'undefined' || !GameState.getCurrentNPCs) return false;
+    const cur = GameState.getCurrentNPCs() || {};
+    const list = [...(cur.teammates || []), ...(cur.audience || [])];
+    return list.includes(npcId);
+  }
+
   // ═══════════════════════════════════════════════════
   // P3-5 派系選邊戰（核心事件）
   // ═══════════════════════════════════════════════════
@@ -248,6 +256,32 @@ const IntraEvents = (() => {
     lines.push({ text: '（你把屍體抬到院子角落、跟其他幾具一起。）' });
     lines.push({ text: '（火點起來。煙是甜的、但你知道是肉味。）', color: '#888' });
     lines.push({ text: '（你站著看了一會、轉身回訓練場。）' });
+
+    // 🆕 2026-05-08：梅拉戲份 — 死的是她每天煮飯給的人、她該有反應
+    //   60% 機率出（梅拉在場才出）
+    if (_isPresent('melaKook') && Math.random() < 0.6) {
+      lines.push({ text: '（你經過食堂、梅拉在切菜、沒抬頭。）' });
+      lines.push({ text: `（你猶豫了一下、低聲報出名字——${name}。）` });
+      // 1/3 機率：梅拉知道死者的小細節（更打人）
+      const dice = Math.random();
+      if (dice < 0.33) {
+        lines.push({ speaker: '梅拉', text: '⋯⋯他喜歡吃硬的那種。', color: '#5a4a2a' });
+        lines.push({ text: '（她繼續切菜。但你看到她手停了一下。）', color: '#888' });
+      } else if (dice < 0.66) {
+        lines.push({ speaker: '梅拉', text: '⋯⋯哦。', color: '#5a4a2a' });
+        lines.push({ text: '（她沒抬頭。把多出來的那塊麵包放進你的碗。）' });
+        lines.push({ text: '（——她也記得他叫什麼。）', color: '#888' });
+      } else {
+        lines.push({ speaker: '梅拉', text: '⋯⋯（她點了一下頭。沒講話。）', color: '#5a4a2a' });
+        lines.push({ text: '（你從袋子裡聽到一聲悶悶的、像是嘆氣。）', color: '#888' });
+      }
+      // 內心 OS（user 要求）— 三選一、跟梅拉反應對應
+      lines.push({ text: '⋯⋯', color: '#666' });
+      lines.push({ text: '（這裡每張碗的飯、都是她煮的。）', color: '#aa9966' });
+      lines.push({ text: '（每個死掉的人、生前最後一口熱的、也是她給的。）', color: '#aa9966' });
+      lines.push({ text: '（——這座訓練所裡、只有她記得他們。）', color: '#aa9966' });
+    }
+
     lines.push({ text: `（——${name}。你會記住這個名字幾天。然後忘記。）`, color: '#666' });
     lines.push({ text: '（——這就是這裡。）' });
 
