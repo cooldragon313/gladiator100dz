@@ -107,23 +107,29 @@ const WangujiQuest = (() => {
   }
 
   // 🆕 2026-05-08：等戰後對白播完才開下一 wave
-  //   bug：之前固定 setTimeout 1500ms 後就開下一場、但砍首氣氛對白
-  //   通常還沒播完 → 玩家還在看上一場對白、第二場已經跳出來
-  //   修：poll DialogueModal.isOpen() 直到關閉、再延 500ms 讓玩家喘口氣
+  //   bug 1：固定 setTimeout 1500ms 後開下一場、砍首氣氛對白還在跑就被蓋
+  //   bug 2（第一次修不夠）：戰鬥中 DialogueModal.play 被丟到 _deferredDuringBattle
+  //   queue、onWaveWin fire 時 isOpen 還是 false、poll 立即過 → 之後 flushDeferred
+  //   才播、又被新戰鬥蓋
+  //   修：用 hasPending() 同時檢查 _isOpen / _queue / _deferredDuringBattle、
+  //   且開頭先給 600ms 寬限讓 battle 的 flushDeferred(200ms) 跑完
   function _waitDialogueClose(cb, maxWaitMs) {
     const start = Date.now();
-    const limit = maxWaitMs || 30000;   // 最多等 30 秒（防卡死）
+    const limit = maxWaitMs || 30000;
+    const stillPending = () => {
+      if (typeof DialogueModal === 'undefined') return false;
+      if (typeof DialogueModal.hasPending === 'function') return DialogueModal.hasPending();
+      return (typeof DialogueModal.isOpen === 'function') && DialogueModal.isOpen();
+    };
     const poll = () => {
-      const open = (typeof DialogueModal !== 'undefined'
-                    && typeof DialogueModal.isOpen === 'function'
-                    && DialogueModal.isOpen());
-      if (!open || (Date.now() - start) > limit) {
+      if (!stillPending() || (Date.now() - start) > limit) {
         cb();
       } else {
         setTimeout(poll, 400);
       }
     };
-    poll();
+    // 寬限 600ms：讓 battle._exitToScene 內 200ms 後的 flushDeferred 把 deferred 推到 _isOpen
+    setTimeout(poll, 600);
   }
 
   // ─── 開始下一 wave（callback chain） ─────────────

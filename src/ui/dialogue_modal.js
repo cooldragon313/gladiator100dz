@@ -362,5 +362,7 @@ const DialogueModal = (() => {
     play,
     isOpen: () => _isOpen,
     flushDeferred,    // 🆕 2026-05-07
+    // 🆕 2026-05-08：是否有任何待播 / 排隊 / deferred — 給萬骸祭等需要等對白徹底結束的場景用
+    hasPending: () => _isOpen || _queue.length > 0 || _deferredDuringBattle.length > 0,
   };
 })();
