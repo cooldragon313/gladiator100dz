@@ -3063,7 +3063,15 @@ const Battle = (() => {
   function getLastRating() { return _lastRating; }
 
   // 🆕 D.28：對外暴露「戰鬥進行中」旗標，讓 main.js 可以擋住訓練動作
-  function isActive() { return _active; }
+  // 🆕 2026-05-08：也檢查 overlay 是否還可見（_active 在 _endBattle 時就 false、
+  //   但 reward panel / finish panel 期間 overlay 還在、應該視為仍在戰鬥）
+  //   修：戰鬥狂熱 popup 在 reward panel 期間就跳出來蓋住戰鬥畫面
+  function isActive() {
+    if (_active) return true;
+    const ov = document.getElementById('battle-overlay');
+    if (ov && ov.style.display && ov.style.display !== 'none') return true;
+    return false;
+  }
 
   return { start, startFromConfig, doAction, toggleAuto, getLastRating, finishChoice, isActive, returnToTraining, useActiveSkill, getEquippedWeaponClass };
 })();

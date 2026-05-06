@@ -1907,11 +1907,16 @@ const Game = (() => {
     const sleepType = forcedType || _rollSleepType();
 
     // ── 就寢效果 ──────────────────────────────────
-    const staminaMax = hasInsomniaDisorder
-      ? (Config.AILMENT_DEFS.insomnia_disorder.sleepStaminaMax || 15)
-      : daily.SLEEP_STAMINA_GAIN;
-
-    const staminaGain = Math.min(staminaMax, daily.SLEEP_STAMINA_GAIN);
+    // 🆕 2026-05-08：體力恢復改為「上限 % 數」— user 反饋體力越練越大但恢復沒跟上
+    //   正常睡眠 = staminaMax × 45%（玩家 100 上限 → 回 45、200 上限 → 回 90）
+    //   失眠症 = staminaMax × 15%
+    //   失眠/噩夢另外乘 0.45/0.55（下面 sleepType 分支處理、不變）
+    const playerStaminaMax = p.staminaMax || 100;
+    const SLEEP_RECOVER_PCT = 0.45;
+    const INSOMNIA_RECOVER_PCT = 0.15;
+    const staminaGain = hasInsomniaDisorder
+      ? Math.round(playerStaminaMax * INSOMNIA_RECOVER_PCT)
+      : Math.round(playerStaminaMax * SLEEP_RECOVER_PCT);
 
     // 🆕 HP 每日恢復（所有睡眠類型都恢復，但量不同）
     //   正常睡眠 +20 HP、失眠 +8、噩夢 +5
@@ -2039,6 +2044,17 @@ const Game = (() => {
    *            null = 同場有 watcher 一起看見的情境
    */
   function _playWhipPunishment(opts) {
+    const captor = opts && opts.captor;
+    const fame = (Stats.player && Stats.player.fame) || 0;
+
+    // 🆕 2026-05-08：名聲 ≥ 30 + 侍從 → 改成「巴結」場景（不抽）
+    //   user 反饋：玩家有名後、主人侍從不該還這樣抽你
+    //   設計：侍從假裝沒看到 / 友善提醒 / 甚至送杯水
+    if (captor === 'masterServant' && fame >= 30) {
+      _playServantFlatterScene(fame);
+      return;
+    }
+
     // 強紅光 + 大震動 + 音效（在開對話框前）
     if (typeof _flashStageRed === 'function') _flashStageRed(true);
     if (typeof _shakeGameRoot === 'function') _shakeGameRoot(true);
@@ -2047,7 +2063,6 @@ const Game = (() => {
     }
 
     // 對白：依 captor 變化主導者口氣 + HP 扣分階梯
-    const captor = opts && opts.captor;
     // 🆕 v10：HP 扣分依抓人者（主人 -10 / 塔倫 -5 / 巴爺 -5 / 侍從 -2）
     const HP_LOSS = { masterArtus: -10, officer: -5, overseer: -5, masterServant: -2 };
     const hpHit = HP_LOSS[captor] !== undefined ? HP_LOSS[captor] : -5;
@@ -2113,6 +2128,60 @@ const Game = (() => {
       });
     } else {
       addLog('💥 鞭子抽在你背上。', '#cc3333', true, true);
+    }
+  }
+
+  // 🆕 2026-05-08：名聲高（≥30）時、侍從不抽改巴結
+  //   30+ 假裝沒看到 / 60+ 主動敬酒 / 90+ 暗中通風報信
+  function _playServantFlatterScene(fame) {
+    const isVeryHigh = fame >= 90;
+    const isHigh     = fame >= 60;
+    let scene;
+    if (isVeryHigh) {
+      scene = [
+        { text: '（轉角——你看到侍從。）' },
+        { text: '（他停了一下、笑了。）' },
+        { speaker: '侍從', text: '⋯⋯哎喲、是您啊。' },
+        { speaker: '侍從', text: '⋯⋯主人最近常提您。我看您也累、歇著吧。' },
+        { text: '（他壓低聲音。）' },
+        { speaker: '侍從', text: '⋯⋯下午梅拉廚房有新出爐的麵包。我會幫您留一份。' },
+        { speaker: '侍從', text: '⋯⋯這事不用提、是我自己想的。' },
+        { text: '（他眨個眼、轉身走了。）' },
+        { text: '（——你聽得出他在賭。賭你成名後會記得他。）', color: '#d4af37' },
+      ];
+      // 心情 +5、食物 +10、好感 +1
+      Stats.modVital('mood', 5);
+      Stats.modVital('food', 10);
+      if (typeof teammates !== 'undefined') teammates.modAffection('masterServant', 1);
+    } else if (isHigh) {
+      scene = [
+        { text: '（轉角——侍從看到你。）' },
+        { speaker: '侍從', text: '⋯⋯啊。' },
+        { text: '（他停了一下、本能地舉起短鞭。）' },
+        { text: '（但他看了看你、又把鞭子放下了。）' },
+        { speaker: '侍從', text: '⋯⋯沒事、您忙您的。' },
+        { speaker: '侍從', text: '我什麼都沒看到。' },
+        { text: '（他朝你點了點頭、轉身就走。）' },
+        { text: '（——名聲讓他不敢動手。）' },
+      ];
+      Stats.modVital('mood', 2);
+    } else {
+      // fame 30-59：侍從只是路過、不報告
+      scene = [
+        { text: '（侍從從角落經過。）' },
+        { text: '（他看了你一眼。）' },
+        { text: '（——他沒講話、沒記下、沒舉鞭。）' },
+        { speaker: '侍從', text: '⋯⋯這次當沒看到。' },
+        { text: '（他匆匆走了。）' },
+        { text: '（——你的名聲開始讓他猶豫了。）', color: '#888' },
+      ];
+      // 沒扣沒加、純劇情
+    }
+
+    if (typeof DialogueModal !== 'undefined') {
+      DialogueModal.play(scene);
+    } else {
+      scene.forEach(l => addLog(l.text || `${l.speaker}：${l.text}`, '#aa9060', false));
     }
   }
 
