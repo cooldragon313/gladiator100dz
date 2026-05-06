@@ -2,132 +2,107 @@
 
 > 跨電腦/跨 session 的「下一步該幹嘛」。
 > 新的一天開工先讀這份。
-> **最後更新：2026-04-30（晚）** — 教學鏈穩定 + 受傷流程 + 主人賜護飾 + 競技場掉落 + 護飾戰鬥整合
+> **最後更新：2026-05-06（晚）** — 世界大綱拍板 11 點 + CANON 升格 + 待動工：errand-outings 完整版 C
 
 ---
 
-## ✅ 今天做完了什麼（2026-04-29 ~ 30）
+## ✅ 2026-05-06 做完了
 
-兩天連著做、跨多個系統、共 25+ commits。重點分四類：
+**世界大綱 + CANON 升格**（5 commit、純文檔）：
 
-### 1. Day 1 教學鏈 + 受傷流程
-- Day 1 鞭打 → 訓練（兩次達 EXP 才提詳細）→ 升屬性 → **奧蘭邀冥想**（在詳細關閉後才演、避免被蓋住）→ **卡西烏斯協力教學對白修順**
-- 開場有 origin 傷 → wakeup 後自動演**發現受傷 + 老默強迫治療流程**（中/重傷送老默、第一次免費）
-- 主畫面右側欄加**受傷狀態顯示**（重傷紅光呼吸）
-- 受傷觸發大字 popup「OOO 中傷！」+ 震動 + 音效
+1. ✅ 寫 `docs/discussions/2026-05-06-world-overview.md` — 整個世界 10 章大綱
+2. ✅ user 拍板 11 點（帝國 / 競技場 / 阿圖斯 / 原領主 / 倖存者 / 老默 / 祭神 / 任務命名表 / Lucius 撞名）
+3. ✅ Lucius 撞名解決：維努斯場 → **凱里烏斯（Caelius）**、拳法老師保留 Lucius
+4. ✅ CANON.md 大升格：加「帝國概覽」+「30 年前政變 + 提圖斯雙殺」+「阿圖斯純商人」章節
+5. ✅ masterArtus.md 補政治立場段
+6. ✅ titus.md 補家族世代政治史 + 倖存者盲點
 
-### 2. NPC 出場 + 協力刷新
-- NPC 出場率全面拉高到 **0.85**（奴隸大部分時間都該在訓練場）
-- NPC 每天獨立 roll 訓練屬性（70% 自己特長 / 30% 隨機）
-- 訓練按鈕加**人頭 icon**（依好感色階：灰/綠/藍/紫）、hover 看名字
-
-### 3. 裝備系統三大整合
-- **主人賜 3 條護飾線**：護臂（布）/ 護腿（皮）/ 頭盔（鐵）、共 9 件（粗灰/精藍/上紫）+ 第 4 件**傳家三選一**
-- **競技場戰利品掉落**：S/A/B 觸發 80%/60%/40%、對手掉啥拿啥（武器+胸甲）
-- **護飾戰鬥派生整合**：DEF/SPD/EVA/BLK 累加、傳家件 flatBonus（CON +5 等）會體現
-- 修了 critical bug：`_getPickerOptions` p 變數 scope → 之前胸甲/護飾全壞、玩家以為「裝備不能放上去」
-
-### 4. UX / 細節
-- **故事/選擇/戰鬥/UI 鎖中不能開詳細**（4 道守衛 + toast）
-- **F5 重整 bug 修**：continue modal 開著時 timeline 事件不會自動跑
-- **第一次給錢主人解釋**（從侍從版升級成主人召見大事件）
-- **教學帶關係圖**：好感首破 30 卡西烏斯後加內心「右上詳細看關係」
-- **關係頁加常駐 intro**：解釋好感系統運作
+**重要 CANON 新事實**（寫對白前必看）：
+- 帝國個性 = 外表富裕、實質腐爛
+- 競技場 = 發洩 + 社交 + **社會刑罰**（戰犯 / 罪犯處決機制）
+- **奴隸來源 4 類**：戰俘 / 罪犯 / 債務奴 / 主人內部處置
+- 玩家是**冤獄式假戰俘**（被自己國家偽旗誤抓賣到本城）
+- 競技場大會場合**祭戰神**（開場儀式 / 唸頌詞 / 酒灑沙地）
+- Livia 信奉的女神 = 跟戰神對位的「慈悲 / 守護女神」
+- **30 年前政變**：提圖斯家族滅德拉格家
+- **前任領主 = 德拉格家最後血脈**、剛幾個月前**病死**（**有陰謀** 疑似中毒）
+- **倖存者**：前任有一個家人剛好偷溜出去沒回來、沒人知道他活著（Phase 2 設計）
+- **「德拉格血脈」身份只有提圖斯知道** — 老默知道德拉格家但不知道前任就是
+- 阿圖斯 = **純冷血商人、不參與政治派系**
 
 ---
 
-## 🚨 明天該改的策略（user 已點出的方向）
+## ▶️ 下次開工：errand-outings 完整版 C（4-8 小時）
 
-### 🟥 優先 1：敵人強度全面拉強
+> ⚠️ user 已選 **C 完整版** + **Q2 維努斯場小孩 boss 戰綁進**。
+> spec 已寫完、所有 CANON 已鎖定、可以**直接開工不用再問**。
 
-**Day 10 玩家 STR ~20、但 gladiatorB STR 18、arenaVet STR 26、Boss gruen STR 32**——除了 Day 1-5 開場戰、所有 tier 都比玩家弱。**競技場太好刷**。
+### 工作範圍（按工時拆解）
 
-**動工方向**（user 之前說「裝備還沒全解開很難調整」、現在解開了）：
-1. 校準既有對手屬性 +5~10
-2. 寫**競技場 5 tier 對手池**（每 tier 5 個、共 13 新對手）
-3. 對手裝備也吃品質系統（玩家強裝備 → 對手該強裝備 + 詞綴）
+| ID | 任務 | 預估 | 依賴 |
+|---|---|---|---|
+| **E-1** | 跑腿事件框架 + 4 源頭差異化（葛拉採購 / 梅拉買菜 / 侍從送信 / 巴爺修器）| 2h | — |
+| **E-2** | 撞小孩 3 路徑（merciful / cruel / neutral）+ NPC 反應對白 | 2h | E-1 |
+| **E-3** | 護衛分支 ChoiceModal（道歉 / 幹架 / 逃）+ 50% 觸發 | 1h | E-2 |
+| **E-4** | 護衛幹架 mini-battle（簡化版戰鬥）| 1.5h | E-3 |
+| **E-5** | 鳶尾紋飾發現 → 加入 `personalItems` + storyTag `dragow_iris` | 0.5h | E-2 |
+| **E-6** | 3 NPC 認出對白（老默戰場線 / 梅拉舊識線 / 巴爺老兵伏筆）| 1.5h | E-5 |
+| **E-7** | 維努斯場小孩 boss 戰（Q2 綁進來）| 2h | E-3, E-4 |
+| **E-8** | 同行者陪同防逃機制（不武裝、社會壓力）| 1h | E-1 |
 
-規格在 [docs/systems/equipment-rework.md § 7](docs/systems/equipment-rework.md)：
-- rookie：玩家屬性 -2~-3（給輾壓快感）
-- gladB：跟玩家**持平**
-- vet：玩家 +1~+3
-- champion：玩家 +5~+8
+**總工時**：~11.5h（比 spec 估的 24h 少、因為 CANON 已全鎖、不用設計階段）
 
-### 🟧 優先 2：規劃新對手 MD（design phase）
+### 設計參考
+- 主 spec：[docs/quests/errand-outings.md](docs/quests/errand-outings.md)
+- CANON 鎖定：[docs/CANON.md](docs/CANON.md) § 30 年前政變 + § 帝國概覽
+- 撞名：拳法老師 = **Lucius**（保留）/ 維努斯場帥哥 = **Caelius 凱里烏斯**（已改）
 
-之前 user 確認 `docs/enemies/` 結構繼續用。要補的：
+### 對白核心鐵則（3 NPC 認出鳶尾紋飾）
 
-```
-docs/enemies/
-├── arena/           # 🆕 競技場 5 tier 對手池
-│   ├── README.md
-│   ├── tier1_*.md   # rookie 級 × 5
-│   ├── tier2_*.md   # 流派戰士 × 5
-│   ├── tier3_*.md   # 老兵 × 5
-│   ├── tier4_*.md   # 冠軍 × 5
-│   └── tier5_*.md   # 傳奇 × 5
-├── bosses/          # 🆕 主敘事 boss
-│   ├── README.md
-│   ├── overseer_boss_*.md     # 巴爺主線達官顯貴 boss
-│   └── final_*.md             # Day 100 三人眾屬性校準
-└── fixed/           # 既有、補隔壁訓練所招牌 5 個
-    ├── morras_ironarm.md  ← 既有
-    ├── ⬜ icebear（北方·冰原）
-    ├── ⬜ snake（南方·沙漠）
-    ├── ⬜ harbor（東方·港灣）
-    ├── ⬜ miner（山地·礦坑）
-    └── ⬜ berserker（北蠻）
-```
+**老默** —「⋯⋯我在北境治過一個鳶尾紋的隊、那批人後來全沒了。」（戰場見過、不知前任就是德拉格）
 
-### 🟨 優先 3：詞綴系統 Phase 2（讓掉落更有靈魂）
+**梅拉** —「這紋飾⋯⋯主人家庫房裡見過。但很多年前的事了。」（暗示阿圖斯庫房有、純商品轉手）
 
-掉落目前無詞綴、所以同 ID 的武器不論掉幾次都長一樣。Phase 2 加：
-- 詞綴池 10 個（鋒利/精準/致命/嗜血/灼燒等）
-- 對手身上的詞綴武器掉落時保留詞綴
-- 葛拉鋪「鍛新詞綴」功能解鎖
-- 武器命名「鋒利的短劍（精藍）」
+**巴爺** —「⋯⋯老兵的東西。30 年前的事。」（隱約感覺到、但不敢深想）
 
-規格：[docs/systems/equipment-rework.md § 3](docs/systems/equipment-rework.md)
-
-### 🟦 優先 4：黑鬍子 + 義肢系統（Phase 2 黑市）
-
-user 已給概念：
-- 粗木義肢 100 金（屬性 -3）
-- 鐵骨義肢 250 金（屬性 -1）
-- 精工義肢 500 金 + 信用 50（±0、附 buff）
-- 戰用義肢 1000 金 + 隱藏條件（屬性 +2、ATK +5%）
-
-赫克托 Phase 2 也順帶補：賣情報 / 介入保護 / 嫁禍改版 / 私戰 mini-battle。
+### 程式入口
+- 新檔：`src/quests/errand_outings.js`
+- 接 `src/main.js` 跑腿事件 trigger（既有事件系統有空檔可加）
+- 物品：`src/content/item.js` 加 `dragow_iris`（鳶尾紋飾）+ storyTag
 
 ---
 
-## 我推薦明天動工順序
+## 🚦 待 user Phase 2 拍板（不擋當前）
 
-1. **早上**：A 校準既有對手屬性 +5~10（30 分鐘、立竿見影）
-2. **中午**：B 寫競技場 tier 1-5 對手池 MD（design 文件、~3 hr）
-3. **下午**：C 把 MD 落實到 testbattle.js TB_ENEMIES（實作、~2 hr）
-4. **後續**：D 詞綴系統 / 義肢
+寫對白若需要時再問：
 
-或 user 想直接做別的、看你心情。
-
----
-
-## 🎨 美術資產（已加）
-
-- **`asset/image/blacksmith.png`** — 鐵匠鋪內景（葛拉場景背景）
-  - 配合既有 DialogueModal、用 `{ speaker: '葛拉', text: '...' }` 名字顯示
-
-## 🐛 上線前 todo（暫不處理）
-
-1. 葛拉鋪 UI 完成後、CLAUDE.md「Debug 工具清單」加新項目
-2. `combat_streak_max` flag 之後可在角色頁顯示成就
-3. 戰鬥 EXP 100 天後驗證：平均屬性是否在 35-40
-4. `bloodRoar` 取得後可考慮加結局判定
-5. 戰鬥引擎 NPC 也吃 helmet/arms/legs（目前只有玩家）— 對手強化後再決定
+1. **倖存者** — 性別 / 年齡 / 姓名 / 現在在哪 / 怎麼出場？
+2. **前任領主有家人嗎**（除了倖存者）— 老婆？其他子女？
+3. **Livia 信仰女神具體名稱**？對位戰神的「慈悲女神」？
+4. **戰神具體名稱**？（暫用「戰神」泛稱）
+5. **帝國國名**？(羅馬式 / 純架空)
+6. **黑市地下競技場**做不做？（赫克托 / 比拉斯 / 義肢可能在這）
 
 ---
 
-## 💤 user 留言給明天的自己
+## ⚠️ 已知坑 / 注意事項
 
-「**今天裝備全坐上去了、護飾能裝、戰鬥也吃到。教學鏈順了、受傷流程戲劇化。
-明天先校準對手屬性、寫競技場 tier 對手池。或想直接看刷裝感受先測。**」
+- **bare addLog 已全清** — 新寫 `src/**/*.js` 模組時仍要沿用 `_log` helper 模式（CLAUDE.md 第 12 條）
+- **選擇事件必須有 NPC 回應 + 視覺特效**（CLAUDE.md 第 11 條）
+- **新 NPC 必填 `favoredAttr` + `likedTraits` / `dislikedTraits`**（D.18 / D.19）
+- 跨系統整合清單 9 題（CLAUDE.md）— 提新事件 / 動作 / NPC / 物品 / 特性前跑一遍
+- **CANON.md 鐵則**：寫新對白前必查、Day 1 奧蘭刻意只說「磨坊裡來的」
+
+---
+
+## 📎 重要連結
+
+- 設計書頂部進度總表 / TODO：[DESIGN.md](DESIGN.md)
+- **🆕 世界大綱 v1**：[docs/discussions/2026-05-06-world-overview.md](docs/discussions/2026-05-06-world-overview.md)
+- 跑腿外出 spec：[docs/quests/errand-outings.md](docs/quests/errand-outings.md)
+- 實作 roadmap：[docs/IMPLEMENTATION-ROADMAP.md](docs/IMPLEMENTATION-ROADMAP.md)
+- Codex（特性 / 書 / origin 字典）：[docs/CODEX.md](docs/CODEX.md)
+- Canon（故事事實）：[docs/CANON.md](docs/CANON.md)
+- 對白位置索引：[docs/DIALOGUE-MAP.md](docs/DIALOGUE-MAP.md)
+- titus 角色檔（雙殺路徑）：[docs/characters/titus.md](docs/characters/titus.md)
+- masterArtus 角色檔（純商人）：[docs/characters/masterArtus.md](docs/characters/masterArtus.md)
