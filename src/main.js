@@ -2045,13 +2045,13 @@ const Game = (() => {
    */
   function _playWhipPunishment(opts) {
     const captor = opts && opts.captor;
-    const fame = (Stats.player && Stats.player.fame) || 0;
+    const masterAff = (typeof teammates !== 'undefined') ? teammates.getAffection('masterArtus') : 0;
 
-    // 🆕 2026-05-08：名聲 ≥ 30 + 侍從 → 改成「巴結」場景（不抽）
-    //   user 反饋：玩家有名後、主人侍從不該還這樣抽你
-    //   設計：侍從假裝沒看到 / 友善提醒 / 甚至送杯水
-    if (captor === 'masterServant' && fame >= 30) {
-      _playServantFlatterScene(fame);
+    // 🆕 2026-05-08：主人好感 ≥ 30 + 侍從 → 改成「巴結」場景（不抽）
+    //   user 反饋：用 master affection 比 fame 合理（fame 容易拚到上千）
+    //   設計：30+ 假裝沒看到 / 50+ 客氣提醒 / 70+ 主動巴結
+    if (captor === 'masterServant' && masterAff >= 30) {
+      _playServantFlatterScene(masterAff);
       return;
     }
 
@@ -2131,11 +2131,12 @@ const Game = (() => {
     }
   }
 
-  // 🆕 2026-05-08：名聲高（≥30）時、侍從不抽改巴結
-  //   30+ 假裝沒看到 / 60+ 主動敬酒 / 90+ 暗中通風報信
-  function _playServantFlatterScene(fame) {
-    const isVeryHigh = fame >= 90;
-    const isHigh     = fame >= 60;
+  // 🆕 2026-05-08：主人好感高時、侍從不抽改巴結
+  //   30-49 假裝沒看到 / 50-69 客氣提醒 / 70+ 主動巴結
+  //   依據：主人好感 = 主人對你的「投資價值」、侍從鏡像主人態度
+  function _playServantFlatterScene(masterAff) {
+    const isVeryHigh = masterAff >= 70;
+    const isHigh     = masterAff >= 50;
     let scene;
     if (isVeryHigh) {
       scene = [
@@ -2162,18 +2163,18 @@ const Game = (() => {
         { speaker: '侍從', text: '⋯⋯沒事、您忙您的。' },
         { speaker: '侍從', text: '我什麼都沒看到。' },
         { text: '（他朝你點了點頭、轉身就走。）' },
-        { text: '（——名聲讓他不敢動手。）' },
+        { text: '（——主人對你不一樣了、他也不敢動手。）' },
       ];
       Stats.modVital('mood', 2);
     } else {
-      // fame 30-59：侍從只是路過、不報告
+      // master aff 30-49：侍從只是路過、不報告
       scene = [
         { text: '（侍從從角落經過。）' },
         { text: '（他看了你一眼。）' },
         { text: '（——他沒講話、沒記下、沒舉鞭。）' },
         { speaker: '侍從', text: '⋯⋯這次當沒看到。' },
         { text: '（他匆匆走了。）' },
-        { text: '（——你的名聲開始讓他猶豫了。）', color: '#888' },
+        { text: '（——主人對你開始投資、他也跟著猶豫了。）', color: '#888' },
       ];
       // 沒扣沒加、純劇情
     }
