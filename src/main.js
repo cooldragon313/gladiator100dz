@@ -4999,6 +4999,17 @@ const Game = (() => {
       effect: '可換錢',
       desc: '貴族家族徽章。你偷偷藏下來的。',
     },
+    // 🆕 2026-05-07 跑腿撞小孩 merciful 路徑掉落
+    //   設計：[docs/quests/errand-outings.md § 5](../docs/quests/errand-outings.md)
+    //   表面：城裡某老婆婆做的小護符
+    //   真實：30 年前被滅族的「德拉格家」家徽 → 訓練所 3 NPC 認得
+    dragow_iris: {
+      name: '鳶尾紋飾',
+      icon: '🌸',
+      effect: 'LUK +1 / EVA +2',
+      desc: '一塊小銅飾、繡著鳶尾花紋。市集那位母親從圍裙口袋裡掏出來塞給你的。看起來不像一般人會有的東西。',
+      storyTag: 'dragow_iris',
+    },
   };
 
   function _renderAmulets() {
@@ -7278,8 +7289,15 @@ const Game = (() => {
   // 🆕 Phase 1-I: 主人採購派遣
   // ══════════════════════════════════════════════════
 
-  // 每 7 天派一次跑腿（偏移 3，避開第 1 天）
+  // 🆕 2026-05-07：新跑腿系統（4 源頭差異化、ErrandOutings v2）
+  //   舊 7 天硬觸發 + 3 個 ERRAND_EVENTS 隨機 → 改為每天 10% 擲、依 NPC 好感選源頭
+  //   舊 ERRAND_EVENTS 保留作 fallback（ErrandOutings 沒符合源頭時不觸發）
   DayCycle.onDayStart('checkMasterErrand', (newDay) => {
+    if (typeof ErrandOutings !== 'undefined' && ErrandOutings.tryStart) {
+      ErrandOutings.tryStart(newDay);   // 內部處理機率 + 條件 + 流程
+      return;
+    }
+    // ── fallback：ErrandOutings 沒載入時走舊邏輯 ─────
     if (newDay < 4) return;
     if ((newDay - 3) % 7 !== 0) return;
     if (Flags.has(`errand_done_day_${newDay}`)) return;
