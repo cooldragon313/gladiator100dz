@@ -24,6 +24,8 @@ const Forge = (() => {
   const COST_AFFIX_CREDIT     = 15;
   // 信用點兌換率
   const TRADE_CREDITS = { crude: 1, common: 2, fine: 4, superb: 8 };
+  // 🆕 2026-05-07：上交同時給銅幣（user 反饋金錢來源不夠）— 跟信用點一起發
+  const TRADE_MONEY   = { crude: 8, common: 18, fine: 35, superb: 70 };
   // 好感門檻
   const TIER_AFFINITY_REQ  = 60;
   const AFFIX_AFFINITY_REQ = 70;
@@ -613,7 +615,12 @@ const Forge = (() => {
         if (p[slot] === itemId) p[slot] = null;
       });
     p.gra_credit = (p.gra_credit || 0) + credits;
-    _log(`⚒ 上交「${entry.baseName}」→ 葛拉信用 +${credits}（總 ${p.gra_credit}）`, '#88cc77', true);
+    // 🆕 2026-05-07：上交同時給銅幣（金錢來源 buff）
+    const money = TRADE_MONEY[entry.quality] || 0;
+    if (money > 0 && typeof Stats !== 'undefined' && Stats.modMoney) {
+      Stats.modMoney(money);
+    }
+    _log(`⚒ 上交「${entry.baseName}」→ 葛拉信用 +${credits}（總 ${p.gra_credit}）／銅幣 +${money}`, '#88cc77', true);
     _render();
     if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
   }

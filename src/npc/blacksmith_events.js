@@ -992,12 +992,16 @@ const BlacksmithEvents = (() => {
     DialogueModal.play(stageData.lines, {
       onComplete: () => {
         _applyStageReward(stageData);
-        // popupBig 提示
+        // 🆕 2026-05-07：popupBig 開震動 + 螢幕短震 — 學會招式有「震動」感
         if (typeof Stage !== 'undefined' && Stage.popupBig) {
           Stage.popupBig({
             icon: '⚒', title: stageData.title, subtitle: stageData.subtitle,
-            color: 'gold', duration: 2000, shake: false, sound: 'levelup',
+            color: 'gold', duration: 2200, shake: true, sound: 'levelup',
           });
+        }
+        if (typeof document !== 'undefined') {
+          document.body.classList.add('shake-screen');
+          setTimeout(() => document.body.classList.remove('shake-screen'), 600);
         }
         _log(`✦ ${stageData.title}：${stageData.subtitle}`, '#d4af37', true);
         // 葛拉好感 +3（教學累積、不只獎勵屬性）

@@ -1199,7 +1199,8 @@ const Game = (() => {
       const onWin  = () => {
         addLog('你贏得了這場戰鬥！', '#d4af37');
         // 🆕 戰鬥獎金（主人分你一點）
-        const reward = 15 + Math.floor(Math.random() * 16);  // 15~30
+        // 🆕 2026-05-07：金錢來源不夠（user 反饋）→ 戰鬥獎金 15~30 → 25~50
+        const reward = 25 + Math.floor(Math.random() * 26);  // 25~50
         Stats.modMoney(reward);
         addLog(`侍從遞來一小袋銅幣。「大人說這是你的。」（+${reward}）`, '#c8a060', false);
         // 🆕 2026-04-25：競技場勝利 → 主人 / 塔倫好感（賺錢功勞）

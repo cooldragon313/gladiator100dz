@@ -68,9 +68,10 @@ const ErrandOutings = (() => {
       rewards: [
         { type: 'affection', key: 'blacksmithGra', delta: 3 },
         { type: 'vital',     key: 'mood',          delta: 5 },
+        { type: 'money',     delta: 25 },
         { type: 'flag',      key: 'gra_material_restocked'   },
       ],
-      returnLog: '✦ 葛拉接過你扛回來的鐵料、點點頭。「⋯⋯不錯。」',
+      returnLog: '✦ 葛拉接過你扛回來的鐵料、點點頭、塞給你 25 銅幣。「⋯⋯辛苦。」',
     },
 
     // ─── 梅拉買菜 ───────────────────────────────
@@ -104,8 +105,9 @@ const ErrandOutings = (() => {
         { type: 'affection', key: 'melaKook', delta: 3 },
         { type: 'vital',     key: 'food',     delta: 30 },
         { type: 'vital',     key: 'mood',     delta: 8 },
+        { type: 'money',     delta: 15 },   // 找零
       ],
-      returnLog: '✦ 梅拉接過食材、把一碗熱湯推到你面前。「⋯⋯辛苦了、喝了。」',
+      returnLog: '✦ 梅拉接過食材、把一碗熱湯推到你面前。「⋯⋯辛苦了、剩下的零錢給你。」（+15）',
     },
 
     // ─── 侍從送信給隔壁訓練所 ──────────────────────
@@ -140,8 +142,9 @@ const ErrandOutings = (() => {
         { type: 'affection', key: 'masterServant', delta: 2 },
         { type: 'affection', key: 'masterArtus',   delta: 2 },
         { type: 'vital',     key: 'mood',          delta: 5 },
+        { type: 'money',     delta: 35 },   // 主人賞、跨訓練所差事比較有面子
       ],
-      returnLog: '✦ 侍從接過回信、轉身就走。「⋯⋯主人會記得這一筆。」',
+      returnLog: '✦ 侍從接過回信、塞給你一袋銅幣。「⋯⋯主人說的。」（+35）',
     },
 
     // ─── 巴爺拿器材修補 ────────────────────────────
@@ -177,9 +180,10 @@ const ErrandOutings = (() => {
       rewards: [
         { type: 'affection', key: 'overseer', delta: 5 },
         { type: 'vital',     key: 'mood',     delta: 5 },
+        { type: 'money',     delta: 20 },   // 巴爺從口袋掏的
         { type: 'flag',      key: 'overseer_warstory_heard' },
       ],
-      returnLog: '✦ 巴爺把修好的器材交給你扛回去。「⋯⋯回去吧。」',
+      returnLog: '✦ 巴爺把修好的器材交給你扛回去、又塞給你幾個銅幣。「⋯⋯買碗酒喝。」（+20）',
     },
   };
 
