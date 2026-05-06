@@ -6,6 +6,33 @@
 
 ---
 
+## 📰 接手頭條（給下次 session 的第一眼）
+
+> 這個區塊一直擺在最上面，每次 session 結束時更新。每次 session 開始時請先看這裡，
+> 知道**上次停在哪、明天可以從哪繼續**。
+
+### 2026-05-07 結束時狀態
+
+**✅ 今天完成（5 commits）**
+- 詞綴 20 個系統全鏈接（affixes.js + forge + battle + UI）— `535ddfb`
+- 葛拉鋪 hover tooltip — `dc354ef`
+- 萬骸祭 race 兩修（戰後對白沒播完下一 wave 跳出）— `3274900` + `ceb7cc6`
+- 巴爺 errand 改批訓練消耗品 + 抬屍體加梅拉戲份 + 玩家內心 OS — `ced9093`
+
+**🔮 明天可以接的事（按優先序）**
+1. **驗收萬骸祭 race fix** — 跑一次 5 wave 流程確認對白不再被下一場蓋掉。失敗就再修（看 `ceb7cc6` commit message 找線索）。
+2. **P2 stubs 完整化** — Day 35 / 50 / 60 / 75 / 80 五個事件目前只是「對白 + log + flag」，沒有真正 2v2 群戰、ChoiceModal 反陰、場景切換。看 [arena-events-roster.md § 2](docs/quests/arena-events-roster.md) + [IMPLEMENTATION-ROADMAP.md](docs/IMPLEMENTATION-ROADMAP.md) Phase P2 的 8 個任務。
+3. **詞綴系統試玩平衡** — 20 個詞綴上線了、可能要校準 tier 3 主動詞綴（咆嘯/吸血/燃燒/收割/反擊）的數值。tier 3 isActive:true 標誌但實際 active 效果還沒接戰鬥事件鉤子。
+4. **Phase 1B/1C 領主 + 凱德主線** — Phase 1A 結局框架已完（2026-05-01 那次 commit），但領主主線跟凱德主線還沒開工，看 [IMPLEMENTATION-ROADMAP.md](docs/IMPLEMENTATION-ROADMAP.md)。
+
+**⚠️ 已知未修**
+- 詞綴 tier 3 主動效果（vampiric/flaming/reaping/riposting）isActive:true 旗標只是占位、戰鬥引擎還沒讀。
+
+**💡 設計議題待決**
+- 無新議題。memory `feedback_pending_design_reviews.md` 目前清單也沒新進。
+
+---
+
 ## 🎮 專案類型
 
 瀏覽器端 vanilla JS 角鬥士 RPG，使用繁體中文敘述。

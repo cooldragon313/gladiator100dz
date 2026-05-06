@@ -208,6 +208,76 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       2026-05-07 詞綴 20 + NPC flavor + 萬骸祭 race + 世界觀漏洞補
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag new">NEW + FIX + UI</span>
+      <span class="version-title">詞綴 20 個系統全鏈接 + NPC flavor 補完 + 葛拉鋪 hover tooltip + 萬骸祭 race 兩修 + 巴爺 / 抬屍體世界觀漏洞</span>
+      <span class="version-date">2026-05-07</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text"><strong>詞綴 20 個系統 — affixes.js + forge + battle + UI 全鏈接</strong>
+          <span class="file-tag">src/content/affixes.js / src/ui/forge_modal.js / src/battle/* / src/main.js</span>
+          — 14 武器詞綴（鋒利/精準/迅捷/穿透/致命/碎裂/震顫/磨利/御風/平衡/咆嘯/吸血/燃燒/收割）+
+          6 護甲詞綴（堅固/警戒/穩固/守護/沉重/反擊）；tier 1/2/3 分層；
+          legendary→3 詞綴 / superb→2 / fine→1 / lower→0；
+          <strong>葛拉鍛造爐：升級品質自動加詞綴 + 50 金 + 好感 ≥70 手動加詞綴功能</strong>；
+          戰鬥引擎接 weaponAffixes/armorAffixes、傷害/防禦/暴擊讀詞綴加成；
+          角色頁裝備欄 + picker 顯示金色詞綴前綴。User 要求「刷得很爽 想湊到最極端」。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DATA</span>
+        <span class="change-text"><strong>NPC flavor 補完（10 個 NPC、30+ 階段）</strong>
+          <span class="file-tag">src/npc/npc.js</span>
+          — User 反饋「關係圖裡面解鎖每個人的那句話似乎都沒進展」。補：masterArtus(5 階) /
+          masterServant(4) / gaius(4) / vesnusBrutus/Decius/Faus/Quinctus(各 2) /
+          vesnusCaelius/Nox(各 3 — 招敵候選) / kade(4 階綁 events flag) / melaKook(4 階前置)。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text"><strong>葛拉鍛造鋪 hover tooltip — 武器/護甲完整屬性</strong>
+          <span class="file-tag">src/ui/forge_modal.js</span>
+          — User 要求「不然很難比較」。滑鼠 hover 卡片彈 tooltip：名稱（依品質著色）+ T# +
+          品質名 + 類型（單/雙手・武器類別 / 布皮板甲）+ 6 戰鬥屬性（已套品質倍率）+
+          詞綴拆解（base+affix=total）+ desc 風味文。共用 fixed-position tooltip
+          跟隨滑鼠、邊界自動翻轉、pointer-events:none 不卡點擊。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">FIX</span>
+        <span class="change-text"><strong>萬骸祭戰後對白沒播完下一 wave 跳出 — race 兩修</strong>
+          <span class="file-tag">src/quests/wanguji.js / src/ui/dialogue_modal.js</span>
+          — User 回報「每場都會」。第一修（3274900）只 poll DialogueModal.isOpen()、漏掉
+          _deferredDuringBattle queue：戰中 play() 被丟到 deferred、戰後 200ms 才 flushDeferred
+          → onWaveWin fire 那刻 isOpen 還 false、poll 立即過 → 對白剛 flush 出來就被新 wave 蓋。
+          第二修（ceb7cc6）：DialogueModal 新增 hasPending() 同時檢查 _isOpen / _queue /
+          _deferredDuringBattle 三狀態、wanguji 開頭先給 600ms 寬限讓 flushDeferred 跑完再 poll。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">FIX</span>
+        <span class="change-text"><strong>P2 stub 接進 init() dispatch + 皮甲 T2/T3 平衡</strong>
+          <span class="file-tag">src/quests/cross_ludus_events.js / src/content/armors.js</span>
+          — trySchemerFight (Day 60) / tryCadetSwap (Day 50/80) / tryPublicBanquetBicker (Day 75)
+          三 stub 加進 dispatch；皮甲 studdedLeather DEF 8→10、拉開 T1→T2→T3 落差為 4/7/10
+          （user 反饋「T2 T3 差沒多少 扣的多很多」）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">WORLD</span>
+        <span class="change-text"><strong>世界觀漏洞補 — 巴爺外出 + 抬屍體梅拉戲份</strong>
+          <span class="file-tag">src/quests/errand_outings.js / src/quests/intra_events.js</span>
+          — (1) 巴爺 errand 從「拿器材」改「批訓練消耗品」（destination 舊鐵匠街 → 舊街批發鋪、
+          對白改領木劍/皮繩/繃帶；理由：葛拉做正規兵器、便宜貨他沒空管）— 修自家有葛拉卻外出
+          修武器的邏輯漏洞。(2) 抬屍體事件加梅拉反應段落（60% 機率、梅拉在場才觸發）：
+          玩家經食堂報名字、梅拉三選一反應「他喜歡吃硬的那種」/ 多塞麵包 / 沉默點頭、
+          接 4 句玩家內心 OS「這裡每張碗的飯都是她煮的⋯⋯只有她記得他們」。</span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
        2026-05-01 萬骸祭 spec 鎖定 + Phase 1A 結局框架開工
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">
