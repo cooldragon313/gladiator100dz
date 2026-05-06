@@ -222,6 +222,77 @@ const Forge = (() => {
         from { opacity: 0; }
         to   { opacity: 1; }
       }
+
+      /* 🆕 2026-05-08 hover tooltip — 顯示裝備完整屬性 */
+      #forge-tooltip {
+        position: fixed;
+        display: none;
+        z-index: 9700;
+        min-width: 240px;
+        max-width: 320px;
+        padding: 12px 14px;
+        background: rgba(8,4,2,0.96);
+        border: 2px solid #d4af37;
+        border-radius: 4px;
+        box-shadow: 0 6px 24px rgba(0,0,0,0.7);
+        color: #c8b898;
+        font-size: 13px;
+        line-height: 1.7;
+        font-family: 'Noto Serif TC', Georgia, serif;
+        pointer-events: none;
+      }
+      #forge-tooltip.show { display: block; }
+      .forge-tt-name {
+        font-size: 16px;
+        font-weight: 900;
+        margin-bottom: 4px;
+        letter-spacing: .05em;
+      }
+      .forge-tt-meta {
+        font-size: 12px;
+        color: #886655;
+        margin-bottom: 8px;
+        padding-bottom: 6px;
+        border-bottom: 1px dashed #3a2a18;
+      }
+      .forge-tt-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px 12px;
+        margin: 6px 0;
+        font-size: 13px;
+      }
+      .forge-tt-stat-key {
+        color: #886655;
+        margin-right: 4px;
+      }
+      .forge-tt-stat-val {
+        color: #e8d8b0;
+        font-weight: 700;
+      }
+      .forge-tt-stat-val.pos { color: #88dd66; }
+      .forge-tt-stat-val.neg { color: #cc6666; }
+      .forge-tt-affixes {
+        margin: 8px 0 4px;
+        padding-top: 6px;
+        border-top: 1px dashed #3a2a18;
+      }
+      .forge-tt-affix-line {
+        color: #d4af37;
+        font-size: 12px;
+        margin: 2px 0;
+      }
+      .forge-tt-affix-name { font-weight: 900; }
+      .forge-tt-affix-desc { color: #886655; margin-left: 6px; }
+      .forge-tt-desc {
+        margin-top: 8px;
+        padding-top: 6px;
+        border-top: 1px dashed #3a2a18;
+        font-size: 12px;
+        color: #886655;
+        font-style: italic;
+        line-height: 1.6;
+      }
     `;
     document.head.appendChild(style);
   }
@@ -233,7 +304,117 @@ const Forge = (() => {
     el.id = 'forge-overlay';
     el.innerHTML = '<div class="forge-frame" id="forge-frame"></div>';
     document.body.appendChild(el);
+    // 🆕 2026-05-08 共用 tooltip 元素
+    if (!document.getElementById('forge-tooltip')) {
+      const tt = document.createElement('div');
+      tt.id = 'forge-tooltip';
+      document.body.appendChild(tt);
+    }
     return el;
+  }
+
+  // ══════════════════════════════════════════════════
+  // 🆕 2026-05-08 hover tooltip — 顯示裝備完整屬性
+  // ══════════════════════════════════════════════════
+  function _buildTooltipHTML(entry) {
+    const isWeapon = (entry.kind === 'weapon');
+    const base = isWeapon
+      ? (typeof Weapons !== 'undefined' ? Weapons[entry.id] : null)
+      : (typeof Armors  !== 'undefined' ? Armors[entry.id]  : null);
+    if (!base) return '';
+
+    // 套品質
+    const styled = isWeapon
+      ? (typeof EquipmentQuality !== 'undefined' ? EquipmentQuality.applyToWeapon(base, entry.quality) : base)
+      : (typeof EquipmentQuality !== 'undefined' ? EquipmentQuality.applyToArmor(base,  entry.quality) : base);
+
+    // 詞綴加成
+    const p = Stats.player;
+    const inv = isWeapon ? p.weaponInventory : p.armorInventory;
+    const item = inv ? inv.find(e => e.id === entry.id) : null;
+    const affixIds = (item && Array.isArray(item.affixes)) ? item.affixes : [];
+    const affixBonus = (typeof Affixes !== 'undefined' && affixIds.length)
+      ? Affixes.computePassiveBonus(affixIds) : {};
+
+    // 名稱（套品質色）
+    const colorName = (typeof EquipmentQuality !== 'undefined')
+      ? EquipmentQuality.formatItemNameHTML(base.name, entry.quality)
+      : base.name;
+    const qualityName = (typeof EquipmentQuality !== 'undefined')
+      ? EquipmentQuality.getName(entry.quality) : entry.quality;
+
+    // meta line：T# + 品質 + 類型
+    const typeLabel = isWeapon
+      ? (base.twoHanded ? '雙手' : '單手') + (base.weaponClass ? `・${base.weaponClass}` : '')
+      : ({ cloth: '布甲', leather: '皮甲', plate: '板甲', shield: '盾' }[base.type] || base.type || '');
+    const metaHtml = `T${entry.tier}　${qualityName}　${typeLabel}`;
+
+    // 屬性表
+    const keys = isWeapon
+      ? [['ATK','攻擊'], ['ACC','命中'], ['CRT','暴擊'], ['CDMG','暴傷'], ['SPD','速度'], ['PEN','破甲']]
+      : [['DEF','防禦'], ['EVA','閃避'], ['SPD','速度'], ['BLK','格擋']];
+
+    const statsHtml = keys.map(([k, label]) => {
+      const baseVal  = (typeof styled[k]   === 'number') ? styled[k]   : 0;
+      const affixVal = (typeof affixBonus[k] === 'number') ? affixBonus[k] : 0;
+      const total = baseVal + affixVal;
+      // 沒這個屬性（且詞綴也沒給）→ 不顯示
+      if (typeof base[k] !== 'number' && !affixVal) return '';
+      const cls = total > 0 ? 'pos' : (total < 0 ? 'neg' : '');
+      const sign = total > 0 ? '+' : '';
+      const affixHint = affixVal ? ` <span class="forge-tt-stat-key">(${baseVal}${affixVal >= 0 ? '+' : ''}${affixVal})</span>` : '';
+      return `<div><span class="forge-tt-stat-key">${label}</span><span class="forge-tt-stat-val ${cls}">${sign}${total}</span>${affixHint}</div>`;
+    }).filter(Boolean).join('');
+
+    // 詞綴列表
+    let affixHtml = '';
+    if (affixIds.length && typeof Affixes !== 'undefined') {
+      const lines = affixIds.map(aid => {
+        const name = Affixes.getName(aid);
+        const desc = Affixes.getDesc(aid);
+        return `<div class="forge-tt-affix-line"><span class="forge-tt-affix-name">${name}</span><span class="forge-tt-affix-desc">${desc}</span></div>`;
+      }).join('');
+      affixHtml = `<div class="forge-tt-affixes">${lines}</div>`;
+    }
+
+    // desc
+    const descHtml = base.desc ? `<div class="forge-tt-desc">${base.desc}</div>` : '';
+
+    return `
+      <div class="forge-tt-name">${colorName}</div>
+      <div class="forge-tt-meta">${metaHtml}</div>
+      <div class="forge-tt-stats">${statsHtml}</div>
+      ${affixHtml}
+      ${descHtml}
+    `;
+  }
+
+  function _showTooltip(entry, ev) {
+    const tt = document.getElementById('forge-tooltip');
+    if (!tt) return;
+    tt.innerHTML = _buildTooltipHTML(entry);
+    tt.classList.add('show');
+    _moveTooltip(ev);
+  }
+  function _moveTooltip(ev) {
+    const tt = document.getElementById('forge-tooltip');
+    if (!tt || !tt.classList.contains('show')) return;
+    const pad = 14;
+    const w = tt.offsetWidth;
+    const h = tt.offsetHeight;
+    let x = ev.clientX + pad;
+    let y = ev.clientY + pad;
+    // 邊界處理（不要超出視窗）
+    if (x + w + 8 > window.innerWidth)  x = ev.clientX - w - pad;
+    if (y + h + 8 > window.innerHeight) y = ev.clientY - h - pad;
+    if (x < 8) x = 8;
+    if (y < 8) y = 8;
+    tt.style.left = x + 'px';
+    tt.style.top  = y + 'px';
+  }
+  function _hideTooltip() {
+    const tt = document.getElementById('forge-tooltip');
+    if (tt) tt.classList.remove('show');
   }
 
   function open() {
@@ -249,6 +430,7 @@ const Forge = (() => {
   function close() {
     const el = document.getElementById('forge-overlay');
     if (el) el.classList.remove('open');
+    _hideTooltip();
   }
 
   // ══════════════════════════════════════════════════
@@ -402,6 +584,15 @@ const Forge = (() => {
           _render();
         }
       });
+      // 🆕 2026-05-08 hover tooltip
+      const kind = btn.dataset.kind;
+      const id   = btn.dataset.id;
+      const list = (kind === 'weapon') ? _getWeaponEntries() : _getArmorEntries();
+      const entry = list.find(e => e.id === id);
+      if (!entry) return;
+      btn.addEventListener('mouseenter', (ev) => _showTooltip(entry, ev));
+      btn.addEventListener('mousemove',  (ev) => _moveTooltip(ev));
+      btn.addEventListener('mouseleave', _hideTooltip);
     });
     frame.querySelectorAll('.forge-action-btn').forEach(btn => {
       btn.addEventListener('click', () => {
