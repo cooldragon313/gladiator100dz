@@ -209,28 +209,297 @@ const CrossLudusEvents = (() => {
   }
 
   // ═══════════════════════════════════════════════════
-  // P2-4 雙主人合作場（Day 35、stub — Phase 2.5）
+  // P2-4 雙主人合作場（Day 35）— 2026-05-08 完整版
   // ═══════════════════════════════════════════════════
+  // 4 幕結構：
+  //   1. 侍從通報 + 走到競技場
+  //   2. 戰前 — 兩主人客套 + ChoiceModal「跟法烏斯怎處」（3 選項影響獎勵）
+  //   3. 戰鬥 — Stage.playEvent 模擬（不真做 2v2）+ 戰中對白
+  //   4. 戰後 — 從 5 素材池抽 1 揭露兩主人 30 年舊帳一角 + 獎勵
+  //
+  // 跨主題：橫向張力（阿圖斯 + 蓋烏斯 30 年青梅竹馬+宿敵）
+  // 對應 NPC：vesnusFaus（沉默冷血、最強執行者）
+  // ═══════════════════════════════════════════════════
+
+  // 5 個 30 年舊帳素材池（從 gaius.md / CANON.md）— 戰後玩家偷聽到一段
+  const _OLD_GRUDGE_POOL = [
+    {
+      id: 'd35_grudge_livia',
+      lines: [
+        { speaker: '蓋烏斯', text: '⋯⋯倒是、聽說 Livia 最近常在後園走走？' },
+        { speaker: '阿圖斯', text: '⋯⋯（他放下酒杯。）' },
+        { speaker: '阿圖斯', text: '蓋烏斯。她的事不要再提。' },
+        { text: '（你聽不太懂、但你聽得出阿圖斯的聲音冷了一度。）' },
+      ],
+    },
+    {
+      id: 'd35_grudge_horse',
+      lines: [
+        { speaker: '蓋烏斯', text: '⋯⋯那年的馬賽、你還記得？' },
+        { speaker: '阿圖斯', text: '⋯⋯（沉默。）' },
+        { speaker: '阿圖斯', text: '記得。我父親死那年。' },
+        { speaker: '蓋烏斯', text: '⋯⋯哎、年紀大了、講起來都是傷。' },
+        { text: '（蓋烏斯笑了。但笑沒到眼睛。）' },
+      ],
+    },
+    {
+      id: 'd35_grudge_neighbor',
+      lines: [
+        { speaker: '蓋烏斯', text: '⋯⋯倒是聽說、那位老朋友最近升了大臣。' },
+        { speaker: '阿圖斯', text: '⋯⋯嗯。' },
+        { speaker: '蓋烏斯', text: '當年我們聯手坑他那塊地、他到現在還記著。' },
+        { speaker: '阿圖斯', text: '⋯⋯他記著、是好事。我們就還能用一次。' },
+        { text: '（兩人對視一眼、像是談論天氣。）' },
+      ],
+    },
+    {
+      id: 'd35_grudge_funeral',
+      lines: [
+        { speaker: '蓋烏斯', text: '⋯⋯前幾年我去你府上弔唁、那塊地的事⋯⋯' },
+        { speaker: '阿圖斯', text: '蓋烏斯。' },
+        { speaker: '蓋烏斯', text: '（笑）哎好好、不提。' },
+        { text: '（阿圖斯沒看他、繼續喝酒。）' },
+      ],
+    },
+    {
+      id: 'd35_grudge_petty',
+      lines: [
+        { speaker: '蓋烏斯', text: '⋯⋯這場贏得漂亮。' },
+        { speaker: '阿圖斯', text: '⋯⋯你那個法烏斯、是個沒嘴的。' },
+        { speaker: '蓋烏斯', text: '（笑）你那邊那個小子、倒是有戲。' },
+        { text: '（這是兩人少數真正在「談論奴隸」的一刻。）' },
+      ],
+    },
+  ];
+
   function tryCooperationFight(newDay) {
     if (newDay !== 35) return false;
     if (Flags.has('coop_fight_d35_done')) return false;
     Flags.set('coop_fight_d35_done', true);
-    if (typeof DialogueModal !== 'undefined') {
-      DialogueModal.play([
-        { text: '（侍從匆匆來通報。）' },
-        { speaker: '侍從', text: '⋯⋯今天阿圖斯跟蓋烏斯聯手派人打第三家。你要跟法烏斯組隊。' },
-        { text: '（你跟著走到競技場、看到法烏斯已經在那等了。）' },
-        { speaker: '法烏斯', text: '⋯⋯', color: '#888' },
-        { text: '（他不講話、跟你站一起。）' },
-        { text: '（——P2-4 完整 2v2 戰待後續實作。今天 stub 帶過：兩家聯手贏了。）' },
-      ]);
-    }
-    if (typeof Stats !== 'undefined') {
-      Stats.modFame(15);
-      Stats.modMoney(50);
-    }
-    _log('✦ Day 35 雙主人合作場（stub）：贏了、+15 名聲 +50 銅幣。', '#88dd66', true);
+    _coopAct1();
     return true;
+  }
+
+  // 幕一：侍從通報 + 走到競技場
+  function _coopAct1() {
+    if (typeof DialogueModal === 'undefined') {
+      _coopAct4_reward('nodToFaus');   // fallback
+      return;
+    }
+    DialogueModal.play([
+      { text: '（清晨。侍從匆匆來通報。）' },
+      { speaker: '侍從', text: '⋯⋯今天阿圖斯大人跟蓋烏斯老爺合作、要派人打外地來訪的米羅斯場。' },
+      { speaker: '侍從', text: '主人指名你出戰、跟維努斯場的「法烏斯」組隊。' },
+      { text: '（你還沒回神、就被推到競技場側門。）' },
+      { text: '（沙地的熱氣已經升起來了。觀眾席半滿、城裡的人還在進場。）' },
+      { text: '（你走出側門——看到那個男人。）' },
+      { text: '（高、寬肩、武器拿得低。臉上沒表情。）' },
+      { speaker: '法烏斯', text: '⋯⋯', color: '#888' },
+      { text: '（他沒看你。沒打招呼。也沒走開。就站在那。）' },
+      { text: '（你站到他旁邊三步遠的位置。等。）' },
+    ], { onComplete: _coopAct2 });
+  }
+
+  // 幕二：戰前兩主人入場 + ChoiceModal
+  function _coopAct2() {
+    DialogueModal.play([
+      { text: '（號角響。觀眾安靜下來。）' },
+      { text: '（阿圖斯從南陽台走出來、慢慢坐下。）' },
+      { text: '（蓋烏斯從北陽台走出來、舉起一杯酒、隔空敬阿圖斯。）' },
+      { speaker: '蓋烏斯', text: '阿圖斯！這場合作、我等了半個月。', color: '#aa7755' },
+      { speaker: '阿圖斯', text: '⋯⋯' },
+      { text: '（阿圖斯點了下頭。沒舉杯。）' },
+      { text: '（你看到阿圖斯的眼神——不冷、但也不熱。像在算一筆帳。）' },
+      { text: '（沙地對面的門打開——米羅斯場的兩個戰士走出來。）' },
+      { text: '（一個拿大劍、一個拿短斧。看起來打過幾年。）' },
+    ], { onComplete: _coopChoice });
+  }
+
+  // 戰前抉擇：跟法烏斯怎處
+  function _coopChoice() {
+    if (typeof ChoiceModal === 'undefined') {
+      _coopAct3('nodToFaus');
+      return;
+    }
+    ChoiceModal.show({
+      id: 'coop_d35_stance',
+      icon: '⚔️',
+      title: '法烏斯就在你身邊',
+      body: '對面兩個米羅斯戰士在熱身。法烏斯沒看你。號角第二聲快響了。',
+      forced: true,
+      choices: [
+        {
+          id: 'nodToFaus',
+          label: '跟法烏斯點頭示意',
+          hint: '（合作就合作、不結盟就不結盟。）',
+          effects: [
+            { type: 'moral', axis: 'patience', side: 'positive' },
+            { type: 'flag', key: 'coop_d35_nodded' },
+          ],
+          resultLog: '你對法烏斯點了下頭。他停頓半秒、回了一個極輕的點頭。',
+          logColor: '#88aa66',
+        },
+        {
+          id: 'silentSelf',
+          label: '不講話、自顧自準備武器',
+          hint: '（他不講話、那我也不講話。）',
+          effects: [
+            { type: 'moral', axis: 'pride', side: 'positive' },
+          ],
+          resultLog: '你低頭檢查武器。法烏斯也低頭檢查武器。兩人之間有三步、就像有一道牆。',
+          logColor: '#888899',
+        },
+        {
+          id: 'spyMaster',
+          label: '偷瞄陽台兩個主人',
+          hint: '（他們在玩什麼？）',
+          effects: [
+            { type: 'moral', axis: 'reliability', side: 'negative' },
+            { type: 'flag', key: 'coop_d35_spied' },
+          ],
+          resultLog: '你抬頭——阿圖斯在算什麼、蓋烏斯在笑什麼。你看不出來。但你知道：這場戰鬥不只是戰鬥。',
+          logColor: '#aa8855',
+        },
+      ],
+    }, {
+      onChoose: (choiceId) => _coopAct3(choiceId),
+    });
+  }
+
+  // 幕三：戰鬥（用 Stage.playEvent 模擬、不真做 2v2）
+  function _coopAct3(choiceId) {
+    const lines = (() => {
+      if (choiceId === 'nodToFaus') {
+        return [
+          '號角響。',
+          '法烏斯往左、你往右——你們**心照不宣**地分頭包夾。',
+          '',
+          '法烏斯的劍長而沉。對面拿大劍那個被他第一招逼退。',
+          '你這邊——短斧那個衝過來、你後退一步、找他下盤。',
+          '一招、兩招——他的腿露出來了。',
+          '',
+          '你劈下去。沙地一片紅。',
+          '另一邊、法烏斯一劍刺穿大劍那個的胸口。',
+          '',
+          '兩個米羅斯戰士都倒了。場上靜了一秒、然後觀眾爆掌聲。',
+        ];
+      } else if (choiceId === 'silentSelf') {
+        return [
+          '號角響。',
+          '法烏斯往前衝。你也往前衝——你們**沒配合、各打各的**。',
+          '',
+          '對面兩個米羅斯戰士反而被你們的「不配合」搞亂了——他們以為要分兵、結果發現你們各打各的。',
+          '法烏斯硬碰硬、被大劍那個劃到肩。',
+          '你跟短斧那個對到——你硬上、用力氣換力氣。',
+          '',
+          '最後你倒了短斧的、法烏斯也倒了大劍的。',
+          '沒漂亮、但贏了。',
+        ];
+      } else {
+        return [
+          '號角響。',
+          '你**慢了半拍**——剛才偷瞄陽台、視線還沒回來。',
+          '對面短斧那個衝過來、你及時格擋、但慢了一個動作。',
+          '',
+          '法烏斯瞥了你一眼——那一眼有「跟不上」的意思。',
+          '他自己快速解決大劍那個、然後過來補你這邊。',
+          '',
+          '兩個米羅斯戰士都倒了。',
+          '但這場勝利、是法烏斯撐的。',
+        ];
+      }
+    })();
+
+    if (typeof Stage !== 'undefined' && Stage.playEvent) {
+      Stage.playEvent({
+        title: '雙主人合作場',
+        icon: '⚔️',
+        lines,
+        color: '#cc6622',
+        onComplete: () => _coopAct4_reward(choiceId),
+      });
+    } else {
+      _coopAct4_reward(choiceId);
+    }
+  }
+
+  // 幕四：戰後 — 30 年舊帳揭露 + 獎勵
+  function _coopAct4_reward(choiceId) {
+    // 從 5 素材池抽一段
+    const grudge = _OLD_GRUDGE_POOL[Math.floor(Math.random() * _OLD_GRUDGE_POOL.length)];
+
+    const introLines = [
+      { text: '（你跟法烏斯站在沙地中央、滿身是血。）' },
+      { text: '（觀眾還在歡呼、但你的耳朵嗡嗡的、聽不清。）' },
+      { text: '（陽台上、阿圖斯舉起酒杯、慢慢喝了一口。）' },
+      { text: '（蓋烏斯也舉起酒杯、跟阿圖斯隔空敬。）' },
+      { text: '（兩人對視。一秒。然後笑了——是「親兄弟」的笑。）' },
+      { text: '（你聽到他們在陽台上、隔著風、講了一段話。）' },
+      { text: '（你聽得不完整、只聽到——）' },
+      { text: '———————————————————————', color: '#444' },
+      ...grudge.lines,
+      { text: '———————————————————————', color: '#444' },
+      { text: '（你看了法烏斯一眼。他也聽到了。）' },
+      { text: '（他沒講話、轉身往維努斯場的側門走。）' },
+      { speaker: '法烏斯', text: '⋯⋯下次、別偷瞄主人。', color: '#888' },
+      { text: '（——只有偷瞄那條的人會聽到這句。）' },
+    ];
+
+    // 偷瞄路線特別句
+    const finalLines = (choiceId === 'spyMaster')
+      ? introLines
+      : introLines.filter(l => !l.text || !l.text.includes('別偷瞄主人'));
+
+    if (typeof DialogueModal !== 'undefined') {
+      DialogueModal.play(finalLines, { onComplete: () => _coopApplyRewards(choiceId, grudge.id) });
+    } else {
+      _coopApplyRewards(choiceId, grudge.id);
+    }
+  }
+
+  function _coopApplyRewards(choiceId, grudgeId) {
+    // 基本獎勵
+    if (typeof Stats !== 'undefined') {
+      Stats.modFame(25);
+      if (Stats.modMoney) Stats.modMoney(80);
+    }
+
+    // 法烏斯好感分歧
+    if (typeof teammates !== 'undefined' && teammates.modAffection) {
+      if (choiceId === 'nodToFaus') {
+        teammates.modAffection('vesnusFaus', 10);
+      } else if (choiceId === 'silentSelf') {
+        teammates.modAffection('vesnusFaus', 5);
+      }
+      // 偷瞄路線：0 / 法烏斯不爽
+    }
+
+    // 主人好感小漲（合作場立功）
+    if (typeof teammates !== 'undefined' && teammates.modAffection) {
+      teammates.modAffection('masterArtus', choiceId === 'spyMaster' ? 3 : 8);
+    }
+
+    // 玩家偷瞄到 30 年舊帳 → 設 storyReveal flag
+    Flags.set('witnessed_30y_grudge_d35', true);
+    Flags.set(`coop_d35_grudge_${grudgeId}`, true);
+
+    // 偷瞄路線特別 flag（後續可用）
+    if (choiceId === 'spyMaster') {
+      Flags.set('coop_d35_spy_caught_by_faus', true);
+    }
+
+    // 戰鬥消耗（根據選擇）
+    if (typeof Stats !== 'undefined') {
+      if (choiceId === 'silentSelf') {
+        Stats.modVital('hp', -10);   // 沒配合、有點傷
+      } else if (choiceId === 'spyMaster') {
+        Stats.modVital('hp', -15);   // 慢半拍、傷比較重
+      }
+      Stats.modVital('stamina', -20);
+    }
+
+    _log('✦ Day 35 雙主人合作場：贏了。+25 名聲 +80 銅幣。', '#88dd66', true);
+    _log('（你聽到了一段不該聽到的對話。）', '#aa8855', false);
   }
 
   // ═══════════════════════════════════════════════════
