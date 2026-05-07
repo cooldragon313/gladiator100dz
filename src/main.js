@@ -6256,6 +6256,8 @@ const Game = (() => {
       // 🆕 Phase 1-B: 載入後如果在 meal/rest 時段，自動解決
       _resolveNonTrainingSlots();
       renderAll();
+      // 🆕 2026-05-08 Debug：檢查 test.html 設的跳場景旗標
+      _checkDebugJumpPending();
     });
 
     document.getElementById('btn-new-game')?.addEventListener('click', () => {
@@ -8080,6 +8082,111 @@ const Game = (() => {
     Forge.open();
   }
 
+  // 🆕 2026-05-08 Debug：作弊模式（測試後段內容用）
+  //   屬性拉滿 / 滿血 / 給最強裝備 / 滿錢
+  //   不持久化（不 saveGame）— 重整就回原狀
+  //   用法：Game.godMode() 或 Game.godMode({ attr: 80 }) 自訂屬性值
+  function godMode(opts = {}) {
+    const p = Stats.player;
+    const { attr = 50, hp = 200, fame = 100, money = 1000, gear = true } = opts;
+
+    ['STR','DEX','CON','AGI','WIL','LUK'].forEach(k => p[k] = attr);
+    p.hpMax = hp; p.hp = hp;
+    p.staminaMax = 100; p.stamina = 100;
+    p.food = 100;
+    p.mood = 100;
+    p.fame = fame;
+    p.money = money;
+
+    if (gear) {
+      p.equippedWeapon  = 'longSword_t4';
+      p.equippedArmor   = 'steelPlate';
+      p.equippedHelmet  = 'ironHelm_superb';
+      p.equippedArms    = 'clothArm_superb';
+      p.equippedLegs    = 'leatherLeg_superb';
+      if (!Array.isArray(p.weaponInventory)) p.weaponInventory = [];
+      if (!p.weaponInventory.find(e => e.id === 'longSword_t4')) {
+        p.weaponInventory.push({ id: 'longSword_t4' });
+      }
+      if (!Array.isArray(p.armorInventory)) p.armorInventory = [];
+      ['steelPlate','ironHelm_superb','clothArm_superb','leatherLeg_superb'].forEach(id => {
+        if (!p.armorInventory.find(e => e.id === id)) p.armorInventory.push({ id });
+      });
+    }
+
+    renderAll();
+    console.log(`[Debug] godMode → 屬性 ${attr} / HP ${hp} / 名聲 ${fame} / $${money}${gear ? ' / 滿裝備' : ''}`);
+    addLog(`\n[Debug] God mode 開啟（屬性 ${attr} / 滿血滿裝）`, '#ff6600', true);
+  }
+
+  // 🆕 2026-05-08 Debug：直接跳到測試場景
+  //   一鍵跳天數 + 自動 buff（後段場景需要好裝備才打得贏）
+  //   用法：Game.testJump('wanguji')
+  //         Game.testJump('day65')
+  //   無參數會列出所有可用場景
+  function testJump(scene) {
+    const SCENES = {
+      'day5':    { day: 5,   note: '沙洗（公開處決）' },
+      'day25':   { day: 25,  note: '春季大會（領主首次出場）' },
+      'day45':   { day: 45,  note: '白虎獸場',   buff: true },
+      'day49':   { day: 49,  note: '血戰宴會',   buff: true },
+      'day65':   { day: 65,  note: '領主訪訓練所（農家相認）',  buff: true },
+      'day70':   { day: 70,  note: '四強選拔',   buff: true },
+      'day80':   { day: 80,  note: '領主夜宴 + 凱德相認',   buff: true },
+      'day90':   { day: 90,  note: '凱德夜訪',   buff: true },
+      'day100':  { day: 100, note: '萬骸祭',     buff: true },
+      'wanguji': { day: 100, note: '萬骸祭',     buff: true },
+    };
+
+    if (!scene) {
+      console.log('可用場景：');
+      Object.entries(SCENES).forEach(([k, v]) => {
+        console.log(`  Game.testJump('${k}')  → Day ${v.day} ${v.note}${v.buff ? ' (+godMode)' : ''}`);
+      });
+      return;
+    }
+
+    const cfg = SCENES[scene];
+    if (!cfg) {
+      console.warn(`未知場景：${scene}。Game.testJump() 看清單。`);
+      return;
+    }
+
+    if (cfg.buff) godMode();
+    skipToDay(cfg.day);
+    console.log(`[Debug] testJump('${scene}') → ${cfg.note}`);
+  }
+
+  // 🆕 2026-05-08 Debug：套用 test.html 設的跳場景旗標
+  //   test.html 點按鈕 → 寫 localStorage `__debug_jump`
+  //   遊戲 continue 載入存檔後 → 套用 → 移除旗標
+  function _checkDebugJumpPending() {
+    let raw;
+    try { raw = localStorage.getItem('__debug_jump'); } catch (e) { return; }
+    if (!raw) return;
+
+    let cfg;
+    try { cfg = JSON.parse(raw); } catch (e) {
+      console.warn('[Debug] __debug_jump 格式錯誤、清掉');
+      try { localStorage.removeItem('__debug_jump'); } catch (e2) {}
+      return;
+    }
+
+    try { localStorage.removeItem('__debug_jump'); } catch (e) {}
+
+    // 延遲 800ms 讓 init / continue 完成
+    setTimeout(() => {
+      console.log(`[Debug] 套用 test.html 跳場景：`, cfg);
+      addLog(`\n[Debug] test.html → 套用 ${cfg.scene}${cfg.godMode ? ` + godMode (attr ${cfg.attr || 50})` : ''}`, '#ff6600', true);
+      try {
+        if (cfg.godMode) godMode({ attr: cfg.attr || 50 });
+        if (cfg.scene)  testJump(cfg.scene);
+      } catch (e) {
+        console.error('[Debug] 套用失敗：', e);
+      }
+    }, 800);
+  }
+
   return {
     init, switchField, doAction,
     addLog, renderAll, showToast,
@@ -8089,6 +8196,8 @@ const Game = (() => {
     loadGameFromSlot,
     testChoice,
     skipToDay,    // 🆕 Debug 用
+    godMode,      // 🆕 2026-05-08 Debug 作弊
+    testJump,     // 🆕 2026-05-08 Debug 跳場景
     openForge,    // 🆕 2026-04-29 鍛造坊
     // 🆕 2026-04-23：視覺特效公開 API（供 ChoiceModal、狂熱獲得等使用）
     flashStageRed: _flashStageRed,

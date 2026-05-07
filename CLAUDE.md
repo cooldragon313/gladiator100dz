@@ -183,7 +183,10 @@
 
 | 工具 | 位置 | 用途 |
 |---|---|---|
+| **`test.html`** | 專案根目錄 | 🆕 2026-05-08 GUI 版 debug — 點按鈕跳場景、勾選 godMode、清存檔。寫 localStorage `__debug_jump`，遊戲 continue 時自動套用 |
 | `Game.skipToDay(N)` | main.js（return 區塊內） | Console 輸入跳到指定天數 |
+| `Game.godMode({attr,hp,fame,money,gear})` | main.js | 🆕 2026-05-08 屬性拉滿 + 給最強裝備 + 滿血錢名聲（測後段內容、不持久化）|
+| `Game.testJump(scene)` | main.js | 🆕 2026-05-08 一鍵跳場景：`'day5' / 'day25' / 'day45' / 'day49' / 'day65' / 'day70' / 'day80' / 'day90' / 'day100' / 'wanguji'`（後段自動 godMode）|
 | `Game.testChoice` | main.js | 測試 ChoiceModal |
 | **F5 快存 / F9 快讀** | main.js 底部（IIFE 外） | 按鍵快速存讀檔 |
 | **`_showGameIntro()`** | main.js（新遊戲流程內） | 測試用遊戲介紹頁，正式版改為官方首頁或移除 |

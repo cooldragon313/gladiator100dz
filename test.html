@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>Gladiator 100Dz · Debug Tools</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    background: #1a1410; color: #d4c8a0;
+    padding: 24px; max-width: 820px; margin: 0 auto;
+    line-height: 1.5;
+  }
+  h1 { color: #d4af37; margin-top: 0; }
+  h2 {
+    margin-top: 28px; color: #c8a060;
+    border-bottom: 1px solid #4a3a2a; padding-bottom: 6px;
+    font-size: 18px;
+  }
+  p.hint { color: #889999; font-size: 13px; }
+
+  .opts {
+    margin: 12px 0; padding: 14px;
+    background: #2a2018; border: 1px solid #4a3a2a; border-radius: 4px;
+  }
+  .opts label { display: block; margin: 6px 0; }
+  .opts input[type="number"] {
+    background: #1a1410; color: #d4af37;
+    border: 1px solid #4a3a2a; padding: 4px 8px;
+    width: 70px; font-family: inherit;
+  }
+  .opts input[type="checkbox"] { transform: scale(1.2); margin-right: 8px; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  button.scene {
+    background: #2a2018; border: 1px solid #6a5a3a; color: #d4c8a0;
+    padding: 12px 14px; cursor: pointer; text-align: left;
+    border-radius: 4px; font-size: 14px;
+    transition: background .15s, border-color .15s;
+    font-family: inherit;
+  }
+  button.scene:hover {
+    background: #3a3028; border-color: #d4af37; color: #f4e0a0;
+  }
+  button.scene strong { color: #d4af37; display: block; font-size: 16px; margin-bottom: 4px; }
+  button.scene .day { color: #889999; font-size: 12px; }
+
+  .status {
+    margin-top: 20px; padding: 14px;
+    border: 1px solid #4a6a3a; border-radius: 4px;
+    background: #1f2a18;
+  }
+  .status.empty { background: #2a2018; border-color: #4a3a2a; color: #889999; }
+  .status strong { color: #d4af37; }
+
+  .open-game {
+    margin-top: 18px;
+    display: flex; gap: 12px; flex-wrap: wrap;
+  }
+  .open-game a {
+    background: #d4af37; color: #1a1410;
+    padding: 12px 20px; text-decoration: none; border-radius: 4px;
+    font-weight: bold; font-size: 15px;
+  }
+  .open-game a:hover { background: #f4cf57; }
+  .open-game a.secondary { background: #4a3a2a; color: #d4c8a0; }
+  .open-game a.secondary:hover { background: #5a4a3a; }
+
+  hr { border: none; border-top: 1px solid #4a3a2a; margin: 24px 0; }
+
+  button.danger {
+    background: #3a2018; border-color: #cc4444; color: #ffaaaa;
+    width: 100%; margin-top: 8px;
+  }
+  button.danger:hover { background: #4a2818; border-color: #ff5555; color: #ffcccc; }
+
+  ol li { margin: 4px 0; }
+  code { background: #2a2018; padding: 2px 6px; border-radius: 2px; color: #d4af37; }
+</style>
+</head>
+<body>
+
+<h1>🎮 Gladiator 100Dz · Debug Tools</h1>
+<p class="hint">點按鈕 → 寫 localStorage 旗標 → 開 / 重整 game.html → 「繼續冒險」載入存檔後自動跳到對應場景。</p>
+
+<h2>⚙️ 選項</h2>
+<div class="opts">
+  <label>
+    <input type="checkbox" id="cb-godmode" checked>
+    <strong style="color:#d4af37;">開啟 godMode</strong>
+    <span style="color:#889999;font-size:13px;">— 屬性拉滿 + 滿血 + 最強裝備 + 滿錢名聲</span>
+  </label>
+  <label>
+    屬性值：<input type="number" id="num-attr" value="50" min="10" max="99">
+    <span style="color:#889999;font-size:13px;">（10~99、預設 50；測 boss 戰可拉到 80+）</span>
+  </label>
+  <p class="hint" style="margin: 8px 0 0;">⚠️ 想測試「死亡 / 失敗」結局時，<strong>取消</strong> godMode 勾選。</p>
+</div>
+
+<h2>🎬 跳場景</h2>
+<div class="grid">
+  <button class="scene" onclick="setJump('day5')">
+    <strong>Day 5 沙洗</strong>
+    <span class="day">公開處決 + 三人試煉（索爾命運）</span>
+  </button>
+  <button class="scene" onclick="setJump('day25')">
+    <strong>Day 25 春季大會</strong>
+    <span class="day">領主提圖斯首次出場（遠望）</span>
+  </button>
+  <button class="scene" onclick="setJump('day45')">
+    <strong>Day 45 白虎獸場</strong>
+    <span class="day">提圖斯買白虎、人虎對決</span>
+  </button>
+  <button class="scene" onclick="setJump('day49')">
+    <strong>Day 49 血戰宴會</strong>
+    <span class="day">老兵的腿、Day 5 主題迴響</span>
+  </button>
+  <button class="scene" onclick="setJump('day65')">
+    <strong>Day 65 領主訪訓練所</strong>
+    <span class="day">農家相認 storyReveal（柴堆 + 鐵味）</span>
+  </button>
+  <button class="scene" onclick="setJump('day70')">
+    <strong>Day 70 四強選拔</strong>
+    <span class="day">凱德首次同場、面熟感持續</span>
+  </button>
+  <button class="scene" onclick="setJump('day80')">
+    <strong>Day 80 領主夜宴</strong>
+    <span class="day">瓦倫破綻 + 凱德相認</span>
+  </button>
+  <button class="scene" onclick="setJump('day90')">
+    <strong>Day 90 凱德夜訪</strong>
+    <span class="day">暗示 Day 100 故意輸</span>
+  </button>
+  <button class="scene" onclick="setJump('day100')" style="grid-column: span 2;">
+    <strong>Day 100 萬骸祭 ⚔️</strong>
+    <span class="day">5 Wave gauntlet + 凱德倒戈 + 結局判定</span>
+  </button>
+</div>
+
+<h2>📋 狀態</h2>
+<div id="status" class="status empty">（尚未設定跳場景）</div>
+
+<div class="open-game">
+  <a href="game.html" target="_blank">→ 開 game.html（新分頁）</a>
+  <a href="game.html" class="secondary">→ 開 game.html（同分頁）</a>
+</div>
+
+<hr>
+
+<h2>🛠 進階</h2>
+<button class="scene" onclick="clearJump()" style="width:100%;">🧹 清除待跳場景</button>
+<button class="scene danger" onclick="clearSaveAndReload()">🗑 清除所有存檔（強制全新遊戲）</button>
+
+<h2>📖 使用說明</h2>
+<ol>
+  <li>第一次測試需先有存檔 — 玩到 Day 5+ 用 <code>F5</code> 存檔</li>
+  <li>確認 godMode 勾選狀態（測「死亡」場景時取消）</li>
+  <li>點上方任一場景按鈕 → 看狀態列確認</li>
+  <li>開 game.html → 點「繼續冒險」</li>
+  <li>遊戲載入後會自動延遲 800ms 套用跳場景 + 作弊</li>
+</ol>
+<p class="hint">技術細節：旗標寫在 <code>localStorage.__debug_jump</code>、套用後自動清除、不污染存檔。</p>
+
+<script>
+function setJump(scene) {
+  const godMode = document.getElementById('cb-godmode').checked;
+  const attr = parseInt(document.getElementById('num-attr').value, 10) || 50;
+  const cfg = { scene, godMode, attr, ts: Date.now() };
+  try {
+    localStorage.setItem('__debug_jump', JSON.stringify(cfg));
+    showStatus(cfg);
+  } catch (e) {
+    alert('無法寫入 localStorage：' + e.message);
+  }
+}
+
+function clearJump() {
+  try { localStorage.removeItem('__debug_jump'); } catch (e) {}
+  showStatus(null);
+}
+
+function clearSaveAndReload() {
+  if (!confirm('真的要清除所有存檔嗎？\n（slot_0 ~ slot_4 + auto + backup）')) return;
+  try {
+    // 存檔 key 前綴：bairi_save_* (見 src/core/save_system.js)
+    const keys = [
+      'bairi_save_slot_0','bairi_save_slot_1','bairi_save_slot_2',
+      'bairi_save_slot_3','bairi_save_slot_4',
+      'bairi_save_auto','bairi_save_backup','bairi_save_v1',
+      '__debug_jump',
+    ];
+    keys.forEach(k => localStorage.removeItem(k));
+    alert('存檔已清除。下次開 game.html 會是全新遊戲。');
+    showStatus(null);
+  } catch (e) {
+    alert('清除失敗：' + e.message);
+  }
+}
+
+function showStatus(cfg) {
+  const el = document.getElementById('status');
+  if (!cfg) {
+    el.className = 'status empty';
+    el.innerHTML = '（尚未設定跳場景）';
+    return;
+  }
+  el.className = 'status';
+  const time = new Date(cfg.ts).toLocaleTimeString();
+  el.innerHTML =
+    `已設定：<strong>${cfg.scene}</strong>` +
+    (cfg.godMode
+      ? ` <span style="color:#d4af37;">+ godMode (attr ${cfg.attr})</span>`
+      : ' <span style="color:#cc7777;">無 godMode</span>') +
+    `<br><span style="color:#889999;font-size:12px;">設於 ${time} → 開 game.html、繼續存檔即會自動套用</span>`;
+}
+
+// 載入時顯示既有 flag
+try {
+  const existing = localStorage.getItem('__debug_jump');
+  if (existing) {
+    showStatus(JSON.parse(existing));
+  }
+} catch (e) { /* ignore */ }
+</script>
+
+</body>
+</html>
