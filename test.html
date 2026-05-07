@@ -75,6 +75,27 @@
   }
   button.danger:hover { background: #4a2818; border-color: #ff5555; color: #ffcccc; }
 
+  /* 🆕 2026-05-08：自訂天數 */
+  .custom-day {
+    margin: 12px 0; padding: 14px;
+    background: #2a2018; border: 1px solid #6a5a3a; border-radius: 4px;
+    display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+  }
+  .custom-day label { color: #d4af37; font-weight: bold; }
+  .custom-day input[type="number"] {
+    background: #1a1410; color: #d4af37;
+    border: 1px solid #4a3a2a; padding: 8px 10px;
+    width: 80px; font-family: inherit; font-size: 16px;
+  }
+  .custom-day button {
+    background: #d4af37; color: #1a1410;
+    border: none; padding: 10px 20px; font-weight: bold;
+    cursor: pointer; border-radius: 4px; font-size: 14px;
+    font-family: inherit;
+  }
+  .custom-day button:hover { background: #f4cf57; }
+  .custom-day .hint-inline { color: #889999; font-size: 13px; }
+
   ol li { margin: 4px 0; }
   code { background: #2a2018; padding: 2px 6px; border-radius: 2px; color: #d4af37; }
 </style>
@@ -98,7 +119,15 @@
   <p class="hint" style="margin: 8px 0 0;">⚠️ 想測試「死亡 / 失敗」結局時，<strong>取消</strong> godMode 勾選。</p>
 </div>
 
-<h2>🎬 跳場景</h2>
+<h2>🎯 自訂天數</h2>
+<div class="custom-day">
+  <label>跳到 Day</label>
+  <input type="number" id="num-custom-day" min="1" max="100" value="35">
+  <button onclick="setJumpCustom()">→ 設定</button>
+  <span class="hint-inline">1~100 任意天數，套 godMode 看上方勾選</span>
+</div>
+
+<h2>🎬 跳場景（預設劇情點）</h2>
 <div class="grid">
   <button class="scene" onclick="setJump('day5')">
     <strong>Day 5 沙洗</strong>
@@ -173,6 +202,16 @@ function setJump(scene) {
   } catch (e) {
     alert('無法寫入 localStorage：' + e.message);
   }
+}
+
+// 🆕 2026-05-08：自訂天數（1~100 任意）
+function setJumpCustom() {
+  const day = parseInt(document.getElementById('num-custom-day').value, 10);
+  if (!Number.isFinite(day) || day < 1 || day > 100) {
+    alert('天數要在 1~100 之間');
+    return;
+  }
+  setJump('day' + day);
 }
 
 function clearJump() {

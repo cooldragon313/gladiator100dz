@@ -8148,6 +8148,16 @@ const Game = (() => {
 
     const cfg = SCENES[scene];
     if (!cfg) {
+      // 🆕 2026-05-08：支援任意天數 'dayNN'（test.html 自訂天數欄位用）
+      const m = String(scene).match(/^day(\d+)$/);
+      if (m) {
+        const day = parseInt(m[1], 10);
+        if (day >= 1 && day <= 100) {
+          skipToDay(day);
+          console.log(`[Debug] testJump('${scene}') → Day ${day}（自訂天數、不自動 buff、godMode 看 test.html 勾選）`);
+          return;
+        }
+      }
       console.warn(`未知場景：${scene}。Game.testJump() 看清單。`);
       return;
     }
