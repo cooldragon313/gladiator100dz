@@ -654,74 +654,138 @@ const CrossLudusEvents = (() => {
     });
   }
 
-  // 幕三：戰鬥（Stage.playEvent 模擬）
+  // 幕三：戰鬥 — 🆕 2026-05-09 真做 2v2（player + 赫克特 vs 奧斯卡 + 布魯圖）
+  //   3 選項在 stat 層產生差異：
+  //     report → 奧斯卡毒武器被換掉、normal stats
+  //     silent → 奧斯卡仍持毒武器（mock 為 ATK ×1.3 + ACC +5）
+  //     counter → 玩家暗中磨鈍刀刃（奧斯卡 DEX/SPD -25%）
   function _schemerAct3(choiceId) {
-    const lines = (() => {
-      if (choiceId === 'report') {
-        return [
-          '塔倫去找了主辦的侍從。一陣討論。',
-          '對手的武器被收走、換了一把場邊備用的。',
-          '德基烏斯的臉色難看了一下、但他什麼都沒說。',
-          '',
-          '號角響。',
-          '你跟「鋼鐵」奧斯卡正面打了一場。',
-          '他的力氣大、但你的訓練在了。',
-          '一招、兩招、三招——他的肩膀漏了。',
-          '',
-          '你劈下去。他倒在沙地上、舉起手。',
-          '你停手、看向陽台。阿圖斯點了下頭。',
-          '',
-          '塔倫在場邊跟你交了一個眼神——是「做得好」的意思。',
-        ];
-      } else if (choiceId === 'silent') {
-        return [
-          '號角響。',
-          '你上場。對手「鋼鐵」奧斯卡進攻。',
-          '',
-          '第三招——他的刀劃過你左臂。淺淺的、應該沒事。',
-          '但兩秒後——你左臂麻了。',
-          '心臟猛跳。視線開始模糊。',
-          '',
-          '（毒上身了。你比預期快。）',
-          '',
-          '你咬牙、把武器換到右手、低姿勢撐。',
-          '他以為你倒、衝過來——你閃身、用右手一刀劈下去。',
-          '他倒了。',
-          '',
-          '但你也撐不住、半跪在沙地上喘。',
-          '觀眾爆掌聲——他們以為這是「英雄反敗為勝」。',
-          '只有你知道你他媽差點死在塗毒的刀下。',
-        ];
-      } else {
-        return [
-          '號角響。',
-          '對手「鋼鐵」奧斯卡衝過來、第一招——刀面崩了一片。',
-          '（他的刀刃內側被你磨鈍了。他根本不知道。）',
-          '',
-          '他試著再揮——但出力的角度全錯。',
-          '你輕鬆閃過、找他下盤、一刀劈倒。',
-          '',
-          '太順了。順得不像你的水準。',
-          '阿圖斯陽台上的眼神變了一下——他不知道怎麼贏的。',
-          '德基烏斯在場邊、突然站起來、走過來看刀。',
-          '',
-          '他看了刀、看了你。沒講話、走了。',
-          '（他知道。但他不能講——講了等於承認他原本下了毒。）',
-        ];
-      }
-    })();
-
-    if (typeof Stage !== 'undefined' && Stage.playEvent) {
-      Stage.playEvent({
-        title: '雙主人陰招場',
-        icon: '☠️',
-        lines,
-        color: choiceId === 'counter' ? '#aa6666' : '#cc6622',
-        onComplete: () => _schemerAct4(choiceId),
-      });
+    const introLines = [
+      { text: '（號角第一聲響、觀眾陸續入場。）' },
+      { text: '（你跟同伴赫克特並肩走進場中。）' },
+      { speaker: '赫克特', text: '⋯⋯小子、後頭交給我。' },
+      { text: '（場另一頭——「鋼鐵」奧斯卡 + 維努斯場的布魯圖站定。）' },
+    ];
+    if (choiceId === 'report') {
+      introLines.push(
+        { text: '（塔倫剛才把奧斯卡的毒武器收走、換了一把場邊備用的長劍。）' },
+        { speaker: '德基烏斯', text: '⋯⋯哼。你倒會打小報告。', color: '#aa7755' },
+        { text: '（他臉色難看、但什麼也沒講、轉身走回觀眾席。）' },
+      );
+    } else if (choiceId === 'silent') {
+      introLines.push(
+        { text: '（奧斯卡的刀面、那層暗色油漬還在。）' },
+        { text: '（你嘴裡發苦——這場、你不能被劃到。）' },
+        { text: '（赫克特沒看出來、他不知道刀有毒。）' },
+      );
     } else {
-      _schemerAct4(choiceId);
+      introLines.push(
+        { text: '（你看了奧斯卡的刀一眼——那道你剛才磨的痕、他還沒發現。）' },
+        { speaker: '德基烏斯', text: '⋯⋯（他看著奧斯卡的刀、皺了眉。）', color: '#aa7755' },
+        { text: '（德基烏斯似乎察覺了。但他不能講——講了等於承認他原本下了毒。）' },
+      );
     }
+
+    const startBattle = () => {
+      // 隊友：赫克特（阿圖斯場粗暴重斧）
+      const hectorAlly = {
+        name: '赫克特', title: '阿圖斯場・粗暴',
+        STR: 42, DEX: 32, CON: 38, AGI: 28, WIL: 30, LUK: 14,
+        hpBase: 130,
+        weaponId: 'heavyAxe', armorId: 'leatherArmor',
+        ai: 'aggressive', fame: 10,
+      };
+
+      // 主敵：鋼鐵奧斯卡（依選擇 stat 變化）
+      const oscarStat = (() => {
+        if (choiceId === 'silent')  return { STR: 44, DEX: 32, ACC_TAG: '塗毒之刃' };
+        if (choiceId === 'counter') return { STR: 36, DEX: 22, ACC_TAG: '崩刃（DEX -25%）' };
+        return { STR: 36, DEX: 30, ACC_TAG: '訪場戰士' };
+      })();
+      const oscar = {
+        name: '鋼鐵奧斯卡', title: oscarStat.ACC_TAG,
+        STR: oscarStat.STR, DEX: oscarStat.DEX, CON: 38, AGI: 30, WIL: 32, LUK: 12,
+        hpBase: 130,
+        weaponId: 'longSword', armorId: 'chainmail',
+        ai: 'normal', fame: 8,
+      };
+
+      // 副敵：布魯圖（維努斯場大斧手）
+      const brutus = {
+        name: '布魯圖', title: '維努斯場・大斧手',
+        STR: 38, DEX: 26, CON: 36, AGI: 22, WIL: 28, LUK: 10,
+        hpBase: 120,
+        weaponId: 'heavyAxe', armorId: 'leatherArmor',
+        ai: 'aggressive', fame: 7,
+      };
+
+      // silent 路線：開場玩家 -10 HP（毒入皮膚的代價、即使沒被劃到也擔心）
+      if (choiceId === 'silent' && typeof Stats !== 'undefined' && Stats.modVital) {
+        Stats.modVital('hp', -10);
+        _log('✦ 你心臟猛跳、HP -10（怕被毒武器劃到）。', '#aa7755', false);
+      }
+
+      const onWin = () => {
+        Flags.set('scheme_d60_battle_won', true);
+        _schemerAct4(choiceId);
+      };
+      const onLose = () => {
+        Flags.set('scheme_d60_battle_lost', true);
+        _schemerApplyFailRewards(choiceId);
+      };
+
+      if (typeof Battle !== 'undefined' && Battle.startFromConfig) {
+        Battle.startFromConfig({
+          title: '雙主人陰招場',
+          fameReward: 20,
+          enemies: [oscar, brutus],
+          allies:  [hectorAlly],
+        }, onWin, onLose);
+      } else {
+        console.error('[SchemerFight] Battle.startFromConfig not available');
+        _schemerAct4(choiceId);
+      }
+    };
+
+    if (typeof DialogueModal !== 'undefined') {
+      DialogueModal.play(introLines, { onComplete: startBattle });
+    } else {
+      startBattle();
+    }
+  }
+
+  // 戰敗變體 — 沉重對白 + 獎勵負值
+  function _schemerApplyFailRewards(choiceId) {
+    if (typeof DialogueModal === 'undefined') return;
+    const lines = [
+      { text: '（你倒在沙地上、視線模糊。）' },
+      { text: '（赫克特也倒在不遠處、還在喘。）' },
+    ];
+    if (choiceId === 'silent') {
+      lines.push(
+        { text: '（毒上身了。你的左臂麻了一片。）' },
+        { speaker: '德基烏斯', text: '⋯⋯阿圖斯這寵物、不堪一擊。', color: '#aa7755' },
+      );
+    } else {
+      lines.push(
+        { speaker: '蓋烏斯', text: '⋯⋯阿圖斯啊、看來你訓練的不太夠。', color: '#aa7755' },
+      );
+    }
+    lines.push(
+      { speaker: '阿圖斯', text: '⋯⋯', color: '#666' },
+      { text: '（這場敗仗你吞了下去。）' },
+    );
+    DialogueModal.play(lines, {
+      onComplete: () => {
+        if (typeof Stats !== 'undefined') {
+          Stats.modFame(-10);
+          Stats.modVital('mood', -15);
+        }
+        // 失敗仍記錄被陰（玩家有目擊過 = 知情）
+        Flags.set('decius_betrayal_witnessed', true);
+        _log(`✦ 雙主人陰招場戰敗（${choiceId}）。-10 名聲、心情 -15。`, '#aa5050', true);
+      },
+    });
   }
 
   // 幕四：戰後揭露 + 獎勵
