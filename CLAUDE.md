@@ -479,7 +479,6 @@ character_roll → testbattle → battle → actions → main
   - 徽章：`badge-new` / `badge-fix` / `badge-ui` / `badge-data` / `badge-system`
   - AI 主動規則：commit 前如果發現有**新模組、新系統、新事件池、或跨多檔案的平衡調整**，
     不用等使用者說，自己開新 version-block 補上去。只有純注釋 / 文字微調可以省略。
-- **CHANGELOG.md**：keep-a-changelog 格式，目前較少用，主要版本標記用。
 - **memory/MEMORY.md**：auto-memory 索引。不手動編輯。
 - **HISTORY.md**：開發歷史歸檔（過去重大功能 / 設計決策）。
 - **⭐ 更改對話專用.md**：使用者改對白的入口、所有事件 → .js 連結速查表。
