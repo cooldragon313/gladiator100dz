@@ -11,44 +11,35 @@
 > 這個區塊一直擺在最上面，每次 session 結束時更新。每次 session 開始時請先看這裡，
 > 知道**上次停在哪、明天可以從哪繼續**。
 
-### 2026-05-09 結束時狀態 — NvN 戰鬥引擎全面落地
+### 2026-05-09 結束時狀態
 
-**✅ 今天完成（一氣呵成 7 stage）**
-- **Stage A** `c6dcd3a` — pluralize `_enemy` → `_enemies[]` + `_enemyAtbs[]` + `_currentTargetIdx`、保 1v1 行為
-- **Stage B** `61b3c92` — `_allies[]` + 隊友 ATB tick + 簡易 AI（攻擊最低 HP 敵）
-- **Stage C+D** `50cd41b` — 多 slot UI 渲染 + target picker（點敵切換目標）
-- **Stage E+F** `71822af` — 敵 AI 30% 改打活隊友 + `startFromConfig` 接 `{enemies:[],allies:[]}` 陣列形式
-- **Stage G** `cf2d981` — 萬骸祭 Wave 1（1v3 雜兵）/ Wave 3（1v2 雙刀）+ P2-4 Day 35 真 2v2
+**✅ 今天大量完成**
+- **NvN 戰鬥引擎全面落地**（7 stage、Stage A-G、commit `c6dcd3a` ~ `cf2d981`）— 詳見 [HISTORY.md](HISTORY.md)
+- **NvN polish**：隊友指令系統（自動/集火/防禦）+ 智能威脅 AI + last-stand 修正（`7fe1053`）
+- **P2 全清**（P2-1~P2-8）：P2-4 Day 35 真 2v2 / P2-5 Day 60 真 2v2 / P2-6 Day 50/80 / Day 75 公開宴會 / P2-8 食物下毒（3-tier 梅拉預警 + Day +6 追查）
+- **P3 場內 7 事件**：偷竊 / 欺負新人 / 老默喝醉 / 廚房短缺 / 詐賭 / 找到舊書 / 共夢 + **赫克特試煉**（派系深化、3 條路）
+- **P4 中段 5 boss**（[midgame_bosses.js](src/quests/midgame_bosses.js)）：B1 鐵骨阿巴 / B3 快刀沙洛 / B4 血斧穆爾（強制傷勢）/ B5 黑爪 / B6 七勝者塔倫弟
+- **領主主線補強**：Day 72 巴爺夜宴提示 + Day 80 fame 30→80 + Day 65 衝動分枝放寬 + 冷靜分枝得「復仇者」永久特性
+- **凱德 Day 85 消化**（補 80→90 空檔、城南酒館 50 行對白）
+- **萬骸祭 B 路殘血群戰真做**（從骰子 stub → 真 NvN 戰鬥）
+- **debug**：testJump 自動清「done」flag（`1723af7`）+ skipToDay 允許回跳（`fe838b1`）
 
-**🔮 明天可以接的事（按優先序）**
-1. **🎯 驗收 NvN** — 用 test.html 跑：
-   - `testJump('day100')` Wave 1：3 雜兵同框、target picker 切換、隊友 AI、全敵死才贏
-   - `testJump('day100')` Wave 3：2 雙刀手同框
-   - `testJump('day35')` P2-4：玩家+法烏斯 vs 米羅斯戰士 ×2、敵會 30% 改打法烏斯
-2. **P2-8 食物下毒 + 梅拉廚娘預警** — 最後一個 P2 任務（~2h、memory `project_next_after_multi_battle.md` 提醒）
-3. **P3 訓練所內部生態** — P3-3/4/5/6/7 全待開工
-4. **P4 中段 BOSS 全套** — Day 30/45/55/70/80/88 + 赫克特試煉、~15h
+**🔮 下次可以接的事（按優先序）**
+1. **驗收今天大量內容**（test.html 各 testJump 跑一輪）
+2. **fame 大重整 audit**（memory 標註、現在門檻太鬆）
+3. **NvN 戰鬥對手平衡**（memory 標註、現在 2v2 太弱）
+4. **非農家 origin 領主主線平行對白**（先領主後 origin 順序、現在領主圓了）
+5. **flaming 詞綴升級為真 DOT**（要做 statusEffects tick 系統）
 
-**⚠️ 已知未修 / NvN MVP 級**
-- 多人戰能跑、但**特殊動作（special_release / triple_stab / mountain_crash / counter_stance / charge）仍鎖打玩家**（劇情向、放大招給主角）
-- `_applyDamage` 的「最後一搏」觸發：當 ally 攻擊敵時、`opp = _player`（小邏輯誤、未影響功能）
-- 隊友 AI 還是「打最低 HP 敵」最簡型、沒有跟玩家配合 / 護玩家 / 集火指令
-- flaming（灼燒）詞綴仍 MVP「命中時 +5」、Phase 4 升 DOT
+**⚠️ 已知未修**
+- NvN 特殊動作仍鎖打玩家（劇情向、可選改）
+- flaming 詞綴 MVP「命中 +5」
+- 隊友指令「防禦」太陽春（只 TB_defend、沒實質減傷）
 
-**💡 設計議題待決**
-- NvN 玩起來「圍攻感 / 合作感」夠強嗎？敵 AI 改打隊友 30% 機率要不要調？
-
----
-
-### 2026-05-08 結束時狀態（昨天）
-
-**✅ 完成**
-- test.html GUI debug + Game.godMode + Game.testJump + 自訂天數 — `a251c6f` + `8838f9d`
-- P2-4 Day 35 雙主人合作場 — stub → 完整版 — `af6f571`
-- P2-5 Day 60 雙主人陰招場 + Day 75 公開宴會撕逼 — `02b657a`
-- 詞綴 tier 3 主動戰鬥端接上 — `c9bc7ea`
-- P2-6 Day 50/80 互換新兵 — `cc644a4`
-- P2 stubs 全清（7/8、剩 P2-8 食物下毒）
+**💡 暫緩議題（memory 紀錄）**
+- 裝備差決定論 vs 屬性決定論（`feedback_pending_design_reviews.md` #1）
+- 2v2 對手太弱（同上 #2）
+- fame 全面 audit（`feedback_fame_audit_pending.md`）
 
 ---
 
@@ -490,52 +481,11 @@ character_roll → testbattle → battle → actions → main
     不用等使用者說，自己開新 version-block 補上去。只有純注釋 / 文字微調可以省略。
 - **CHANGELOG.md**：keep-a-changelog 格式，目前較少用，主要版本標記用。
 - **memory/MEMORY.md**：auto-memory 索引。不手動編輯。
+- **HISTORY.md**：開發歷史歸檔（過去重大功能 / 設計決策）。
 
 ---
 
-## 🔄 最近重要變更
+## 🔄 歷史紀錄
 
-- **2026-04-28 裝備重構 + 戰鬥屬性 EXP 設計（待實作）**：3 份 design doc 完成、待開工：
-  - **[docs/systems/equipment-rework.md](docs/systems/equipment-rework.md)** — 5 級品質（粗灰/普白/精藍/上紫/傳金）+ 10 詞綴系統 + 主人賜 3 條護飾線（布/皮/鐵 各 4 階）+ 葛拉鐵匠鋪 UI（塔倫解鎖事件）+ 葛拉信用點上交機制 + 競技場戰利品（S/A/B 觸發 80/60/40 + 對手掉啥拿啥）+ 對手強度重新校準（rookie -2 / gladB 持平 / vet +1~3 / champion +5~8）+ 27 格儲物 + Boss 戰鐵則。
-  - **[docs/systems/battle-attr-gain.md](docs/systems/battle-attr-gain.md)** — 戰鬥動作累積 EXP（行為對應屬性）+ 評分加成（S +8/A +5/B +3）+ 防刷（單場 +30 上限/CON 受擊 5 上限/Sparring 50%）+ 連勝獎勵階梯（3/5/7/10 連勝、10 連勝解鎖隱藏特性 `bloodRoar`）+ 第 6 種狂熱 `COMBAT_fervor`（每天必打、漏 3 天 mood -10 + WIL +20「也清醒了」+ 5 天冷卻）。
-  - **[docs/quests/blacksmith-signature-weapon.md](docs/quests/blacksmith-signature-weapon.md)** — 葛拉個人任務「主武器之路」8 階段（綁定 → 認可 → 強化透漏歷史 → 升 T3 刻名 → 葛拉兒子的劍獨白 → 鍛傳家準備 → 傳家武器送 → 葛拉退休）。跟既有 blacksmith-gra.md 整合、不另起爐灶。
-  - 設計討論時間軸：戰鬥 EXP 提案 → 連勝升級 → 戰鬥狂熱（每天必打/3 天結束）→ 競技場裝備 → 葛拉雙軌（事件 + UI）→ 品質系統 5 級 → 詞綴 10 個 → 主人賜 3 條材質固定 → 對手強度拉強 → 主武器綁定。所有決定已敲定。
-- **2026-04-25c 大掃蟲日**（6 連環 bug + 競技場退回 + 跑腿戲劇化）：
-  - **CRITICAL 老默治療「選了沒反應」第 4 次真根因** — `ChoiceModal._handleChoice` 在 `_close()` 後又讀 `_activeEvent.logColor` → null TypeError → click handler crash → `onChoose` 永不觸發。decline 自帶 logColor 短路掉永遠正常 → 害我前 3 次都誤判成 `_performHeal` 的問題。修：cache logColor 在 `_close()` 之前。
-  - **CRITICAL 葛拉每天重播「差了一個 tier」** — `Stage.playEvent` 是 async 但完全忽略 `opts.onComplete` → 三幕鏈 Act2 → Act3 永遠不串 → flag 沒設 → 每天觸發。修：(1) 真的呼叫 onComplete callback (2) `_playFirstArmorEvent` 啟動就先設 flag。
-  - **CRITICAL 競技場戰敗 = 直接 deathEnding** — 改：戰敗 = 隨機部位重傷（Wounds 系統）+ HP -40% / 體力 -30 / 心情 -25 / 名聲 -15 + 4 句塔倫低語對白。Day 100 萬骸祭仍真死。
-  - **CRITICAL Math.round 默默把 +1 歸零** — Hector 訓練被動好感 bug：mult 0.3 × 1 = 0.3 → round = 0 → 永遠不漲。修：用 `_probRound`（小數當機率擲骰、期望值不變）+ 訓練被動機率拉到 45%/12%。
-  - **DialogueModal 同步呼叫兩次會覆蓋 onComplete** — 加排隊機制 + console.warn + sleepEndDay 加 `doctorFired` 互斥。
-  - **戰鬥獎勵全面 ×0.5** — 50 天名聲 100 太快。砍 fame ×0.5 / S/A 評分好感 8|4 → 4|2 / 每場勝主人&長官 +2 → +1 / 3 連勝召見 +15&+5 → +8&+3。
-  - **競技場難度全面退回** — cbfb6b5 拉太兇玩家連輸三場。重新校準「對手平均屬性比玩家當期預期略低 2-4 點」。武器降級：上等去掉 T2 全 pool、精英 T2 為主退回 T1 為主。boss 也退。
-  - **葛拉鍛造線移除所有競技場依賴** — 階段 2/3/4/6 全拔 arenaLosses/wins 條件，純好感推進。
-  - **DialogueModal `line.color` 強調** — 新增 per-line 對白色、SPEAKER_COLORS 加「小/母/護」3 個新角色配色。
-  - **3 個跑腿事件全升格 DialogueModal 戲劇化** — 食物採買 / 傳言 / 小孩撞，每個 16-24 行對白 + 表情強調色（恐懼紅 / 感謝綠 / 童音藍 / 內心暖金）。
-  - 詳見 changelog.html `2026-04-25c` 區塊；memory 加 `feedback_dialoguemodal_overlap.md`（更新含 _activeEvent null deref）+ `feedback_math_round_zeros.md`（新）。
-- **2026-04-25 v10 監督官巴爺主線**（overseer-rework spec / Phase A-E 實作）—
-  - 監督官改名「**巴布魯斯（巴爺）**」、退役角鬥士、跟玩家完整好感互動線
-  - 三角動機鏈：主人愛錢愛名 / 塔倫沒能力走算計 / 巴爺成招牌被借局陷害
-  - 4 層揭露結構：梅拉播種 → 塔倫稱讚 3 階段 + 引爆事件 + 曖昧指令 2 個 → 老默/卡西烏斯回響 → 偷聽密謀 → 喝酒透漏選擇（給玩家道德重量）
-  - 新劇情技能：`unyielding` 不屈（致命一擊鎖死 1HP + 5 回合 +30%）/ `veteran_eye` 老兵之眼（看破弱點）
-  - 抓偷懶 4 階梯：主人 5% / 侍從 10% / 塔倫 20% / 巴爺 75%；巴爺好感 ≥30 大吼 / ≥60 假裝沒看到
-  - 場景頻率：overseer chance 0.65→0.85、officer 進 audience pool（chance 0.20）
-  - 詳見 [docs/discussions/2026-04-25-overseer-rework.md](docs/discussions/2026-04-25-overseer-rework.md) + [docs/characters/overseer.md](docs/characters/overseer.md)
-- **2026-04-24（晚）狂熱重構**（fervor-rework-plan.md）：5 條鐵則重做 — (a) 5 attr 命名統一（力量/靈巧/體質/反應/意志），補齊 DEX_fervor (b) 訓練動作改名為具體動作（推舉石頭/投接碎石/杖擊承受/亂棍格擋/打坐冥想） (c) 對白池全重寫（自然觸發 × 瓶頸 × 結束 × 進度 × 擺爛 5 attr 全配齊；擺爛吐槽 = 5 狂熱 × 4 錯訓練 = 20 句具體場景） (d) Stage.popupBig 共用元件（觸發/結束/升級都用） (e) 訓練按鈕視覺強化 — 對應狂熱按鈕放大發光呼吸閃爍，其他縮 0.94× 變灰。
-- **2026-04-24**：**狂熱系統落實**（fervor.md）— 取代舊 compulsion 強迫症。四個正面暫時特性 STR/AGI/CON/WIL_fervor；自然觸發（5 天內同屬性 8 次）+ 瓶頸觸發（屬性升到 20/30/.../100 強制）；練對 EXP +25% / mood +5，練錯 mood -5 + 15% 擺爛；5 次結束。主畫面左上金色徽章顯示進度。舊 `_addict` 特性 / `player.compulsion` 自動遷移清除。
-- **2026-04-24**：bare `addLog` 大清（CLAUDE.md 第 12 條鐵律）+ 老默治療 bug 根治 + Hector Phase 1 完成 + Day 1 開場大翻修
-- **2026-04-19**：世界觀大擴充（Phase 2 準備）— 新增文件：mansion-geography.md（大宅+訓練場同座建築）/ master-family-spec.md（訓練所家族通用規範）/ found-family.md（新家人儀式系統）/ livia.md（主人娘）/ marcus.md（少爺）。重寫 orlan.md 背景三段式（磨坊子→阿圖斯家傭人→被 Marcus 告發偷錢→Livia 求情降級訓練場）。整合 Day 1 開場（受傷演出合進 wakeup 不重播）。替換磨劍事件為沙地畫磨坊（避免無武器矛盾）。orlan_letter 加「主人傳信？這不像是大人的做法」暗示 Livia 管道。
-- **2026-04-19**：出生特性三層擲骰（birth_traits.js）— 原本只骰稀有 1%，擴充為稀有/罕見 3%/常見 10% 三層獨立擲骰。擲骰畫面分三層顯示。新 origin 設計規範 `docs/systems/origin-design-spec.md` — 新增 origin 必看。
-- **2026-04-19**：強迫症系統上線（compulsion.md）— 4 種訓練強迫症（力/敏/韌/禪癮）/ 連 5 天同訓練養成 + Day 3-4 警告 / 三層獎懲（做 mood+3 / 夜補做 mood+5 / 拒絕 mood-5~-15 累進 + 失眠）/ 20 天不做可解除 / 夜間 slot 7 優先級鏈（任務 > 強迫症 > 休息）/ 負面特性改紅色顯示
-- **2026-04-19**：傷勢系統上線（wounds.md）— 4 部位 × 3 級嚴重度 / 開場 15% 擲傷 + 紅光震動 + origin×部位回憶矩陣 / 低體力擲新傷 + 有傷練對應部位觸發「好痛」/ 老默三階段暗示 → 密醫紙條（Phase A 完）
-- **2026-04-19**：讀書系統上線（reading.md + books-catalog.md）— 5 類 13 本種子書、見識數值公式、書櫃 5 本容量、傻福三階段漸進、起手書按 origin 差異化、睡前讀書事件、角色頁書櫃區塊
-- **2026-04-19**：出生特性軸組系統（traits.md）— 5 軸互斥（智力 / 體質 / 運勢 / 心性 / 天賦）+ 各軸正負稀有特性 1% 獨立擲骰 + 重擲 2 次 + 特性轉化（天才→心力交瘁 / 鐵人→殘軀 / 神眷→神棄 / 神眷可後天獲得）
-- **2026-04-19**：8 origins 擴展（origins.js）— farmBoy/nobleman/ruinedKnight/beggar/artisan/criminal/gambler/believer，各有起手書與 NPC 好感設定
-- **2026-04-16**：D.22 醫生老默 + 治療系統（新 NPC + DialogueModal 18 句 + 四種傷勢差異化治療 + 藥房懸念橋接）
-- **2026-04-16**：D.21b 奧蘭脊椎升級 + 藥房懸念完整鏈 + 道德光譜 UI
-- **2026-04-16**：D.21 對話系統 + 晨思系統（DialogueModal L2 + MorningThoughts 30 條 + Stage.playMorning 雞鳴過場 + 奧蘭 Day 1 升級）
-- **2026-04-16**：D.20 奧蘭主線 — 永駐兄弟完整四幕（10 storyReveals + 偷藥/分房/訣別三大事件 + 生死援手）
-- **2026-04-16**：D.19 道德累積特性系統（10 earned traits + 滑動窗口 + NPC 愛憎倍率 + 戰鬥 mercy 軸）
-- **2026-04-16**：D.18 訓練協力 v2（屬性偏好 + 背景角鬥士池 + favorWeight + 碎念/八卦系統）
-- **2026-04-15**：D.12 NPC 故事揭露系統上線（卡西烏斯為範本）
-- **2026-04-14**：D.6 v2 EXP 單一資源模型、技能購買系統、整數化全部
-- **2026-04-13**：D.7 階段 B 人物面板重構（兩欄、六角形、EXP 條）+ Phase 1-J 場地極簡化
+舊的「最近重要變更」搬到 [HISTORY.md](HISTORY.md) 了。
+本檔只保留**接手頭條**（當下狀態）+ 規則 / 約定。

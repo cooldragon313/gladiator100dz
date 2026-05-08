@@ -1,7 +1,126 @@
 # 對白位置總索引
 
 > 遊戲裡所有對白的位置清單。未來要改對白先查這張表。
-> 最後更新：2026-04-18
+> 最後更新：2026-05-09
+
+---
+
+## 📝 對白格式速記（在 .js 檔裡）
+
+幾乎所有對白都是 `DialogueModal.play([...])` 這個格式：
+
+```js
+const lines = [
+  { text: '（旁白、心理描寫、放括號）' },                     // 旁白用括號
+  { speaker: '某某', text: '對白內容', color: '#aabbcc' },   // NPC 講話
+  { text: '⋯⋯', color: '#666' },                            // 沉默 / 過場
+  { text: '（——重點）', color: '#ff8866' },                  // 強調用顏色
+  { text: '（震一下）', effect: 'shake' },                    // 震動 effect
+];
+DialogueModal.play(lines, { onComplete: () => {...} });
+```
+
+**修改步驟**：
+1. 用下表找到事件所在的檔案 + 函式名
+2. 打開 .js 檔、Ctrl+F 搜函式名
+3. 找到 `lines = [` 開始的陣列
+4. 直接改 `text` 字串內容、commit
+5. 改完不用 build、重整瀏覽器就生效
+
+**配色規範**：
+- `#888 / #666` 灰色 — 旁白、沉默
+- `#aa8855` 暖灰金 — 心理重點、領悟
+- `#ff8866` 暖紅 — 警告、危險暗示
+- `#ff5544` 鮮紅 — 暴怒、強烈衝擊
+- `#d4af37` 金色 — 重要事件、獲得物
+- 各 NPC 有專屬色（梅拉 `#9dbf80` / 凱德 `#d4af37` / 老默 `#7a6a4a` 等）
+
+---
+
+## 🆕 2026-04-19 後補完事件（速查）
+
+### 領主主線（lord_events.js）
+| Day | 函式 | 內容 |
+|---|---|---|
+| 25 | `_tryDay25SpringFestival` | 春季大會首次遠望 |
+| 45 | `_tryDay45WhiteTiger` | 白虎獸場 |
+| 65 | `_playFarmboyRecognition` | 農家相認核心戲（震→鐵味→媽媽柴堆） |
+| 65 | `_routeImpulsive` / `_routeCalm` / `_routeNeutralChoice` | 三 disposition 分流 |
+| 70 | `_tryDay70MotherWords` | 媽媽最後一句 |
+| 72 | `_playOverseerHint` | 巴爺夜宴門檻提示（21 行）|
+| 75 | `_tryDay75BackgroundChatter` | 老兵酒後話 |
+| 80 | `_playBanquetFarmboy` | 領主夜宴瓦倫 4 破綻（核心）|
+| 85 | `_tryDay85ArmorSlip` | 衛兵盔甲 |
+| 92 | `_tryDay92VillageFaces` | 村裡每張臉 |
+
+### 凱德主線（kade_events.js）
+| Day | 函式 | 內容 |
+|---|---|---|
+| 25 | `_tryDay25` | 春季大會面熟 #1 |
+| 49 | `_tryDay49` | 血戰宴會面熟 #2 |
+| 70 | `_tryDay70` | 四強選拔對視 #3 |
+| 80 | `_playDay80FarmboyRecognition` | 相認爆發（「小弟」+ 告知滅村）|
+| 85 | `_playDay85` | 城南酒館買醉消化 |
+| 90 | `_playDay90Visit` | 凱德夜訪、決定故意輸 |
+
+### 跨訓練所主線（cross_ludus_events.js）
+| Day | 函式 | 內容 |
+|---|---|---|
+| 35 | `_coopAct1` ~ `_coopApplyRewards` | 雙主人合作場 4 幕 + 真 2v2 |
+| 50/80 | `_cadetSwapPlayerGo` / `_cadetSwapVisitorCome` | 互換新兵 |
+| 60 | `_schemerAct1` ~ `_schemerApplyFailRewards` | 陰招場 + 真 2v2 |
+| 75 | `_publicBanquetAct1` ~ | 公開宴會撕逼 5 幕 |
+| 12+ | `_playFriendlySparring` | 友鄰切磋（隨機） |
+
+### 食物下毒鏈（recruit_enemy.js）
+| 函式 | 內容 |
+|---|---|
+| `_playMelaSavedYou` | 梅拉 ≥50 救你（13 行 + 內心 OS） |
+| `_playMelaHesitatedButCaught` | 30-49 半信半疑成功 |
+| `_playMelaMissedIt` | 30-49 擲骰失敗、玩家中毒 |
+| `_playPoisoned` | <30 直接中毒 |
+| `_playPoisonInvestigation` | Day +6 追查蕾娜 1v1 |
+
+### 場內事件（intra_events.js）
+| 事件 | 函式 | 條件 |
+|---|---|---|
+| 派系選邊 | `_playFactionFirstScene` | Day 30+ 隨機 |
+| 抬屍體 | `_playCorpseHauling` | Day 10+ 隨機 |
+| 偷竊 | `_playThief` | Day 15+ 隨機 |
+| 欺負新人 | `_playBully` | Day 20+ 隨機 |
+| 廚房短缺 | `_playFoodShortage` | Day 20+ 隨機 |
+| 老默喝醉 | `_playDocDrunk` | Day 40+ 隨機 |
+| 詐賭 | `_playBet` | Day 8+ 隨機 |
+| 找到舊書 | `_playLibraryBook` | Day 20+ 隨機 |
+| 共夢 | `_playDream` | Day 30+ 好感≥50 NPC |
+| **赫克特試煉** | `_playHectorTrial` | Day 40+ 選赫克特派 |
+| 狄圖斯到 | `_playDetiusArrival` | Day 30+ 一次性 |
+
+### 中段 BOSS（midgame_bosses.js）
+| Boss | 函式 | Day |
+|---|---|---|
+| B1 鐵骨阿巴 | `_playIronBoneAba` / `_onWinAba` / `_onLoseAba` | 30 |
+| B3 快刀沙洛 | `_playFastBladeSarro` / `_sarroAfter` | 55 |
+| B4 血斧穆爾 | `_playBloodAxeMul` / `_onWinMul` | 68 |
+| B5 黑爪 | `playBlackClaw` / `_onWinClaw` | 暗殺鏈 +35 |
+| B6 七勝者塔倫弟 | `_playSevenWinTalente` / `_onWinTalente` | 88 |
+
+### 萬骸祭（wanguji.js）
+| 段 | 函式 | 內容 |
+|---|---|---|
+| Wave 1-5 設定 | `WAVE_CONFIGS` 陣列 | 5 個 wave 屬性 |
+| 凱德倒下對白 | `_onKadeFalls` 內 `kadeLines` | Wave 5 後核心戲 |
+| A 加冕 | `_routeA` | 接受領主自由 |
+| B 反撲 | `_routeB` + `_pickOnstageAllies` | 殘血群戰真做 NvN |
+| C 沉默 | `_routeC` | 走 A 變體 |
+
+### 跑腿事件（errand_outings.js）
+| 來源 | 設定 | 對白位置 |
+|---|---|---|
+| 葛拉領武器 | `ERRAND_SOURCES.gra` | 同檔 companionLines / pathChatter |
+| 梅拉採食材 | `ERRAND_SOURCES.cook` | 同上 |
+| 侍從跑腿 | `ERRAND_SOURCES.servant` | 同上 |
+| **巴爺批訓練消耗品** | `ERRAND_SOURCES.overseer` | 同上 |
 
 ---
 
