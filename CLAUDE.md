@@ -24,12 +24,20 @@
 - **萬骸祭 B 路殘血群戰真做**（從骰子 stub → 真 NvN 戰鬥）
 - **debug**：testJump 自動清「done」flag（`1723af7`）+ skipToDay 允許回跳（`fe838b1`）
 
-**🔮 下次可以接的事（按優先序）**
-1. **驗收今天大量內容**（test.html 各 testJump 跑一輪）
-2. **fame 大重整 audit**（memory 標註、現在門檻太鬆）
-3. **NvN 戰鬥對手平衡**（memory 標註、現在 2v2 太弱）
-4. **非農家 origin 領主主線平行對白**（先領主後 origin 順序、現在領主圓了）
-5. **flaming 詞綴升級為真 DOT**（要做 statusEffects tick 系統）
+**🔮 下次開工優先序（明天先做 #1）**
+1. **🎯 黑市 + Hector 後續 整理 + 規畫**（user 2026-05-09 晚指定優先）
+   - 撈 [blackmarket discussion](docs/discussions/2026-04-20-arena-hp-blackmarket.md) 的「黑鬍子」段 → 移到 [arena-system.md § 1.6](docs/systems/arena-system.md) 或開新檔
+   - 整理完後刪 discussion（內容已併入主規格）
+   - 規畫優先序（user 未來要做）：
+     * Hector 5 黑市服務（情報/傷勢/下毒/謠言/買通）— spec 在 arena-system.md § 1.6、零實作
+     * Hector 後續 Phase（仇恨撞擊 / 介入保護 / 私戰 / Day 40 NPC 反應）— hector_events.js 註解標記未實作
+     * 密醫 NPC 建檔（紙條 flag 已有、NPC 本人沒檔）— [wounds.md § 黑市密醫](docs/systems/wounds.md)
+     * 黑鬍子 NPC 建檔（二手裝備 / 秘法、整個沒 spec）
+2. **驗收今天大量內容**（test.html 各 testJump 跑一輪）
+3. **fame 大重整 audit**（memory 標註、現在門檻太鬆）
+4. **NvN 戰鬥對手平衡**（memory 標註、現在 2v2 太弱）
+5. **非農家 origin 領主主線平行對白**（先領主後 origin 順序、現在領主圓了）
+6. **flaming 詞綴升級為真 DOT**（要做 statusEffects tick 系統）
 
 **⚠️ 已知未修**
 - NvN 特殊動作仍鎖打玩家（劇情向、可選改）
