@@ -482,6 +482,10 @@ character_roll → testbattle → battle → actions → main
 - **CHANGELOG.md**：keep-a-changelog 格式，目前較少用，主要版本標記用。
 - **memory/MEMORY.md**：auto-memory 索引。不手動編輯。
 - **HISTORY.md**：開發歷史歸檔（過去重大功能 / 設計決策）。
+- **⭐ 更改對話專用.md**：使用者改對白的入口、所有事件 → .js 連結速查表。
+  - 🚨 **強制規則（2026-05-09 定）**：**新增事件、新對白、新 NPC 出場時、必須在「更改對話專用.md」對應區塊加一行連結**（事件名 + 函式名 + .js 檔路徑）。
+  - 不然使用者改對白時找不到、就破壞了這份檔案的用途。
+  - 跟 changelog 同步：commit 前順手檢查、有新事件就補。
 
 ---
 

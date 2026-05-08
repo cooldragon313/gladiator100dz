@@ -1,11 +1,17 @@
 # Changelog
 
-所有重要版本變更記錄於此。
-格式參考 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)。
+> ⚠️ **這個檔案已停止維護**（最後更新 2026-04-21）。
+>
+> 真正的版本歷史在 **[changelog.html](changelog.html)**（每次 commit 都同步、有徽章 / 排版）。
+> 開發歷史 / 功能里程碑歸檔在 **[HISTORY.md](HISTORY.md)**。
+>
+> 此檔保留只為了 keep-a-changelog 格式存底、未來正式 release 版本時再用。
 
 ---
 
 ## [Unreleased]
+
+> 自 0.1.7 之後的所有變更請見 changelog.html / HISTORY.md。
 
 ---
 
