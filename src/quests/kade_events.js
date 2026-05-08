@@ -308,6 +308,108 @@ const KadeEvents = (() => {
   }
 
   // ══════════════════════════════════════════════════
+  // 🆕 2026-05-09 Day 85 — 凱德消化（酒館偶遇、補 80→90 空檔）
+  // ══════════════════════════════════════════════════
+  // 條件：kade_truth_known + Day 85
+  // 場景：玩家被派出去跑腿、路過酒館、看到凱德獨自買醉
+  // 設計用意：消化期、玩家親眼看他崩到底、為 Day 90 「把命給你用」鋪情緒
+  function _tryDay85() {
+    const p = Stats.player;
+    if (!p || p.day !== 85) return false;
+    if (Flags.has('kade_processing_d85')) return false;
+    if (!Flags.has('kade_truth_known')) return false;
+    Flags.set('kade_processing_d85', true);
+    _playDay85();
+    return true;
+  }
+
+  function _playDay85() {
+    const lines = [
+      { text: '（午後。阿圖斯派你出門領一批東西。）' },
+      { text: '（你經過城南那條老巷的時候、聞到濃酒味。）' },
+      { text: '（巷口酒館——你停了一秒。）' },
+      { text: '（往裡看了一眼。）' },
+      { text: '⋯⋯' },
+      { text: '（——他在那。）', color: '#aa7755' },
+      { text: '（凱德坐在最裡邊的角落、桌上四個空酒壺、第五個半空。）' },
+      { text: '（他穿便裝、沒帶劍、頭髮亂的。）' },
+      { text: '（他看到你了。但他沒打招呼。）' },
+      { text: '（你猶豫了一下、走進去、坐他對面。）' },
+      { text: '⋯⋯', color: '#666' },
+      { speaker: '凱德', text: '⋯⋯小弟、走吧。', color: '#d4af37' },
+      { speaker: '凱德', text: '⋯⋯這個地方不適合你。' },
+      { speaker: '玩家', text: '⋯⋯' },
+      { text: '（你沒走。）' },
+      { text: '（凱德苦笑了一下、把酒壺推給你。）' },
+      { speaker: '凱德', text: '⋯⋯你不喝？我也不勉強。', color: '#d4af37' },
+      { text: '（他自己又灌了一口。）' },
+      { text: '⋯⋯', color: '#666' },
+      { speaker: '凱德', text: '⋯⋯我這幾天想了很多事。', color: '#d4af37' },
+      { speaker: '凱德', text: '⋯⋯我家鄉那條河。' },
+      { speaker: '凱德', text: '⋯⋯小時候我跟你爸去釣魚。' },
+      { speaker: '凱德', text: '⋯⋯你爸還在嗎？' },
+      { speaker: '玩家', text: '⋯⋯我不知道。被擄那天⋯⋯沒看到他。' },
+      { text: '（凱德點點頭。沒講話。）' },
+      { text: '（他喝了一口酒、看著桌面。）' },
+      { text: '⋯⋯', color: '#666' },
+      { speaker: '凱德', text: '⋯⋯你知道嗎、小弟。', color: '#d4af37' },
+      { speaker: '凱德', text: '⋯⋯我這個自由人、有什麼意思？' },
+      { speaker: '凱德', text: '⋯⋯沒地方回。沒人等。沒事可做。' },
+      { speaker: '凱德', text: '⋯⋯我以前以為打贏 30 場就能離開。' },
+      { speaker: '凱德', text: '⋯⋯打贏了。沒走。為什麼？' },
+      { speaker: '凱德', text: '⋯⋯因為我不知道走去哪。' },
+      { text: '（他又喝。酒從嘴角流下來、他沒擦。）' },
+      { text: '⋯⋯', color: '#666' },
+      { speaker: '凱德', text: '⋯⋯我寄回去的錢。', color: '#aa5050' },
+      { speaker: '凱德', text: '⋯⋯這些年的錢。' },
+      { speaker: '凱德', text: '⋯⋯都進了那個王八的口袋。' },
+      { speaker: '凱德', text: '⋯⋯說是寄了、其實沒寄。' },
+      { speaker: '凱德', text: '⋯⋯我去問他、他說「你母親早死了、你寄了也是浪費」。' },
+      { text: '（他停了。）' },
+      { speaker: '凱德', text: '⋯⋯他連我媽什麼時候死的都不肯講。', color: '#aa5050' },
+      { speaker: '凱德', text: '⋯⋯我五年沒回家。我什麼都不知道。' },
+      { text: '⋯⋯', color: '#666' },
+      { text: '（你看著他。不知道要說什麼。）' },
+      { text: '（凱德抬頭看你、眼神是濕的、但沒掉淚。）' },
+      { speaker: '凱德', text: '⋯⋯小弟。', color: '#d4af37' },
+      { speaker: '凱德', text: '⋯⋯你還年輕。你還能做事。' },
+      { speaker: '凱德', text: '⋯⋯我不一樣。' },
+      { speaker: '凱德', text: '⋯⋯我這把骨頭、做不了別的了。' },
+      { text: '（他低頭、又喝了一口。）' },
+      { speaker: '凱德', text: '⋯⋯走吧。我自己再坐一下。' },
+      { text: '（你猶豫。）' },
+      { speaker: '玩家', text: '⋯⋯凱哥⋯⋯' },
+      { speaker: '凱德', text: '⋯⋯走。', color: '#d4af37' },
+      { text: '（你站起來。慢慢走出酒館。）' },
+      { text: '⋯⋯', color: '#666' },
+      { text: '（你回頭看了一眼——）' },
+      { text: '（——凱德沒抬頭。他在跟自己的酒壺講話。）', color: '#888' },
+      { text: '（你聽不到他在說什麼。）', color: '#888' },
+      { text: '⋯⋯', color: '#666' },
+      { text: '（你走出巷子、繼續去領東西。）' },
+      { text: '（——他要做什麼、你心裡有預感了。）', color: '#aa5050' },
+      { text: '（——但你阻止不了他。）', color: '#aa5050' },
+    ];
+
+    if (typeof DialogueModal !== 'undefined') {
+      DialogueModal.play(lines, {
+        onComplete: () => {
+          if (typeof teammates !== 'undefined' && teammates.modAffection) {
+            teammates.modAffection('kade', 10);
+          }
+          if (typeof Stats !== 'undefined' && Stats.modVital) {
+            Stats.modVital('mood', -10);   // 看他這樣很沉重
+          }
+          if (typeof Moral !== 'undefined' && Moral.push) {
+            Moral.push('mercy', 'positive');
+          }
+          _log('✦ 你看到凱哥在城南酒館買醉、聽他講家鄉。心情 -10、凱德 +10。', '#aa8855', true);
+        },
+      });
+    }
+  }
+
+  // ══════════════════════════════════════════════════
   // Day 90 — 凱德夜訪（決定故意輸、核心悲劇）
   // ══════════════════════════════════════════════════
   // 條件：已相認（kade_truth_known）+ Day ≥ 90
@@ -426,6 +528,7 @@ const KadeEvents = (() => {
 
     DayCycle.onDayStart('kadeMilestones', () => {
       if (_tryDay90()) return;
+      if (_tryDay85()) return;   // 🆕 2026-05-09 Day 85 凱德消化
       // Day 80 走 lord_events 後續、不在這邊主動觸發（避免雙重）
       if (_tryDay70()) return;
       if (_tryDay49()) return;
@@ -438,13 +541,14 @@ const KadeEvents = (() => {
   return {
     init,
     // 內部 try* 暴露給 console / 其他模組
-    _tryDay25, _tryDay49, _tryDay70, _tryDay90,
+    _tryDay25, _tryDay49, _tryDay70, _tryDay85, _tryDay90,
     tryDay80Recognition,   // 公開 — lord_events.js Day 80 結束後呼叫
     // debug
     testDay25:  () => _tryDay25(),
     testDay49:  () => _tryDay49(),
     testDay70:  () => _tryDay70(),
     testDay80:  () => _isFarmboy() ? _playDay80FarmboyRecognition() : _playDay80GenericRecognition(),
+    testDay85:  () => _playDay85(),
     testDay90:  () => _playDay90Visit(),
   };
 })();

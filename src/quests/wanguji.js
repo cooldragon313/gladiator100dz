@@ -254,32 +254,119 @@ const WangujiQuest = (() => {
     }
   }
 
-  // ─── B 路徑：殘血群戰反撲（stub — 待實作完整群戰）─
+  // ─── B 路徑：殘血群戰反撲 ───────────────────────
+  // 🆕 2026-05-09：從骰子 stub 改成真正 NvN 戰鬥
+  //   結構：
+  //     1. 玩家給暗號、提圖斯走近、播戰前對白
+  //     2. 高好感 NPC 衝下場、Battle.startFromConfig 開戰
+  //     3. 玩家 + 最多 2 隊友 vs 提圖斯 + 1-2 衛兵
+  //     4. onWin → 殺領主、依 allyCount 走 freedom/bloody/殉道分支
+  //     5. onLose → 玩家戰死、失敗結局
   function _routeB() {
     if (typeof Flags !== 'undefined') Flags.set('chose_route_b_rebellion', true);
-    _log('✦ 你給了暗號。整座競技場炸開。', '#d04040', true);
 
-    // TODO Phase 2: 實作完整殘血群戰
-    //   目前 stub：依玩家好感 80+ NPC 數估算盟友數、隨機判定戰況、直接給結局
-    const allyCount = _estimateAllyCount();
-    // 隨機簡單判定（暫用、等真正群戰實作後改）
-    const dice = Math.random();
-    let ctx;
-    if (allyCount >= 10 && dice < 0.6) {
-      ctx = { allyCount, lordKilled: true, playerSurvived: true };          // 大勝 → freedom
-    } else if (allyCount >= 5 && dice < 0.5) {
-      ctx = { allyCount, lordKilled: true, playerSurvived: true };          // 小勝 → bloody（內部依 ac < 5 不到、用單獨判定）
-      // 觸發 bloody 而不是 freedom：手動降到 bloody
-      if (allyCount < 10) ctx.allyCount = 4;
-    } else if (dice < 0.6) {
-      ctx = { allyCount, lordKilled: true, playerSurvived: false };          // 殉道
-    } else {
-      ctx = { allyCount, lordKilled: false, playerSurvived: false };          // 失敗
-    }
+    const totalAllies = _estimateAllyCount();
+    const onstageAllies = _pickOnstageAllies();   // 最多 2 個（UI 限制）
 
-    if (typeof Endings !== 'undefined' && Endings.playRebellion) {
-      Endings.playRebellion(ctx);
+    const introLines = [
+      { text: '（你舉起手——食指比向天。）' },
+      { text: '（——這是暗號。）', color: '#d04040' },
+      { text: '（觀眾席角落、有人應聲站起來。）' },
+    ];
+    onstageAllies.forEach(a => {
+      introLines.push({ text: `（——${a.name} 推開觀眾、跳下沙地、朝你跑來。）`, color: '#d4af37' });
+    });
+    if (totalAllies > onstageAllies.length) {
+      const off = totalAllies - onstageAllies.length;
+      introLines.push({ text: `（外圍——${off} 個你打過交道的人也動了。他們在攔衛兵、給你爭時間。）`, color: '#d4af37' });
     }
+    introLines.push(
+      { speaker: '提圖斯', text: '⋯⋯你他媽——', color: '#883333' },
+      { text: '（提圖斯臉色變了。衛兵長矛舉起。）' },
+      { text: '（你撲過去。）', effect: 'shake' },
+    );
+
+    const startBattle = () => {
+      // 提圖斯（領主）— 中等強度 boss
+      const titusBoss = {
+        name: '提圖斯', title: '領主・殺村兇手',
+        STR: 40, DEX: 35, CON: 42, AGI: 28, WIL: 52, LUK: 18,
+        hpBase: 250,
+        weaponId: 'longSword', armorId: 'ironPlate',
+        ai: 'cautious', fame: 50, fameReward: 0,   // fame 在這場無意義（成王敗寇）
+      };
+      // 衛兵 — 1-2 個（依玩家狀態：HP 高 → 多衛兵、HP 低 → 少衛兵手下留情）
+      const playerHpRatio = (Stats.player.hp || 100) / Math.max(1, Stats.player.hpMax || 100);
+      const guardCount = playerHpRatio > 0.5 ? 2 : 1;
+      const enemies = [titusBoss];
+      for (let i = 0; i < guardCount; i++) {
+        enemies.push({
+          name: i === 0 ? '領主衛兵' : '近衛長',
+          title: '提圖斯護衛',
+          STR: 30, DEX: 28, CON: 32, AGI: 25, WIL: 25, LUK: 8,
+          hpBase: 110,
+          weaponId: 'spear', armorId: 'chainmail',
+          ai: 'aggressive', fame: 5,
+        });
+      }
+
+      const allyCfgs = onstageAllies.map(a => a.cfg);
+
+      const onWin = () => {
+        Flags.set('rebellion_lord_killed', true);
+        // 依 totalAllies 決定結局走向
+        let ctx;
+        if (totalAllies >= 8) {
+          ctx = { allyCount: totalAllies, lordKilled: true, playerSurvived: true };
+        } else if (totalAllies >= 4) {
+          ctx = { allyCount: 4, lordKilled: true, playerSurvived: true };   // bloody 中勝
+        } else {
+          // 盟友少、贏了但代價大、玩家 HP 低 = 殉道
+          const ph = Stats.player.hp || 0;
+          ctx = { allyCount: totalAllies, lordKilled: true, playerSurvived: ph > 30 };
+        }
+        if (typeof Endings !== 'undefined' && Endings.playRebellion) {
+          Endings.playRebellion(ctx);
+        }
+      };
+      const onLose = () => {
+        Flags.set('rebellion_failed', true);
+        // 玩家死、領主活
+        const ctx = { allyCount: totalAllies, lordKilled: false, playerSurvived: false };
+        if (typeof Endings !== 'undefined' && Endings.playRebellion) {
+          Endings.playRebellion(ctx);
+        }
+      };
+
+      Battle.startFromConfig({
+        title: '反撲・殺領主',
+        fameReward: 0,
+        enemies,
+        allies: allyCfgs,
+      }, onWin, onLose);
+    };
+
+    DialogueModal.play(introLines, { onComplete: startBattle });
+    _log(`✦ 你給了暗號。${totalAllies} 個盟友動了（${onstageAllies.length} 個衝上場）。`, '#d04040', true);
+  }
+
+  // 🆕 從高好感 NPC 抽最多 2 個進場（UI 限制）— 帶 NPC 的戰鬥配置
+  function _pickOnstageAllies() {
+    const candidates = [
+      { id: 'orlan',         name: '奧蘭',     cfg: { name: '奧蘭', title: '永駐兄弟', STR: 38, DEX: 30, CON: 35, AGI: 28, WIL: 35, LUK: 12, hpBase: 130, weaponId: 'shortSword', armorId: 'leatherArmor', ai: 'aggressive', fame: 8 } },
+      { id: 'hector',        name: '赫克特',   cfg: { name: '赫克特', title: '阿圖斯場・粗暴', STR: 42, DEX: 28, CON: 38, AGI: 24, WIL: 30, LUK: 10, hpBase: 130, weaponId: 'heavyAxe', armorId: 'leatherArmor', ai: 'aggressive', fame: 12 } },
+      { id: 'cassius',       name: '卡西烏斯', cfg: { name: '卡西烏斯', title: '阿圖斯場・傳統派', STR: 36, DEX: 32, CON: 36, AGI: 30, WIL: 40, LUK: 14, hpBase: 130, weaponId: 'longSword', armorId: 'chainmail', ai: 'cautious', fame: 14 } },
+      { id: 'vesnusCaelius', name: '凱里烏斯', cfg: { name: '凱里烏斯', title: '招敵變友', STR: 32, DEX: 38, CON: 28, AGI: 36, WIL: 32, LUK: 14, hpBase: 110, weaponId: 'shortSword', armorId: 'leatherArmor', ai: 'aggressive', fame: 10 } },
+      { id: 'vesnusNox',     name: '諾克斯',   cfg: { name: '諾克斯', title: '招敵變友・老兵', STR: 38, DEX: 24, CON: 42, AGI: 22, WIL: 32, LUK: 8, hpBase: 145, weaponId: 'warHammer', armorId: 'chainmail', ai: 'cautious', fame: 12 } },
+    ];
+    const eligible = candidates.filter(c => {
+      const aff = (typeof teammates !== 'undefined' && teammates.getAffection)
+        ? teammates.getAffection(c.id) : 0;
+      const npc = (typeof teammates !== 'undefined' && teammates.getNPC) ? teammates.getNPC(c.id) : null;
+      const alive = !npc || npc.alive !== false;
+      return aff >= 70 && alive;
+    });
+    return eligible.slice(0, 2);   // UI 上限 2 個
   }
 
   // ─── C 路徑：玩家自選衝動或計畫（stub） ──────────

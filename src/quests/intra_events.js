@@ -1092,12 +1092,228 @@ const IntraEvents = (() => {
     _log(`✦ 共夢事件（${def.speaker}、${choiceId}）。`, '#aa8855', false);
   }
 
+  // ═══════════════════════════════════════════════════
+  // 🆕 2026-05-09 P3-5b 赫克特試煉（派系深化）
+  // ═══════════════════════════════════════════════════
+  // 條件：Day 40+ + faction_aligned_hector + 赫克特 ≥ 50 + 一次性
+  // 場景：赫克特把玩家拉到角落、要他證明「夠陰夠狠」
+  // 任務：今晚去找對方派系一個雜兵、揍一頓
+  function tryHectorTrial(newDay) {
+    if (newDay < 40) return false;
+    if (Flags.has('hector_trial_done')) return false;
+    if (!Flags.has('faction_aligned_hector')) return false;
+    if (typeof teammates === 'undefined') return false;
+    if (teammates.getAffection('hector') < 50) return false;
+    if (!_isPresent('hector')) return false;
+    if (Math.random() > 0.10) return false;   // 10% 機率 / 天
+    Flags.set('hector_trial_done', true);
+    _playHectorTrial();
+    return true;
+  }
+
+  function _playHectorTrial() {
+    const targets = ['法庫斯', '小狄', '提歐'];
+    const target = targets[Math.floor(Math.random() * targets.length)];
+
+    const intro = [
+      { text: '（傍晚。赫克特把你拉到牆角。）' },
+      { speaker: '赫克特', text: '⋯⋯小子。我看你跟我這麼久了。', color: '#9a5a3a' },
+      { speaker: '赫克特', text: '⋯⋯但你還沒證明過你「夠狠」。' },
+      { speaker: '赫克特', text: '⋯⋯卡西烏斯派的有幾個雜兵、最近在到處說我們壞話。' },
+      { speaker: '赫克特', text: `⋯⋯今晚去找 ${target}。揍一頓。讓他知道規矩。`, color: '#9a5a3a' },
+      { speaker: '赫克特', text: '⋯⋯做得到、你就是我的人。做不到、就別再講話了。' },
+    ];
+
+    if (typeof DialogueModal === 'undefined') { _hectorTrialResolve('refuse', target); return; }
+    DialogueModal.play(intro, {
+      onComplete: () => {
+        if (typeof ChoiceModal === 'undefined') { _hectorTrialResolve('refuse', target); return; }
+        ChoiceModal.show({
+          id: 'hector_trial',
+          icon: '👊',
+          title: '赫克特要你「證明自己」',
+          body: `去揍 ${target} 一頓。你怎麼辦？`,
+          forced: true,
+          choices: [
+            {
+              id: 'accept',
+              label: '接、今晚就去',
+              hint: '（規矩就是規矩。）',
+              effects: [
+                { type: 'moral', axis: 'mercy', side: 'negative' },
+                { type: 'moral', axis: 'reliability', side: 'negative' },
+              ],
+              resultLog: '你點頭。赫克特拍你的肩。「⋯⋯不錯。」',
+              logColor: '#aa5555',
+            },
+            {
+              id: 'half',
+              label: '揍但不下重手',
+              hint: '（揍個樣子給他看。）',
+              effects: [
+                { type: 'moral', axis: 'patience', side: 'positive' },
+                { type: 'moral', axis: 'mercy', side: 'negative' },
+              ],
+              resultLog: '你點頭。心裡決定打到他不能還手就停。',
+              logColor: '#aa8855',
+            },
+            {
+              id: 'refuse',
+              label: '拒絕、我不做這個',
+              hint: '（這不是我加入派系的理由。）',
+              effects: [
+                { type: 'moral', axis: 'mercy', side: 'positive' },
+                { type: 'moral', axis: 'reliability', side: 'positive' },
+              ],
+              resultLog: '你搖頭。赫克特愣了一下、臉色難看。',
+              logColor: '#88aa66',
+            },
+          ],
+        }, { onChoose: (id) => _hectorTrialResolve(id, target) });
+      }
+    });
+  }
+
+  function _hectorTrialResolve(choiceId, target) {
+    if (choiceId === 'refuse') {
+      const lines = [
+        { speaker: '赫克特', text: '⋯⋯哼。', color: '#9a5a3a' },
+        { speaker: '赫克特', text: '⋯⋯算了。你不是我的人。' },
+        { speaker: '赫克特', text: '⋯⋯以後你打你的、我打我的。別擋路。' },
+        { text: '（他轉身走了。沒看你。）' },
+        { text: '⋯⋯', color: '#666' },
+        { text: '（——你失去了赫克特派身分。）', color: '#aa6666' },
+        { text: '（——但你也保住了你的人。）', color: '#aa8855' },
+      ];
+      if (typeof DialogueModal !== 'undefined') DialogueModal.play(lines);
+      Flags.unset('faction_aligned_hector');
+      Flags.set('hector_faction_kicked_out', true);
+      if (typeof teammates !== 'undefined' && teammates.modAffection) {
+        teammates.modAffection('hector', -25);
+        teammates.modAffection('cassius', 10);   // 卡西烏斯會聽到
+      }
+      _log(`✦ 赫克特試煉拒絕。退出赫克特派、赫克特 -25、卡西烏斯 +10。`, '#aa8855', true);
+      return;
+    }
+
+    // accept / half — 進戰鬥
+    const lines = [
+      { text: '（晚上。你帶著悶火去訓練場後巷。）' },
+      { text: `（${target} 一個人在那壓腿、沒帶武器。）` },
+      { text: '（他抬頭——看到你、表情先愣再皺。）' },
+      { speaker: target, text: `⋯⋯你⋯⋯有事？`, color: '#888' },
+      { text: '（你沒回答。走過去。）' },
+      { text: '（他看出你眼神不對、後退一步、伸手摸腰邊的訓練木棍。）' },
+      ...(choiceId === 'half' ? [
+        { text: '（你心裡決定——打到他不能還手就停。）', color: '#aa8855' },
+      ] : [
+        { text: '（你心裡決定——讓他記住規矩。）', color: '#aa5555' },
+      ]),
+    ];
+
+    const startBattle = () => {
+      // half 模式對手稍弱（玩家容易控制不下重手）
+      const isHalf = (choiceId === 'half');
+      const targetCfg = {
+        name: target, title: '卡西烏斯派・雜兵',
+        STR: isHalf ? 22 : 26,
+        DEX: 24, CON: isHalf ? 22 : 28, AGI: 24, WIL: 22, LUK: 8,
+        hpBase: isHalf ? 70 : 85,
+        weaponId: 'fists', armorId: 'rags',   // 沒武器、訓練木棍當空手
+        ai: 'cautious', fame: 1,
+      };
+      const onWin = () => {
+        if (isHalf) {
+          _hectorTrialPostBattle('half', target);
+        } else {
+          _hectorTrialPostBattle('accept', target);
+        }
+      };
+      const onLose = () => {
+        // 玩家輸 — 赫克特很失望
+        const failLines = [
+          { text: `（${target} 撐過了你的攻勢、反手把你壓在牆上。）` },
+          { speaker: target, text: `⋯⋯你瘋了？我們有什麼仇？`, color: '#888' },
+          { text: '（你沒回答、爬起來、走了。）' },
+          { speaker: '赫克特', text: '⋯⋯連個雜兵都搞不定？滾。', color: '#9a5a3a' },
+          { text: '（赫克特之後再也不正眼看你。）', color: '#aa6666' },
+        ];
+        if (typeof DialogueModal !== 'undefined') DialogueModal.play(failLines);
+        if (typeof teammates !== 'undefined' && teammates.modAffection) {
+          teammates.modAffection('hector', -15);
+        }
+        Flags.set('hector_trial_failed', true);
+        _log('✦ 赫克特試煉戰敗、赫克特 -15。', '#aa5050', true);
+      };
+      Battle.startFromConfig({
+        title: '赫克特試煉',
+        fameReward: 0,
+        enemies: [targetCfg],
+        allies: [],
+      }, onWin, onLose);
+    };
+
+    if (typeof DialogueModal !== 'undefined') {
+      DialogueModal.play(lines, { onComplete: startBattle });
+    } else {
+      startBattle();
+    }
+  }
+
+  function _hectorTrialPostBattle(mode, target) {
+    if (mode === 'half') {
+      const lines = [
+        { text: `（你揍倒 ${target}、停手。沒下重手、沒讓他斷骨。）` },
+        { text: `（${target} 倒在地上喘、看著你、不講話。）` },
+        { text: '⋯⋯', color: '#666' },
+        { text: '（隔天早上。）' },
+        { speaker: '赫克特', text: '⋯⋯聽說你打了。但他能走路。', color: '#9a5a3a' },
+        { speaker: '赫克特', text: '⋯⋯不算數。' },
+        { speaker: '赫克特', text: '⋯⋯算了。你還是我的人。但下次、別再手軟。' },
+        { text: '（他走了。）' },
+        { text: '⋯⋯', color: '#666' },
+        { text: `（${target} 之後看你的眼神也變了——是驚訝、不是恨。）`, color: '#aa8855' },
+        { text: '（——他知道你手下留情。）', color: '#aa8855' },
+      ];
+      if (typeof DialogueModal !== 'undefined') DialogueModal.play(lines);
+      if (typeof teammates !== 'undefined' && teammates.modAffection) {
+        teammates.modAffection('hector', 5);
+        teammates.modAffection('cassius', 3);   // 卡西烏斯會聽到、欣賞你的克制
+      }
+      Flags.set('hector_trial_half_completed', true);
+      _log('✦ 赫克特試煉折衷、兩邊都記下。赫克特 +5、卡西烏斯 +3。', '#aa8855', true);
+    } else {
+      const lines = [
+        { text: `（你揍 ${target} 揍到他爬不起來。）` },
+        { text: '（鼻血、口吐白沫。）' },
+        { text: '（你站直、轉身走。）' },
+        { text: '⋯⋯', color: '#666' },
+        { text: '（隔天早上。）' },
+        { speaker: '赫克特', text: '⋯⋯聽說你揍他揍得很狠。', color: '#9a5a3a' },
+        { speaker: '赫克特', text: '⋯⋯不錯。你是我的人了。' },
+        { text: '（赫克特拍你的肩、笑了。）' },
+        { text: '⋯⋯', color: '#666' },
+        { text: `（${target} 進了老默的房間。三天後才出來。）`, color: '#888' },
+        { text: '（——他看你的眼神是恨。）', color: '#aa6666' },
+        { text: '（——卡西烏斯也聽到了。他不會再幫你。）', color: '#aa6666' },
+      ];
+      if (typeof DialogueModal !== 'undefined') DialogueModal.play(lines);
+      if (typeof teammates !== 'undefined' && teammates.modAffection) {
+        teammates.modAffection('hector', 15);
+        teammates.modAffection('cassius', -20);
+      }
+      Flags.set('hector_trial_completed', true);
+      _log('✦ 赫克特試煉通過、赫克特 +15、卡西烏斯 -20。', '#aa5555', true);
+    }
+  }
+
   function init() {
     if (typeof DayCycle === 'undefined' || typeof DayCycle.onDayStart !== 'function') return;
 
     DayCycle.onDayStart('intraEvents', (newDay) => {
       // 由早到晚試（高優先順序在前）
       if (tryFactionFirstChoice(newDay)) return;
+      if (tryHectorTrial(newDay))   return;   // 🆕 派系試煉
       if (tryDetiusArrive(newDay))      return;
       if (tryCorpseHauling(newDay))     return;
       // 🆕 2026-05-09：4 個新場內事件
@@ -1121,6 +1337,7 @@ const IntraEvents = (() => {
     tryCorpseHauling,
     tryThief, tryBully, tryDocDrunk, tryFoodShortage,
     tryBet, tryLibraryBook, tryDream,
+    tryHectorTrial,
     // debug
     testFaction:  () => _playFactionFirstScene(),
     testDetius:   (day) => _playDetiusArrival(day || 30),
@@ -1132,5 +1349,6 @@ const IntraEvents = (() => {
     testBet:          () => _playBet(),
     testLibraryBook:  (id) => _playLibraryBook(id || 'children_reader'),
     testDream:        (npcId) => _playDream(npcId || 'orlan'),
+    testHectorTrial:  () => _playHectorTrial(),
   };
 })();
