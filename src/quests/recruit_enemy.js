@@ -314,7 +314,7 @@ const RecruitEnemyQuest = (() => {
   // 5 階段（依 day offset）：
   //   +5 食物下毒 / +6 追查 / +15 第一次暗殺 / +25 競技場下毒 / +35 黑爪登場
   //
-  // 本輪實作 stub — 完整版另外做
+  // 🆕 2026-05-09 P2-8：食物下毒 + 追查事件 完整版
   function checkAssassinationChain(newDay) {
     if (!Flags.has('vesnus_assassination_chain_active')) return;
     const startDay = Flags.get('vesnus_assassination_start_day') || newDay;
@@ -323,38 +323,296 @@ const RecruitEnemyQuest = (() => {
     if (offset === 5 && !Flags.has('vesnus_assn_food_poison_done')) {
       Flags.set('vesnus_assn_food_poison_done', true);
       _playFoodPoisonEvent();
+      return;
     }
-    // TODO 後續階段
+    // 🆕 +6：追查事件（只在玩家被毒過、或梅拉勉強警告才觸發）
+    if (offset === 6 && !Flags.has('vesnus_assn_poison_investigation_done')) {
+      // 條件：玩家中毒過 OR 梅拉警告但要追查（avoided 但有調查衝動）
+      const wasPoisoned   = Flags.has('vesnus_assn_food_poisoned');
+      const wantsToInvestigate = Flags.has('vesnus_assn_food_poison_investigate');
+      if (wasPoisoned || wantsToInvestigate) {
+        Flags.set('vesnus_assn_poison_investigation_done', true);
+        _playPoisonInvestigation(wasPoisoned);
+      }
+      return;
+    }
+    // TODO 後續階段（+15 / +25 / +35）
+  }
+
+  // 🆕 NPC 在場守衛
+  function _isPresent(npcId) {
+    if (typeof GameState === 'undefined' || !GameState.getCurrentNPCs) return true;   // 沒法判斷時假設在場
+    const cur = GameState.getCurrentNPCs() || {};
+    const list = [...(cur.teammates || []), ...(cur.audience || [])];
+    return list.includes(npcId);
   }
 
   function _playFoodPoisonEvent() {
     const melaAff = (typeof teammates !== 'undefined') ? teammates.getAffection('melaKook') : 0;
-    if (melaAff >= 50) {
-      // 梅拉警告、玩家不中毒
-      const lines = [
-        { speaker: '梅拉', text: '孩子⋯⋯今天這碗、別吃。', color: '#9dbf80' },
-        { text: '（她壓低聲音、把碗從你面前拿走。）' },
-        { speaker: '梅拉', text: '⋯⋯有人下毒。我聞得出。' },
-        { speaker: '梅拉', text: '⋯⋯這事我去處理。你裝沒看到。' },
-        { text: '（——蓋烏斯下手了。但你逃過一劫。）', color: '#ff8866' },
-      ];
-      if (typeof DialogueModal !== 'undefined') DialogueModal.play(lines);
-      Flags.set('vesnus_assn_food_poison_avoided', true);
+    const melaPresent = _isPresent('melaKook');
+    // 3-tier detection（per arena-events-roster.md § 5.4）
+    let detected = false;
+    if (melaPresent && melaAff >= 50) {
+      detected = true;
+    } else if (melaPresent && melaAff >= 30) {
+      detected = Math.random() < 0.50;   // 半信半疑
     } else {
-      // 玩家中毒
-      const lines = [
-        { text: '（你吃了一半的飯。）' },
-        { text: '（——胃突然絞痛。）' },
-        { text: '（——舌頭發麻。）' },
-        { text: '（你倒在地上。）' },
-        { speaker: '老默', text: '⋯⋯催吐！誰把他翻過來！', color: '#cc6666' },
-        { text: '（半天後、你醒來。HP 大跌、體力虛脫。）' },
-      ];
-      if (typeof DialogueModal !== 'undefined') DialogueModal.play(lines);
+      detected = false;   // 好感不夠 / 梅拉不在場 → 必中毒
+    }
+
+    if (detected && melaAff >= 50) {
+      _playMelaSavedYou(melaAff);
+    } else if (detected && melaAff >= 30) {
+      _playMelaHesitatedButCaught(melaAff);
+    } else if (melaPresent && melaAff >= 30) {
+      _playMelaMissedIt(melaAff);
+    } else {
+      _playPoisoned(melaAff, melaPresent);
+    }
+  }
+
+  // 高好感（≥50）：梅拉穩穩接住
+  function _playMelaSavedYou(aff) {
+    const lines = [
+      { text: '（午餐時段。你拿著碗剛走進食堂、梅拉抬頭看你一眼。）' },
+      { text: '（她臉色立刻變了——她聞到了什麼。）' },
+      { speaker: '梅拉', text: '⋯⋯孩子。今天這碗、別吃。', color: '#9dbf80' },
+      { text: '（她伸手、把你的碗從手裡拿走。）' },
+      { text: '（動作很快、又像在做平常事一樣自然——周圍沒人察覺。）' },
+      { speaker: '梅拉', text: '⋯⋯這碗有東西、不對勁。我聞得出來。' },
+      { speaker: '梅拉', text: '⋯⋯應該是哪個雜事的混進來的。我去查。' },
+      { text: '（你看著她。）' },
+      { speaker: '梅拉', text: '⋯⋯你裝沒看到。我來處理。' },
+      { text: '（你低頭、接過她另一個剛盛的碗、坐下吃。）' },
+      { text: '⋯⋯', color: '#666' },
+      { text: '（——是蓋烏斯下手了。逃過一劫。）', color: '#aa8855' },
+      { text: '（這碗熱粥、可能是這幾年最甜的一碗。）', color: '#aa8855' },
+    ];
+    if (typeof DialogueModal !== 'undefined') DialogueModal.play(lines);
+    Flags.set('vesnus_assn_food_poison_avoided', true);
+    Flags.set('vesnus_assn_food_poison_investigate', true);   // 梅拉會追查、+6 事件觸發
+    if (typeof teammates !== 'undefined' && teammates.modAffection) {
+      teammates.modAffection('melaKook', 5);
+    }
+    if (typeof Stats !== 'undefined' && Stats.modVital) {
+      Stats.modVital('mood', 5);
+    }
+    _log(`✦ 梅拉聞出毒、把碗拿走。（梅拉好感 ${aff}）逃過一劫、明天她會追查。`, '#88dd66', true);
+  }
+
+  // 中好感（30-49）通過 50% 擲骰：梅拉勉強察覺、不確定
+  function _playMelaHesitatedButCaught(aff) {
+    const lines = [
+      { text: '（午餐時段。你拿著碗坐下。）' },
+      { text: '（梅拉路過、瞥了你的碗一眼、停下。）' },
+      { speaker: '梅拉', text: '⋯⋯（她皺眉。）', color: '#9dbf80' },
+      { speaker: '梅拉', text: '孩子⋯⋯這碗、是哪鍋的？' },
+      { text: '（你說不出來。她拿起碗、聞了聞。）' },
+      { speaker: '梅拉', text: '⋯⋯', color: '#9dbf80' },
+      { speaker: '梅拉', text: '⋯⋯不對。換一碗。' },
+      { text: '（她沒講為什麼。但她臉色不對。）' },
+      { text: '（你接過新的碗、低頭吃。）' },
+      { text: '⋯⋯', color: '#666' },
+      { text: '（——梅拉沒講、但你猜到了。）', color: '#aa8855' },
+      { text: '（——她不是 100% 確定、但她寧可換一碗。）', color: '#aa8855' },
+    ];
+    if (typeof DialogueModal !== 'undefined') DialogueModal.play(lines);
+    Flags.set('vesnus_assn_food_poison_avoided', true);
+    Flags.set('vesnus_assn_food_poison_investigate', true);
+    if (typeof teammates !== 'undefined' && teammates.modAffection) {
+      teammates.modAffection('melaKook', 3);
+    }
+    _log(`✦ 梅拉勉強察覺、把碗換掉（好感 ${aff}、運氣救了你）。`, '#aacc88', true);
+  }
+
+  // 中好感（30-49）擲骰失敗：梅拉路過沒看出來、玩家中毒
+  function _playMelaMissedIt(aff) {
+    const lines = [
+      { text: '（午餐時段。你拿著碗坐下。）' },
+      { text: '（梅拉路過你旁邊、瞥了一眼、繼續走。）' },
+      { text: '（她停了半秒、又繼續走——可能只是在想晚餐要做什麼。）' },
+      { text: '（你低頭、開始吃。）' },
+      { text: '（兩口⋯⋯三口⋯⋯）' },
+      { text: '⋯⋯', color: '#666' },
+      { text: '（——突然胃絞了一下。）', effect: 'shake', color: '#cc6666' },
+      { text: '（——舌根發麻。）', color: '#cc6666' },
+      { text: '（碗從手裡掉到地上。砰一聲。）', effect: 'shake' },
+      { speaker: '梅拉', text: '——孩子！', color: '#9dbf80' },
+      { text: '（梅拉衝過來——但已經晚了。）' },
+      { speaker: '老默', text: '⋯⋯催吐！誰幫我翻過來！', color: '#cc6666' },
+      { text: '（你最後聽到的、是梅拉低聲咒罵自己。）', color: '#888' },
+      { text: '（——她剛才路過時、好像聞到什麼、但沒確定。）', color: '#888' },
+      { text: '⋯⋯', color: '#666' },
+      { text: '（半天後、你醒來。胃還在抽。）' },
+    ];
+    if (typeof DialogueModal !== 'undefined') DialogueModal.play(lines);
+    Flags.set('vesnus_assn_food_poisoned', true);
+    if (typeof Stats !== 'undefined' && Stats.modVital) {
       Stats.modVital('hp', -30);
       Stats.modVital('stamina', -50);
       Stats.modVital('mood', -20);
     }
+    _log(`✦ 梅拉沒察覺到（好感 ${aff}、擲骰失敗）你中毒了。HP -30、體力 -50、心情 -20。`, '#cc6666', true);
+  }
+
+  // 低好感（< 30）或梅拉不在場：直接中毒
+  function _playPoisoned(aff, melaPresent) {
+    const lines = [
+      { text: '（午餐時段。你拿著碗坐下。）' },
+    ];
+    if (!melaPresent) {
+      lines.push({ text: '（今天梅拉不在廚房。新來的女僕端的飯。）' });
+    } else {
+      lines.push({ text: '（梅拉在廚房另一頭、忙著切菜、沒抬頭。）' });
+      lines.push({ text: '（——她不認識你。也不會為了你多看一眼。）', color: '#888' });
+    }
+    lines.push(
+      { text: '（你低頭、開始吃。）' },
+      { text: '（兩口⋯⋯三口⋯⋯）' },
+      { text: '⋯⋯', color: '#666' },
+      { text: '（——胃突然絞痛。）', effect: 'shake', color: '#cc6666' },
+      { text: '（——舌頭發麻、嘴裡是鐵味。）', color: '#cc6666' },
+      { text: '（你想站起來——腿軟、跌坐回去。）', effect: 'shake' },
+      { text: '（碗砸在地上。觀眾席（如果是用餐區的話）有人喊：「他吐了！」）' },
+      { speaker: '老默', text: '⋯⋯催吐！誰把他翻過來、按住舌頭！', color: '#cc6666' },
+      { text: '（你最後看到的、是天花板的橫樑。然後黑了。）', color: '#666' },
+      { text: '⋯⋯', color: '#666' },
+      { text: '（半天後、你醒來。胃像被人用木棍攪過。）' },
+      { text: '（——是有人下毒。）', color: '#aa6666' },
+      { text: '（——你不知道是誰、但你會查。）', color: '#aa6666' },
+    );
+    if (typeof DialogueModal !== 'undefined') DialogueModal.play(lines);
+    Flags.set('vesnus_assn_food_poisoned', true);
+    if (typeof Stats !== 'undefined' && Stats.modVital) {
+      Stats.modVital('hp', -30);
+      Stats.modVital('stamina', -50);
+      Stats.modVital('mood', -20);
+    }
+    _log(`✦ 你中毒了！（梅拉好感 ${aff}${melaPresent ? '' : '、不在場'}）HP -30、體力 -50、心情 -20。`, '#cc6666', true);
+  }
+
+  // ═══════════════════════════════════════════════════
+  // 🆕 +6：追查下毒者事件
+  // ═══════════════════════════════════════════════════
+  // 玩家 / 梅拉聯手查毒源 → 揭露女僕被收買 → 1v1 戰鬥
+  // 贏：抓到下毒者、知道是蓋烏斯買的（記 flag）
+  // 輸：女僕逃走、毒源不明（之後別的暗殺事件繼續）
+  function _playPoisonInvestigation(wasPoisoned) {
+    const lines = [
+      { text: wasPoisoned
+          ? '（隔天清晨。你還沒完全恢復、但能站起來。）'
+          : '（隔天清晨。梅拉一大早就在等你。）'
+      },
+    ];
+    if (_isPresent('melaKook')) {
+      lines.push(
+        { speaker: '梅拉', text: '⋯⋯孩子。我查到了。', color: '#9dbf80' },
+        { speaker: '梅拉', text: '⋯⋯昨天那碗、是新來的女僕蕾娜端的。' },
+        { speaker: '梅拉', text: '⋯⋯她不在訓練所過夜、住在外面的客棧。' },
+        { speaker: '梅拉', text: '⋯⋯我查了一下、她跟維努斯場的一個僕人有來往。' },
+        { text: '（梅拉壓低聲音。）' },
+        { speaker: '梅拉', text: '⋯⋯今天她中午會來領薪、你在門口攔她。' },
+        { speaker: '梅拉', text: '⋯⋯別讓她跑了。' },
+      );
+    } else {
+      lines.push(
+        { text: '（你自己查了一夜——問廚房幫工、看食物進貨單。）' },
+        { text: '（線索指向新來的女僕「蕾娜」——昨天唯一一個有機會碰到你那碗的人。）' },
+        { text: '（她不在訓練所過夜、住在外面的客棧。）' },
+        { text: '（你決定中午她回來領薪時、把她攔下來。）' },
+      );
+    }
+    lines.push(
+      { text: '⋯⋯', color: '#666' },
+      { text: '（中午。她回來了——一個瘦小的女人、二十來歲、眼神閃避。）' },
+      { text: '（你站在門口、擋住她的去路。）' },
+      { speaker: '蕾娜', text: '⋯⋯讓開！我要去領薪！' },
+      { speaker: wasPoisoned ? '玩家' : '玩家', text: '⋯⋯昨天的飯、是你下的吧。' },
+      { text: '（她臉色一變——僵了一秒、然後從袖子裡抽出一把短匕首。）' },
+      { speaker: '蕾娜', text: '⋯⋯你他媽別過來！' },
+      { text: '（——她要拼。）', color: '#cc6666' },
+    );
+
+    const startBattle = () => {
+      const renaCfg = {
+        name: '蕾娜', title: '被收買的女僕',
+        STR: 22, DEX: 38, CON: 22, AGI: 38, WIL: 18, LUK: 8,
+        hpBase: 80,
+        weaponId: 'dagger', armorId: 'rags',
+        ai: 'aggressive', fame: 0,
+      };
+      const onWin = () => {
+        Flags.set('vesnus_assn_poisoner_caught', true);
+        _playInvestigationWinReveal();
+      };
+      const onLose = () => {
+        Flags.set('vesnus_assn_poisoner_escaped', true);
+        _playInvestigationLoseReveal();
+      };
+      if (typeof Battle !== 'undefined' && Battle.startFromConfig) {
+        Battle.startFromConfig({
+          title: '追查下毒者',
+          fameReward: 5,
+          enemies: [renaCfg],
+          allies:  [],
+        }, onWin, onLose);
+      } else {
+        _playInvestigationWinReveal();
+      }
+    };
+
+    if (typeof DialogueModal !== 'undefined') {
+      DialogueModal.play(lines, { onComplete: startBattle });
+    } else {
+      startBattle();
+    }
+  }
+
+  function _playInvestigationWinReveal() {
+    const lines = [
+      { text: '（蕾娜倒在門廊上、手裡的匕首掉在石板上。）' },
+      { text: '（她沒死、只是斷了反抗的力。）' },
+      { speaker: '玩家', text: '⋯⋯誰買的你？' },
+      { speaker: '蕾娜', text: '⋯⋯（她別過頭、不講話。）' },
+      { text: '（你拿起她的匕首、冷冷地放在她臉旁邊。）' },
+      { speaker: '蕾娜', text: '⋯⋯維努斯場的⋯⋯一個叫德基烏斯的⋯⋯' },
+      { speaker: '蕾娜', text: '⋯⋯給了我兩個月薪水。我家裡有人病了⋯⋯', color: '#888' },
+      { text: '（她哭了。你看著她。）' },
+      { text: '⋯⋯', color: '#666' },
+      { text: '（你心裡知道——這個女人不是真兇。她是個工具。）', color: '#aa8855' },
+      { text: '（真兇在維努斯場陽台上、優雅地喝著葡萄酒。）', color: '#aa8855' },
+      { speaker: '塔倫', text: '⋯⋯這事我來辦。她送官府。', color: '#883333' },
+      { text: '（塔倫不知什麼時候已經到了。他帶人把蕾娜拖走。）' },
+      { text: '（——你站在門廊上、手裡還拿著她的匕首。）' },
+      { text: '（——名聲 +5、阿圖斯場好感 +3、蓋烏斯/德基烏斯仇值 +1）', color: '#aa6666' },
+    ];
+    if (typeof DialogueModal !== 'undefined') DialogueModal.play(lines);
+    if (typeof Stats !== 'undefined') {
+      Stats.modFame(5);
+    }
+    if (typeof teammates !== 'undefined' && teammates.modAffection) {
+      teammates.modAffection('masterArtus', 3);
+      teammates.modAffection('vesnusDecius', -10);
+    }
+    Flags.set('decius_betrayal_witnessed', true);   // 跟 P2-5 共用 flag
+    _log('✦ 抓到下毒者蕾娜、揭露德基烏斯買兇。+5 名聲、阿圖斯 +3。', '#88dd66', true);
+  }
+
+  function _playInvestigationLoseReveal() {
+    const lines = [
+      { text: '（蕾娜抓住空檔、從你身邊溜過去。）' },
+      { text: '（你想追、腿軟跌了一跤。）' },
+      { text: '（她跑出大門、消失在街口。）' },
+      { text: '⋯⋯', color: '#666' },
+      { text: '（——她跑了。下毒的人逃了。）', color: '#888' },
+      { text: '（——蓋烏斯這條線、你還沒查到。）', color: '#888' },
+      { text: '（你回訓練場、什麼也沒講。）' },
+    ];
+    if (typeof DialogueModal !== 'undefined') DialogueModal.play(lines);
+    if (typeof Stats !== 'undefined') {
+      Stats.modVital('mood', -10);
+    }
+    _log('✦ 蕾娜逃走、毒源未查明。心情 -10。', '#aa6666', true);
   }
 
   // ═══════════════════════════════════════════════════
@@ -381,5 +639,6 @@ const RecruitEnemyQuest = (() => {
     testSeed:    (npcId) => _playSeedEvent(npcId || 'vesnusCaelius'),
     testInvite:  (npcId) => _playInviteScene(npcId || 'vesnusCaelius'),
     testPoison:  () => _playFoodPoisonEvent(),
+    testInvestigation: (poisoned) => _playPoisonInvestigation(!!poisoned),
   };
 })();
