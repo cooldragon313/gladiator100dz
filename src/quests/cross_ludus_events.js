@@ -366,60 +366,116 @@ const CrossLudusEvents = (() => {
     });
   }
 
-  // 幕三：戰鬥（用 Stage.playEvent 模擬、不真做 2v2）
+  // 幕三：戰鬥 — 🆕 2026-05-09 真做 2v2（player + 法烏斯 vs 兩米羅斯戰士）
   function _coopAct3(choiceId) {
-    const lines = (() => {
+    // 戰前最後敘述（依選擇略有不同）
+    const introLines = (() => {
       if (choiceId === 'nodToFaus') {
         return [
-          '號角響。',
-          '法烏斯往左、你往右——你們**心照不宣**地分頭包夾。',
-          '',
-          '法烏斯的劍長而沉。對面拿大劍那個被他第一招逼退。',
-          '你這邊——短斧那個衝過來、你後退一步、找他下盤。',
-          '一招、兩招——他的腿露出來了。',
-          '',
-          '你劈下去。沙地一片紅。',
-          '另一邊、法烏斯一劍刺穿大劍那個的胸口。',
-          '',
-          '兩個米羅斯戰士都倒了。場上靜了一秒、然後觀眾爆掌聲。',
+          { text: '（號角響。）' },
+          { text: '（法烏斯往左、你往右——你們心照不宣地分頭包夾。）' },
+          { speaker: '法烏斯', text: '⋯⋯左邊那個交給我。', color: '#888' },
         ];
       } else if (choiceId === 'silentSelf') {
         return [
-          '號角響。',
-          '法烏斯往前衝。你也往前衝——你們**沒配合、各打各的**。',
-          '',
-          '對面兩個米羅斯戰士反而被你們的「不配合」搞亂了——他們以為要分兵、結果發現你們各打各的。',
-          '法烏斯硬碰硬、被大劍那個劃到肩。',
-          '你跟短斧那個對到——你硬上、用力氣換力氣。',
-          '',
-          '最後你倒了短斧的、法烏斯也倒了大劍的。',
-          '沒漂亮、但贏了。',
+          { text: '（號角響。）' },
+          { text: '（法烏斯往前衝。你也往前衝——沒配合、各打各的。）' },
+          { text: '（對面兩個反而被你們的不配合搞亂了。）' },
         ];
       } else {
         return [
-          '號角響。',
-          '你**慢了半拍**——剛才偷瞄陽台、視線還沒回來。',
-          '對面短斧那個衝過來、你及時格擋、但慢了一個動作。',
-          '',
-          '法烏斯瞥了你一眼——那一眼有「跟不上」的意思。',
-          '他自己快速解決大劍那個、然後過來補你這邊。',
-          '',
-          '兩個米羅斯戰士都倒了。',
-          '但這場勝利、是法烏斯撐的。',
+          { text: '（號角響。）' },
+          { text: '（你慢了半拍——剛才偷瞄陽台、視線還沒回來。）' },
+          { text: '（法烏斯瞥了你一眼——那一眼有「跟不上」的意思。）' },
         ];
       }
     })();
 
-    if (typeof Stage !== 'undefined' && Stage.playEvent) {
-      Stage.playEvent({
-        title: '雙主人合作場',
-        icon: '⚔️',
-        lines,
-        color: '#cc6622',
-        onComplete: () => _coopAct4_reward(choiceId),
-      });
+    const startBattle = () => {
+      // 🆕 法烏斯（隊友）— 維努斯場的冷血執行者
+      const fausCfg = {
+        name: '法烏斯', title: '維努斯場・冷血執行者',
+        STR: 38, DEX: 38, CON: 36, AGI: 36, WIL: 40, LUK: 12,
+        hpBase: 130,
+        weaponId: 'longSword', armorId: 'leatherArmor',
+        ai: 'normal', fame: 8,
+      };
+
+      // 🆕 兩個米羅斯戰士（敵）— 大劍 + 短斧
+      const enemy1 = {
+        name: '米羅斯戰士・大劍', title: '訪場戰士',
+        STR: 36, DEX: 28, CON: 35, AGI: 28, WIL: 30, LUK: 10,
+        hpBase: 130,
+        weaponId: 'longSword', armorId: 'chainmail',
+        ai: 'normal', fame: 6,
+      };
+      const enemy2 = {
+        name: '米羅斯戰士・短斧', title: '訪場戰士',
+        STR: 32, DEX: 32, CON: 32, AGI: 38, WIL: 28, LUK: 12,
+        hpBase: 110,
+        weaponId: 'hammer', armorId: 'leatherArmor',
+        ai: 'aggressive', fame: 6,
+      };
+
+      // 偷瞄路線：玩家戰前 HP -10%（慢了半拍的代價）
+      if (choiceId === 'spyMaster' && typeof Stats !== 'undefined' && Stats.modVital) {
+        const hpLoss = Math.round((Stats.player.hp || 100) * 0.10);
+        Stats.modVital('hp', -hpLoss);
+        _log(`✦ 你慢了半拍、HP -${hpLoss}（偷瞄陽台的代價）。`, '#aa7755', false);
+      }
+
+      const onWin = () => {
+        // 法烏斯倒下也算贏（如果隊友死了用較弱的對白後續）
+        Flags.set('coop_d35_battle_won', true);
+        _coopAct4_reward(choiceId);
+      };
+      const onLose = () => {
+        Flags.set('coop_d35_battle_lost', true);
+        _coopApplyFailRewards(choiceId);
+      };
+
+      if (typeof Battle !== 'undefined' && Battle.startFromConfig) {
+        Battle.startFromConfig({
+          title: '雙主人合作場',
+          fameReward: 25,
+          enemies: [enemy1, enemy2],
+          allies:  [fausCfg],
+        }, onWin, onLose);
+      } else {
+        console.error('[CoopFight] Battle.startFromConfig not available');
+        _coopAct4_reward(choiceId);
+      }
+    };
+
+    if (typeof DialogueModal !== 'undefined') {
+      DialogueModal.play(introLines, { onComplete: startBattle });
     } else {
-      _coopAct4_reward(choiceId);
+      startBattle();
+    }
+  }
+
+  // 失敗變體 — 戰敗的話、戰後對白較沉重、獎勵減半
+  function _coopApplyFailRewards(choiceId) {
+    if (typeof DialogueModal !== 'undefined') {
+      DialogueModal.play([
+        { text: '（你倒在沙地上、視線模糊。）' },
+        { text: '（觀眾安靜了——就一秒、然後米羅斯場那邊歡呼起來。）' },
+        { text: '（陽台上、阿圖斯臉色很難看。）' },
+        { speaker: '蓋烏斯', text: '⋯⋯阿圖斯啊、看來你訓練的不太夠。', color: '#aa7755' },
+        { speaker: '阿圖斯', text: '⋯⋯', color: '#666' },
+        { text: '（這場敗仗你吞了下去。）' },
+      ], {
+        onComplete: () => {
+          if (typeof Stats !== 'undefined') {
+            Stats.modFame(-15);
+            Stats.modVital('mood', -20);
+          }
+          if (typeof teammates !== 'undefined' && teammates.modAffection) {
+            teammates.modAffection('masterArtus', -5);
+          }
+          _log(`✦ 雙主人合作場戰敗。-15 名聲、阿圖斯好感 -5。`, '#aa5050', true);
+        },
+      });
     }
   }
 

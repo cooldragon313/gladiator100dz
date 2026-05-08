@@ -3305,7 +3305,8 @@ const Battle = (() => {
     _hardcoreActive = false;
     _battleTick       = 0;
     _isArenaBattle    = true;
-    _pendingFameReward= enemyCfg.fameReward || 0;
+    // 🆕 Stage F：scenario-level fameReward 優先（新 API）、回退單敵 fameReward（舊 API）
+    _pendingFameReward= (cfg && cfg.fameReward) ?? enemyCfg.fameReward ?? 0;
     _lastRating       = null;
     _crowdMood        = _generateCrowdMood();
     _playerDelay      = 0;
@@ -3344,8 +3345,12 @@ const Battle = (() => {
     _showOverlay();
     _initUI();
 
-    Game.addLog(`\n⚔ 【競技場對戰】\n${p.name} vs ${_enemy.name}【${enemyCfg.title || ''}】`, '#c06030', false);
-    _appendLog(`⚔ 競技場開始！${_player.name} vs ${_enemy.name}【${_enemy.title}】`, 'log-system');
+    // 🆕 Stage F：多敵 / 多隊友 開場 log
+    const sceneTitle = (cfg && cfg.title) || enemyCfg.title || '';
+    const enemyCountSuffix = _enemies.length > 1 ? ` 等 ${_enemies.length} 人` : '';
+    const allyCountSuffix  = _allies.length  > 0 ? `（隊友：${_allies.map(a=>a.name).join('、')}）` : '';
+    Game.addLog(`\n⚔ 【競技場對戰】\n${p.name}${allyCountSuffix} vs ${_enemy.name}${enemyCountSuffix}【${sceneTitle}】`, '#c06030', false);
+    _appendLog(`⚔ 競技場開始！${_player.name}${allyCountSuffix} vs ${_enemies.map(e => e.name).join(' / ')}【${sceneTitle}】`, 'log-system');
     _appendLog('', 'log-turn');
 
     const p2e = TB_calcPressure(_player, _enemy);

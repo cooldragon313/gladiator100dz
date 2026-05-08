@@ -23,15 +23,28 @@ const WangujiQuest = (() => {
 
   // ─── Wave 配置（來自 spec § 6c1.1）─────────────────
   const WAVE_CONFIGS = [
-    // Wave 1：雜兵 1v3（暖身）— stub 用單個敵人代替（多人戰待實作）
+    // Wave 1：雜兵 1v3（暖身）— 🆕 2026-05-08 多人戰真做
     {
       id: 'wanguji_wave1',
-      name: '雜兵小隊',
       title: '萬骸祭・第一場',
-      STR: 30, DEX: 30, CON: 30, AGI: 30, WIL: 25, LUK: 10,
-      hpBase: 60,
-      weaponId: 'shortSword', armorId: 'leatherArmor',
-      ai: 'normal', fame: 5, fameReward: 8,
+      enemies: [
+        {
+          name: '雜兵・左', STR: 26, DEX: 28, CON: 28, AGI: 30, WIL: 22, LUK: 10,
+          hpBase: 50, weaponId: 'shortSword', armorId: 'leatherArmor',
+          ai: 'normal', fame: 3,
+        },
+        {
+          name: '雜兵・中', STR: 30, DEX: 30, CON: 30, AGI: 30, WIL: 25, LUK: 10,
+          hpBase: 60, weaponId: 'shortSword', armorId: 'leatherArmor',
+          ai: 'normal', fame: 4,
+        },
+        {
+          name: '雜兵・右', STR: 28, DEX: 26, CON: 30, AGI: 28, WIL: 24, LUK: 10,
+          hpBase: 55, weaponId: 'shortSword', armorId: 'leatherArmor',
+          ai: 'normal', fame: 3,
+        },
+      ],
+      fameReward: 12,
       _recoverAfter: { hp: 30, stamina: 30 },
     },
     // Wave 2：重甲鬥士「磐石」
@@ -45,15 +58,23 @@ const WangujiQuest = (() => {
       ai: 'cautious', fame: 15, fameReward: 20,
       _recoverAfter: { hp: 20, stamina: 20 },
     },
-    // Wave 3：雙刀快攻組合（stub 用單個 DEX 高的敵人代替）
+    // Wave 3：雙刀快攻組合 — 🆕 2026-05-08 真做 1v2
     {
       id: 'wanguji_wave3',
-      name: '雙刀手',
       title: '萬骸祭・快攻組合',
-      STR: 35, DEX: 50, CON: 30, AGI: 50, WIL: 30, LUK: 15,
-      hpBase: 130,
-      weaponId: 'dagger', armorId: 'studdedLeather',
-      ai: 'aggressive', fame: 18, fameReward: 22,
+      enemies: [
+        {
+          name: '雙刀手・卡斯', STR: 32, DEX: 52, CON: 26, AGI: 55, WIL: 28, LUK: 14,
+          hpBase: 110, weaponId: 'dagger', armorId: 'studdedLeather',
+          ai: 'aggressive', fame: 8,
+        },
+        {
+          name: '雙刀手・利歐', STR: 28, DEX: 50, CON: 28, AGI: 56, WIL: 30, LUK: 16,
+          hpBase: 105, weaponId: 'dagger', armorId: 'studdedLeather',
+          ai: 'aggressive', fame: 8,
+        },
+      ],
+      fameReward: 22,
       _recoverAfter: { hp: 20, stamina: 20 },
     },
     // Wave 4：黑豹（獸）
