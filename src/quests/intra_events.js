@@ -757,6 +757,341 @@ const IntraEvents = (() => {
     _log(`✦ 廚房短缺事件（${choiceId}）。`, '#aa8855', false);
   }
 
+  // ═══════════════════════════════════════════════════
+  // 🆕 P3-7d INTRA_BET 詐賭事件
+  // ═══════════════════════════════════════════════════
+  // 觸發：Day 8+、6%/天、12 天 cooldown
+  // 你路過骰子局、看到老兵在坑新人（暗中換骰子）
+  function tryBet(newDay) {
+    if (newDay < 8) return false;
+    const last = Flags.get('last_bet_day') || 0;
+    if (newDay - last < 12) return false;
+    if (Math.random() > 0.06) return false;
+    Flags.set('last_bet_day', newDay);
+    _playBet();
+    return true;
+  }
+
+  function _playBet() {
+    const newbie = ['提歐', '小狄', '法庫斯', '伊里'][Math.floor(Math.random() * 4)];
+    const pot = 30 + Math.floor(Math.random() * 30);   // 30-60 銅幣局
+    const lines = [
+      { text: '（晚上。後巷火堆邊、三個老兵圍著一個新人擲骰子。）' },
+      { text: `（${newbie} 把口袋翻光、桌上堆著他全部的銅幣——${pot} 個。）` },
+      { speaker: '老兵', text: '⋯⋯來、再一把就贏回來。', color: '#aa7755' },
+      { text: '（你站在轉角看——其中一個老兵的左手在桌下動了一下。）' },
+      { text: '（——他在換骰子。）', color: '#aa6666' },
+      { text: `（${newbie} 沒看出來、興奮地把最後幾個銅幣推上桌。）` },
+      { text: '（你可以走、可以動。）' },
+    ];
+
+    if (typeof DialogueModal === 'undefined') { _betResolve('walk', newbie, pot); return; }
+    DialogueModal.play(lines, {
+      onComplete: () => {
+        if (typeof ChoiceModal === 'undefined') { _betResolve('walk', newbie, pot); return; }
+        ChoiceModal.show({
+          id: 'intra_bet_' + Stats.player.day,
+          icon: '🎲',
+          title: '老兵在坑新人',
+          body: `${newbie} 全部 ${pot} 銅幣要輸了。你怎麼辦？`,
+          forced: true,
+          choices: [
+            {
+              id: 'expose',
+              label: '走過去揭發、抓他換骰子',
+              hint: '（看不下去。）',
+              effects: [
+                { type: 'moral', axis: 'reliability', side: 'positive' },
+                { type: 'moral', axis: 'mercy', side: 'positive' },
+              ],
+              resultLog: '你走過去、一把按住老兵的左手。「⋯⋯亮出來。」',
+              logColor: '#88aa66',
+            },
+            {
+              id: 'warn',
+              label: '把新人拉到旁邊、悄悄警告',
+              hint: '（不撕破臉。）',
+              effects: [{ type: 'moral', axis: 'mercy', side: 'positive' }],
+              resultLog: `你走過去、拍 ${newbie} 的肩膀：「跟我來、有事。」`,
+              logColor: '#88aa88',
+            },
+            {
+              id: 'walk',
+              label: '裝沒看到、走回去',
+              hint: '（每個人都得學自己的代價。）',
+              effects: [{ type: 'moral', axis: 'patience', side: 'positive' }],
+              resultLog: '你低頭、繞另一條路回房。背後傳來歡呼跟咒罵。',
+              logColor: '#888899',
+            },
+            {
+              id: 'join',
+              label: '加入老兵那邊、分一杯',
+              hint: '（你也想要那筆錢。）',
+              effects: [
+                { type: 'moral', axis: 'reliability', side: 'negative', weight: 2 },
+                { type: 'moral', axis: 'mercy', side: 'negative' },
+              ],
+              resultLog: '你走過去、跟老兵點頭一笑、坐下擲第一輪。',
+              logColor: '#aa5555',
+            },
+          ],
+        }, { onChoose: (id) => _betResolve(id, newbie, pot) });
+      }
+    });
+  }
+
+  function _betResolve(choiceId, newbie, pot) {
+    let lines = [];
+    if (choiceId === 'expose') {
+      lines = [
+        { text: '（你按住老兵的左手、拉開——掌心一個亮面骰子。）' },
+        { speaker: '老兵', text: '⋯⋯（他臉色慘白。）', color: '#aa7755' },
+        { text: '（其他兩個老兵想動、被你眼神壓住。）' },
+        { speaker: newbie, text: '⋯⋯什⋯⋯什麼意思？' },
+        { text: '（你把假骰子丟在桌上、把新人的銅幣推回他手裡。）' },
+        { speaker: '玩家', text: '⋯⋯拿回去。下次別賭了。' },
+        { text: `（${newbie} 抖著收銅幣、低頭走了。）` },
+        { text: '（三個老兵看著你、沒人講話。）' },
+        { text: '（你轉身走——你知道這幾個之後會找你麻煩。）', color: '#aa8855' },
+      ];
+      Flags.set('bet_exposed_cheaters', true);
+      if (typeof Stats !== 'undefined') Stats.modFame(2);
+    } else if (choiceId === 'warn') {
+      lines = [
+        { text: `（你走過去、拍 ${newbie} 的肩、把他帶到後面。）` },
+        { speaker: '玩家', text: '⋯⋯他們在換骰子。你贏不了。' },
+        { speaker: newbie, text: '⋯⋯真的？' },
+        { speaker: '玩家', text: '⋯⋯回去要回你那 ${pot}。剩的別下了。'.replace('${pot}', pot) },
+        { text: `（${newbie} 點頭、回去抓回他的銅幣、跑了。）` },
+        { text: '（老兵罵了一聲、知道是你壞他們的局——但沒當場發作。）' },
+        { text: '（——你做了對的事、但你跟那三個結了梁子。）', color: '#aa8855' },
+      ];
+      Flags.set(`bet_warned_${newbie}`, true);
+    } else if (choiceId === 'walk') {
+      lines = [
+        { text: '（你低頭走過去、進房間、躺下。）' },
+        { text: '（外面歡呼聲、然後是壓抑的哭聲。）' },
+        { text: `（${newbie} 全輸了。明早他大概會懂這裡的規矩。）`, color: '#888' },
+        { text: '⋯⋯', color: '#666' },
+      ];
+      if (typeof Stats !== 'undefined') Stats.modVital('mood', -3);
+    } else {
+      lines = [
+        { text: '（你坐下、跟老兵交換一個眼神——他笑了、把假骰子推到你手邊。）' },
+        { text: '（一輪、兩輪、三輪——${name} 把所有錢都輸了。）'.replace('${name}', newbie) },
+        { text: '（散場後、老兵分你一份。）' },
+        { speaker: '老兵', text: '⋯⋯收下。下次有局再叫你。', color: '#aa7755' },
+        { text: `（你拿了。${Math.round(pot * 0.3)} 個銅幣、有點重。）` },
+        { text: '⋯⋯', color: '#666' },
+        { text: `（隔天 ${newbie} 看你的眼神不對。但他不敢講。）`, color: '#aa6666' },
+      ];
+      if (typeof Stats !== 'undefined') {
+        if (Stats.modMoney) Stats.modMoney(Math.round(pot * 0.3));
+        Stats.modVital('mood', -5);
+      }
+      Flags.set('bet_joined_cheaters', true);
+    }
+    if (typeof DialogueModal !== 'undefined') DialogueModal.play(lines);
+    _log(`✦ 詐賭事件（${choiceId}）。`, '#aa8855', false);
+  }
+
+  // ═══════════════════════════════════════════════════
+  // 🆕 P3-7e INTRA_LIBRARY 找到舊書
+  // ═══════════════════════════════════════════════════
+  // 觸發：Day 20+、3%/天、25 天 cooldown
+  // 死人/離開的角鬥士的房裡撿到一本書
+  function tryLibraryBook(newDay) {
+    if (newDay < 20) return false;
+    if (typeof Books === 'undefined' || !Books.grantBook) return false;
+    const last = Flags.get('last_library_day') || 0;
+    if (newDay - last < 25) return false;
+    if (Math.random() > 0.03) return false;
+
+    // 找一本玩家還沒讀也沒在書櫃的書
+    const p = Stats.player;
+    const read  = Array.isArray(p.readBooks) ? p.readBooks : [];
+    const shelf = Array.isArray(p.bookshelf) ? p.bookshelf.map(b => b.id) : [];
+    const candidates = [
+      'children_reader', 'common_words_3000', 'merchant_ledger',
+      'old_general_memoir', 'odysseus_tale', 'martyr_saint_life',
+      'family_sword_manual', 'berserker_fist_scroll', 'shield_wall_essay',
+    ].filter(id => !read.includes(id) && !shelf.includes(id));
+    if (candidates.length === 0) return false;
+    if (shelf.length >= 5) return false;   // 書櫃滿了不觸發
+
+    const bookId = candidates[Math.floor(Math.random() * candidates.length)];
+    Flags.set('last_library_day', newDay);
+    _playLibraryBook(bookId);
+    return true;
+  }
+
+  function _playLibraryBook(bookId) {
+    const dead = ['雷帝克斯', '俄薩', '昆迪', '沃克'][Math.floor(Math.random() * 4)];
+    const lines = [
+      { text: `（中午。監督官派你去清 ${dead} 的房間——他上禮拜走了。）` },
+      { text: '（你翻床底、找到一個布包。）' },
+      { text: '（裡面是一本舊書。封面磨得發毛、邊角焦了一塊。）' },
+      { text: '（你掀開——字跡認真、像是被人讀過很多次。）' },
+      { text: '（你把書塞進自己袋子。沒人會問。）' },
+      { text: `（——${dead} 應該不會介意。）`, color: '#aa8855' },
+    ];
+    if (typeof DialogueModal !== 'undefined') DialogueModal.play(lines);
+    Books.grantBook(bookId);
+    _log(`✦ 在死者房裡撿到一本舊書。`, '#99bbdd', true);
+  }
+
+  // ═══════════════════════════════════════════════════
+  // 🆕 P3-7f INTRA_DREAM 共夢事件
+  // ═══════════════════════════════════════════════════
+  // 觸發：Day 30+、3%/天、20 天 cooldown、需有好感 ≥ 50 NPC 在場
+  // 早晨某 NPC 跟你提起昨晚做的夢、玩家可選共鳴
+  function tryDream(newDay) {
+    if (newDay < 30) return false;
+    const last = Flags.get('last_dream_day') || 0;
+    if (newDay - last < 20) return false;
+    if (Math.random() > 0.03) return false;
+
+    // 找好感 ≥ 50 的在場 NPC
+    const candidates = ['orlan', 'cassius', 'hector', 'melaKook', 'doctorMo'];
+    const aff = (id) => (typeof teammates !== 'undefined' && teammates.getAffection)
+      ? teammates.getAffection(id) : 0;
+    const eligible = candidates.filter(id => aff(id) >= 50 && _isPresent(id));
+    if (eligible.length === 0) return false;
+
+    const npcId = eligible[Math.floor(Math.random() * eligible.length)];
+    Flags.set('last_dream_day', newDay);
+    _playDream(npcId);
+    return true;
+  }
+
+  // 每個 NPC 的夢內容（觸動該角色的核心傷痛 / 過去）
+  const _DREAM_LINES = {
+    orlan: {
+      speaker: '奧蘭',
+      color: '#7a9c7a',
+      lines: [
+        { speaker: '奧蘭', text: '⋯⋯我昨晚夢到磨坊。', color: '#7a9c7a' },
+        { speaker: '奧蘭', text: '⋯⋯我父親在轉石磨、轉得好慢。' },
+        { speaker: '奧蘭', text: '⋯⋯我喊他、他沒抬頭。' },
+        { speaker: '奧蘭', text: '⋯⋯醒來才想起來、他十年前就死了。' },
+      ],
+    },
+    cassius: {
+      speaker: '卡西烏斯',
+      color: '#5a7a9a',
+      lines: [
+        { speaker: '卡西烏斯', text: '⋯⋯昨晚做了個老夢。', color: '#5a7a9a' },
+        { speaker: '卡西烏斯', text: '⋯⋯我年輕時候在競技場、第一場大戰。' },
+        { speaker: '卡西烏斯', text: '⋯⋯對手倒下舉手、我沒砍。' },
+        { speaker: '卡西烏斯', text: '⋯⋯醒來覺得自己這輩子做對的事、那個下午算一次。' },
+      ],
+    },
+    hector: {
+      speaker: '赫克特',
+      color: '#9a5a3a',
+      lines: [
+        { speaker: '赫克特', text: '⋯⋯他媽的夢到自己年輕時候。', color: '#9a5a3a' },
+        { speaker: '赫克特', text: '⋯⋯沒這身傷的時候、跑得多快、抓鳥都行。' },
+        { speaker: '赫克特', text: '⋯⋯醒來腰還是痠的。' },
+        { speaker: '赫克特', text: '⋯⋯老了。沒救。' },
+      ],
+    },
+    melaKook: {
+      speaker: '梅拉',
+      color: '#9dbf80',
+      lines: [
+        { speaker: '梅拉', text: '⋯⋯昨晚夢到我女兒。', color: '#9dbf80' },
+        { speaker: '梅拉', text: '⋯⋯她五歲那年穿的小紅鞋、我幫她綁鞋帶。' },
+        { speaker: '梅拉', text: '⋯⋯我醒來摸床邊、以為她還在。' },
+        { speaker: '梅拉', text: '⋯⋯然後想起來、她已經三十歲了、嫁去外地。' },
+        { speaker: '梅拉', text: '⋯⋯人老了、夢都不長進。' },
+      ],
+    },
+    doctorMo: {
+      speaker: '老默',
+      color: '#7a6a4a',
+      lines: [
+        { speaker: '老默', text: '⋯⋯我昨晚夢到醫館的藥架。', color: '#7a6a4a' },
+        { speaker: '老默', text: '⋯⋯排得整整齊齊、每瓶都有標籤。' },
+        { speaker: '老默', text: '⋯⋯我伸手要拿一瓶、它就消失。' },
+        { speaker: '老默', text: '⋯⋯我拿一瓶、它就消失。' },
+        { speaker: '老默', text: '⋯⋯醒來時、我一身汗。' },
+      ],
+    },
+  };
+
+  function _playDream(npcId) {
+    const def = _DREAM_LINES[npcId];
+    if (!def) return;
+
+    const lines = [
+      { text: '（清晨。你伸懶腰、走到食堂。）' },
+      { text: `（${def.speaker} 已經坐在那、看著遠處、像沒睡好。）` },
+      ...def.lines,
+      { text: '⋯⋯', color: '#666' },
+    ];
+
+    if (typeof DialogueModal === 'undefined') { _dreamResolve('share', npcId); return; }
+    DialogueModal.play(lines, {
+      onComplete: () => {
+        if (typeof ChoiceModal === 'undefined') { _dreamResolve('share', npcId); return; }
+        ChoiceModal.show({
+          id: 'intra_dream_' + npcId,
+          icon: '💭',
+          title: `${def.speaker} 講完夢、看著你`,
+          body: '你昨晚也做了一個類似的夢——還是隨便講講？',
+          forced: true,
+          choices: [
+            {
+              id: 'share',
+              label: '⋯⋯我昨晚也做了一個夢。',
+              hint: '（坦白告訴他。）',
+              effects: [
+                { type: 'moral', axis: 'patience', side: 'positive' },
+                { type: 'affection', key: npcId, delta: 5 },
+              ],
+              resultLog: `你跟 ${def.speaker} 講了你的夢。他點頭、笑了一下。`,
+              logColor: '#88aa66',
+            },
+            {
+              id: 'silent',
+              label: '⋯⋯（沉默）',
+              hint: '（夢的事不好講。）',
+              effects: [],
+              resultLog: '你沒講話、坐他對面吃早餐。',
+              logColor: '#888899',
+            },
+          ],
+        }, { onChoose: (id) => _dreamResolve(id, npcId) });
+      }
+    });
+  }
+
+  function _dreamResolve(choiceId, npcId) {
+    const def = _DREAM_LINES[npcId] || {};
+    let lines = [];
+    if (choiceId === 'share') {
+      lines = [
+        { text: '（你想了一下、開口。）' },
+        { text: '（你講了一段——可能是家鄉、可能是還沒被抓那年的夏天。）' },
+        { speaker: def.speaker, text: '⋯⋯（他聽完、點頭。）', color: def.color },
+        { speaker: def.speaker, text: '⋯⋯不錯。你還記得。' },
+        { text: '（兩人沉默吃完早餐。）' },
+        { text: '（——你跟他之間多了一道線。）', color: '#aa8855' },
+      ];
+      Flags.set(`dream_shared_${npcId}`, true);
+    } else {
+      lines = [
+        { text: '（你沒講話、低頭吃。）' },
+        { speaker: def.speaker, text: '⋯⋯（他沒追問。）', color: def.color },
+        { text: '（兩個人安安靜靜吃完。）' },
+        { text: '（——他不會追、但你心裡有點什麼沒講出來。）', color: '#888' },
+      ];
+    }
+    if (typeof DialogueModal !== 'undefined') DialogueModal.play(lines);
+    _log(`✦ 共夢事件（${def.speaker}、${choiceId}）。`, '#aa8855', false);
+  }
+
   function init() {
     if (typeof DayCycle === 'undefined' || typeof DayCycle.onDayStart !== 'function') return;
 
@@ -770,6 +1105,10 @@ const IntraEvents = (() => {
       if (tryBully(newDay))         return;
       if (tryFoodShortage(newDay))  return;
       if (tryDocDrunk(newDay))      return;
+      // 🆕 2026-05-09 第二批：詐賭 / 舊書 / 共夢
+      if (tryBet(newDay))           return;
+      if (tryLibraryBook(newDay))   return;
+      if (tryDream(newDay))         return;
     }, 55);
   }
 
@@ -781,6 +1120,7 @@ const IntraEvents = (() => {
     tryDetiusArrive,
     tryCorpseHauling,
     tryThief, tryBully, tryDocDrunk, tryFoodShortage,
+    tryBet, tryLibraryBook, tryDream,
     // debug
     testFaction:  () => _playFactionFirstScene(),
     testDetius:   (day) => _playDetiusArrival(day || 30),
@@ -789,5 +1129,8 @@ const IntraEvents = (() => {
     testBully:        () => _playBully(),
     testDocDrunk:     () => _playDocDrunk(),
     testFoodShortage: () => _playFoodShortage(),
+    testBet:          () => _playBet(),
+    testLibraryBook:  (id) => _playLibraryBook(id || 'children_reader'),
+    testDream:        (npcId) => _playDream(npcId || 'orlan'),
   };
 })();
