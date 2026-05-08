@@ -208,6 +208,57 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       2026-05-09 NvN 戰鬥引擎 — 1v1 → 多人戰一氣呵成
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag new">SYSTEM + NEW</span>
+      <span class="version-title">NvN 戰鬥引擎落地（1vN + 隊友）+ 萬骸祭 Wave 1/3 真打 + P2-4 真 2v2</span>
+      <span class="version-date">2026-05-09</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text"><strong>戰鬥引擎 1v1 → NvN 完整改造（7 個 stage、~430 行）</strong>
+          <span class="file-tag">src/battle/battle.js / src/quests/wanguji.js / src/quests/cross_ludus_events.js</span>
+          — User 要求「多人先上 因為我想測試這感覺」。
+          <strong>Stage A</strong>（c6dcd3a）pluralize `_enemy → _enemies[]` + `_enemyAtbs[]` + `_currentTargetIdx`、
+          alias swap 模式讓 1v1 行為完整保留。
+          <strong>Stage B</strong>（61b3c92）`_allies[]` + 隊友 ATB tick + 簡易 AI（攻擊最低 HP 敵）。
+          <strong>Stage C+D</strong>（50cd41b）多 slot UI 渲染（敵/隊友 array idx ↔ HTML slot idx 映射、idx 1 中央保固定 ID
+          / idx 0/2 動態 class 選擇器）+ target picker（點敵切換 _currentTargetIdx + 死敵自動跳活敵）。
+          <strong>Stage E+F</strong>（71822af）敵 AI 30% 機率改打活隊友（純 attack 動作才換、特殊動作仍鎖玩家）+
+          `startFromConfig({enemies:[],allies:[]})` 陣列 API、舊 1v1 接口 100% 向下相容。
+          <strong>Stage G</strong>（cf2d981）接進實場景。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">CONTENT</span>
+        <span class="change-text"><strong>萬骸祭 Wave 1（1v3 雜兵）+ Wave 3（1v2 雙刀）真做</strong>
+          <span class="file-tag">src/quests/wanguji.js</span>
+          — 原本 stub 用單個 buff 過的敵代替、現在真做。Wave 1：雜兵・左/中/右 三人（屬性 26-30、HP 50-60、各 fame 3-4）/
+          Wave 2/4/5 仍 1v1。Wave 3：雙刀手・卡斯（DEX 52）+ 利歐（DEX 50）兩人 aggressive AI。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">CONTENT</span>
+        <span class="change-text"><strong>P2-4 Day 35 雙主人合作場真做 2v2</strong>
+          <span class="file-tag">src/quests/cross_ludus_events.js</span>
+          — 原本 Stage.playEvent 純敘述、現在玩家 + 法烏斯（隊友）vs 米羅斯戰士・大劍 + 短斧 兩人。
+          戰前 ChoiceModal 三條路線（點頭 / 自顧自 / 偷瞄）影響戰前敘述 + 偷瞄路線玩家 HP -10% 進場。
+          失敗變體 `_coopApplyFailRewards`：戰後沉重對白 + -15 名聲 / mood -20 / 阿圖斯好感 -5。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">KNOWN-LIMITS</span>
+        <span class="change-text"><strong>NvN MVP 級已知限制</strong>
+          — 特殊動作（special_release / triple_stab / mountain_crash / counter_stance / charge）仍鎖打玩家（劇情向、
+          放大招給主角）。隊友 AI 最簡型「打最低 HP 敵」、沒有護玩家 / 集火指令。
+          `_applyDamage` last-stand 觸發：ally 攻擊敵時 opp 計算回 player（邏輯誤、未影響功能）。
+          flaming 詞綴仍 MVP「命中 +5」、Phase 4 升 DOT。</span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
        2026-05-07 詞綴 20 + NPC flavor + 萬骸祭 race + 世界觀漏洞補
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">

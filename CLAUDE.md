@@ -11,31 +11,44 @@
 > 這個區塊一直擺在最上面，每次 session 結束時更新。每次 session 開始時請先看這裡，
 > 知道**上次停在哪、明天可以從哪繼續**。
 
-### 2026-05-08 結束時狀態
+### 2026-05-09 結束時狀態 — NvN 戰鬥引擎全面落地
 
-**✅ 今天完成**
-- test.html GUI debug + Game.godMode + Game.testJump + 自訂天數 — `a251c6f` + `8838f9d`
-- P2-4 Day 35 雙主人合作場 — stub → 完整版（4 幕 + 30 年素材池 + 3 選項 ChoiceModal）— `af6f571`
-- P2-5 Day 60 雙主人陰招場 — stub → 完整版（4 幕 + 舉發/沉默/反陰）— `02b657a`
-- Day 75 公開宴會撕逼 — stub → 完整版（5 幕社交事件 + 多段素材抽 2）— `02b657a`
-- 詞綴 tier 3 主動戰鬥端接上（vampiric/flaming/reaping/riposting）— `c9bc7ea`
-- P2-6 Day 50/80 互換新兵 — stub → 完整版（雙天、Day 50 玩家去 / Day 80 對方來、9 種「來訪者×選擇」分流）
-
-**P2 stubs 全清**：P2-4 / P2-5 / P2-6 / Day 75 全部從 stub 升級成完整版（共 ~1500 行新對白）。
-P2 完成度 7/8（剩 P2-8 食物下毒）。
+**✅ 今天完成（一氣呵成 7 stage）**
+- **Stage A** `c6dcd3a` — pluralize `_enemy` → `_enemies[]` + `_enemyAtbs[]` + `_currentTargetIdx`、保 1v1 行為
+- **Stage B** `61b3c92` — `_allies[]` + 隊友 ATB tick + 簡易 AI（攻擊最低 HP 敵）
+- **Stage C+D** `50cd41b` — 多 slot UI 渲染 + target picker（點敵切換目標）
+- **Stage E+F** `71822af` — 敵 AI 30% 改打活隊友 + `startFromConfig` 接 `{enemies:[],allies:[]}` 陣列形式
+- **Stage G** `cf2d981` — 萬骸祭 Wave 1（1v3 雜兵）/ Wave 3（1v2 雙刀）+ P2-4 Day 35 真 2v2
 
 **🔮 明天可以接的事（按優先序）**
-1. **驗收 P2-4/5/6 + Day 75** — `testJump('day35')` / `'day50'` / `'day60'` / `'day75'` / `'day80'` 跑一輪
-2. **驗收詞綴 tier 3 戰鬥效果** — 裝備帶詞綴的武器/護甲打一場、看 log 是否有「✦【嗜血】回 N HP」「✦【死神】觸發」「✦【反擊】反彈 N 傷害」
-3. **P2-8 食物下毒 + 梅拉廚娘預警** — 最後一個 P2 任務（~2h）
-4. **P3 訓練所內部生態** — P3-3/4/5/6/7 全待開工（場內 immersion）
-5. **P4 中段 BOSS 全套** — Day 30/45/55/70/80/88 + 赫克特試煉、~15h 大工程
+1. **🎯 驗收 NvN** — 用 test.html 跑：
+   - `testJump('day100')` Wave 1：3 雜兵同框、target picker 切換、隊友 AI、全敵死才贏
+   - `testJump('day100')` Wave 3：2 雙刀手同框
+   - `testJump('day35')` P2-4：玩家+法烏斯 vs 米羅斯戰士 ×2、敵會 30% 改打法烏斯
+2. **P2-8 食物下毒 + 梅拉廚娘預警** — 最後一個 P2 任務（~2h、memory `project_next_after_multi_battle.md` 提醒）
+3. **P3 訓練所內部生態** — P3-3/4/5/6/7 全待開工
+4. **P4 中段 BOSS 全套** — Day 30/45/55/70/80/88 + 赫克特試煉、~15h
 
-**⚠️ 已知未修**
-- flaming（灼燒）目前是「命中時 +5 額外傷害」MVP 版、Phase 4 升級為 3 回合 DOT tick（要做 statusEffects 系統 + 回合 tick）
+**⚠️ 已知未修 / NvN MVP 級**
+- 多人戰能跑、但**特殊動作（special_release / triple_stab / mountain_crash / counter_stance / charge）仍鎖打玩家**（劇情向、放大招給主角）
+- `_applyDamage` 的「最後一搏」觸發：當 ally 攻擊敵時、`opp = _player`（小邏輯誤、未影響功能）
+- 隊友 AI 還是「打最低 HP 敵」最簡型、沒有跟玩家配合 / 護玩家 / 集火指令
+- flaming（灼燒）詞綴仍 MVP「命中時 +5」、Phase 4 升 DOT
 
 **💡 設計議題待決**
-- 無新議題。
+- NvN 玩起來「圍攻感 / 合作感」夠強嗎？敵 AI 改打隊友 30% 機率要不要調？
+
+---
+
+### 2026-05-08 結束時狀態（昨天）
+
+**✅ 完成**
+- test.html GUI debug + Game.godMode + Game.testJump + 自訂天數 — `a251c6f` + `8838f9d`
+- P2-4 Day 35 雙主人合作場 — stub → 完整版 — `af6f571`
+- P2-5 Day 60 雙主人陰招場 + Day 75 公開宴會撕逼 — `02b657a`
+- 詞綴 tier 3 主動戰鬥端接上 — `c9bc7ea`
+- P2-6 Day 50/80 互換新兵 — `cc644a4`
+- P2 stubs 全清（7/8、剩 P2-8 食物下毒）
 
 ---
 
