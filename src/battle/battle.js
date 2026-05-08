@@ -16,6 +16,8 @@ const Battle = (() => {
   // 🆕 2026-05-08 Stage B：玩家隊友陣列（2v2 / NvN 用、1v1 時為空）
   let _allies           = [];
   let _allyAtbs         = [];   // 每隊友各自 ATB%
+  // 🆕 2026-05-09 NvN polish：隊友指令模式（'auto' 預設 / 'focus' 集火玩家目標 / 'defend' 防禦姿態）
+  let _allyOrder        = 'auto';
   let _turn        = 0;
   let _autoRunning    = false;
   let _hardcoreActive = false;  // 硬核模式
@@ -240,14 +242,28 @@ const Battle = (() => {
   function _setAllies(arr) {
     _allies   = Array.isArray(arr) ? arr.slice() : [];
     _allyAtbs = _allies.map(() => 0);
+    _allyOrder = 'auto';   // 每場戰鬥重置指令
   }
-  // 隊友最低 HP 活敵當目標（最簡 AI）
+  // 🆕 2026-05-09 polish：依指令模式選目標
+  //   - 'focus' 模式：用玩家當前目標（_currentTargetIdx）
+  //   - 其他模式：抽威脅最高的活敵（HP / STR / fame 加權）
   function _allyPickTarget() {
+    // 集火模式：直接打玩家當前目標
+    if (_allyOrder === 'focus') {
+      const tgt = _enemies[_currentTargetIdx];
+      if (tgt && tgt.hp > 0) return _currentTargetIdx;
+      // 玩家目標已死、退回威脅評估
+    }
+    // 威脅評估：HP 比 + STR + fame 加權
     let bestIdx = -1;
-    let bestHp  = Infinity;
+    let bestScore = -Infinity;
     for (let i = 0; i < _enemies.length; i++) {
       const e = _enemies[i];
-      if (e && e.hp > 0 && e.hp < bestHp) { bestHp = e.hp; bestIdx = i; }
+      if (!e || e.hp <= 0) continue;
+      // 高 STR + 高 fame = 大威脅、HP 低 = 該補刀
+      const hpRatio = e.hp / Math.max(1, e._hpMax || 100);
+      const score = (e.STR || 10) * 1.2 + (e.fame || 0) * 0.5 + (1 - hpRatio) * 30;
+      if (score > bestScore) { bestScore = score; bestIdx = i; }
     }
     return bestIdx;
   }
@@ -952,6 +968,7 @@ const Battle = (() => {
     _fillAudience();
     _updateMoodFaces();
     _renderAllSlots();   // 🆕 Stage C：填多 slot extras（_setupTargeting 會在裡面）
+    _refreshAllyOrderUI();   // 🆕 polish：依 _allies.length 顯示/隱藏隊友指令列
   }
 
   // 🆕 D.28：目標選擇系統（1v1 自動選中，3v3 未來可點切換）
@@ -1481,28 +1498,40 @@ const Battle = (() => {
   // ══════════════════════════════════════════════════════
   // ENEMY TURN
   // ══════════════════════════════════════════════════════
-  // 🆕 2026-05-08 Stage B：隊友回合 — 簡單 AI、自動攻擊最低 HP 活敵
+  // 🆕 2026-05-08 Stage B：隊友回合 — 簡單 AI、自動攻擊
+  // 🆕 2026-05-09 polish：支援 _allyOrder 三模式（auto / focus / defend）
   function _allyTurn(idx) {
     if (typeof idx !== 'number') idx = 0;
     if (!_active) return;
     const ally = _allies[idx];
     if (!ally || ally.hp <= 0) return;
+
+    // 防禦模式：隊友不打、進防禦姿態
+    if (_allyOrder === 'defend') {
+      if (typeof TB_defend === 'function') {
+        const r = TB_defend(ally);
+        _appendLog(`🛡【${ally.name}】${r.log || '進入防禦姿態。'}`, 'log-system');
+      } else {
+        _appendLog(`🛡【${ally.name}】壓低身段、看局勢。`, 'log-system');
+      }
+      return;   // 不攻擊、不傷敵
+    }
+
     const targetIdx = _allyPickTarget();
-    if (targetIdx === -1) return;   // 沒活敵
+    if (targetIdx === -1) return;
     const target = _enemies[targetIdx];
 
-    // 攻擊（複用 TB_attack 引擎）
     const r = TB_attack(ally, target, { turn: _turn });
-    _applyDamage(target, r.damage, null, 0);
+    _applyDamage(target, r.damage, null, 0, ally);   // 🆕 polish：傳 ally 當 attacker
 
-    // log + 動畫（隊友視為「玩家方」、動畫往右打）
-    _appendLog(`🤝【${ally.name}】${r.log}`, 'log-system');
+    const orderTag = (_allyOrder === 'focus') ? '【集火】' : '';
+    _appendLog(`🤝${orderTag}【${ally.name}】${r.log}`, 'log-system');
     if (typeof _playAttackAnim === 'function') {
       _playAttackAnim('player', { hit: r.hit, blocked: r.blocked, crit: r.crit });
     }
 
     if (!_checkDeath()) {
-      // 隊友不影響 turn cleanup（玩家/敵 turn 才有）
+      // 隊友不影響 turn cleanup
     }
   }
 
@@ -1552,7 +1581,7 @@ const Battle = (() => {
     if (_stageE_victim) {
       const target = _stageE_victim;
       const r = TB_attack(_enemy, target, { turn: _turn });
-      _applyDamage(target, r.damage, null, 0);
+      _applyDamage(target, r.damage, null, 0, _enemy);   // 🆕 polish：傳 acting enemy 當 attacker
       _appendLog(`👁 ${_enemy.name} 改打 ${target.name}！${r.log}`, r.crit ? 'log-crit' : r.hit ? 'log-system' : 'log-miss');
       _playAttackAnim('enemy', { hit: r.hit, blocked: r.blocked, crit: r.crit });
       if (typeof SoundManager !== 'undefined') {
@@ -2749,7 +2778,8 @@ const Battle = (() => {
   // ══════════════════════════════════════════════════════
   // DAMAGE / LAST-STAND
   // ══════════════════════════════════════════════════════
-  function _applyDamage(target, dmg, counterTarget, counterDmg) {
+  // 🆕 2026-05-09 polish：第 5 個參數 attacker（optional）— 給最後一搏 opp 計算用
+  function _applyDamage(target, dmg, counterTarget, counterDmg, attacker) {
     // 強架（fury 50%）：受擊傷害 -80%
     if (target === _player && _player._powerBlock && dmg > 0) {
       const blocked = Math.round(dmg * 0.8);
@@ -2827,7 +2857,8 @@ const Battle = (() => {
       counterTarget.hp = Math.max(0, counterTarget.hp - counterDmg);
 
     if (wasAbove30 && target.hp < target._hpMax * 0.30 && _active) {
-      const opp = target === _player ? _enemy : _player;
+      // 🆕 polish：opp 優先用顯式傳入的 attacker、回退舊 1v1 邏輯
+      const opp = attacker || (target === _player ? _enemy : _player);
       if (TB_triggerLastStand(target, opp)) {
         _appendLog(`【背水一戰】${target.name} HP跌破30%！恐懼消散，對 ${opp.name} 反施壓 -15%！`, 'log-special');
         _updateCombatantUI();
@@ -3398,5 +3429,24 @@ const Battle = (() => {
     return false;
   }
 
-  return { start, startFromConfig, doAction, toggleAuto, getLastRating, finishChoice, isActive, returnToTraining, useActiveSkill, getEquippedWeaponClass };
+  // 🆕 2026-05-09 NvN polish：玩家設定隊友指令模式
+  function setAllyOrder(mode) {
+    if (!['auto', 'focus', 'defend'].includes(mode)) return;
+    _allyOrder = mode;
+    _refreshAllyOrderUI();
+    _appendLog(`◈ 隊友指令：${ {auto:'自動', focus:'集火', defend:'防禦'}[mode] }`, 'log-system');
+  }
+
+  function _refreshAllyOrderUI() {
+    const panel = document.getElementById('bt-ally-orders');
+    if (!panel) return;
+    panel.style.display = (_allies.length > 0) ? '' : 'none';
+    ['auto', 'focus', 'defend'].forEach(m => {
+      const btn = document.getElementById('bt-ally-' + m);
+      if (!btn) return;
+      btn.classList.toggle('active', _allyOrder === m);
+    });
+  }
+
+  return { start, startFromConfig, doAction, toggleAuto, getLastRating, finishChoice, isActive, returnToTraining, useActiveSkill, getEquippedWeaponClass, setAllyOrder };
 })();

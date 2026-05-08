@@ -4132,6 +4132,47 @@ body.ui-input-blocked .forge-action {
   flex-shrink: 0;
 }
 
+/* 🆕 2026-05-09 隊友指令列（NvN 才顯示） */
+.battle-v2 .bt-ally-orders {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 4px;
+  margin-bottom: 4px;
+  border-bottom: 1px dashed #4a3a2a;
+  flex-shrink: 0;
+}
+.battle-v2 .bt-ally-label {
+  font-size: 13px;
+  color: #aa8866;
+  letter-spacing: .1em;
+  margin-right: 4px;
+}
+.battle-v2 .bt-ally-btn {
+  background: #1a1410;
+  border: 1px solid #5a4028;
+  color: #c8a060;
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all .12s;
+}
+.battle-v2 .bt-ally-btn:hover {
+  background: #2a1a10;
+  border-color: #d4af37;
+  color: #f4d488;
+}
+.battle-v2 .bt-ally-btn.active {
+  background: #3a2818;
+  border-color: #d4af37;
+  color: #ffd860;
+  box-shadow: 0 0 8px rgba(212,175,55,0.4);
+}
+
 /* 🆕 2026-04-27：主動技能列（4 grid 下方） */
 .battle-v2 .bt-active-skills {
   display: flex;
@@ -4824,6 +4865,14 @@ body.ui-input-blocked .forge-action {
           <span class="bt-aud-item">👤 塔倫</span>
           <span class="bt-aud-item">👤 阿圖斯</span>
           <span class="bt-aud-item">👤 侍從</span>
+        </div>
+
+        <!-- 🆕 2026-05-09 隊友指令（_allies.length > 0 時顯示） -->
+        <div class="bt-ally-orders" id="bt-ally-orders" style="display:none;">
+          <span class="bt-ally-label">隊友指令：</span>
+          <button class="bt-ally-btn active" id="bt-ally-auto"   onclick="Battle.setAllyOrder('auto')">自&nbsp;動</button>
+          <button class="bt-ally-btn"        id="bt-ally-focus"  onclick="Battle.setAllyOrder('focus')">集&nbsp;火</button>
+          <button class="bt-ally-btn"        id="bt-ally-defend" onclick="Battle.setAllyOrder('defend')">防&nbsp;禦</button>
         </div>
 
         <!-- Action buttons 4-grid -->
