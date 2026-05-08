@@ -7,8 +7,12 @@ const Battle = (() => {
 
   // ── State ──────────────────────────────────────────────
   let _player      = null;
-  let _enemy       = null;
+  let _enemy       = null;   // 「玩家當前鎖定目標」alias — 永遠 === _enemies[_currentTargetIdx]
   let _active      = false;
+  // 🆕 2026-05-08 Stage A：敵陣列（NvN 改造、1v1 時 length=1）
+  let _enemies          = [];
+  let _enemyAtbs        = [];   // 每敵各自 ATB%
+  let _currentTargetIdx = 0;    // 玩家當前鎖定哪個敵（idx）
   let _turn        = 0;
   let _autoRunning    = false;
   let _hardcoreActive = false;  // 硬核模式
@@ -118,7 +122,9 @@ const Battle = (() => {
   // ── ATB state ────────────────────────────────────────────
   let _atbLoop   = null;
   let _playerAtb = 0;   // 0–100, fills each tick
-  let _enemyAtb  = 0;
+  // 🆕 2026-05-08 Stage A：_enemyAtb 改成 per-enemy 陣列 _enemyAtbs[]（在頂端宣告）
+  // 舊用法 `_enemyAtb = X` → 全部換成 `_enemyAtbs[idx] = X`
+  // 重置 → `_enemyAtbs.fill(0)`
 
   // ATB tick thresholds for rating (🆕 2026-04-20: 50ms ticks，數值 ×2 保持時間標準不變)
   const RATING_TICKS = { S: 120, A: 200, B: 240 };
@@ -197,6 +203,31 @@ const Battle = (() => {
 
   function _routeLabel(r) {
     return { rage:'狂暴', focus:'集中', fury:'怒氣' }[r] || r;
+  }
+
+  // ══════════════════════════════════════════════════════
+  // 🆕 2026-05-08 Stage A：敵陣列管理（NvN 改造）
+  // ══════════════════════════════════════════════════════
+  // 設計：_enemies[] 為事實源、_enemy 為「玩家當前鎖定目標」alias、永遠 === _enemies[_currentTargetIdx]。
+  //   1v1 時 _enemies.length === 1、_currentTargetIdx 永遠 0、跟舊行為等價。
+  //   _enemyTurn(idx) 期間會把 _enemy 暫切到「行動中的敵」、結束時 _syncCurrentEnemy() 還原回玩家目標。
+  function _syncCurrentEnemy() {
+    if (!_enemies.length) { _enemy = null; return; }
+    let idx = _currentTargetIdx;
+    if (idx < 0 || idx >= _enemies.length) idx = 0;
+    // 自動跳過死敵：找下個活的（從 idx 開始繞一圈）
+    if (_enemies[idx] && _enemies[idx].hp <= 0) {
+      const aliveIdx = _enemies.findIndex(e => e && e.hp > 0);
+      if (aliveIdx >= 0) idx = aliveIdx;
+    }
+    _currentTargetIdx = idx;
+    _enemy = _enemies[idx] || null;
+  }
+  function _setEnemies(arr) {
+    _enemies   = Array.isArray(arr) ? arr.slice() : [];
+    _enemyAtbs = _enemies.map(() => 0);
+    _currentTargetIdx = 0;
+    _syncCurrentEnemy();
   }
 
   // ══════════════════════════════════════════════════════
@@ -283,7 +314,8 @@ const Battle = (() => {
     _resetActiveSkills();
 
     // ── Build enemy unit ──
-    _enemy  = TB_buildUnit({ enemyId: opponentId });
+    // 🆕 Stage A：用 _setEnemies()、_enemy 自動 alias 到 _enemies[0]
+    _setEnemies([TB_buildUnit({ enemyId: opponentId })]);
     _active = true;
 
     _showOverlay();
@@ -326,7 +358,7 @@ const Battle = (() => {
     SoundManager.playSfx('battle_start');
 
     _playerAtb = 0;
-    _enemyAtb  = 0;
+    _enemyAtbs.fill(0);   // 🆕 Stage A：重置每敵 ATB
     _startAtbLoop();
     _updateCombatantUI();
     _updateSkillDisplay();
@@ -1039,7 +1071,7 @@ const Battle = (() => {
     const ratbBar = document.getElementById('bt-ratb-bar');
     if (rhpBar) rhpBar.style.width = Math.max(0, (_enemy.hp / _enemy._hpMax) * 100) + '%';
     if (rhpTxt) rhpTxt.textContent = `${_enemy.hp}/${_enemy._hpMax}`;
-    if (ratbBar) ratbBar.style.width = Math.min(100, _enemyAtb) + '%';
+    if (ratbBar) ratbBar.style.width = Math.min(100, (_enemyAtbs[_currentTargetIdx] || 0)) + '%';
   }
 
   function _fillEnemyInfo() {
@@ -1279,15 +1311,22 @@ const Battle = (() => {
   // ══════════════════════════════════════════════════════
   // ENEMY TURN
   // ══════════════════════════════════════════════════════
-  function _enemyTurn() {
-    if (!_active || _enemy.hp <= 0) { _endTurnCleanup_atb(); return; }
+  function _enemyTurn(idx) {
+    if (typeof idx !== 'number') idx = _currentTargetIdx;
+    if (!_active) { _endTurnCleanup_atb(); return; }
+    const acting = _enemies[idx];
+    if (!acting || acting.hp <= 0) { _endTurnCleanup_atb(); return; }
+    // 🆕 Stage A：暫切 _enemy alias 到行動中的敵 — 函式內所有 _enemy 引用會指到 acting
+    //   函式末會 _syncCurrentEnemy() 還原回玩家目標
+    _enemy = acting;
 
     // 🆕 2026-04-27 重摔暈眩 — 跳過整個回合
     if (_enemy._stunnedTurns > 0) {
       _enemy._stunnedTurns--;
       _appendLog(`💫 ${_enemy.name} 還在地上掙扎、跳過回合！`, 'log-special');
-      _enemyAtb = 0;
+      _enemyAtbs[idx] = 0;
       if (!_checkDeath()) _endTurnCleanup_atb();
+      _syncCurrentEnemy();   // 還原 alias
       return;
     }
 
@@ -1413,6 +1452,7 @@ const Battle = (() => {
     if (!_checkDeath()) {
       _endTurnCleanup_atb();
     }
+    _syncCurrentEnemy();   // 🆕 Stage A：還原 _enemy alias 回玩家當前目標
   }
 
   function _endTurnCleanup() {
@@ -1537,16 +1577,29 @@ const Battle = (() => {
   // DEATH CHECK / END BATTLE
   // ══════════════════════════════════════════════════════
   function _checkDeath() {
-    if (_enemy.hp <= 0) {
-      _appendLog(`\n勝利！${_enemy.name} 已倒下。`, 'log-win');
-      _endBattle(true);
-      return true;
+    // 🆕 Stage A：先記錄這個 tick 哪些敵死了（log）
+    for (let i = 0; i < _enemies.length; i++) {
+      const en = _enemies[i];
+      if (en && en.hp <= 0 && !en._deathLogged) {
+        en._deathLogged = true;
+        _appendLog(`\n${en.name} 倒下。`, 'log-win');
+      }
     }
+    // 玩家死 → 直接敗
     if (_player.hp <= 0) {
       _appendLog(`\n敗北。你倒在競技場的血泊中。`, 'log-die');
       _endBattle(false);
       return true;
     }
+    // 全部敵死 → 勝
+    const allDead = _enemies.length > 0 && _enemies.every(e => !e || e.hp <= 0);
+    if (allDead) {
+      _appendLog(`\n勝利！全部敵人已倒下。`, 'log-win');
+      _endBattle(true);
+      return true;
+    }
+    // 有活的敵但目標可能死 → 自動切到下個活的
+    _syncCurrentEnemy();
     return false;
   }
 
@@ -2892,7 +2945,7 @@ const Battle = (() => {
   function _startAtbLoop() {
     _stopAtbLoop();
     _playerAtb = 0;
-    _enemyAtb  = 0;
+    _enemyAtbs = _enemies.map(() => 0);   // 🆕 Stage A：rebuild 確保長度跟敵陣列一致
     // 🆕 2026-04-20：ATB 速度 ×2（100ms → 50ms）戰鬥節奏加快
     _atbLoop   = setInterval(_atbTick, 50);
   }
@@ -2915,22 +2968,24 @@ const Battle = (() => {
       }
     }
 
-    // Fill enemy bar
-    const eRate = _calcFillRate(_enemy);
-    _enemyAtb   = Math.min(100, _enemyAtb + eRate);
+    // 🆕 Stage A：每個敵人各自填 ATB、依序觸發
+    for (let i = 0; i < _enemies.length; i++) {
+      const en = _enemies[i];
+      if (!en || en.hp <= 0) continue;   // 死敵不填
+      const eRate = _calcFillRate(en);
+      _enemyAtbs[i] = Math.min(100, (_enemyAtbs[i] || 0) + eRate);
+      if (_enemyAtbs[i] >= 100) {
+        _enemyAtbs[i] = 0;
+        _enemyTurn(i);
+        if (!_active) return;
+      }
+    }
 
     // Fill player bar
     const pRate    = _calcFillRate(_player);
     const wasReady = _playerAtb >= 100;
     _playerAtb     = Math.min(100, _playerAtb + pRate);
     const nowReady = _playerAtb >= 100;
-
-    // Enemy acts when bar fills (sync — JS single-threaded, no race condition)
-    if (_enemyAtb >= 100) {
-      _enemyAtb = 0;
-      _enemyTurn();
-      if (!_active) return;
-    }
 
     // Player bar just filled → 依模式分流（蓄力中跳過）
     if (!wasReady && nowReady && _playerDelay <= 0) {
@@ -2964,9 +3019,11 @@ const Battle = (() => {
       if (_playerAtb >= 100) pBar.classList.add('ready');
       else                   pBar.classList.remove('ready');
     }
-    if (eBar) eBar.style.width = _enemyAtb + '%';
+    // 🆕 Stage A：UI 顯示「玩家當前目標」的 ATB（多敵 UI 在 Stage C 處理）
+    const curEAtb = _enemyAtbs[_currentTargetIdx] || 0;
+    if (eBar) eBar.style.width = curEAtb + '%';
     if (pTxt) pTxt.textContent = Math.round(_playerAtb) + '%';
-    if (eTxt) eTxt.textContent = Math.round(_enemyAtb) + '%';
+    if (eTxt) eTxt.textContent = Math.round(curEAtb) + '%';
     // 🆕 D.28：同步左右欄 ATB bar
     const lAtb = document.getElementById('bt-latb-bar');
     const rAtb = document.getElementById('bt-ratb-bar');
@@ -2975,7 +3032,7 @@ const Battle = (() => {
       if (_playerAtb >= 100) lAtb.classList.add('ready');
       else                   lAtb.classList.remove('ready');
     }
-    if (rAtb) rAtb.style.width = _enemyAtb + '%';
+    if (rAtb) rAtb.style.width = curEAtb + '%';
   }
 
   // ══════════════════════════════════════════════════════
@@ -3021,7 +3078,8 @@ const Battle = (() => {
     // 🆕 2026-04-27 主動技能 cooldown / buff 重置
     _resetActiveSkills();
 
-    _enemy = TB_buildUnit({
+    // 🆕 Stage A：用 _setEnemies()、enemyCfg 仍是單一物件保持向下相容
+    const _builtEnemy = TB_buildUnit({
       enemyId:      '_arena',
       name:         enemyCfg.name,
       title:        enemyCfg.title,
@@ -3038,7 +3096,8 @@ const Battle = (() => {
       intimidation: enemyCfg.intimidation || 0,
     });
     // 🆕 2026-05-07：標記獸鬥（白虎/黑豹等）— 跳過砍首/饒/踩 ChoiceModal、改用獸專屬氣氛
-    _enemy._isBeast = !!enemyCfg.isBeast;
+    _builtEnemy._isBeast = !!enemyCfg.isBeast;
+    _setEnemies([_builtEnemy]);
     _active = true;
 
     _showOverlay();
@@ -3069,7 +3128,7 @@ const Battle = (() => {
     SoundManager.playSfx('battle_start');
 
     _playerAtb = 0;
-    _enemyAtb  = 0;
+    _enemyAtbs.fill(0);   // 🆕 Stage A：重置每敵 ATB
     _startAtbLoop();
     _updateCombatantUI();
     _updateSkillDisplay();
