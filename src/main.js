@@ -8060,8 +8060,19 @@ const Game = (() => {
   //   專門用於測試，不用每次從 Day 1 跑起
   function skipToDay(targetDay) {
     const p = Stats.player;
-    if (targetDay <= p.day) { console.warn('只能往前跳'); return; }
-    console.log(`[Debug] 跳到 Day ${targetDay}（從 Day ${p.day}）`);
+    // 🆕 2026-05-09：debug 工具允許回跳（test.html 條 34 從存檔 37 回去測場景）
+    //   原本 if (targetDay <= p.day) return → 害 test.html 自訂天數 silent fail
+    //   注意：回跳不會清 flag/好感、user 自負後果
+    if (!Number.isFinite(targetDay) || targetDay < 1 || targetDay > 100) {
+      console.warn('[Debug] skipToDay 天數要在 1~100');
+      return;
+    }
+    if (targetDay === p.day) {
+      console.warn(`[Debug] 已經在 Day ${targetDay}、不動`);
+      return;
+    }
+    const back = targetDay < p.day;
+    console.log(`[Debug] 跳到 Day ${targetDay}（從 Day ${p.day}${back ? '、回跳' : ''}）`);
     p.day  = targetDay;
     p.time = 360;   // 06:00
     _syncLastRollDay(-1);
@@ -8070,7 +8081,7 @@ const Game = (() => {
     _resolveNonTrainingSlots();
     renderAll();
     checkTimelineEvent();
-    addLog(`\n[Debug] 已跳到第 ${targetDay} 天`, '#ff6600', true);
+    addLog(`\n[Debug] 已跳到第 ${targetDay} 天${back ? '（回跳、flag/好感未重設）' : ''}`, '#ff6600', true);
   }
 
   // 🆕 2026-04-29 開鍛造坊（葛拉鋪 UI）
