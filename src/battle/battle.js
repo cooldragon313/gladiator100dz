@@ -225,6 +225,10 @@ const Battle = (() => {
     }
     _currentTargetIdx = idx;
     _enemy = _enemies[idx] || null;
+    // 🆕 Stage D：每次同步都刷新高亮（target 死自動跳活敵時 UI 跟著走）
+    if (typeof _refreshTargetHighlight === 'function') {
+      try { _refreshTargetHighlight(); } catch (e) { /* DOM 還沒 init 時靜默 */ }
+    }
   }
   function _setEnemies(arr) {
     _enemies   = Array.isArray(arr) ? arr.slice() : [];
@@ -908,33 +912,140 @@ const Battle = (() => {
     _fillSlotDisplay('enemy',  _enemy);
     _fillAudience();
     _updateMoodFaces();
-    _setupTargeting();
+    _renderAllSlots();   // 🆕 Stage C：填多 slot extras（_setupTargeting 會在裡面）
   }
 
   // 🆕 D.28：目標選擇系統（1v1 自動選中，3v3 未來可點切換）
+  // 🆕 2026-05-08 Stage D：_currentTargetSlot → 跟著 _currentTargetIdx 走（用 _enemyArrIdxToSlot 換算）
   let _currentTargetSlot = 1;   // 0/1/2，預設中間
 
   function _setupTargeting() {
     // 掛點擊 handler 到敵方 slot
     document.querySelectorAll('.bt-slot-enemy:not(.bt-slot-empty)').forEach(slot => {
       slot.onclick = () => {
-        const idx = parseInt(slot.getAttribute('data-idx'), 10);
-        _selectTarget(idx);
+        const slotIdx = parseInt(slot.getAttribute('data-idx'), 10);
+        // 🆕 Stage D：slot idx → enemy array idx
+        const arrIdx = _slotIdxToEnemyArrIdx(slotIdx);
+        if (arrIdx >= 0 && _enemies[arrIdx] && _enemies[arrIdx].hp > 0) {
+          _currentTargetIdx = arrIdx;
+          _syncCurrentEnemy();
+          _refreshTargetHighlight();
+        }
       };
     });
-    // 預設中間
-    _selectTarget(1);
+    _refreshTargetHighlight();
   }
 
-  function _selectTarget(slotIdx) {
-    _currentTargetSlot = slotIdx;
-    // 清除所有 target class，設給選中的那個
+  // 🆕 Stage C/D：敵 array idx ↔ HTML slot data-idx 對應
+  //   _enemies[0] → slot idx 1（中央/primary、保留固定 ID）
+  //   _enemies[1] → slot idx 0（左）
+  //   _enemies[2] → slot idx 2（右）
+  function _enemyArrIdxToSlotIdx(arrIdx) {
+    return [1, 0, 2][arrIdx] ?? null;
+  }
+  function _slotIdxToEnemyArrIdx(slotIdx) {
+    return { 1: 0, 0: 1, 2: 2 }[slotIdx] ?? -1;
+  }
+  // 隊友：_allies[0] → slot 0（左）/ _allies[1] → slot 2（右）/ _player → slot 1（中央）
+  function _allyArrIdxToSlotIdx(arrIdx) {
+    return arrIdx === 0 ? 0 : 2;
+  }
+
+  function _refreshTargetHighlight() {
     document.querySelectorAll('.bt-slot-enemy').forEach(s => s.classList.remove('bt-target'));
-    const target = document.querySelector(`.bt-slot-enemy[data-idx="${slotIdx}"]`);
-    if (target && !target.classList.contains('bt-slot-empty')) {
-      target.classList.add('bt-target');
+    const slotIdx = _enemyArrIdxToSlotIdx(_currentTargetIdx);
+    if (slotIdx === null) return;
+    const t = document.querySelector(`.bt-slot-enemy[data-idx="${slotIdx}"]`);
+    if (t && !t.classList.contains('bt-slot-empty')) t.classList.add('bt-target');
+    _currentTargetSlot = slotIdx;
+  }
+
+  // 🆕 Stage C：填非 primary slot 的內容（extras: idx 0/2、不用固定 ID、用 class 選擇器）
+  function _setExtraSlotContent(slotEl, unit, side) {
+    if (!slotEl) return;
+    if (!unit) {
+      slotEl.classList.add('bt-slot-empty');
+      slotEl.classList.remove('bt-card-player', 'bt-card-enemy');
+      slotEl.innerHTML = '';
+      return;
     }
-    // 未來 3v3：_enemy = _enemyTeam[slotIdx]
+    slotEl.classList.remove('bt-slot-empty');
+    slotEl.classList.add(side === 'player' ? 'bt-card-player' : 'bt-card-enemy');
+    const hpPct = Math.max(0, (unit.hp / Math.max(1, unit._hpMax)) * 100);
+    const face  = side === 'player' ? '💚' : '🟣';
+    slotEl.innerHTML = `
+      <div class="bt-slot-face bt-extra-face">${face}</div>
+      <div class="bt-slot-name bt-extra-name">${unit.name || '—'}</div>
+      <div class="bt-slot-bars">
+        <div class="bt-bar-label"><span>HP</span><span class="bt-extra-hp-txt">${unit.hp}/${unit._hpMax}</span></div>
+        <div class="bt-bar-track"><div class="bt-bar-fill bt-hp-fill bt-extra-hp-bar" style="width:${hpPct}%"></div></div>
+        <div class="bt-atb-track"><div class="bt-atb-fill bt-extra-atb-bar" style="width:0%"></div></div>
+      </div>
+    `;
+  }
+
+  // 🆕 Stage C：渲染所有 slot（呼叫時機：戰鬥初始化 + 每次有 unit 死/活狀態變化時）
+  function _renderAllSlots() {
+    // 敵方
+    for (let i = 1; i < _enemies.length; i++) {   // i=0 是 primary、用既有固定 ID 渲染、不動
+      const slotIdx = _enemyArrIdxToSlotIdx(i);
+      const slot = document.querySelector(`.bt-slot[data-side="enemy"][data-idx="${slotIdx}"]`);
+      _setExtraSlotContent(slot, _enemies[i], 'enemy');
+    }
+    // 清掉沒人的敵 extra slot
+    for (let i = _enemies.length; i < 3; i++) {
+      const slotIdx = _enemyArrIdxToSlotIdx(i);
+      if (slotIdx === null) continue;
+      const slot = document.querySelector(`.bt-slot[data-side="enemy"][data-idx="${slotIdx}"]`);
+      if (slot && slotIdx !== 1) _setExtraSlotContent(slot, null, 'enemy');
+    }
+
+    // 玩家方：_allies[0/1] 填 slot 0/2
+    for (let i = 0; i < 2; i++) {
+      const slotIdx = _allyArrIdxToSlotIdx(i);
+      const slot = document.querySelector(`.bt-slot[data-side="player"][data-idx="${slotIdx}"]`);
+      _setExtraSlotContent(slot, _allies[i] || null, 'player');
+    }
+
+    // 重設 target 點擊 + highlight
+    _setupTargeting();
+  }
+
+  // 🆕 Stage C：每 tick 更新 extra slot 的 HP / ATB bars（不 rebuild innerHTML）
+  function _updateExtraSlotBars() {
+    // 敵 extras
+    for (let i = 1; i < _enemies.length; i++) {
+      const slotIdx = _enemyArrIdxToSlotIdx(i);
+      const slot = document.querySelector(`.bt-slot[data-side="enemy"][data-idx="${slotIdx}"]`);
+      if (!slot) continue;
+      const en = _enemies[i];
+      const hpPct = en ? Math.max(0, (en.hp / Math.max(1, en._hpMax)) * 100) : 0;
+      const atb   = _enemyAtbs[i] || 0;
+      const hpBar = slot.querySelector('.bt-extra-hp-bar');
+      const hpTxt = slot.querySelector('.bt-extra-hp-txt');
+      const atbBar = slot.querySelector('.bt-extra-atb-bar');
+      if (hpBar) hpBar.style.width = hpPct + '%';
+      if (hpTxt && en) hpTxt.textContent = `${en.hp}/${en._hpMax}`;
+      if (atbBar) atbBar.style.width = atb + '%';
+      // 死敵灰化
+      if (en && en.hp <= 0) slot.classList.add('bt-dead');
+    }
+    // 隊友
+    for (let i = 0; i < _allies.length && i < 2; i++) {
+      const slotIdx = _allyArrIdxToSlotIdx(i);
+      const slot = document.querySelector(`.bt-slot[data-side="player"][data-idx="${slotIdx}"]`);
+      if (!slot) continue;
+      const al = _allies[i];
+      const hpPct = al ? Math.max(0, (al.hp / Math.max(1, al._hpMax)) * 100) : 0;
+      const atb   = _allyAtbs[i] || 0;
+      const hpBar = slot.querySelector('.bt-extra-hp-bar');
+      const hpTxt = slot.querySelector('.bt-extra-hp-txt');
+      const atbBar = slot.querySelector('.bt-extra-atb-bar');
+      if (hpBar) hpBar.style.width = hpPct + '%';
+      if (hpTxt && al) hpTxt.textContent = `${al.hp}/${al._hpMax}`;
+      if (atbBar) atbBar.style.width = atb + '%';
+      if (al && al.hp <= 0) slot.classList.add('bt-slot-dead');
+    }
   }
 
   function _fillAttrColumn(side, unit, kind) {
@@ -3092,6 +3203,8 @@ const Battle = (() => {
       else                   lAtb.classList.remove('ready');
     }
     if (rAtb) rAtb.style.width = curEAtb + '%';
+    // 🆕 Stage C：每 tick 更新 extra slot 的 HP/ATB bar
+    _updateExtraSlotBars();
   }
 
   // ══════════════════════════════════════════════════════
