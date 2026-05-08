@@ -8061,8 +8061,6 @@ const Game = (() => {
   function skipToDay(targetDay) {
     const p = Stats.player;
     // 🆕 2026-05-09：debug 工具允許回跳（test.html 條 34 從存檔 37 回去測場景）
-    //   原本 if (targetDay <= p.day) return → 害 test.html 自訂天數 silent fail
-    //   注意：回跳不會清 flag/好感、user 自負後果
     if (!Number.isFinite(targetDay) || targetDay < 1 || targetDay > 100) {
       console.warn('[Debug] skipToDay 天數要在 1~100');
       return;
@@ -8072,7 +8070,10 @@ const Game = (() => {
       return;
     }
     const back = targetDay < p.day;
-    console.log(`[Debug] 跳到 Day ${targetDay}（從 Day ${p.day}${back ? '、回跳' : ''}）`);
+    // 🆕 2026-05-09：清掉常見「done」flag、讓 testJump 後事件能重觸發
+    //   user 反饋：條 day35 進去什麼都沒發生 — 是因為之前已觸發、coop_fight_d35_done 已 set
+    const cleared = _clearDayEventFlagsForDebug();
+    console.log(`[Debug] 跳到 Day ${targetDay}（從 Day ${p.day}${back ? '、回跳' : ''}、清 ${cleared} 個事件 flag）`);
     p.day  = targetDay;
     p.time = 360;   // 06:00
     _syncLastRollDay(-1);
@@ -8081,7 +8082,39 @@ const Game = (() => {
     _resolveNonTrainingSlots();
     renderAll();
     checkTimelineEvent();
-    addLog(`\n[Debug] 已跳到第 ${targetDay} 天${back ? '（回跳、flag/好感未重設）' : ''}`, '#ff6600', true);
+    addLog(`\n[Debug] 已跳到第 ${targetDay} 天（清 ${cleared} 個事件 flag${back ? '、回跳' : ''}）`, '#ff6600', true);
+  }
+
+  // 🆕 2026-05-09：清掉常見 day-event「done」flag、讓 testJump 後事件能重觸發
+  //   清的範圍：
+  //     - `_d\d+_done` 結尾（coop_fight_d35_done / cadet_swap_d50_done 等）
+  //     - `boss_b\d+_*` 開頭（中段 boss 重觸發）
+  //     - 特定列出的事件 flag（mela_rat / recruit_invite / lord_visit / 等）
+  //     - `last_*_day` cooldown 計時器（讓有 cooldown 的事件能再骰一次）
+  //   不清：好感、屬性、storyReveal、特性
+  function _clearDayEventFlagsForDebug() {
+    if (typeof Flags === 'undefined' || !Flags.getAll || !Flags.unset) return 0;
+    const all = Flags.getAll();
+    const explicitList = new Set([
+      'mela_rat_done', 'recruit_invite_done',
+      'lord_visit_d65_done', 'lord_banquet_d80_done',
+      'sand_wash_done',
+      'spar_day12', 'last_friendly_spar_day',
+      'vesnus_assn_food_poison_done', 'vesnus_assn_poison_investigation_done',
+      'vesnus_assn_blackclaw_done',
+    ]);
+    let cleared = 0;
+    for (const k of Object.keys(all)) {
+      if (/_d\d+_done$/.test(k) ||
+          /^boss_b\d+_/.test(k) ||
+          /^last_.*_day$/.test(k) ||
+          /^spar_done_day_\d+$/.test(k) ||
+          explicitList.has(k)) {
+        Flags.unset(k);
+        cleared++;
+      }
+    }
+    return cleared;
   }
 
   // 🆕 2026-04-29 開鍛造坊（葛拉鋪 UI）
