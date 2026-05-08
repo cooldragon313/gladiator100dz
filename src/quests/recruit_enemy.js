@@ -336,7 +336,15 @@ const RecruitEnemyQuest = (() => {
       }
       return;
     }
-    // TODO 後續階段（+15 / +25 / +35）
+    // 🆕 2026-05-09：+35 黑爪登場（B5 boss）
+    if (offset === 35 && !Flags.has('vesnus_assn_blackclaw_done')) {
+      Flags.set('vesnus_assn_blackclaw_done', true);
+      if (typeof MidgameBosses !== 'undefined' && MidgameBosses.playBlackClaw) {
+        MidgameBosses.playBlackClaw();
+      }
+      return;
+    }
+    // TODO 後續階段（+15 第一次暗殺 / +25 競技場下毒）
   }
 
   // 🆕 NPC 在場守衛
