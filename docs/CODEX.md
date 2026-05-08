@@ -933,7 +933,7 @@ player.wounds.head = null | { severity:1-3, daysElapsed } | { special:'concussio
 | `docs/characters/*.md` | 8 個 NPC 角色檔 |
 | `docs/quests/mela-rat.md` | 抓老鼠任務 |
 | `docs/quests/day1-opening.md` | Day 1 開場 |
-| `docs/DIALOGUE-MAP.md` | 對白位置總索引 |
+| `更改對話專用.md` | 對白編輯入口（root） |
 | `docs/CONTENT-TEMPLATES.md` | 內容創作模板（NPC / 武器 / 訓練所）|
 
 ---

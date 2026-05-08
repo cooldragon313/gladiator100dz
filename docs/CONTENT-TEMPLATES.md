@@ -32,20 +32,18 @@
 
 ## 📥 內容遷移狀態
 
-**第一輪重構（2026-04-15）**：本檔案為骨架占位。完整內容暫存於 `DESIGN-legacy.md` 第 3879~5393 行（D.11.1~D.11.20 章節）。
+**2026-05-09 整理**：原本「第二輪重構」計畫從 `DESIGN-legacy.md` 完整遷移、但 legacy 檔已刪除（git 保留）。
 
-**第二輪重構（計劃）**：將 `DESIGN-legacy.md` 的 D.11 內容完整遷移到此檔。
-
-**在遷移完成前**：
-- 需要查某個模板的詳細欄位 → `grep -n "D.11.7" DESIGN-legacy.md` 即可定位
-- 需要寫新內容 → 參考 `npc.js` / `origins.js` / `weapons.js` 等現有資料檔的實際寫法
-- 不確定欄位名稱 → 查 `DESIGN-legacy.md` 對應的模板區
+**目前指引**：
+- 寫新內容 → 參考 `npc.js` / `origins.js` / `weapons.js` 等現有資料檔
+- 需要查老設計細節 → `git show <commit>:DESIGN.md` 抓 2026-04-15 重構前版本
+- 各 NPC 細節 → `docs/characters/{npc}.md`
+- 各任務細節 → `docs/quests/{name}.md`
+- 各系統細節 → `docs/systems/{name}.md`
 
 ---
 
 ## 暫時指引：如何新增各類內容（簡易版）
-
-在完整模板遷移好之前，以下是最基本的新增指引。
 
 ### 🆕 新增一個 NPC
 
@@ -206,9 +204,9 @@ favorWeight: { STR:3, DEX:2, CON:2, AGI:1, WIL:1 }  // 硬派肉搏向
 
 ---
 
-## 完整模板章節（待遷移）
+## 完整模板章節（佔位、未細寫）
 
-**以下章節計劃從 DESIGN-legacy.md 完整遷移過來**。遷移前請暫時用 `DESIGN-legacy.md` 查閱。
+**這些章節原計畫從 DESIGN-legacy.md 遷移、但 legacy 已刪。日後需要可從 git history 取（`git log --diff-filter=D` 找）。實際寫新內容直接參考現有 .js 資料檔即可。**
 
 ### D.11.1 統一 assets 欄位規範
 （portrait / icon / bgm / sfx 的標準結構）
@@ -258,4 +256,3 @@ favorWeight: { STR:3, DEX:2, CON:2, AGI:1, WIL:1 }  // 硬派肉搏向
 
 ---
 
-**本檔案待第二輪重構完整遷移。在此之前以 `DESIGN-legacy.md` 為準。**

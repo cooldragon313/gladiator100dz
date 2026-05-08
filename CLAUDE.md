@@ -66,7 +66,7 @@
 3. **`docs/CONTENT-TEMPLATES.md`** — 新 NPC / 武器 / 訓練所等內容創作模板（原 D.11）。
 3-0. **`docs/CODEX.md`** — 🆕 **完整字典（2026-04-19）**：特性/書本/origin/傷勢/見識/旗標/數字速查表一份搞定。查「某個特性效果是什麼」「某本書門檻多少」「某 flag 做什麼用」先看這份。
 3-0b. **`docs/CANON.md`** — 🆕 **故事事實單一事實源（2026-04-19）**：時間線、角色年齡、誰知道什麼、關係歷史。**寫新對白/事件前必查**。跟 CODEX 分工：CODEX 存規則，CANON 存事實。
-3a. **`docs/DIALOGUE-MAP.md`** — 🆕 D.28：**對白位置總索引**。查某段對白在哪裡先看這份。
+3a. **`更改對話專用.md`**（root）— **對白編輯入口**。查某段對白在哪、怎麼改、配色規範、新事件登記都看這份。
 3a1. **`docs/characters/*.md`** — 🆕 D.28：每個 NPC 的完整檔案（愛憎 / 對話風格 / 特性反應 / 招牌動作 / 程式碼指標）
    - 目前已建：orlan / melaKook / cassius / hector / doctorMo / officer / masterArtus / sol
    - 🆕 **livia**（主人娘，Phase 2/3 登場）/ **marcus**（少爺，Phase 2 登場）
@@ -76,8 +76,7 @@
 3c. **`docs/systems/*.md`** — 🆕 D.28：系統規範（night-events, multi-check-quest, **reading**, **books-catalog**, **wounds**, **compulsion**, traits, origins, timeline, battle-*, npc-growth, **equipment-rework**, **battle-attr-gain**）
    - 🆕 **reading.md / books-catalog.md**（2026-04-19）：讀書系統 + 五類書本 + 見識數值 + 傻福三階段交互
    - 🆕 **wounds.md**（2026-04-19）：4 部位 × 3 級傷勢系統 + 低體力擲傷 + 好痛觸發 + 老默三階段 → 密醫引薦
-   - 🆕 **fervor.md**（2026-04-22 設計 / 2026-04-24 實作）：4 種訓練狂熱（力/敏/耐/禪）+ 自然觸發（5 天 8 次）/ 瓶頸儀式（20/30/.../100）+ 5 次結束。**取代舊 compulsion.md**
-   - 🗑️ **compulsion.md**：已廢棄（設計原稿保留為歷史紀錄），實作改為 Fervor
+   - 🆕 **fervor.md**（2026-04-22 設計 / 2026-04-24 實作）：4 種訓練狂熱（力/敏/耐/禪）+ 自然觸發（5 天 8 次）/ 瓶頸儀式（20/30/.../100）+ 5 次結束
    - 🆕 **origin-design-spec.md**（2026-04-19）：**新增 origin 必看** — 完整欄位 / statMod 平衡 / 起手書原則 / 被抓損失 / 受傷權重 / 回憶對白矩陣 / 未來擴充（起手技能 + 專屬事件）/ 檢查清單
    - 🆕 **mansion-geography.md**（2026-04-19）：大宅地理 — 主人家 + 訓練場**同座建築**，正門/側門/共用中段
    - 🆕 **master-family-spec.md**（2026-04-19）：訓練所家庭通用規範 — archetype 模板，每個訓練所 = 一個家族故事
@@ -89,8 +88,6 @@
    **看到使用者叫你「整理 NOTES.md」時**：讀 NOTES.md → 歸類每個項目（屬於哪個章節）
    → 寫進正式文件 → 清空 NOTES.md 的待整理區（保留頂部使用說明）→ commit。
 6. **`memory/MEMORY.md`** — 本機 auto-memory（使用者偏好、回饋）
-7. **`DESIGN-legacy.md`**（暫時存在）— 2026-04-15 重構前的完整舊版 DESIGN.md 備份。
-   第二輪重構完成後會刪除。遷移期間若發現新 DESIGN.md 漏掉某塊內容，可從這裡補。
 
 ---
 

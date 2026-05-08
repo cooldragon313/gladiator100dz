@@ -2,8 +2,8 @@
 
 > 連續訓練同屬性 → 進入「狂熱」狀態，成為屬性突破的必經儀式。
 > 設計日期：2026-04-22
-> **取代舊設計**：[compulsion.md](compulsion.md)（強迫症）已廢棄 — 舊版是懲罰玩家做對事情
-> 實作對應：重寫 `src/systems/compulsion.js` → `fervor.js`（rename）
+> **取代舊設計**：「強迫症」已廢棄（懲罰玩家做對事情）— 改成「狂熱」獎勵 + 儀式感
+> 實作對應：`src/systems/compulsion.js`（IIFE 名稱為 Fervor、保留檔名）
 
 ---
 
@@ -332,8 +332,8 @@ player.fervor = {
 
 ## § 12 替代舊檔案
 
-- `docs/systems/compulsion.md` → 加「已廢棄」標頭，指向本檔
-- `src/systems/compulsion.js` → 重寫為 `fervor.js`（rename 檔名）
+- `docs/systems/compulsion.md` → **已刪**（2026-05-09 整理）、本檔取代
+- `src/systems/compulsion.js` → IIFE 重寫為 Fervor（保留檔名）
 - `config.js TRAIT_DEFS` 的 4 個 `_addict` → 4 個 `_fervor`
 - **舊存檔遷移**：
   - `player.compulsion.*` → 初始化成 `player.fervor.*`
