@@ -592,7 +592,11 @@ function TB_attack(atk, def, state, opts={}) {
     gaugeGainAtk:0, gaugeGainDef:0,
     injuredPart:null, injuryLevel:null,
     log: '',
+    affixLog: '',   // 🆕 2026-05-08 詞綴觸發 log（battle.js 讀取追加顯示）
   };
+
+  // 🆕 2026-05-08 reaping (execute)：def 殘血時 atk +50%（在傷害計算前判定）
+  TB_applyReapingMult(atk, def, aS, result);
 
   // ── Trait: 逆境覺醒 ──
   if (atk.traitId === 'bloodlust' && atk.hp / atk._hpMax < 0.30) {
@@ -736,7 +740,97 @@ function TB_attack(atk, def, state, opts={}) {
   if (def.gaugeRoute === 'fury')
     TB_gainGauge(def, TBC.GAUGE_GAIN.fury.take_hit, result, 'def'); // 任意被命中都+10
 
+  // 🆕 2026-05-08 詞綴主動效果（命中時 + 被擊時）
+  //   只在實際命中且造成傷害時觸發、避開 miss / blocked / 反制
+  if (result.hit && !result.blocked && result.damage > 0) {
+    TB_applyOnHitAffixes(atk, def, result);     // vampiric / flaming
+    TB_applyOnTakenAffixes(atk, def, result);   // riposting
+  }
+
   return result;
+}
+
+// ═══════════════════════════════════════════════════════
+// 9b. 詞綴主動效果（2026-05-08）
+// ═══════════════════════════════════════════════════════
+// 4 個 active affix：vampiric (吸血) / flaming (灼燒) / reaping (執行) / riposting (反擊)
+//   - reaping 在傷害計算前判定（修改 aS.ATK）
+//   - vampiric / flaming 在傷害計算後判定（命中 + damage > 0）
+//   - riposting 在 def 受擊時判定（result.counterDamage）
+// MVP 簡化：flaming 改為「命中時 +5 額外傷害」、不真做回合 DOT tick
+//   完整 DOT（statusEffects + 每回合扣血）留 Phase 4 加深戰鬥系統時做
+// ═══════════════════════════════════════════════════════
+
+function TB_applyReapingMult(atk, def, aS, result) {
+  if (!Array.isArray(atk.weaponAffixes) || atk.weaponAffixes.length === 0) return;
+  if (typeof Affixes === 'undefined' || !Affixes.getDef) return;
+
+  for (const id of atk.weaponAffixes) {
+    const aff = Affixes.getDef(id);
+    if (!aff || !aff.isActive || !aff.active) continue;
+    if (aff.active.type !== 'execute') continue;
+
+    const cfg = aff.active;
+    const hpRatio = def.hp / (def._hpMax || 1);
+    if (hpRatio < (cfg.threshold || 0.30)) {
+      const oldATK = aS.ATK;
+      aS.ATK = Math.round(aS.ATK * (cfg.atkMult || 1.50));
+      result.affixLog += `【死神】${aff.name} 觸發！ATK ${oldATK} → ${aS.ATK}（殘血執行）。`;
+    }
+  }
+}
+
+function TB_applyOnHitAffixes(atk, def, result) {
+  if (!Array.isArray(atk.weaponAffixes) || atk.weaponAffixes.length === 0) return;
+  if (typeof Affixes === 'undefined' || !Affixes.getDef) return;
+
+  for (const id of atk.weaponAffixes) {
+    const aff = Affixes.getDef(id);
+    if (!aff || !aff.isActive || !aff.active) continue;
+    if (aff.active.type !== 'onHit') continue;
+
+    const cfg = aff.active;
+
+    // vampiric — 命中時回 5% damage HP
+    if (typeof cfg.heal === 'number' && cfg.heal > 0) {
+      const heal = Math.max(1, Math.round(result.damage * cfg.heal));
+      const oldHp = atk.hp;
+      atk.hp = Math.min(atk._hpMax, atk.hp + heal);
+      const actual = atk.hp - oldHp;
+      if (actual > 0) {
+        result.affixLog += `【嗜血】回 ${actual} HP。`;
+      }
+    }
+
+    // flaming — MVP：命中時 +5 額外傷害（簡化版、不真做回合 DOT）
+    //   Phase 4 升級：def.statusEffects.push({type:'burn', turns:3, dmg:5})
+    if (typeof cfg.dotDmg === 'number' && cfg.dotDmg > 0) {
+      const extra = cfg.dotDmg;
+      result.damage += extra;
+      result.affixLog += `【灼燒】+${extra} 傷害。`;
+    }
+  }
+}
+
+function TB_applyOnTakenAffixes(atk, def, result) {
+  if (!Array.isArray(def.armorAffixes) || def.armorAffixes.length === 0) return;
+  if (typeof Affixes === 'undefined' || !Affixes.getDef) return;
+
+  for (const id of def.armorAffixes) {
+    const aff = Affixes.getDef(id);
+    if (!aff || !aff.isActive || !aff.active) continue;
+    if (aff.active.type !== 'onTaken') continue;
+
+    const cfg = aff.active;
+
+    // riposting — 被擊後 30% 機率反 5 傷害
+    const chance = cfg.chance || 0;
+    if (Math.random() < chance) {
+      const ref = cfg.reflectDmg || 0;
+      result.counterDamage += ref;
+      result.affixLog += `【反擊】反彈 ${ref} 傷害。`;
+    }
+  }
 }
 
 function TB_gainGauge(unit, delta, result, side) {

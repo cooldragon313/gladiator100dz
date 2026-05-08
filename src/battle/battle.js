@@ -1244,6 +1244,8 @@ const Battle = (() => {
       _playAttackAnim('player', { hit: r.hit, blocked: r.blocked, crit: r.crit });
       _appendLog((hits > 1 ? `[第${i+1}擊] ` : '') + r.log,
         r.crit ? 'log-crit' : r.hit ? '' : 'log-miss');
+      // 🆕 2026-05-08 詞綴主動效果觸發 log（嗜血/灼燒/死神/反擊）
+      if (r.affixLog) _appendLog('  ✦ ' + r.affixLog, 'log-special');
       // D.1.13: 依結果播放命中音效
       if (r.hit) {
         if (r.crit)         SoundManager.playSfx('hit_crit');
@@ -1358,6 +1360,8 @@ const Battle = (() => {
         // 🆕 2026-04-20 v3：敵方攻擊動畫（帶 result）
         _playAttackAnim('enemy', { hit: r.hit, blocked: r.blocked, crit: r.crit });
         _appendLog(r.log, r.crit ? 'log-crit' : r.hit ? '' : 'log-miss');
+        // 🆕 2026-05-08 詞綴主動效果觸發 log（敵方攻擊命中時、玩家可能觸發 riposting 反擊）
+        if (r.affixLog) _appendLog('  ✦ ' + r.affixLog, 'log-special');
         if (r.injuredPart) _appendLog(`  ※ 玩家【${r.injuredPart}】受傷（${r.injuryLevel}）`, 'log-injury');
         // 🆕 2026-04-25c 反擊（被動）：玩家成功閃避（!hit 且 !blocked）→ 35% 機率立刻反擊 ATK×0.8
         if (!r.hit && !r.blocked && Stats.hasSkill && Stats.hasSkill('counter')

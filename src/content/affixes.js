@@ -86,24 +86,24 @@ const Affixes = (() => {
       desc: '戰鬥開場敵 SPD -3（開戰壓制）',
     },
 
-    // 主動效果（Phase 3 接戰鬥引擎、目前掛上但無戰鬥效果）
+    // 主動效果（2026-05-08 戰鬥引擎已接、見 testbattle.js TB_apply*Affixes）
     vampiric: {
       id: 'vampiric', name: '嗜血', slot: 'weapon', tier: 3, isActive: true,
       passive: {},
       active: { type: 'onHit', heal: 0.05 },
-      desc: '命中時回 5% 損傷 HP（Phase 3 接戰鬥引擎）',
+      desc: '命中時回 5% 損傷 HP',
     },
     flaming: {
       id: 'flaming', name: '灼燒', slot: 'weapon', tier: 3, isActive: true,
       passive: {},
       active: { type: 'onHit', dotTurns: 3, dotDmg: 5 },
-      desc: '命中時敵燒 3 回合（每回合 5 損傷）（Phase 3）',
+      desc: '命中時 +5 額外傷害（簡化版、Phase 4 升級為 3 回合 DOT）',
     },
     reaping: {
       id: 'reaping', name: '死神', slot: 'weapon', tier: 3, isActive: true,
       passive: {},
       active: { type: 'execute', threshold: 0.30, atkMult: 1.50 },
-      desc: '對 HP < 30% 敵人 ATK +50%（Phase 3）',
+      desc: '對 HP < 30% 敵人 ATK +50%（殘血執行）',
     },
 
     // ═══════════════════════════════════════════════════
@@ -139,7 +139,7 @@ const Affixes = (() => {
       id: 'riposting', name: '反擊', slot: 'armor', tier: 3, isActive: true,
       passive: {},
       active: { type: 'onTaken', chance: 0.30, reflectDmg: 5 },
-      desc: '被擊後 30% 機率反 5 損傷（Phase 3）',
+      desc: '被擊中時 30% 機率反 5 損傷',
     },
   };
 
