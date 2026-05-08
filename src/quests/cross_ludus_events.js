@@ -762,30 +762,536 @@ const CrossLudusEvents = (() => {
   }
 
   // ═══════════════════════════════════════════════════
-  // P2-6 互換新兵（Day 50 + Day 80、stub）
+  // P2-6 互換新兵（Day 50 + Day 80）— 2026-05-08 完整版
   // ═══════════════════════════════════════════════════
+  // 兩天兩個方向：
+  //   Day 50：玩家**被借去**維努斯場一週（5 幕、玩家視角體驗對面）
+  //   Day 80：維努斯場**派人來**阿圖斯場（4 幕、玩家是接待方）
+  //
+  // 設計理由：
+  //   橫向張力的「**親身接觸**」— 玩家在 Day 80 領主夜宴前
+  //   要對「對面那訓練所」有立體印象（不只是名字、是真的見過裡面）
+  //
+  // 場景切換用敘事帶過（不真做 UI 切換、玩家還是阿圖斯場 UI 但對白構建情境）
+  // ═══════════════════════════════════════════════════
+
   function tryCadetSwap(newDay) {
     if (newDay !== 50 && newDay !== 80) return false;
     const flag = `cadet_swap_d${newDay}_done`;
     if (Flags.has(flag)) return false;
     Flags.set(flag, true);
-    if (typeof DialogueModal !== 'undefined') {
-      DialogueModal.play([
-        { text: '（侍從來通報。）' },
-        { speaker: '侍從', text: `⋯⋯主人吩咐、${newDay === 50 ? '今天' : '今天'}你要去維努斯場一週。蓋烏斯老爺借你「練手」。` },
-        { text: '（你一週後回來。）' },
-        { text: '（——P2-6 完整版待後續：UI 場景切換、見到蓋烏斯本人、知道對方訓練所內幕。）' },
-        { text: '（暫時 stub：你帶回了一些八卦。對維努斯場了解 +1。）' },
-      ]);
+
+    if (newDay === 50) {
+      _swapAct1_visit();   // 玩家去維努斯場
+    } else {
+      _swapAct1_host();    // 維努斯場派人來
     }
-    if (typeof teammates !== 'undefined') {
-      teammates.modAffection('gaius', 5);   // 蓋烏斯短暫好感（演的）
-      teammates.modAffection('vesnusCaelius', 10);  // 跟招敵候選混熟
-      teammates.modAffection('vesnusNox', 10);
-    }
-    Flags.set(`cadet_swap_${newDay}_intel`, true);
-    _log(`✦ Day ${newDay} 互換新兵（stub）：你回來了、對維努斯場 NPC 好感 +10。`, '#88dd66', true);
     return true;
+  }
+
+  // ═══════════════════════════════════════════════════
+  // Day 50：玩家被借去維努斯場（5 幕）
+  // ═══════════════════════════════════════════════════
+
+  function _swapAct1_visit() {
+    if (typeof DialogueModal === 'undefined') {
+      _swapApplyVisitRewards('observer');
+      return;
+    }
+    DialogueModal.play([
+      { text: '（清晨。侍從來通知。）' },
+      { speaker: '侍從', text: '⋯⋯主人吩咐、今天起你要去維努斯場一週。蓋烏斯老爺借你「練手」。' },
+      { speaker: '侍從', text: '主人交代——「替我留意他們的訓練法」。其他不用講。' },
+      { text: '（你點頭。侍從給了一個小布包——換洗衣服跟一些盤纏。）' },
+      { text: '（——主人沒明說、但你聽得出來：這趟是去**偵察**、不只是練手。）' },
+      { text: '（你跟著侍從走出阿圖斯場側門、轉過幾條街、來到一個比阿圖斯場大一倍的建築前。）' },
+      { text: '（門口兩個守衛、佩劍、不像阿圖斯場的雜牌守衛、是制服統一的。）' },
+      { text: '（——維努斯場到了。）' },
+    ], { onComplete: _swapVisitAct2 });
+  }
+
+  function _swapVisitAct2() {
+    DialogueModal.play([
+      { text: '（你被帶進中庭。一進去你就傻了。）' },
+      { text: '（**大理石地板**。中央有個噴泉。沙地用細白沙、不像阿圖斯場的混雜沙土。）' },
+      { text: '（訓練場有教練站在一旁——進口教練、講話帶口音。）' },
+      { text: '（鐵架上的武器——清一色精鐵以上、有幾把看起來是上品。）' },
+      { text: '（——你心裡明白了：這就是為什麼維努斯場近 5 年大會冠軍幾乎全包。）' },
+      { text: '（一個壯漢從訓練場走過來、滿身肌肉、肩上扛著大斧。）' },
+      { speaker: '布魯圖', text: '⋯⋯阿圖斯場的小子？聽說我們蓋烏斯老爺借了你來練手？', color: '#aa7755' },
+      { speaker: '布魯圖', text: '哈！垃圾場來的、別丟我們的臉。', color: '#aa7755' },
+      { text: '（他大笑、走開。其他帥哥一起笑。）' },
+      { text: '（你站在那、感覺被當成觀光景點看。）' },
+      { text: '（這時——一個男人從上方階梯走下來。）' },
+      { speaker: '蓋烏斯', text: '⋯⋯歡迎、孩子。阿圖斯把你借給我一週。', color: '#aa7755' },
+      { speaker: '蓋烏斯', text: '我是蓋烏斯。這場上你想跟誰練都行。', color: '#aa7755' },
+      { speaker: '蓋烏斯', text: '⋯⋯但記得、這裡的規矩跟阿圖斯場不一樣。' },
+      { text: '（他笑。眼神冷。）' },
+      { speaker: '蓋烏斯', text: '阿圖斯把你借過來、是因為他相信你。別讓他失望。', color: '#aa7755' },
+      { text: '（——你聽得出來、這話有兩層意思。）' },
+      { text: '（蓋烏斯轉身回階梯。布魯圖跟他下面的帥哥也散了。）' },
+      { text: '（你站在中庭、要決定接下來一週怎麼過。）' },
+    ], { onComplete: _swapVisitChoice });
+  }
+
+  function _swapVisitChoice() {
+    if (typeof ChoiceModal === 'undefined') {
+      _swapVisitAct4('observer');
+      return;
+    }
+    ChoiceModal.show({
+      id: 'cadet_swap_d50_approach',
+      icon: '🏛️',
+      title: '一週的時間。你要怎過？',
+      body: '蓋烏斯說「跟誰練都行」、但你心裡清楚這場戲是阿圖斯派來偵察。',
+      forced: true,
+      choices: [
+        {
+          id: 'recruit_befriend',
+          label: '混熟招敵候選（凱里烏斯 / 諾克斯）',
+          hint: '（這兩個聽說對蓋烏斯不滿。）',
+          effects: [
+            { type: 'moral', axis: 'reliability', side: 'positive' },
+            { type: 'flag', key: 'cadet_swap_d50_befriended_recruits' },
+          ],
+          resultLog: '你刻意找凱里烏斯跟諾克斯訓練。一週下來、兩人開始把你當「自己人」。',
+          logColor: '#88aa66',
+        },
+        {
+          id: 'spy_intel',
+          label: '套情報（混 4 帥哥 + 偷聽蓋烏斯室）',
+          hint: '（主人要的就是這個。）',
+          effects: [
+            { type: 'moral', axis: 'reliability', side: 'negative' },
+            { type: 'flag', key: 'cadet_swap_d50_spied' },
+          ],
+          resultLog: '你裝親和混進 4 帥哥圈、偷聽到幾段蓋烏斯跟教練的對話。情報拿到了、但你也心虛。',
+          logColor: '#aa8855',
+        },
+        {
+          id: 'observer',
+          label: '自己練不講話、純粹練功',
+          hint: '（這場戲我不演。）',
+          effects: [
+            { type: 'moral', axis: 'patience', side: 'positive' },
+            { type: 'flag', key: 'cadet_swap_d50_observer' },
+          ],
+          resultLog: '你選擇單純練功。教練的指導確實讓你進步——但 4 帥哥開始嫌你裝清高。',
+          logColor: '#888899',
+        },
+      ],
+    }, {
+      onChoose: (choiceId) => _swapVisitAct4(choiceId),
+    });
+  }
+
+  function _swapVisitAct4(choiceId) {
+    let lines;
+    if (choiceId === 'recruit_befriend') {
+      lines = [
+        '一週的訓練。',
+        '',
+        '你刻意湊到凱里烏斯——維努斯場的帥氣劍士。他話不多、但你看得出他壓抑著什麼。',
+        '第三天他終於對你說了一句：',
+        '凱里烏斯：「⋯⋯你那邊、能讀書嗎？」',
+        '你說「有些人能」。他沉默了。',
+        '',
+        '諾克斯——一個鐵漢老兵。第五天他在喝酒時對你說：',
+        '諾克斯：「⋯⋯蓋烏斯欠我兩年薪水了。」',
+        '你沒講話。但他看著你的眼神不一樣了。',
+        '',
+        '一週結束。你帶著兩個人的情緒回阿圖斯場。',
+      ];
+    } else if (choiceId === 'spy_intel') {
+      lines = [
+        '一週的訓練。',
+        '',
+        '你混進 4 帥哥圈——布魯圖、德基烏斯、法烏斯、奎因圖斯。他們起初鄙視你、後來覺得你「不錯」。',
+        '德基烏斯特別愛炫耀。第三天他喝酒時跟你說：',
+        '德基烏斯：「我跟你講、上次阿圖斯場那場我搞過手腳⋯⋯」',
+        '（他一下子止口。但太晚了。你記住了。）',
+        '',
+        '第五天你借送酒去蓋烏斯書房、聽到他對教練說：',
+        '蓋烏斯：「⋯⋯阿圖斯這小子有天份。下次大會、安排個「意外」吧。」',
+        '（你心臟猛跳。立刻退出書房。）',
+        '',
+        '一週結束。你帶著情報回阿圖斯場。但你心裡清楚——你也成了一個會搞陰招的人。',
+      ];
+    } else {
+      lines = [
+        '一週的訓練。',
+        '',
+        '你不講話、就練。維努斯場的進口教練實際上很厲害——他指出你出招的兩個壞習慣。',
+        '你的劍法、那一週進步比阿圖斯場一個月還多。',
+        '',
+        '4 帥哥起初嫌你裝清高、後來懶得理你。',
+        '蓋烏斯經過你身邊一次、說：「⋯⋯這小子有意思。阿圖斯沒看走眼。」',
+        '',
+        '你不知道這算誇獎、還是懷疑。',
+        '一週結束。你帶著一些技術、回阿圖斯場。',
+      ];
+    }
+
+    if (typeof Stage !== 'undefined' && Stage.playEvent) {
+      Stage.playEvent({
+        title: '在維努斯場的一週',
+        icon: '🏛️',
+        lines,
+        color: '#aa9966',
+        onComplete: () => _swapVisitAct5(choiceId),
+      });
+    } else {
+      _swapVisitAct5(choiceId);
+    }
+  }
+
+  function _swapVisitAct5(choiceId) {
+    const lines = [
+      { text: '（一週後。你回到阿圖斯場側門。）' },
+      { text: '（你回宿舍、放下換洗衣服。一切像沒變、但又什麼都變了。）' },
+      { text: '（侍從來通報——主人召見。）' },
+      { text: '（你進到阿圖斯書房。他坐在椅子上、看你。）' },
+      { speaker: '阿圖斯', text: '⋯⋯回來了。', color: '#aa9966' },
+      { speaker: '阿圖斯', text: '說。', color: '#aa9966' },
+      { text: '（你開口——但說什麼、取決於你這週怎過。）' },
+    ];
+
+    if (choiceId === 'recruit_befriend') {
+      lines.push(
+        { text: '（你說了凱里烏斯跟諾克斯的事。蓋烏斯怎對待他們、他們的不滿。）' },
+        { speaker: '阿圖斯', text: '⋯⋯有意思。', color: '#aa9966' },
+        { speaker: '阿圖斯', text: '記住這兩個名字。下次你需要他們的時候、知道怎麼開口。', color: '#aa9966' },
+        { text: '（——他在鋪 P2-7 招敵變友的路。）' },
+      );
+    } else if (choiceId === 'spy_intel') {
+      lines.push(
+        { text: '（你把蓋烏斯的「意外」計畫跟德基烏斯的炫耀都報了。）' },
+        { speaker: '阿圖斯', text: '⋯⋯你做得好。', color: '#aa9966' },
+        { speaker: '阿圖斯', text: '蓋烏斯這混蛋、果然在搞鬼。', color: '#aa9966' },
+        { text: '（他笑了。第一次你看到阿圖斯笑。）' },
+        { speaker: '阿圖斯', text: '⋯⋯你今天表現不錯。回去休息。', color: '#aa9966' },
+      );
+    } else {
+      lines.push(
+        { text: '（你說「沒什麼特別、就練功」。）' },
+        { speaker: '阿圖斯', text: '⋯⋯', color: '#aa9966' },
+        { speaker: '阿圖斯', text: '你進步了。我看得出來。', color: '#aa9966' },
+        { speaker: '阿圖斯', text: '⋯⋯但你也錯過機會。算了、回去吧。', color: '#aa9966' },
+      );
+    }
+
+    if (typeof DialogueModal !== 'undefined') {
+      DialogueModal.play(lines, { onComplete: () => _swapApplyVisitRewards(choiceId) });
+    } else {
+      _swapApplyVisitRewards(choiceId);
+    }
+  }
+
+  function _swapApplyVisitRewards(choiceId) {
+    Flags.set('cadet_swap_50_intel', true);
+
+    if (choiceId === 'recruit_befriend') {
+      // 招敵候選好感大漲、鋪 P2-7
+      if (typeof teammates !== 'undefined' && teammates.modAffection) {
+        teammates.modAffection('vesnusCaelius', 20);
+        teammates.modAffection('vesnusNox',     20);
+        teammates.modAffection('gaius',         3);   // 蓋烏斯演的客套
+      }
+      if (typeof Stats !== 'undefined') {
+        Stats.modFame(8);
+        if (Stats.modMoney) Stats.modMoney(40);
+      }
+      Flags.set('recruit_groundwork_d50', true);   // P2-7 整合用
+      _log('✦ Day 50 互換新兵（混招敵候選）：凱里烏斯/諾克斯 +20、+8 名聲 +40 銅幣。為招敵變友鋪路。', '#88aa66', true);
+    } else if (choiceId === 'spy_intel') {
+      // 主人 +15、拿到深層情報、但反派好感全 -
+      if (typeof teammates !== 'undefined' && teammates.modAffection) {
+        teammates.modAffection('masterArtus',  15);
+        teammates.modAffection('vesnusDecius', -15);
+        teammates.modAffection('gaius',        -10);   // 雖偷聽他不知、但玩家心理立場已變
+      }
+      if (typeof Stats !== 'undefined') {
+        Stats.modFame(12);
+        if (Stats.modMoney) Stats.modMoney(70);
+      }
+      Flags.set('player_knows_gaius_scheme', true);   // Day 60 陰招場可呼應
+      Flags.set('decius_caught_bragging', true);
+      _log('✦ Day 50 互換新兵（套情報）：主人 +15、+12 名聲 +70 銅幣。德基烏斯醜事入袋。', '#aa8855', true);
+    } else {
+      // 觀察者：屬性 +1（教練教的）、好感小漲、無情報
+      if (typeof Stats !== 'undefined') {
+        // 進口教練讓玩家屬性 +1（隨機）
+        const attrPool = ['STR', 'DEX', 'AGI'];
+        const picked = attrPool[Math.floor(Math.random() * attrPool.length)];
+        Stats.modAttr(picked, 1);
+        Stats.modFame(5);
+        if (Stats.modMoney) Stats.modMoney(30);
+        _log(`✦ Day 50 互換新兵（純練功）：${picked} +1（進口教練教的）、+5 名聲 +30 銅幣。`, '#888899', true);
+      }
+      if (typeof teammates !== 'undefined' && teammates.modAffection) {
+        teammates.modAffection('gaius',        5);   // 蓋烏斯欣賞「不演的人」
+        teammates.modAffection('masterArtus',  3);
+      }
+      Flags.set('vesnus_coach_taught_player', true);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════
+  // Day 80：維努斯場派人來阿圖斯場（4 幕）
+  // ═══════════════════════════════════════════════════
+
+  function _swapAct1_host() {
+    // 來訪者：依 Day 50 玩家的選擇分流
+    //   - 若混過招敵候選 → 凱里烏斯來（已有交情、可鋪 P2-7）
+    //   - 若套情報 → 德基烏斯來（敵意 + 試探）
+    //   - 若純練功 → 隨機抽（蓋烏斯不在乎派誰）
+    let visitor, visitorName;
+    if (Flags.has('cadet_swap_d50_befriended_recruits')) {
+      visitor = 'vesnusCaelius'; visitorName = '凱里烏斯';
+    } else if (Flags.has('cadet_swap_d50_spied')) {
+      visitor = 'vesnusDecius'; visitorName = '德基烏斯';
+    } else {
+      // 從 4 帥哥隨機抽
+      const pool = [
+        { id: 'vesnusBrutus',   name: '布魯圖' },
+        { id: 'vesnusQuinctus', name: '奎因圖斯' },
+        { id: 'vesnusFaus',     name: '法烏斯' },
+      ];
+      const picked = pool[Math.floor(Math.random() * pool.length)];
+      visitor = picked.id; visitorName = picked.name;
+    }
+
+    Flags.set('cadet_swap_d80_visitor', visitor);
+
+    if (typeof DialogueModal === 'undefined') {
+      _swapHostApplyRewards('cordial', visitor, visitorName);
+      return;
+    }
+    DialogueModal.play([
+      { text: '（清晨。侍從來通報。）' },
+      { speaker: '侍從', text: `⋯⋯主人吩咐、今天起蓋烏斯老爺派一個小子過來練手一週。${visitorName}。` },
+      { speaker: '侍從', text: '主人說——你陪他訓練、別出事。' },
+      { text: '（——上次你去他們場、這次他們派人來。30 年的兩家都這樣玩。）' },
+      { text: '（你走到訓練場側門、看到他已經到了。）' },
+    ], { onComplete: () => _swapHostAct2(visitor, visitorName) });
+  }
+
+  function _swapHostAct2(visitor, visitorName) {
+    let firstLines;
+
+    if (visitor === 'vesnusCaelius') {
+      // 凱里烏斯：友善、之前混過、現在再續前緣
+      firstLines = [
+        { text: '（你看到凱里烏斯站在側門邊。他朝你點了點頭。）' },
+        { speaker: '凱里烏斯', text: '⋯⋯沒想到我們這麼快又見面。', color: '#88aa66' },
+        { speaker: '凱里烏斯', text: '蓋烏斯臨時派我來。我也不知道為什麼。' },
+        { speaker: '凱里烏斯', text: '⋯⋯但能換個地方一週、我倒是樂意。' },
+        { text: '（你看出他眼神有東西——他想跟你聊更多、但場合不對。）' },
+      ];
+    } else if (visitor === 'vesnusDecius') {
+      // 德基烏斯：敵意、來探玩家是不是聽到他炫耀
+      firstLines = [
+        { text: '（你看到德基烏斯靠在牆邊、嗑瓜子。）' },
+        { speaker: '德基烏斯', text: '⋯⋯哎喲、阿圖斯這寵物。', color: '#aa7755' },
+        { speaker: '德基烏斯', text: '上次你來我家、我招待得不錯吧？' },
+        { speaker: '德基烏斯', text: '⋯⋯記得我說過什麼嗎？', color: '#aa7755' },
+        { text: '（——他在試探。他知道自己上次喝醉時說太多。）' },
+      ];
+    } else {
+      // 4 帥哥隨機：純鄙視、不熟、來練手
+      firstLines = [
+        { text: `（你看到 ${visitorName} 站在訓練場、繞著沙地走。）` },
+        { speaker: visitorName, text: '⋯⋯這場地比我們小一倍。', color: '#aa7755' },
+        { speaker: visitorName, text: '空氣也悶。一週啊、撐撐看吧。' },
+        { text: '（——他鄙視這裡。）' },
+      ];
+    }
+
+    DialogueModal.play(firstLines, { onComplete: () => _swapHostChoice(visitor, visitorName) });
+  }
+
+  function _swapHostChoice(visitor, visitorName) {
+    if (typeof ChoiceModal === 'undefined') {
+      _swapHostApplyRewards('cordial', visitor, visitorName);
+      return;
+    }
+
+    const intro = (visitor === 'vesnusCaelius')
+      ? '凱里烏斯來了。一週。你想怎處？'
+      : (visitor === 'vesnusDecius')
+        ? '德基烏斯在試探你聽到什麼。一週的接待、你怎處？'
+        : `${visitorName} 來了。鄙視這裡、但要待一週。`;
+
+    ChoiceModal.show({
+      id: 'cadet_swap_d80_host',
+      icon: '🤝',
+      title: '客人來了。一週的時間',
+      body: intro,
+      forced: true,
+      choices: [
+        {
+          id: 'cordial',
+          label: '熱情接待、跟對方混熟',
+          hint: '（不管對方是誰、先把人情做出來。）',
+          effects: [
+            { type: 'moral', axis: 'patience',     side: 'positive' },
+            { type: 'flag',  key: 'cadet_swap_d80_cordial' },
+          ],
+          resultLog: `你帶 ${visitorName} 走訓練場、介紹環境、找好位置給他練。`,
+          logColor: '#88aa66',
+        },
+        {
+          id: 'pump_intel',
+          label: '套情報（旁敲側擊問維努斯場內幕）',
+          hint: '（人都來了、不問可惜。）',
+          effects: [
+            { type: 'moral', axis: 'reliability', side: 'negative' },
+            { type: 'flag',  key: 'cadet_swap_d80_pumped_intel' },
+          ],
+          resultLog: `你藉著訓練間歇、套了幾句 ${visitorName} 維努斯場的近況。`,
+          logColor: '#aa8855',
+        },
+        {
+          id: 'cold',
+          label: '冷淡相待、就讓他在這待一週',
+          hint: '（不必演戲。）',
+          effects: [
+            { type: 'moral', axis: 'pride', side: 'positive' },
+            { type: 'flag',  key: 'cadet_swap_d80_cold' },
+          ],
+          resultLog: `你不主動、${visitorName} 也不勉強。一週默默過。`,
+          logColor: '#888899',
+        },
+      ],
+    }, {
+      onChoose: (choiceId) => _swapHostAct4(choiceId, visitor, visitorName),
+    });
+  }
+
+  function _swapHostAct4(choiceId, visitor, visitorName) {
+    let lines = [];
+
+    // 依「來訪者 × 玩家選擇」9 種組合的精簡分流
+    if (visitor === 'vesnusCaelius' && choiceId === 'cordial') {
+      lines = [
+        '一週的訓練。',
+        '',
+        `凱里烏斯這週跟你練得勤。第四天他在沙地坐下、低聲對你說：`,
+        `凱里烏斯：「⋯⋯阿圖斯場、確實比我們場有人味。」`,
+        `他停了一下：「⋯⋯下次大會、如果有機會、我可能會跟你站同一邊。」`,
+        '',
+        '你心裡明白——他在暗示。P2-7 招敵變友的種子發芽了。',
+      ];
+    } else if (visitor === 'vesnusDecius' && choiceId === 'pump_intel') {
+      lines = [
+        '一週的訓練。',
+        '',
+        '你刻意跟德基烏斯近一點。他知道你在套——但他也想試你聽到什麼。',
+        '第六天兩人喝酒、他說了一句：',
+        '德基烏斯：「⋯⋯老子上次喝多了。你聽到的、就當沒聽到、明白？」',
+        '',
+        '你笑著點頭。但心裡知道——這把柄你會記住。',
+      ];
+    } else if (visitor === 'vesnusDecius' && choiceId === 'cold') {
+      lines = [
+        '一週的訓練。',
+        '',
+        '你不理他、他也不理你。但你能感覺到他的眼神——他在觀察你的反應。',
+        '第七天臨走前他經過你身邊：',
+        `德基烏斯：「⋯⋯你這小子、心思深啊。」`,
+        '',
+        '——他確認你聽到了。但你也沒承認。雙方都拿到底牌、誰也不敢翻。',
+      ];
+    } else if (choiceId === 'cordial') {
+      lines = [
+        '一週的訓練。',
+        '',
+        `${visitorName} 起初不爽、後來慢慢放鬆。他開始發現阿圖斯場雖然窮、但人情比較真。`,
+        '一週結束、他臨走前對你點頭：',
+        `${visitorName}：「⋯⋯下次有機會、回敬。」`,
+        '',
+        '不知道他下次回敬會是什麼。但這個人不會像之前那麼鄙視你了。',
+      ];
+    } else if (choiceId === 'pump_intel') {
+      lines = [
+        '一週的訓練。',
+        '',
+        `你旁敲側擊問了 ${visitorName} 幾段維努斯場近況。他講得不深、但有講就是情報。`,
+        '主要拿到：蓋烏斯最近資金緊、進口教練的合約快到期。',
+        '',
+        '這條情報、可以給阿圖斯討好。',
+      ];
+    } else {
+      lines = [
+        '一週的訓練。',
+        '',
+        `你跟 ${visitorName} 各練各的。他鄙視你、你也不演。`,
+        '一週很快過去。臨走前他經過你身邊：',
+        `${visitorName}：「⋯⋯哼。」`,
+        '',
+        '沒戲、但也沒結仇。最少消耗的一週。',
+      ];
+    }
+
+    if (typeof Stage !== 'undefined' && Stage.playEvent) {
+      Stage.playEvent({
+        title: `客人來了：${visitorName}`,
+        icon: '🤝',
+        lines,
+        color: '#aa9966',
+        onComplete: () => _swapHostApplyRewards(choiceId, visitor, visitorName),
+      });
+    } else {
+      _swapHostApplyRewards(choiceId, visitor, visitorName);
+    }
+  }
+
+  function _swapHostApplyRewards(choiceId, visitor, visitorName) {
+    Flags.set('cadet_swap_80_intel', true);
+
+    if (choiceId === 'cordial') {
+      // 友善：對方好感 +20、自身名聲 +10
+      if (typeof teammates !== 'undefined' && teammates.modAffection) {
+        teammates.modAffection(visitor, 20);
+      }
+      if (typeof Stats !== 'undefined') {
+        Stats.modFame(10);
+        if (Stats.modMoney) Stats.modMoney(50);
+      }
+      // 凱里烏斯特別 → P2-7 招敵變友 +1 段鋪墊
+      if (visitor === 'vesnusCaelius') {
+        Flags.set('caelius_open_to_recruit', true);
+        _log(`✦ Day 80 互換（友善：${visitorName}）：對方 +20、+10 名聲 +50 銅幣。凱里烏斯心動了。`, '#88aa66', true);
+      } else {
+        _log(`✦ Day 80 互換（友善：${visitorName}）：對方 +20、+10 名聲 +50 銅幣。`, '#88aa66', true);
+      }
+    } else if (choiceId === 'pump_intel') {
+      // 套情報：主人 +10、拿維努斯場近況情報
+      if (typeof teammates !== 'undefined' && teammates.modAffection) {
+        teammates.modAffection('masterArtus', 10);
+        teammates.modAffection(visitor, -5);
+      }
+      if (typeof Stats !== 'undefined') {
+        Stats.modFame(8);
+        if (Stats.modMoney) Stats.modMoney(60);
+      }
+      Flags.set('player_knows_vesnus_finance_d80', true);   // 維努斯場資金緊情報
+      // 德基烏斯特別 → 雙方互拿底牌、後續事件可呼應
+      if (visitor === 'vesnusDecius') {
+        Flags.set('decius_mutual_blackmail', true);
+      }
+      _log(`✦ Day 80 互換（套情報：${visitorName}）：主人 +10、+8 名聲 +60 銅幣。維努斯場財務情報入袋。`, '#aa8855', true);
+    } else {
+      // 冷淡：對方無感、阿圖斯小爽（不引人注意）
+      if (typeof teammates !== 'undefined' && teammates.modAffection) {
+        teammates.modAffection('masterArtus', 3);
+      }
+      if (typeof Stats !== 'undefined') {
+        Stats.modFame(5);
+        if (Stats.modMoney) Stats.modMoney(30);
+      }
+      _log(`✦ Day 80 互換（冷淡：${visitorName}）：主人 +3、+5 名聲 +30 銅幣。最少消耗。`, '#888899', true);
+    }
   }
 
   // ═══════════════════════════════════════════════════
