@@ -13,6 +13,9 @@ const Battle = (() => {
   let _enemies          = [];
   let _enemyAtbs        = [];   // 每敵各自 ATB%
   let _currentTargetIdx = 0;    // 玩家當前鎖定哪個敵（idx）
+  // 🆕 2026-05-08 Stage B：玩家隊友陣列（2v2 / NvN 用、1v1 時為空）
+  let _allies           = [];
+  let _allyAtbs         = [];   // 每隊友各自 ATB%
   let _turn        = 0;
   let _autoRunning    = false;
   let _hardcoreActive = false;  // 硬核模式
@@ -229,6 +232,21 @@ const Battle = (() => {
     _currentTargetIdx = 0;
     _syncCurrentEnemy();
   }
+  // 🆕 2026-05-08 Stage B：隊友陣列管理
+  function _setAllies(arr) {
+    _allies   = Array.isArray(arr) ? arr.slice() : [];
+    _allyAtbs = _allies.map(() => 0);
+  }
+  // 隊友最低 HP 活敵當目標（最簡 AI）
+  function _allyPickTarget() {
+    let bestIdx = -1;
+    let bestHp  = Infinity;
+    for (let i = 0; i < _enemies.length; i++) {
+      const e = _enemies[i];
+      if (e && e.hp > 0 && e.hp < bestHp) { bestHp = e.hp; bestIdx = i; }
+    }
+    return bestIdx;
+  }
 
   // ══════════════════════════════════════════════════════
   // PUBLIC: start(opponentId, onWin, onLose)
@@ -316,6 +334,8 @@ const Battle = (() => {
     // ── Build enemy unit ──
     // 🆕 Stage A：用 _setEnemies()、_enemy 自動 alias 到 _enemies[0]
     _setEnemies([TB_buildUnit({ enemyId: opponentId })]);
+    // 🆕 Stage B：start(opponentId) 路徑預設沒隊友（保留向下相容）
+    _setAllies([]);
     _active = true;
 
     _showOverlay();
@@ -1311,6 +1331,31 @@ const Battle = (() => {
   // ══════════════════════════════════════════════════════
   // ENEMY TURN
   // ══════════════════════════════════════════════════════
+  // 🆕 2026-05-08 Stage B：隊友回合 — 簡單 AI、自動攻擊最低 HP 活敵
+  function _allyTurn(idx) {
+    if (typeof idx !== 'number') idx = 0;
+    if (!_active) return;
+    const ally = _allies[idx];
+    if (!ally || ally.hp <= 0) return;
+    const targetIdx = _allyPickTarget();
+    if (targetIdx === -1) return;   // 沒活敵
+    const target = _enemies[targetIdx];
+
+    // 攻擊（複用 TB_attack 引擎）
+    const r = TB_attack(ally, target, { turn: _turn });
+    _applyDamage(target, r.damage, null, 0);
+
+    // log + 動畫（隊友視為「玩家方」、動畫往右打）
+    _appendLog(`🤝【${ally.name}】${r.log}`, 'log-system');
+    if (typeof _playAttackAnim === 'function') {
+      _playAttackAnim('player', { hit: r.hit, blocked: r.blocked, crit: r.crit });
+    }
+
+    if (!_checkDeath()) {
+      // 隊友不影響 turn cleanup（玩家/敵 turn 才有）
+    }
+  }
+
   function _enemyTurn(idx) {
     if (typeof idx !== 'number') idx = _currentTargetIdx;
     if (!_active) { _endTurnCleanup_atb(); return; }
@@ -2946,6 +2991,7 @@ const Battle = (() => {
     _stopAtbLoop();
     _playerAtb = 0;
     _enemyAtbs = _enemies.map(() => 0);   // 🆕 Stage A：rebuild 確保長度跟敵陣列一致
+    _allyAtbs  = _allies.map(()  => 0);   // 🆕 Stage B
     // 🆕 2026-04-20：ATB 速度 ×2（100ms → 50ms）戰鬥節奏加快
     _atbLoop   = setInterval(_atbTick, 50);
   }
@@ -2977,6 +3023,19 @@ const Battle = (() => {
       if (_enemyAtbs[i] >= 100) {
         _enemyAtbs[i] = 0;
         _enemyTurn(i);
+        if (!_active) return;
+      }
+    }
+
+    // 🆕 Stage B：隊友各自填 ATB、滿了攻擊
+    for (let i = 0; i < _allies.length; i++) {
+      const al = _allies[i];
+      if (!al || al.hp <= 0) continue;   // 死隊友不填
+      const aRate = _calcFillRate(al);
+      _allyAtbs[i] = Math.min(100, (_allyAtbs[i] || 0) + aRate);
+      if (_allyAtbs[i] >= 100) {
+        _allyAtbs[i] = 0;
+        _allyTurn(i);
         if (!_active) return;
       }
     }
@@ -3098,6 +3157,7 @@ const Battle = (() => {
     // 🆕 2026-05-07：標記獸鬥（白虎/黑豹等）— 跳過砍首/饒/踩 ChoiceModal、改用獸專屬氣氛
     _builtEnemy._isBeast = !!enemyCfg.isBeast;
     _setEnemies([_builtEnemy]);
+    _setAllies([]);   // 🆕 Stage B：startFromConfig 預設沒隊友（API 在 Stage F 擴）
     _active = true;
 
     _showOverlay();
