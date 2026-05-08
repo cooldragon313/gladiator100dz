@@ -252,6 +252,45 @@ const Battle = (() => {
     return bestIdx;
   }
 
+  // 🆕 2026-05-08 Stage F：從 cfg 建敵 / 建隊友的工具函式
+  function _buildEnemyFromCfg(cfg) {
+    const built = TB_buildUnit({
+      enemyId:      '_arena',
+      name:         cfg.name,
+      title:        cfg.title,
+      STR: cfg.STR, DEX: cfg.DEX, CON: cfg.CON,
+      AGI: cfg.AGI, WIL: cfg.WIL, LUK: cfg.LUK,
+      hpBase:       cfg.hpBase,
+      weaponId:     cfg.weaponId  || 'rustySword',
+      armorId:      cfg.armorId   || 'rags',
+      shieldId:     cfg.shieldId  || 'none',
+      amuletId:     'none',
+      traitId:      'none',
+      ai:           cfg.ai        || 'normal',
+      fame:         cfg.fame      || 0,
+      intimidation: cfg.intimidation || 0,
+    });
+    built._isBeast = !!cfg.isBeast;
+    return built;
+  }
+  function _buildAllyFromCfg(cfg) {
+    return TB_buildUnit({
+      enemyId:      '_ally',
+      name:         cfg.name,
+      title:        cfg.title || '',
+      STR: cfg.STR, DEX: cfg.DEX, CON: cfg.CON,
+      AGI: cfg.AGI, WIL: cfg.WIL, LUK: cfg.LUK,
+      hpBase:       cfg.hpBase || 100,
+      weaponId:     cfg.weaponId  || 'shortSword',
+      armorId:      cfg.armorId   || 'leatherArmor',
+      shieldId:     cfg.shieldId  || 'none',
+      amuletId:     'none',
+      traitId:      'none',
+      ai:           cfg.ai        || 'normal',
+      fame:         cfg.fame      || 0,
+    });
+  }
+
   // ══════════════════════════════════════════════════════
   // PUBLIC: start(opponentId, onWin, onLose)
   // ══════════════════════════════════════════════════════
@@ -1499,6 +1538,39 @@ const Battle = (() => {
     }
     const isBigMove = ['triple_stab','mountain_crash','special_release'].includes(decision.action);
     if (decision.log) _appendLog(decision.log, isBigMove ? 'log-special' : 'log-system');
+
+    // 🆕 2026-05-08 Stage E：敵 AI 可能改打活隊友（合作場才有意義）
+    //   只有純 'attack' 動作才換目標、特技/三連刺/山崩等仍打玩家（劇情向）
+    //   30% 機率隨機抽一個活隊友、否則打玩家
+    let _stageE_victim = null;
+    if (decision.action === 'attack' && _allies.length > 0) {
+      const aliveAllies = _allies.filter(a => a && a.hp > 0);
+      if (aliveAllies.length > 0 && Math.random() < 0.30) {
+        _stageE_victim = aliveAllies[Math.floor(Math.random() * aliveAllies.length)];
+      }
+    }
+    if (_stageE_victim) {
+      const target = _stageE_victim;
+      const r = TB_attack(_enemy, target, { turn: _turn });
+      _applyDamage(target, r.damage, null, 0);
+      _appendLog(`👁 ${_enemy.name} 改打 ${target.name}！${r.log}`, r.crit ? 'log-crit' : r.hit ? 'log-system' : 'log-miss');
+      _playAttackAnim('enemy', { hit: r.hit, blocked: r.blocked, crit: r.crit });
+      if (typeof SoundManager !== 'undefined') {
+        if (r.hit) {
+          if (r.crit)         SoundManager.playSfx('hit_crit');
+          else if (r.blocked) SoundManager.playSfx('hit_block');
+          else                SoundManager.playSfx('hit_flesh');
+        } else {
+          SoundManager.playSfx('hit_miss');
+        }
+      }
+      if (r.injuredPart) _appendLog(`  ※ ${target.name}【${r.injuredPart}】受傷（${r.injuryLevel}）`, 'log-injury');
+      if (target.hp <= 0) _appendLog(`💀 ${target.name} 倒下！`, 'log-die');
+      // 結束流程：cleanup + 還原 alias
+      if (!_checkDeath()) _endTurnCleanup_atb();
+      _syncCurrentEnemy();
+      return;
+    }
 
     switch (decision.action) {
       case 'attack': {
@@ -3211,7 +3283,21 @@ const Battle = (() => {
   // PUBLIC: startFromConfig(enemyCfg, onWin, onLose)
   // Used by Arena — builds enemy from custom stat config instead of TB_ENEMIES id
   // ══════════════════════════════════════════════════════
-  function startFromConfig(enemyCfg, onWin, onLose) {
+  function startFromConfig(cfg, onWin, onLose) {
+    // 🆕 2026-05-08 Stage F：偵測新 vs 舊 API
+    //   舊：startFromConfig(enemyCfg, ...) — 單一敵人
+    //   新：startFromConfig({ enemies: [cfg, ...], allies: [cfg, ...] }, ...)
+    let enemyCfgs, allyCfgs, enemyCfg;   // enemyCfg = 主敵（用於開場 log / fame 等舊行為）
+    if (cfg && Array.isArray(cfg.enemies)) {
+      enemyCfgs = cfg.enemies;
+      allyCfgs  = Array.isArray(cfg.allies) ? cfg.allies : [];
+      enemyCfg  = enemyCfgs[0] || {};
+    } else {
+      enemyCfgs = [cfg];
+      allyCfgs  = [];
+      enemyCfg  = cfg || {};
+    }
+
     _onWin  = onWin  || (() => {});
     _onLose = onLose || (() => {});
     _turn        = 0;
@@ -3250,27 +3336,9 @@ const Battle = (() => {
     // 🆕 2026-04-27 主動技能 cooldown / buff 重置
     _resetActiveSkills();
 
-    // 🆕 Stage A：用 _setEnemies()、enemyCfg 仍是單一物件保持向下相容
-    const _builtEnemy = TB_buildUnit({
-      enemyId:      '_arena',
-      name:         enemyCfg.name,
-      title:        enemyCfg.title,
-      STR: enemyCfg.STR, DEX: enemyCfg.DEX, CON: enemyCfg.CON,
-      AGI: enemyCfg.AGI, WIL: enemyCfg.WIL, LUK: enemyCfg.LUK,
-      hpBase:       enemyCfg.hpBase,
-      weaponId:     enemyCfg.weaponId  || 'rustySword',
-      armorId:      enemyCfg.armorId   || 'rags',
-      shieldId:     enemyCfg.shieldId  || 'none',
-      amuletId:     'none',
-      traitId:      'none',
-      ai:           enemyCfg.ai        || 'normal',
-      fame:         enemyCfg.fame      || 0,
-      intimidation: enemyCfg.intimidation || 0,
-    });
-    // 🆕 2026-05-07：標記獸鬥（白虎/黑豹等）— 跳過砍首/饒/踩 ChoiceModal、改用獸專屬氣氛
-    _builtEnemy._isBeast = !!enemyCfg.isBeast;
-    _setEnemies([_builtEnemy]);
-    _setAllies([]);   // 🆕 Stage B：startFromConfig 預設沒隊友（API 在 Stage F 擴）
+    // 🆕 Stage F：從 enemyCfgs / allyCfgs 陣列建單位
+    _setEnemies(enemyCfgs.map(c => _buildEnemyFromCfg(c)));
+    _setAllies(allyCfgs.map(c => _buildAllyFromCfg(c)));
     _active = true;
 
     _showOverlay();
