@@ -293,21 +293,38 @@ const LordEvents = (() => {
   }
 
   // ── 衝動結果判定（依屬性）──────────────────────
+  // 🆕 2026-05-09：原 STR/DEX/AGI 三維 50 殉道弒主太夢幻、99% 玩家碰不到
+  //   修：(a) 殉道弒主改成「兩個 ≥ 40」+「不屈特性」(可達)
+  //       (b) 加新路 — 玩家 HP 帶不屈但屬性不夠 → 重傷活下、被關監牢結局
+  //       (c) AGI 60 逃跑保留
+  //       (d) 預設失敗 GG 保留
   function _resolveImpulseOutcome() {
     const p = Stats.player;
     if (!p) return;
     const STR = Stats.eff('STR'), DEX = Stats.eff('DEX'), AGI = Stats.eff('AGI');
+    const hasUnyielding = Array.isArray(p.traits) && p.traits.includes('unyielding');
 
-    // 殉道弒主：STR 50 + DEX 50 + AGI 50（夢幻）
-    if (STR >= 50 && DEX >= 50 && AGI >= 50) {
-      _log('✦ 你撞翻衛兵、撲上提圖斯的台、一刀刺進他胸口。', '#8b3030', true);
+    // 計算「兩維 ≥ 40」
+    const dualHigh = [STR, DEX, AGI].filter(v => v >= 40).length >= 2;
+
+    // 殉道弒主（最佳結局）：兩維 ≥ 40 + 不屈特性（B1 鐵骨阿巴勝才會解鎖）
+    if (dualHigh && hasUnyielding) {
+      _log('✦ 你撞翻衛兵、不屈鎖死 1 HP 撐過長矛、撲上提圖斯的台、一刀刺進他胸口。', '#8b3030', true);
       if (typeof Endings !== 'undefined' && Endings.playImpulse) {
         setTimeout(() => Endings.playImpulse({ lordKilled: true }), 800);
       }
       return;
     }
-    // AGI 高逃跑：AGI ≥ 60
-    if (AGI >= 60) {
+    // 帶傷活下（兩維 ≥ 40 但無不屈）：被衛兵壓制、活著但被囚禁
+    if (dualHigh) {
+      _log('✦ 你撞倒兩個衛兵、第三個長矛刺穿你的肩膀。你倒在血泊中、但還有氣。', '#aa4444', true);
+      if (typeof Endings !== 'undefined' && Endings.playImpulse) {
+        setTimeout(() => Endings.playImpulse({ wounded_captured: true }), 800);
+      }
+      return;
+    }
+    // AGI 高逃跑：AGI ≥ 50（原 60 → 50、稍鬆）
+    if (AGI >= 50) {
       _log('✦ 你閃身、翻牆、跳屋頂——衛兵追不上。', '#9a8050', true);
       if (typeof Endings !== 'undefined' && Endings.playImpulse) {
         setTimeout(() => Endings.playImpulse({ escaped: true }), 800);
@@ -322,6 +339,8 @@ const LordEvents = (() => {
   }
 
   // ── 6b.5b 冷靜分支：強壓、計畫 ──────────────────
+  // 🆕 2026-05-09：加 mechanical 加成 — patience+ + 給「復仇者」永久特性
+  //   不屈感、有目標 = 戰鬥更穩
   function _routeCalm() {
     Flags.set('revenge_plan_started', true);
     const lines = [
@@ -334,11 +353,24 @@ const LordEvents = (() => {
       { text: '（——記住這個感覺。）' },
       { text: '（你舉起手繼續打。）' },
       { text: '（對方的拳頭打在你身上、你完全沒感覺。）' },
+      { text: '⋯⋯', color: '#666' },
+      { text: '（——你獲得永久特性「復仇者」：戰鬥意志覺醒門檻降低、HP 跌破 60% 即觸發。）', color: '#d4af37' },
     ];
     if (typeof DialogueModal !== 'undefined') {
       DialogueModal.play(lines, {
         onComplete: () => {
-          _log('✦ 你決定忍下來、計畫。Day 80 領主夜宴會繼續鋪墊。', '#666', true);
+          // 🆕 加永久特性 vengeful（Day 100 反撲分支也讀這個 flag/trait）
+          if (typeof Stats !== 'undefined') {
+            if (!Array.isArray(Stats.player.traits)) Stats.player.traits = [];
+            if (!Stats.player.traits.includes('vengeful')) {
+              Stats.player.traits.push('vengeful');
+            }
+          }
+          // patience axis 推一格（隱忍）
+          if (typeof Moral !== 'undefined' && Moral.push) {
+            Moral.push('patience', 'positive', { weight: 2 });
+          }
+          _log('✦ 你決定忍下來、計畫。獲得「復仇者」特性。Day 80 領主夜宴會繼續鋪墊。', '#aa8855', true);
         },
       });
     }
@@ -399,7 +431,9 @@ const LordEvents = (() => {
     const fame = p.fame || 0;
     const masterAff = (typeof teammates !== 'undefined') ? teammates.getAffection('masterArtus') : 0;
     const calmRevenge = Flags.has('revenge_plan_started');
-    const eligible = (fame >= 30 && masterAff >= 50) || calmRevenge;
+    // 🆕 2026-05-09：fame 門檻 30 → 80（呼應 Day 72 巴爺提示）
+    //   未來 fame 全面 audit 時可能再調整、見 memory feedback_fame_audit_pending.md
+    const eligible = (fame >= 80 && masterAff >= 50) || calmRevenge;
     if (!eligible) return false;
 
     Flags.set('lord_banquet_d80_done', true);
@@ -593,6 +627,94 @@ const LordEvents = (() => {
     return true;
   }
 
+  // ══════════════════════════════════════════════════
+  // 🆕 2026-05-09 Day 72：巴爺夜宴門檻提示（復仇者專屬）
+  // ══════════════════════════════════════════════════
+  // 設計：玩家走過 Day 65 相認 → 巴爺（退役角鬥士）私下講出夜宴門檻
+  //   - 觸發：Day 72 + (farmboy_recognized_lord OR revenge_plan_started)
+  //   - 用意：給玩家明確目標（fame ≥ 80 + 主人 ≥ 50）— 沒到的自然不去夜宴
+  //   - 巴爺：退役角鬥士、自己當年走過這條路、最有資格講
+  //   - 不在場時：fallback 卡西烏斯（傳統派老兵）
+  function _tryDay72OverseerHint() {
+    const p = Stats.player;
+    if (!p || p.day !== 72) return false;
+    if (Flags.has('lord_banquet_hint_given')) return false;
+    // 條件：走過 Day 65 相認、或冷靜分支 revenge_plan_started
+    const eligible = Flags.has('farmboy_recognized_lord') || Flags.has('revenge_plan_started');
+    if (!eligible) return false;
+
+    // 找 hint speaker：巴爺優先（退役角鬥士）、回退卡西烏斯
+    const speaker = _pickHintSpeaker();
+    if (!speaker) return false;
+
+    Flags.set('lord_banquet_hint_given', true);
+    _playOverseerHint(speaker);
+    return true;
+  }
+
+  function _pickHintSpeaker() {
+    if (typeof GameState === 'undefined' || !GameState.getCurrentNPCs) return null;
+    const cur = GameState.getCurrentNPCs() || {};
+    const list = [...(cur.teammates || []), ...(cur.audience || [])];
+    if (list.includes('overseer')) return 'overseer';
+    if (list.includes('cassius'))  return 'cassius';
+    return null;
+  }
+
+  function _playOverseerHint(speakerId) {
+    const isOverseer = (speakerId === 'overseer');
+    const speakerName = isOverseer ? '巴爺' : '卡西烏斯';
+    const color = isOverseer ? '#a87844' : '#5a7a9a';
+
+    const lines = isOverseer ? [
+      { text: '（午後。巴爺從訓練場另一頭走過來、坐在你旁邊的牆角。）' },
+      { text: '（他遞了一壺水給你、自己也喝了一口。）' },
+      { speaker: speakerName, text: '⋯⋯小子。我看你這幾天不對勁。', color },
+      { speaker: speakerName, text: '⋯⋯眼神跟我當年看主人時一樣。' },
+      { text: '（你愣了一下、沒接話。）' },
+      { speaker: speakerName, text: '⋯⋯你想見領主？', color },
+      { speaker: speakerName, text: '我跟你講件事。當年我也想見一個人。' },
+      { speaker: speakerName, text: '想了三年。最後是用名聲換來那一面。' },
+      { text: '⋯⋯', color: '#666' },
+      { speaker: speakerName, text: '⋯⋯這場子裡見領主沒捷徑。', color },
+      { speaker: speakerName, text: '名聲不到頂、主人不會帶你去夜宴顯擺。' },
+      { speaker: speakerName, text: '主人對你不夠看重、你連倒酒資格都沒。' },
+      { text: '（巴爺壓低聲音。）' },
+      { speaker: speakerName, text: '⋯⋯名聲 80 是底線。100 才穩。', color },
+      { speaker: speakerName, text: '主人好感 50 是門票。70 才會主動帶你。' },
+      { speaker: speakerName, text: '到不了的、就別想了。會被衛兵當場戳穿肚子。' },
+      { text: '⋯⋯', color: '#666' },
+      { speaker: speakerName, text: '⋯⋯我講完了。你自己看著辦。', color },
+      { text: '（他站起來、走回他的崗位。）' },
+      { text: '（你看著手裡的水壺、知道他沒講出口的那一句——）', color: '#888' },
+      { text: '（——「我當年也是。也後悔了。」）', color: '#aa8855' },
+    ] : [
+      // Cassius fallback — 傳統派老兵口吻
+      { text: '（午後。卡西烏斯走過來、把劍靠在牆邊。）' },
+      { speaker: speakerName, text: '⋯⋯小子。看你最近練劍練得很狠。', color },
+      { speaker: speakerName, text: '⋯⋯有目標了？' },
+      { text: '（你沒回答、卡西烏斯也沒追問。）' },
+      { speaker: speakerName, text: '⋯⋯我講件事。', color },
+      { speaker: speakerName, text: '主人辦夜宴會帶招牌角鬥士去倒酒、給賓客看。' },
+      { speaker: speakerName, text: '名聲不夠 80、主人不會考慮你。' },
+      { speaker: speakerName, text: '對主人好感不夠 50、他帶你去也不放心。' },
+      { speaker: speakerName, text: '⋯⋯你想見誰、就用名聲跟好感換。', color },
+      { speaker: speakerName, text: '⋯⋯沒別的路。' },
+      { text: '（卡西烏斯點點頭、轉身去訓練了。）' },
+      { text: '（——你心裡記下了這兩個數字。）', color: '#aa8855' },
+    ];
+
+    if (typeof DialogueModal !== 'undefined') {
+      DialogueModal.play(lines);
+    } else {
+      lines.forEach(l => _log(l.speaker ? `${l.speaker}：${l.text}` : l.text, '#888', false));
+    }
+    if (typeof teammates !== 'undefined' && teammates.modAffection) {
+      teammates.modAffection(speakerId, 3);   // 講真話加好感
+    }
+    _log(`✦ ${speakerName} 提示：夜宴門檻 = 名聲 80 + 主人好感 50。`, '#aa8855', true);
+  }
+
   function _tryDay75BackgroundChatter() {
     const p = Stats.player;
     if (!p || p.day !== 75) return false;
@@ -709,6 +831,7 @@ const LordEvents = (() => {
       if (_tryDay85ArmorSlip())      return;
       if (_tryDay80Banquet())        return;
       if (_tryDay75BackgroundChatter()) return;
+      if (_tryDay72OverseerHint())   return;   // 🆕 2026-05-09 巴爺夜宴門檻提示
       if (_tryDay70MotherWords())    return;
       if (_tryDay65Visit())          return;
       if (_tryDay45WhiteTiger())     return;
@@ -726,6 +849,7 @@ const LordEvents = (() => {
     _tryDay45WhiteTiger,
     _tryDay65Visit,
     _tryDay70MotherWords,
+    _tryDay72OverseerHint,
     _tryDay75BackgroundChatter,
     _tryDay80Banquet,
     _tryDay85ArmorSlip,
@@ -733,5 +857,6 @@ const LordEvents = (() => {
     // debug — 不檢查 day、直接演對白；戰鬥事件需先 Stats.player.day = N
     testRecognition: () => _playFarmboyRecognition(),
     testBanquet:     () => _isFarmboy() ? _playBanquetFarmboy() : _playBanquetGeneric(),
+    testOverseerHint: () => _playOverseerHint(_pickHintSpeaker() || 'overseer'),
   };
 })();
