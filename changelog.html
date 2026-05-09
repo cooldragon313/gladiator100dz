@@ -208,6 +208,176 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       2026-05-10 仇恨度系統 spec + 裝備色階 bug 修
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag new">DOCS + SPEC + FIX</span>
+      <span class="version-title">仇恨度系統拍板 — 戰後四選一 / revenge_target 重逢戰 / 戰中陰招 / 玩家被斷手腳→義肢線</span>
+      <span class="version-date">2026-05-10</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-data">SPEC</span>
+        <span class="change-text"><strong>戰後四選一系統（取代「只有大勝才彈」）</strong>
+          <span class="file-tag">docs/systems/grudge-and-schemes.md (新)</span>
+          — 每場勝利強制四選一：⚔️ 斬首 / 🦴 **斷手腳**（新）/ 👁 採臉 / 🕊 放過。
+          每選項對個人 grudge / faction grudge / mercy 軸 / fame 各有清楚數值代價。
+          中性勝利不存在 — 玩家必須選。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">SPEC</span>
+        <span class="change-text"><strong>個人 + 訓練所 grudge 雙軸 + 場合倍率 + 對手特性修正</strong>
+          — per-opponent grudge 慢累積、per-school faction grudge 跨場累積。
+          場合倍率：私下 ×1 / 主人觀戰 ×2.5 / 公開賽事 ×4 + 立即報復 flag。
+          對手 cruel/impulsive/prideful → grudge ×1.5、patient/merciful → ×0.7。
+          fame ≥ 30/60/90 加觸發率（招人妒忌）、merciful 特性 / mercy 軸 减觸發。
+          玩家防禦：AGI ×1.2% + 戒心重 +25 + 神經質 +15、封頂 85%（永遠 15% 漏網）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">SPEC</span>
+        <span class="change-text"><strong>revenge_target 強制回歸 + 重逢戰前對白（personality 變體）</strong>
+          — revenge_target 設下後 80% 機率下次派遣 = 該對手（不靠運氣）。
+          對手登場時依 personality 講不同對白：cruel 「終於等到你了、我每天閉眼都看到」/
+          patient 「我等了很久」（最可怕）/ opportunist 「我下了重注賭你會死」。
+          戰鬥開始 buff：對手 WIL +5 / SPD +3 / 憤怒槽全滿 + 「🔥 復仇」icon。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">SPEC</span>
+        <span class="change-text"><strong>戰中陰招菜單（撒沙 / 暗藏毒匕 / 暗器 / 休息室埋伏）</strong>
+          — 每場 1 次上限、依對手 personality 選不同陰招。
+          🏖 撒沙第 3-5 回合 → 玩家 ACC -50% 8 回合 / ☠ 暗藏毒匕 → 中毒 5 回合 /
+          🩸 暗器 → 受傷一次 / 🤜 休息室埋伏 → 額外戰鬥（玩家 vs 1-2 殺手）。
+          命中 / 失敗都有 personality 反應對白：cruel 失敗「這龜孫子來陰的也躲」+ CRIT +10%、
+          coward 失敗「他手在抖」+ 下回合恐慌、patient 失敗「⋯⋯下次」+ 升級致命陰招。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">SPEC</span>
+        <span class="change-text"><strong>玩家被斷手腳機制 → 1-3 天後 hector 引介黑鬍子（接義肢線）</strong>
+          — revenge_target 對手贏過玩家時、依 personality 決定是否選「斷手腳」（cruel 70% / patient 30% / opportunist 10%）。
+          玩家失去隨機部位（70% 手 / 30% 腿）、屬性 -3、主人好感 -20、長官好感 -15、fame -10。
+          1-3 天後 hector 主動找你（「主人不高興、你這樣下去沒人理你」）→ 觸發黑鬍子第一次見面 → 解鎖義肢購買。
+          主人 / 長官好感降低靠後續勝利自然回升（不需特別翻身任務）。
+          這個 trigger 串起義肢系統的真正使用場景。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">SPEC</span>
+        <span class="change-text"><strong>塔倫長官 Day 5 沙洗開場對白擴展（教學藏在世界觀內）</strong>
+          <span class="file-tag">main.js:1065 (待擴展)</span>
+          — 既有「可以報名競技場了」+ 加入「斬首/採臉/放過」明示 + 「贏越多踩越多、找你麻煩越多」+ 「自己好自為之」警告。
+          全部用塔倫的口吻（簡短、無感情、但真心想你活下去）— 不寫「💡提示」。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">FIX</span>
+        <span class="change-text"><strong>裝備色階 bug：godMode 套件缺 quality 欄位、顯示成白字</strong>
+          <span class="file-tag">src/systems/equipment_quality.js / src/main.js / src/npc/blacksmith_events.js</span>
+          — 既有 godMode 推 armorInventory 沒設 quality → fallback DEFAULT_QUALITY 'common' →
+          formatItemNameHTML 直接回 baseName（無 color span）→ 玩家看到上品紫色裝備變白字。
+          修復方案：加新品質階層 `debug`（粉紅 #ff66cc / 2.0× 倍率 / 名「【DEBUG】」），godMode 套件全標 debug 品質。
+          順手補 blacksmith T1 set 明示 quality:'common'。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">PENDING-DECISIONS</span>
+        <span class="change-text"><strong>9 個待 user 拍板議題（grudge 系統）</strong>
+          — 對手特性倍率是否更極端 / AGI 防禦數字校準 / 致命陰招（慢性毒、暗殺）真要做 / 玩家對自己人下陰招哪個 NPC 路線開放 /
+          塔倫長官擴展對白要不要拆 Day 5 + Day 10 / 立即報復 100% 必中是否太狠 / 戰中陰招擲骰時機固定 vs 動態 /
+          斷手腳對手選擇率 cruel 70% 是否太高。詳見 grudge-and-schemes.md § 11。</span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       2026-05-09 黑市 spec — 赫克特生存之道 + 黑鬍子貨棧
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag new">DOCS + SPEC</span>
+      <span class="version-title">黑市總規格拍板 — 赫克特的生存之道（3 服務）+ 黑鬍子貨棧（傳奇武器 + 義肢）</span>
+      <span class="version-date">2026-05-09 (晚)</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-data">SPEC</span>
+        <span class="change-text"><strong>「赫克特的生存之道」拍板 — 從 5 服務縮到 3、改 reliability 軸、加詭異名聲社交代價</strong>
+          <span class="file-tag">docs/systems/blackmarket.md (新)</span>
+          — 3 服務：📋 對手詳情（含赫克特建議）/ ☠ 戰前下毒（HP -15% / WIL -5 / 心情 -20 / 偶發失回合）/ ⚰ 買通陪練。
+          價格 4 tier 階梯、固定機率（95% / 70% / 80%）。
+          <strong>失敗錢不退、好感不變</strong>（赫克特已預警「不保證」）。
+          道德軸從 mercy → reliability（買通額外 pride）— 因為這是「狡猾」不是「殘忍」。
+          詭異名聲累積 3/6/10 三層階梯：cassius 疏遠 → melaKook 欲言又止 → officer 警覺。
+          <strong>不做主人告發</strong>（主人只在乎贏）— 改走訓練所內社交代價。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">SPEC</span>
+        <span class="change-text"><strong>解鎖路徑：「赫克特夜邀」約酒事件 + 派遣前主動詢問</strong>
+          <span class="file-tag">docs/systems/blackmarket.md § 1.4-1.5</span>
+          — 階段一：好感 ≥ 10 + 已被派遣過 → 既有 `hector_deal_intro` 解鎖「對手詳情」。
+          階段二：**新事件「赫克特夜邀」**（好感 ≥ 30 + 夜晚）→ cassius 對比段「老卡靠刀快、我靠別人不肯做的事」+
+          結尾 ding 大字 popup「🐍 赫克特的生存之道 已解鎖」+ 震動。
+          階段三（自動）：好感 ≥ 60 + 完成下毒 → 解鎖買通陪練。
+          派遣前赫克特從柱子後鑽出問是否買服務、選「不用」零副作用。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">SPEC</span>
+        <span class="change-text"><strong>黑鬍子貨棧 + 鋼掌守衛（外部黑市）</strong>
+          <span class="file-tag">docs/characters/blackbeard.md / steelpalm.md (新) / docs/systems/blackmarket.md § 2</span>
+          — 黑鬍子：五十歲、深紫長袍、銀扣腰帶、不討價、不囉嗦。**他不靠你喜歡他、他需要你的錢**。
+          鋼掌：高大光頭、左臉斜疤、整隻鐵製右手皮帶綁到肘、藏一把刺、**永遠不講話**（活廣告）。
+          第一次見面對白完整 spec：地下室、油燈、樣品牆、鋼掌展示鐵手三段式 reveal、
+          結尾「這扇門只在你還活著的時候開」。
+          赫克特帶玩家見黑鬍子（赫克特是黑鬍子的情報供應商之一）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">SPEC</span>
+        <span class="change-text"><strong>傳奇武器 6 件（首發 4 + 後補 2）— 武器特性貼武器物理</strong>
+          <span class="file-tag">docs/systems/blackmarket.md § 2.3</span>
+          — 設計哲學：吸血/毒只在能切開敵人的武器上；鈍器走震碎/眩暈；穿刺走破甲。
+          首發 4：🩸「飲血者」長劍（命中回 HP 8%、200 金）/
+          ☠「黑沼毒牙」匕首（毒 DOT、220 金）/
+          💥「碎顱之擊」戰錘（25% 機率眩暈一回合、240 金）/
+          👁「沉默披風」輕護甲（開場 3 回合對手命中 -15%、250 金）。
+          後補 2：🗡「破甲穗」矛（無視 50% 護甲、180 金）/
+          🛡「鏡面盾」（15% 機率反射 50% 傷害、180 金）。
+          全部 hooks 在 battle.js 加 6 行、不另起新系統。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">SPEC</span>
+        <span class="change-text"><strong>義肢系統 spec（待傷勢系統升級後啟用）</strong>
+          <span class="file-tag">docs/systems/blackmarket.md § 2.3.3</span>
+          — 4 規格：木手 30 金（50% 機能）/ 青銅手 100 金（80% 機能 + 抗鈍器）/
+          鐵手 250 金（100% 機能 + 攻防加成）/ 武器化鐵手 400 金（鐵手 + 一次/場「彈刺」）。
+          歷史考據：羅馬將軍 Marcus Sergius（公元前 218 年）真的有鐵製義手；古埃及木製假腳趾真能走。
+          隱形成本：失去部位 fame -10、木/青銅有「綁帶鬆脫」機率、鐵手 mood -3 但 fame +5。
+          <strong>需傷勢系統先支援 severity:4 = severed</strong>（永久失去）。
+          <strong>密醫線延後</strong>（user 2026-05-09 晚決議：老默現階段全包傷勢）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">DOCS</span>
+        <span class="change-text"><strong>文件大整理 — 5 新 + 4 改 + 1 刪</strong>
+          — 新建 [blackmarket.md / blackbeard.md / steelpalm.md]、
+          更新 [hector.md (加黑市段 + cassius 對比)、arena-system.md § 1.6 (壓成指針)、
+          hector_events.js 註解、CLAUDE.md 接手頭條 + 角色清單、CODEX.md (新特性 + 旗標 + 系統索引)、
+          更改對話專用.md (登記 5 個待建函式)]、
+          刪除 [discussions/2026-04-20-arena-hp-blackmarket.md]（內容已搬完）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">PENDING-DECISIONS</span>
+        <span class="change-text"><strong>7 個待 user 拍板議題</strong>
+          — (1) 「會生存的」特性 ID（`survivor` / `cunning` 都被佔、暫用 `streetwise`）/
+          (2) 「會生存的」特性效果（戰前逃跑？黑市對話加成？）/
+          (3) 武器後補 2 把觸發條件 /
+          (4) 義肢實作時機（等傷勢系統開 severed）/
+          (5) 落魄騎士拒絕的具體 trigger /
+          (6) 黑鬍子是否有條件式上架 /
+          (7) 詭異名聲是否做隱形 chip / 顯性提示。
+          詳見 blackmarket.md § 5。</span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
        2026-05-09 NvN 戰鬥引擎 — 1v1 → 多人戰一氣呵成
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">

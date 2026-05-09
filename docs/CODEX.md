@@ -2,7 +2,7 @@
 
 > 查找所有精緻做的東西 — 特性、書、origin、傷勢、見識、旗標、數字。
 > 來源：config.js / books.js / origins.js / wounds.js / stats.js 實際程式碼
-> 最後更新：2026-04-28（裝備重構 + 戰鬥屬性 EXP 設計 — 待實作 design doc）
+> 最後更新：2026-05-10（仇恨度系統 spec — 戰後四選一 + 重逢戰 + 戰中陰招 + 玩家被斷手腳 → 義肢線、待實作）
 
 ---
 
@@ -57,6 +57,7 @@
 | `faithful` | 虔誠 | mood 下限 +5 / 神殿事件獎勵 ×1.5 | 讀《殉道聖者列傳》/ believer origin |
 | `brave` | 勇敢 | 戰鬥首回合 ATK +10% / 抵抗絕望 | 戰鬥事件累積 |
 | `partial_literate` | 粗識文字 | 解鎖少數文字對話選項（傻福玩家專用中間態）| 傻福半醒期選擇停留 |
+| `streetwise` 🆕 | 會生存的（暫定）| **TBD**（候選：戰前可逃跑選項 / 黑市對話加成 / 詭異名聲累積 +20%）| 累積使用赫克特黑市破壞型服務 ≥ 5 次（spec 待實作）|
 
 #### 負面（Negative）
 
@@ -70,6 +71,7 @@
 | `AGI_addict` | 敏癮 | 連 5 天做 AGI 訓練 → 養成。同上 | 連續訓練 |
 | `CON_addict` | 韌癮 | 連 5 天做 CON 訓練 → 養成。同上 | 連續訓練 |
 | `WIL_addict` | 禪癮 | 連 5 天做 WIL 訓練 → 養成。同上 | 連續訓練 |
+| `shady_reputation` 🆕 | 詭異名聲（暫定 chip 而非 trait）| 黑市使用累積導致的訓練所內社交代價（3 級階梯：暗潮 / 風聲 / 名聲臭了）| 累積使用赫克特破壞型服務 ≥ 3 次（spec 待實作） |
 
 ---
 
@@ -638,6 +640,38 @@ player.wounds.head = null | { severity:1-3, daysElapsed } | { special:'concussio
 | `combat_streak_max` | 史上最長連勝（記錄最高值）| 連勝歸零時更新 |
 | `bloodroar_unlocked` | 隱藏特性 `bloodRoar` 已獲得（10 連勝）| 連勝達 10 |
 
+### 🆕 黑市系統 flag（2026-05-09，待實作 — spec 在 [blackmarket.md](systems/blackmarket.md)）
+
+| Flag | 意義 | 寫入時機 |
+|---|---|---|
+| `hector_blackmarket_unlocked` | 「赫克特的生存之道」總開關（階段二解鎖）| 約酒夜邀事件結尾 |
+| `hector_poison_unlocked` | 戰前下毒服務解鎖 | 同上（與 unlocked 同步）|
+| `hector_bribe_unlocked` | 買通陪練服務解鎖（階段三）| 完成下毒至少一次 + 好感 ≥ 60 |
+| `met_blackbeard` | 黑鬍子已見過 | 第一次見面事件結尾 |
+| `steelpalm_demonstrated` | 鋼掌已展示鐵手 | onceOnly、第一次見面 |
+| `bb_silver_clasp_asked` | 玩家問過銀扣紋章 | 黑鬍子好感 ≥ 30 storyReveal |
+
+| 玩家欄位 | 意義 | 寫入時機 |
+|---|---|---|
+| `player.blackmarket_use_count` | 累計使用「下毒 + 買通」次數 | 服務成功時 +1 |
+| `player.shady_reputation` | 詭異名聲等級（0=無 / 1=暗潮 / 2=風聲 / 3=臭了）| use_count 達 3/6/10 時升級 |
+
+### 🆕 仇恨度系統 flag（2026-05-10，待實作 — spec 在 [grudge-and-schemes.md](systems/grudge-and-schemes.md)）
+
+| Flag / 欄位 | 意義 | 寫入時機 |
+|---|---|---|
+| `opp.grudge` | 個人仇恨計分（per-opponent） | 每場戰後依四選一變動 |
+| `opp.severed` | 對手被斷手腳的部位（'hand'/'leg'）| 玩家選「斷手腳」後 |
+| `opp.playerHumiliatedMe` | 對手被採臉過、影響再見對白 | 採臉後設 true |
+| `opp.playerSparedMe` | 對手被放過、影響再見對白 | 放過後設 true |
+| `player.factionGrudge.<schoolId>` | 訓練所仇恨（跨場累積） | 戰後依結局 +/- |
+| `revenge_target_<oppId>` | 立即報復 flag（公開採臉觸發、一次性） | 公開採臉時設、復仇完成後消除 |
+| `arena_setting` | 場合（'public'/'private'/'master'/'festival'）| 派遣事件設、計算場合倍率 |
+| `scheme_used_this_battle` | 戰中陰招已用（每場上限 1）| 陰招觸發後設、戰後清 |
+| `player_severed_<part>` | 玩家失去部位（'hand'/'leg'）| 對手選擇斷手腳後 |
+| `hector_will_intro_blackbeard` | 等 1-3 天後 hector 找你引介黑鬍子 | 玩家被斷手腳時設 |
+| `hector_offered_blackbeard` | 防止重複觸發 | hector 引介事件後設 |
+
 ### Flag 命名規範
 ```
 {主題}_{事件}_{狀態}
@@ -929,8 +963,10 @@ player.wounds.head = null | { severity:1-3, daysElapsed } | { special:'concussio
 | 🆕 `docs/systems/equipment-rework.md` | 裝備重構：5 級品質 + 10 詞綴 + 主人賜 + 葛拉鋪 + 競技場掉落 + 對手強度 + 27 格儲物（待實作）|
 | 🆕 `docs/systems/battle-attr-gain.md` | 戰鬥屬性 EXP：行為累積 + 評分加成 + 連勝獎勵 + 戰鬥狂熱 `COMBAT_fervor`（待實作）|
 | 🆕 `docs/quests/blacksmith-signature-weapon.md` | 葛拉個人任務「主武器之路」8 階段（待實作）|
+| 🆕 `docs/systems/blackmarket.md` | 黑市總規格：赫克特生存之道（3 服務）+ 黑鬍子貨棧（傳奇武器 + 義肢）+ 詭異名聲社交代價（2026-05-09，待實作）|
+| 🆕 `docs/systems/grudge-and-schemes.md` | 仇恨度與敵方陰招：戰後四選一（含斷手腳）+ 個人/訓練所 grudge + revenge_target 重逢戰 + 戰中陰招（撒沙/毒匕/暗器）+ 玩家被斷手腳 → 義肢線（2026-05-10，待實作）|
 | `docs/philosophy/numbers-hiding.md` | 零數字哲學 / 日誌獎勵分工 |
-| `docs/characters/*.md` | 8 個 NPC 角色檔 |
+| `docs/characters/*.md` | NPC 角色檔（13 個：orlan / melaKook / cassius / hector / doctorMo / officer / masterArtus / sol / livia / marcus / overseer / 🆕 blackbeard / 🆕 steelpalm）|
 | `docs/quests/mela-rat.md` | 抓老鼠任務 |
 | `docs/quests/day1-opening.md` | Day 1 開場 |
 | `更改對話專用.md` | 對白編輯入口（root） |

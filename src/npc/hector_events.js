@@ -14,8 +14,15 @@
  *   - tryHarassment()    — 臭臉路線：日常騷擾（6 事件，震動 + 心想）
  *   - 每日清 flag 鉤子
  *
- * 後續 Phase（未實作）：§ 5.2 仇恨撞擊 / § 5.3 介入保護 / § 4.3 賣情報 /
- *                         § 5.4 私戰 / § 4.5 黑市三功能 / § 6 Day 40 NPC 反應。
+ * 後續 Phase（未實作、依規格主檔）：
+ *   - § 5.2 仇恨撞擊 / § 5.3 介入保護 / § 5.4 私戰
+ *   - § 6 Day 40 NPC 反應
+ *   - 🐍「赫克特的生存之道」黑市 3 服務（情報 / 下毒 / 買通）
+ *     ↳ 待建函式：tryEveningDrink() / tryPreDeploymentMenu()
+ *     ↳ 規格主檔：docs/systems/blackmarket.md § 1
+ *     ↳ 詭異名聲社交代價（待 npc_reactions.js 補三層對白池）
+ *   - 🐍 帶玩家見黑鬍子事件（待新建 blackbeard_events.js）
+ *     ↳ 規格主檔：docs/systems/blackmarket.md § 2
  *
  * 依賴：ChoiceModal, DialogueModal, Flags, Stats, teammates, GameState,
  *       SoundManager（可選）, Game（可選，for shakeGameRoot/flashStageRed）。

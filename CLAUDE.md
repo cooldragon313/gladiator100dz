@@ -11,9 +11,71 @@
 > 這個區塊一直擺在最上面，每次 session 結束時更新。每次 session 開始時請先看這裡，
 > 知道**上次停在哪、明天可以從哪繼續**。
 
-### 2026-05-09 結束時狀態
+### 2026-05-10 結束時狀態（仇恨度系統 spec + godMode bug 修）
 
-**✅ 今天大量完成**
+**✅ 今天主要成果**
+- **「仇恨度與敵方陰招」系統 spec 拍板** → 新建 [docs/systems/grudge-and-schemes.md](docs/systems/grudge-and-schemes.md)（13 段 / ~750 行）
+  - 戰後**四選一**（斬首 / 斷手腳 / 採臉 / 放過）— 取代既有「只有大勝才彈」
+  - 個人 grudge + faction grudge（per-opponent + per-school）
+  - 場合倍率（私下 ×1 / 主人觀戰 ×2.5 / 公開賽事 ×4 + 立即報復 flag）
+  - 對手特性修正（cruel/impulsive ×1.5、patient/merciful ×0.7）
+  - revenge_target 強制 80% 下次派遣回歸 + 重逢戰前對白（personality 變體）
+  - 戰中陰招菜單（撒沙 / 暗藏毒匕 / 暗器 / 休息室埋伏）+ personality 反應
+  - **玩家被斷手腳機制** → 1-3 天後 hector 引介黑鬍子 → 接義肢線
+  - 主人 / 長官好感降低、靠後續勝利自然回升（不需特別任務）
+  - 塔倫長官 Day 5 沙洗開場對白擴展（教學藏在世界觀內）
+  - 玩家對自己人下陰招的後果（隊友不滿、對方好感不足會報復）
+- **裝備色階 bug 修復** → 加 `debug` 品質階層（粉紅 / 2.0× / 「【DEBUG】」）
+  - [equipment_quality.js](src/systems/equipment_quality.js) 加 debug 級
+  - [main.js godMode](src/main.js#L8155) 套件全標 quality:'debug'、一眼分辨非正本
+  - [blacksmith_events.js](src/npc/blacksmith_events.js) T1 套裝補 quality:'common'
+
+**✅ 昨晚（2026-05-09 晚）完成（黑市整理）**
+- 「赫克特的生存之道」spec 拍板（5 服務 → 3 服務）
+- 新建 [blackmarket.md](docs/systems/blackmarket.md) / [blackbeard.md](docs/characters/blackbeard.md) / [steelpalm.md](docs/characters/steelpalm.md)
+- 更新 hector.md / arena-system.md § 1.6 / hector_events.js 註解
+- 刪除 discussions/2026-04-20-arena-hp-blackmarket.md
+
+**🔮 下次開工優先序**
+1. **🐛 picker 色階 bug 調查 + 修復**（**user 2026-05-10 睡前指定優先**）
+   - 症狀：裝備區 + 葛拉區看得到紫色裝備、但「換裝備 picker」全白、godMode 粉紅也看不到
+   - 兩個可能：(A) 存檔早於 quality 系統、entry 缺 quality 欄位 / (B) CSS `.cs-picker-name { color: var(--text-hi) }` 不知何故 override inline span
+   - **明天第一步**：請 user 在 dev console 跑這兩段：
+     ```js
+     console.log('weapons:', JSON.stringify(Stats.player.weaponInventory, null, 2));
+     console.log('armors:',  JSON.stringify(Stats.player.armorInventory,  null, 2));
+     // 開 picker 後：
+     document.querySelectorAll('.cs-picker-name').forEach((el,i) => console.log(i, el.outerHTML));
+     ```
+   - 看 inventory 是否有 quality 欄位 + picker HTML 是否有 inline span
+   - 對應修復：
+     - 若 quality 缺 → 跑 sanitizeInventory + 確認葛拉升級流程也保留 quality
+     - 若 CSS override → 把 `formatItemNameHTML` span 改成 `style="color:X !important"` 或調整 `.cs-picker-name` CSS
+2. **驗證 godMode 修復**（picker 修好後一併驗證、`Game.godMode()` → 看裝備是否粉紅 + 顯示「【DEBUG】」）
+3. **驗收前幾天的大量內容**（test.html 各 testJump 跑一輪）
+3. **黑市 + 仇恨度實作起手**（spec 已就位、可開工）：
+   - 前置：派遣制 [arena-system.md § 1.1-1.5](docs/systems/arena-system.md) 必須先做
+   - 然後：傷勢系統開 `severity:4 = severed`
+   - 然後：戰後四選一 + 戰中陰招 hooks（battle.js）
+   - 然後：hector_services.js 約酒 + 派遣前菜單
+   - 後段：blackbeard_events.js + 商店 UI + 義肢線
+4. **fame 大重整 audit**（memory 標註、現在門檻太鬆）
+5. **NvN 戰鬥對手平衡**（memory 標註、現在 2v2 太弱）
+6. **非農家 origin 領主主線平行對白**
+
+**⚠️ 待你拍板的議題**
+
+黑市 7 議題（見 [blackmarket.md § 5](docs/systems/blackmarket.md)）+ 仇恨度 9 議題（見 [grudge-and-schemes.md § 11](docs/systems/grudge-and-schemes.md)）。
+
+主要核心未決：
+- 「會生存的」特性 ID（暫用 `streetwise`）+ 效果
+- 義肢實作時機（待傷勢系統開 severed）
+- 致命陰招（慢性毒、暗殺）真要做？
+- 戰中陰招擲骰時機固定回合 vs 動態觸發
+
+### 2026-05-09 結束時狀態（晚 22:00 黑市整理完）
+
+**✅ 今天上午大量完成**
 - **NvN 戰鬥引擎全面落地**（7 stage、Stage A-G、commit `c6dcd3a` ~ `cf2d981`）— 詳見 [HISTORY.md](HISTORY.md)
 - **NvN polish**：隊友指令系統（自動/集火/防禦）+ 智能威脅 AI + last-stand 修正（`7fe1053`）
 - **P2 全清**（P2-1~P2-8）：P2-4 Day 35 真 2v2 / P2-5 Day 60 真 2v2 / P2-6 Day 50/80 / Day 75 公開宴會 / P2-8 食物下毒（3-tier 梅拉預警 + Day +6 追查）
@@ -24,20 +86,36 @@
 - **萬骸祭 B 路殘血群戰真做**（從骰子 stub → 真 NvN 戰鬥）
 - **debug**：testJump 自動清「done」flag（`1723af7`）+ skipToDay 允許回跳（`fe838b1`）
 
-**🔮 下次開工優先序（明天先做 #1）**
-1. **🎯 黑市 + Hector 後續 整理 + 規畫**（user 2026-05-09 晚指定優先）
-   - 撈 [blackmarket discussion](docs/discussions/2026-04-20-arena-hp-blackmarket.md) 的「黑鬍子」段 → 移到 [arena-system.md § 1.6](docs/systems/arena-system.md) 或開新檔
-   - 整理完後刪 discussion（內容已併入主規格）
-   - 規畫優先序（user 未來要做）：
-     * Hector 5 黑市服務（情報/傷勢/下毒/謠言/買通）— spec 在 arena-system.md § 1.6、零實作
-     * Hector 後續 Phase（仇恨撞擊 / 介入保護 / 私戰 / Day 40 NPC 反應）— hector_events.js 註解標記未實作
-     * 密醫 NPC 建檔（紙條 flag 已有、NPC 本人沒檔）— [wounds.md § 黑市密醫](docs/systems/wounds.md)
-     * 黑鬍子 NPC 建檔（二手裝備 / 秘法、整個沒 spec）
-2. **驗收今天大量內容**（test.html 各 testJump 跑一輪）
+**✅ 今天晚上完成（黑市整理 — spec only、零實作）**
+- **「赫克特的生存之道」spec 拍板**：5 服務 → 3 服務（情報 / 下毒 / 買通）、改 reliability 軸、加詭異名聲社交代價
+- **新建 [docs/systems/blackmarket.md](docs/systems/blackmarket.md)** — 主規格（赫克特 + 黑鬍子 + 義肢、約 700 行）
+- **新建 [docs/characters/blackbeard.md](docs/characters/blackbeard.md)** — 黑市販子人設
+- **新建 [docs/characters/steelpalm.md](docs/characters/steelpalm.md)** — 守衛兼義肢活廣告
+- **更新 hector.md** — 加「黑市販子身份」段、cassius 對比段（為何只有他做）
+- **更新 arena-system.md § 1.6** — 壓成指針 → blackmarket.md
+- **更新 hector_events.js 註解** — 「三功能」修為待建函式 + 規格指向
+- **刪除 [discussions/2026-04-20-arena-hp-blackmarket.md](docs/discussions/2026-04-20-arena-hp-blackmarket.md)**（內容已搬完）
+
+**🔮 下次開工優先序**
+1. **驗收上午大量內容**（test.html 各 testJump 跑一輪、確認無爆）
+2. **黑市實作起手**（spec 已就位、可開工）：
+   - 前置：派遣制 [arena-system.md § 1.1-1.5](docs/systems/arena-system.md) 必須先做（赫克特 3 服務都接派遣）
+   - 然後：`hector_services.js` 約酒對白 + 派遣前菜單
+   - 之後：battle.js 加 6 個武器特性 hooks（飲血、毒 DOT、眩暈、破甲、反射、開場 buff）
+   - 後段：blackbeard_events.js + 商店 UI
 3. **fame 大重整 audit**（memory 標註、現在門檻太鬆）
 4. **NvN 戰鬥對手平衡**（memory 標註、現在 2v2 太弱）
 5. **非農家 origin 領主主線平行對白**（先領主後 origin 順序、現在領主圓了）
 6. **flaming 詞綴升級為真 DOT**（要做 statusEffects tick 系統）
+
+**⚠️ 黑市 spec 待 user 拍板的 7 個議題** — 詳見 [blackmarket.md § 5](docs/systems/blackmarket.md)
+1. 「會生存的」特性 ID（`survivor` / `cunning` 都被佔用、暫用 `streetwise`）
+2. 「會生存的」特性效果（戰前逃跑選項？黑市對話加成？）
+3. 武器後補 2 把（破甲穗 / 鏡面盾）的觸發條件
+4. 義肢實作時機（等傷勢系統開 severed 嚴重度）
+5. 落魄騎士拒絕的具體事件 trigger
+6. 黑鬍子是否有「條件式上架」
+7. 詭異名聲是否要做隱形 chip / 顯性提示
 
 **⚠️ 已知未修**
 - NvN 特殊動作仍鎖打玩家（劇情向、可選改）
@@ -48,6 +126,7 @@
 - 裝備差決定論 vs 屬性決定論（`feedback_pending_design_reviews.md` #1）
 - 2v2 對手太弱（同上 #2）
 - fame 全面 audit（`feedback_fame_audit_pending.md`）
+- **密醫 NPC 線**（user 2026-05-09 晚決議：老默現階段全包傷勢、密醫延後）
 
 ---
 
@@ -76,8 +155,9 @@
 3-0b. **`docs/CANON.md`** — 🆕 **故事事實單一事實源（2026-04-19）**：時間線、角色年齡、誰知道什麼、關係歷史。**寫新對白/事件前必查**。跟 CODEX 分工：CODEX 存規則，CANON 存事實。
 3a. **`更改對話專用.md`**（root）— **對白編輯入口**。查某段對白在哪、怎麼改、配色規範、新事件登記都看這份。
 3a1. **`docs/characters/*.md`** — 🆕 D.28：每個 NPC 的完整檔案（愛憎 / 對話風格 / 特性反應 / 招牌動作 / 程式碼指標）
-   - 目前已建：orlan / melaKook / cassius / hector / doctorMo / officer / masterArtus / sol
+   - 目前已建：orlan / melaKook / cassius / hector / doctorMo / officer / masterArtus / sol / overseer
    - 🆕 **livia**（主人娘，Phase 2/3 登場）/ **marcus**（少爺，Phase 2 登場）
+   - 🆕 **blackbeard**（外部黑市販子）/ **steelpalm**（黑鬍子守衛、義肢活廣告）— 2026-05-09
    - 改 NPC 對白先看這份，確保語氣一致
 3b. **`docs/quests/*.md`** — 🆕 D.28：每個任務的完整設計書（觸發 / 階段 / 門檻 / 對白 / 獎勵 / flag）
    - 目前已建：mela-rat / day1-opening / **day5-sand-wash**（2026-04-19）/ **blood-feast**（2026-04-20，Day 49 血戰宴會）
@@ -90,6 +170,8 @@
    - 🆕 **master-family-spec.md**（2026-04-19）：訓練所家庭通用規範 — archetype 模板，每個訓練所 = 一個家族故事
    - 🆕 **found-family.md**（2026-04-19）：新家人系統 — NPC 以家人稱呼確認關係的儀式（奧蘭=兄弟/梅拉=母/卡西烏斯=師⋯）
    - 🆕 **ending-presentation.md**（2026-04-19）：結局呈現系統 — 四幕結構（競技場/他們眼中/你成為了誰/多年後）+ 5 軸線組合 + 隱藏第五幕 + 文字風格規範。Disco Elysium 級敘事哲學。
+   - 🆕 **blackmarket.md**（2026-05-09）：黑市總規格 — 赫克特生存之道（3 服務）+ 黑鬍子貨棧（傳奇武器 + 義肢）+ 詭異名聲社交代價。零實作、純 spec。
+   - 🆕 **grudge-and-schemes.md**（2026-05-10）：仇恨度系統 — 戰後**四選一**（斬首/斷手腳/採臉/放過）+ 個人 / 訓練所 grudge + revenge_target 重逢戰 + 戰中陰招（撒沙/毒匕/暗器）+ 休息室埋伏 + **玩家被斷手腳→義肢線**（接 blackmarket）+ 塔倫長官 Day 5 教學擴展。零實作、純 spec。
 3d. **`docs/philosophy/*.md`** — 🆕 D.28：設計哲學（numbers-hiding）
 4. **`changelog.html`** — 版本記錄與歷次 commit 摘要
 5. **`NOTES.md`** — 🆕 手機草稿本。使用者會在手機上寫未整理的想法到底部「待整理」區。
