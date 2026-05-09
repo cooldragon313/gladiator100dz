@@ -141,11 +141,11 @@ const BlacksmithEvents = (() => {
     //   設計理由：玩家有換裝選擇才能測試後續事件（修繕 / 升級判定吃當前裝備）
     //   主送的還是依好感決定的那件、自動裝備
     //   其他兩件進 inventory、玩家可換
-    if (!Array.isArray(p.armorInventory)) p.armorInventory = [{ id: 'rags' }];
+    if (!Array.isArray(p.armorInventory)) p.armorInventory = [{ id: 'rags', quality: 'common' }];
     const t1Set = ['leatherArmor', 'thickLeather', 'studdedLeather'];
     t1Set.forEach(id => {
       if (!p.armorInventory.find(e => e.id === id)) {
-        p.armorInventory.push({ id });
+        p.armorInventory.push({ id, quality: 'common' });   // 🆕 2026-05-10 明示良品（防 UI 顯示無色）
       }
     });
 

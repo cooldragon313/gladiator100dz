@@ -20,12 +20,14 @@ const EquipmentQuality = (() => {
 
   // 🆕 2026-04-30 user 改 5 級色階：去掉灰、加綠在中間（白綠藍紫金）
   //   ID 保留（avoid save migration）、但名字 + 顏色改
+  // 🆕 2026-05-10 加 debug 級：godMode / 測試專用、粉紅、2.0× 倍率，正本不出現
   const QUALITY_DEFS = {
     crude:     { id: 'crude',     name: '普通', mult: 0.85, color: '#dddddd', order: 1 },  // 白
     common:    { id: 'common',    name: '良品', mult: 1.00, color: '#88dd66', order: 2 },  // 綠
     fine:      { id: 'fine',      name: '精品', mult: 1.15, color: '#5a9aff', order: 3 },  // 藍
     superb:    { id: 'superb',    name: '上品', mult: 1.30, color: '#c060ff', order: 4 },  // 紫
     legendary: { id: 'legendary', name: '傳家', mult: 1.50, color: '#ffaa20', order: 5 },  // 金
+    debug:     { id: 'debug',     name: '【DEBUG】', mult: 2.00, color: '#ff66cc', order: 99 }, // 粉紅、godMode 測試用
   };
 
   const DEFAULT_QUALITY = 'common';

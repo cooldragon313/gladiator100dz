@@ -8148,13 +8148,16 @@ const Game = (() => {
       p.equippedHelmet  = 'ironHelm_superb';
       p.equippedArms    = 'clothArm_superb';
       p.equippedLegs    = 'leatherLeg_superb';
+      // 🆕 2026-05-10 godMode 套件全部標 'debug' 品質（粉紅、2.0× 倍率、一眼分辨非正本）
       if (!Array.isArray(p.weaponInventory)) p.weaponInventory = [];
-      if (!p.weaponInventory.find(e => e.id === 'longSword_t4')) {
-        p.weaponInventory.push({ id: 'longSword_t4' });
-      }
+      const wIdx = p.weaponInventory.findIndex(e => e.id === 'longSword_t4');
+      if (wIdx < 0) p.weaponInventory.push({ id: 'longSword_t4', quality: 'debug' });
+      else          p.weaponInventory[wIdx].quality = 'debug';
       if (!Array.isArray(p.armorInventory)) p.armorInventory = [];
       ['steelPlate','ironHelm_superb','clothArm_superb','leatherLeg_superb'].forEach(id => {
-        if (!p.armorInventory.find(e => e.id === id)) p.armorInventory.push({ id });
+        const idx = p.armorInventory.findIndex(e => e.id === id);
+        if (idx < 0) p.armorInventory.push({ id, quality: 'debug' });
+        else         p.armorInventory[idx].quality = 'debug';
       });
     }
 
