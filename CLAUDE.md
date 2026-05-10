@@ -37,7 +37,19 @@
 - 刪除 discussions/2026-04-20-arena-hp-blackmarket.md
 
 **🔮 下次開工優先序**
-1. **🐛 picker 色階 bug 調查 + 修復**（**user 2026-05-10 睡前指定優先**）
+1. **🐛 NvN 2v2 玩家不攻擊 bug — 驗證已 commit 的修復**（user 2026-05-11 睡前指定優先）
+   - 症狀：Day 35 雙主人合作場、玩家 ATB 有跑但「沒移動到前面打人」、法烏（隊友）秒掉對手、玩家從頭到尾沒攻擊
+   - **已 commit fix（commit `64cf6fc`、未驗證）**：`_allyTurn` 殺敵後加 `_syncCurrentEnemy()`、`_playerAttack` 開頭加 sync + null guard
+   - **明天第一步**：請 user 確認 3 件事
+     1. **自動戰鬥按鈕有按嗎？**（NvN 預設 `_autoRunning = false`、要手動開或按攻擊鈕）
+     2. **攻擊按鈕有按嗎？按了有反應嗎？**（按了沒反應 = fix 沒中根因 / 沒按 = 不是 bug）
+     3. **dev console F12 → Sources → battle.js → Ctrl+G 搜「2026-05-11」確認 2 處 fix 載到了**
+   - 三種情境對應：
+     - 手動 + 沒按 = 不是 bug、教 user 開自動戰鬥
+     - 手動 + 按了沒反應 = fix 沒中、繼續查（doAction / `_setButtons` / 按鈕禁用？）
+     - 自動模式但不打 = fix 沒中、查 ATB tick 邏輯（`wasReady && nowReady` 邊緣觸發失效？）
+   - 副帶釐清（user 2026-05-11）：「敵人打我啥感受不到兩人都沒受傷」**不是 bug**、是 godMode 太強（debug 品質 2.0× + 滿護甲 → 敵攻擊只削 3-8 點）
+2. **🐛 picker 色階 bug 已修復 ✅**（user 2026-05-11 確認粉紅色 godMode 裝備可見、cache 問題、Disable cache + F5 解決）
    - 症狀：裝備區 + 葛拉區看得到紫色裝備、但「換裝備 picker」全白、godMode 粉紅也看不到
    - 兩個可能：(A) 存檔早於 quality 系統、entry 缺 quality 欄位 / (B) CSS `.cs-picker-name { color: var(--text-hi) }` 不知何故 override inline span
    - **明天第一步**：請 user 在 dev console 跑這兩段：
@@ -51,8 +63,7 @@
    - 對應修復：
      - 若 quality 缺 → 跑 sanitizeInventory + 確認葛拉升級流程也保留 quality
      - 若 CSS override → 把 `formatItemNameHTML` span 改成 `style="color:X !important"` 或調整 `.cs-picker-name` CSS
-2. **驗證 godMode 修復**（picker 修好後一併驗證、`Game.godMode()` → 看裝備是否粉紅 + 顯示「【DEBUG】」）
-3. **驗收前幾天的大量內容**（test.html 各 testJump 跑一輪）
+2. **驗收前幾天的大量內容**（NvN 2v2 修好後、test.html 各 testJump 跑一輪）
 3. **黑市 + 仇恨度實作起手**（spec 已就位、可開工）：
    - 前置：派遣制 [arena-system.md § 1.1-1.5](docs/systems/arena-system.md) 必須先做
    - 然後：傷勢系統開 `severity:4 = severed`
