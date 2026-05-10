@@ -1413,6 +1413,13 @@ const Battle = (() => {
   }
 
   function _playerAttack() {
+    // 🐛 2026-05-11 防禦帶：開打前 sync 一次、確保 _enemy 指活敵（防隊友殺敵後 alias 失效）
+    _syncCurrentEnemy();
+    if (!_enemy || _enemy.hp <= 0) {
+      // 沒活敵 → _checkDeath 會在下個 cycle 結算戰鬥
+      return;
+    }
+
     const w    = TB_WEAPONS[_player.weaponId];
     const hits = w && w.dualHit ? 2 : 1;
 
@@ -1529,6 +1536,11 @@ const Battle = (() => {
     if (typeof _playAttackAnim === 'function') {
       _playAttackAnim('player', { hit: r.hit, blocked: r.blocked, crit: r.crit });
     }
+
+    // 🐛 2026-05-11 修：隊友殺死當前目標後、_enemy alias 還指屍體
+    //   → 玩家下個攻擊看到 _enemy.hp <= 0 直接 break、永遠打不到活敵
+    //   → 強制 sync 把 alias 跳到下個活敵（_syncCurrentEnemy 內建死敵跳過邏輯）
+    _syncCurrentEnemy();
 
     if (!_checkDeath()) {
       // 隊友不影響 turn cleanup
