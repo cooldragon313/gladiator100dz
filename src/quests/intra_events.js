@@ -1311,6 +1311,12 @@ const IntraEvents = (() => {
     if (typeof DayCycle === 'undefined' || typeof DayCycle.onDayStart !== 'function') return;
 
     DayCycle.onDayStart('intraEvents', (newDay) => {
+      // 🐛 2026-05-11 修：腳本事件日（如 Day 35 2v2 / Day 49 血戰 / Day 60 陰招 / Day 75 公開宴會 / Day 80 領主夜宴 / Day 90 凱德訪）
+      //   隨機 intra 事件不要蓋掉、避免 DialogueModal 互搶
+      //   症狀：testJump('day34') 睡到 35、tryBully 5% roll 中 → 蓋掉 2v2 戰鬥
+      const SCRIPTED_DAYS = [25, 35, 45, 49, 50, 60, 65, 70, 72, 75, 80, 85, 90, 100];
+      if (SCRIPTED_DAYS.includes(newDay)) return;
+
       // 由早到晚試（高優先順序在前）
       if (tryFactionFirstChoice(newDay)) return;
       if (tryHectorTrial(newDay))   return;   // 🆕 派系試煉

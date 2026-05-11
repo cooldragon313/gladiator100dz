@@ -74,6 +74,12 @@
 5. **NvN 戰鬥對手平衡**（memory 標註、現在 2v2 太弱）
 6. **非農家 origin 領主主線平行對白**
 
+**⚠️ 設計漂移待修（2026-05-11 user 發現）**
+- **採臉 vs 放過 對白不對齊**：當前切磋勝利 onWin 觸發招敵變友 seedLines（凱里烏斯 / 諾克斯）說「**我欠你一次**」、感覺像對方在謝謝你 → 跟 [grudge-and-schemes.md § 1](docs/systems/grudge-and-schemes.md) 新 spec「採臉 = 對手憤怒、累積仇恨」**不同步**。
+  - 根因：[recruit_enemy.js:37](src/npc/recruit_enemy.js) seedLines + [cross_ludus_events.js:154](src/quests/cross_ludus_events.js#L154) sparring onWin
+  - 不是方向走錯、是舊代碼還在跑、新 spec（四選一含斷手腳）未實作
+  - 等實作仇恨度四選一時、要把現有「採臉」相關對白 + 後果同步改成新 spec
+
 **⚠️ 待你拍板的議題**
 
 黑市 7 議題（見 [blackmarket.md § 5](docs/systems/blackmarket.md)）+ 仇恨度 9 議題（見 [grudge-and-schemes.md § 11](docs/systems/grudge-and-schemes.md)）。

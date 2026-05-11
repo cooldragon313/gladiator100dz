@@ -47,6 +47,9 @@ const DoctorEvents = (() => {
     if (!p || p.day < 10) return false;
     if (typeof Flags === 'undefined') return false;
     if (_lastVisitDay === p.day) return false;       // 今天已訪問過
+    // 🐛 2026-05-11 修：腳本事件日老默不來、避免蓋掉重要劇情（user 反饋 Day 35 2v2 被蓋）
+    const SCRIPTED_DAYS = [25, 35, 45, 49, 50, 60, 65, 70, 72, 75, 80, 85, 90, 100];
+    if (SCRIPTED_DAYS.includes(p.day)) return false;
 
     // 🆕 2026-04-19：ailments 或 wounds 都可觸發訪視
     const hasAilment = Array.isArray(p.ailments) && p.ailments.length > 0;

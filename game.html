@@ -3893,7 +3893,7 @@ body.ui-input-blocked .forge-action {
 .battle-v2 .bt-portrait {
   position: relative;
   width: 100%;
-  min-height: 60px;
+  min-height: 42px;         /* 🆕 2026-05-11 60 → 42 縮高、把空間讓給日誌 */
   background: rgba(10, 6, 2, 0.7);
   border: 1px solid var(--border-hi);
   border-radius: 3px;
@@ -3901,7 +3901,7 @@ body.ui-input-blocked .forge-action {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 6px 8px;
+  padding: 3px 6px;          /* 6 8 → 3 6 縮 padding */
   transition: border-color 0.2s, transform 0.2s;
 }
 .battle-v2 .bt-portrait-player {
@@ -3913,10 +3913,10 @@ body.ui-input-blocked .forge-action {
   box-shadow: 0 4px 12px rgba(0,0,0,.5), inset 0 0 20px rgba(200,80,80,.1);
 }
 .battle-v2 .bt-portrait-name {
-  font-size: 22px;
+  font-size: 17px;          /* 🆕 2026-05-11 22 → 17 字小一點、頭像格不那麼大 */
   font-weight: 900;
   color: #e8d070;
-  letter-spacing: .15em;
+  letter-spacing: .12em;
   text-shadow: 0 2px 4px rgba(0,0,0,.6);
 }
 .battle-v2 .bt-portrait-enemy .bt-portrait-name { color: #ff9966; }
@@ -4123,12 +4123,12 @@ body.ui-input-blocked .forge-action {
 }
 
 /* ── Action grid 2x2 ── */
+/* 🆕 2026-05-11 user 反饋：按鈕 2x2 太占高度、日誌空間被擠 → 改 5 顆橫一排 */
 .battle-v2 .bt-action-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
-  gap: 6px;
-  padding: 8px 0;
+  grid-template-columns: repeat(5, 1fr);   /* 5 顆按鈕橫一排 */
+  gap: 4px;
+  padding: 4px 0;
   flex-shrink: 0;
 }
 
@@ -4227,10 +4227,10 @@ body.ui-input-blocked .forge-action {
   border: 1px solid #3a2410;
   color: #c8a060;
   font-family: inherit;
-  font-size: 16px;
+  font-size: 13px;             /* 🆕 16 → 13 配合單列縮排 */
   font-weight: 700;
-  letter-spacing: .12em;
-  padding: 10px;
+  letter-spacing: .08em;
+  padding: 6px 4px;             /* 🆕 10 → 6 4 縮高度、給日誌空間 */
   cursor: pointer;
   transition: background .15s, border-color .15s, transform .1s;
 }
@@ -4246,15 +4246,17 @@ body.ui-input-blocked .forge-action {
 }
 
 /* ── Log box (mid column bottom) ── */
+/* 🆕 2026-05-11 user 反饋：日誌太小不能讀、頭像格太大壓縮空間 → 加高 + 字加大 */
+/* 🆕 2026-05-11 二輪：按鈕改單列後、日誌再加高一波（240 → 320） */
 .battle-v2 .bt-log-box {
   background: #080604;
   border: 1px solid #22140a;
-  height: 140px;
+  height: 320px;          /* 240 → 320 再加高（按鈕縮成單列、有空間了） */
   overflow-y: auto;
-  padding: 6px 10px;
-  font-size: 13px;
-  color: #887766;
-  line-height: 1.6;
+  padding: 8px 12px;
+  font-size: 15px;
+  color: #aa9985;
+  line-height: 1.7;
   flex-shrink: 0;
 }
 .battle-v2 #bt-round {
@@ -4469,12 +4471,13 @@ body.ui-input-blocked .forge-action {
 .bt-sk-desc   { font-size: 10px; color: #555568; line-height: 1.5; }
 
 /* ── Battle log ── */
+/* 🆕 2026-05-11：加大字（被 .battle-v2 .bt-log-box 蓋住、保險也改） */
 #bt-log {
   flex: 1;
   overflow-y: auto;
-  padding: 6px 12px;
-  font-size: 12px;
-  line-height: 1.65;
+  padding: 8px 12px;
+  font-size: 15px;
+  line-height: 1.7;
   background: #090704;
   scrollbar-width: thin;
   scrollbar-color: #2a1a10 transparent;
@@ -4881,6 +4884,8 @@ body.ui-input-blocked .forge-action {
           <button class="bt-btn" id="bt-btn-special" onclick="Battle.doAction('special')" disabled>⚡ 技能&nbsp;1</button>
           <button class="bt-btn" id="bt-btn-defend"  onclick="Battle.doAction('defend')"  disabled>🛡 技能&nbsp;2</button>
           <button class="bt-btn" id="bt-btn-auto"    onclick="Battle.toggleAuto()"        disabled>▶ 自&nbsp;動</button>
+          <!-- 🆕 2026-05-11 暫停按鈕：停 ATB tick、玩家可滾日誌 -->
+          <button class="bt-btn" id="bt-btn-pause"   onclick="Battle.togglePause()">⏸ 暫&nbsp;停</button>
         </div>
 
         <!-- 🆕 2026-04-27：主動技能列（玩家學會 + 武器符合就出現） -->

@@ -22,6 +22,7 @@ const Battle = (() => {
   let _autoRunning    = false;
   let _hardcoreActive = false;  // 硬核模式
   let _hardcoreTimer  = null;   // setInterval for countdown
+  let _paused         = false;  // 🆕 2026-05-11 暫停旗標、停 ATB tick
   let _hardcoreCount  = 5;      // 倒數值 5→0
   let _onWin          = null;
   let _onLose         = null;
@@ -396,6 +397,7 @@ const Battle = (() => {
     // 🆕 Stage B：start(opponentId) 路徑預設沒隊友（保留向下相容）
     _setAllies([]);
     _active = true;
+    _paused = false;   // 🆕 2026-05-11 新戰鬥開始 reset 暫停旗標
 
     _showOverlay();
     _initUI();
@@ -879,14 +881,58 @@ const Battle = (() => {
    * @param {string} attackerSide 'player' | 'enemy'
    * @param {object} result { hit: bool, blocked: bool, crit: bool }
    */
-  function _playAttackAnim(attackerSide, result) {
+  // 🐛 2026-05-11 NvN 動畫定位：依「unit 物件」找對應 slot DOM
+  //   玩家在 [data-side=player][data-idx=1]、隊友在 idx 0/2、敵人在 enemy 側 0/1/2
+  function _findSlotForUnit(unit) {
+    if (!unit) return null;
+    if (unit === _player) return document.querySelector('.bt-slot[data-side="player"][data-idx="1"]');
+    const eIdx = _enemies.indexOf(unit);
+    if (eIdx >= 0 && typeof _enemyArrIdxToSlotIdx === 'function') {
+      const sIdx = _enemyArrIdxToSlotIdx(eIdx);
+      return document.querySelector(`.bt-slot[data-side="enemy"][data-idx="${sIdx}"]`);
+    }
+    const aIdx = _allies.indexOf(unit);
+    if (aIdx >= 0 && typeof _allyArrIdxToSlotIdx === 'function') {
+      const sIdx = _allyArrIdxToSlotIdx(aIdx);
+      return document.querySelector(`.bt-slot[data-side="player"][data-idx="${sIdx}"]`);
+    }
+    return null;
+  }
+
+  function _playAttackAnim(attackerSide, result, opts) {
     const res = result || { hit: true, blocked: false };
-    const attackerCard = attackerSide === 'player'
-      ? document.querySelector('.bt-card-player')
-      : document.querySelector('.bt-card-enemy');
-    const defenderCard = attackerSide === 'player'
-      ? document.querySelector('.bt-card-enemy')
-      : document.querySelector('.bt-card-player');
+    opts = opts || {};
+    // 🐛 2026-05-11 NvN 修：querySelector 抓第一個 slot 會打錯人（隊友 / 死敵 / 錯敵）
+    //   修：caller 可顯式傳 attackerUnit / defenderUnit、用 _findSlotForUnit 精準定位
+    //   未傳時 fallback：玩家中央 slot + 玩家當前目標 / 玩家中央 slot（被打方）
+    const PLAYER_SLOT_SEL = '.bt-slot[data-side="player"][data-idx="1"]';
+    let attackerCard = opts.attackerEl || (opts.attackerUnit && _findSlotForUnit(opts.attackerUnit));
+    let defenderCard = opts.defenderEl || (opts.defenderUnit && _findSlotForUnit(opts.defenderUnit));
+
+    if (!attackerCard) {
+      if (attackerSide === 'player') {
+        attackerCard = document.querySelector(PLAYER_SLOT_SEL);
+      } else {
+        // fallback：找「正在行動的敵」slot（_enemy alias 此時指向 acting enemy）
+        const actingArrIdx = _enemies.indexOf(_enemy);
+        const slotIdx = (actingArrIdx >= 0 && typeof _enemyArrIdxToSlotIdx === 'function')
+          ? _enemyArrIdxToSlotIdx(actingArrIdx)
+          : 1;
+        attackerCard = document.querySelector(`.bt-slot[data-side="enemy"][data-idx="${slotIdx}"]`)
+                    || document.querySelector('.bt-card-enemy');
+      }
+    }
+    if (!defenderCard) {
+      if (attackerSide === 'player') {
+        const slotIdx = (typeof _enemyArrIdxToSlotIdx === 'function')
+          ? _enemyArrIdxToSlotIdx(_currentTargetIdx)
+          : 1;
+        defenderCard = document.querySelector(`.bt-slot[data-side="enemy"][data-idx="${slotIdx}"]`)
+                    || document.querySelector('.bt-card-enemy');
+      } else {
+        defenderCard = document.querySelector(PLAYER_SLOT_SEL);
+      }
+    }
 
     // ── 攻擊方飛撲（上下方向）──
     const lungeClass = attackerSide === 'player' ? 'bt-lunge-down' : 'bt-lunge-up';
@@ -1533,8 +1579,10 @@ const Battle = (() => {
 
     const orderTag = (_allyOrder === 'focus') ? '【集火】' : '';
     _appendLog(`🤝${orderTag}【${ally.name}】${r.log}`, 'log-system');
+    // 🐛 2026-05-11 NvN 動畫修：傳 attackerUnit=ally + defenderUnit=target、不靠 querySelector 抓第一個
     if (typeof _playAttackAnim === 'function') {
-      _playAttackAnim('player', { hit: r.hit, blocked: r.blocked, crit: r.crit });
+      _playAttackAnim('player', { hit: r.hit, blocked: r.blocked, crit: r.crit },
+                      { attackerUnit: ally, defenderUnit: target });
     }
 
     // 🐛 2026-05-11 修：隊友殺死當前目標後、_enemy alias 還指屍體
@@ -1595,7 +1643,9 @@ const Battle = (() => {
       const r = TB_attack(_enemy, target, { turn: _turn });
       _applyDamage(target, r.damage, null, 0, _enemy);   // 🆕 polish：傳 acting enemy 當 attacker
       _appendLog(`👁 ${_enemy.name} 改打 ${target.name}！${r.log}`, r.crit ? 'log-crit' : r.hit ? 'log-system' : 'log-miss');
-      _playAttackAnim('enemy', { hit: r.hit, blocked: r.blocked, crit: r.crit });
+      // 🐛 2026-05-11 NvN 動畫修：傳 attackerUnit=acting enemy + defenderUnit=victim ally
+      _playAttackAnim('enemy', { hit: r.hit, blocked: r.blocked, crit: r.crit },
+                      { attackerUnit: _enemy, defenderUnit: target });
       if (typeof SoundManager !== 'undefined') {
         if (r.hit) {
           if (r.crit)         SoundManager.playSfx('hit_crit');
@@ -2361,7 +2411,11 @@ const Battle = (() => {
       html += `</div></div>`;
     }
 
+    // 🆕 2026-05-11 看日誌：暫時隱藏成績卡讓玩家滾戰鬥日誌
+    html += `<div style="display:flex;gap:8px;align-items:center;">`;
+    html += `<button class="bt-reward-continue" id="bt-reward-viewlog-btn" style="background:#1a0900;min-width:90px;">📜 看日誌</button>`;
     html += `<button class="bt-reward-continue" id="bt-reward-continue-btn">繼 續 ▸</button>`;
+    html += `</div>`;
     html += `</div>`;
     panel.innerHTML = html;
     panel.classList.add('open');
@@ -2371,6 +2425,62 @@ const Battle = (() => {
       btn.onclick = () => {
         panel.classList.remove('open');
         if (typeof onContinue === 'function') onContinue();
+      };
+    }
+    // 🆕 2026-05-11 看日誌按鈕：完全隱藏成績卡 + 浮 2 個按鈕（返回成績 + 直接離開）
+    //   防 bug：之前只浮一個「返回成績」、按完才能 reach 繼續 → user 卡住找不到出口
+    const viewLogBtn = document.getElementById('bt-reward-viewlog-btn');
+    if (viewLogBtn) {
+      viewLogBtn.onclick = () => {
+        panel.classList.remove('open');   // 整個成績卡收起來、不擋日誌
+
+        // 既有 floating 容器移除（避免重複）
+        document.getElementById('bt-reward-floating-bar')?.remove();
+
+        // 浮動工具列、固定右上、2 個按鈕
+        const bar = document.createElement('div');
+        bar.id = 'bt-reward-floating-bar';
+        bar.style.cssText = `
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          z-index: 99999;
+          display: flex;
+          gap: 8px;
+          box-shadow: 0 2px 12px rgba(0,0,0,.5);
+        `;
+        const baseBtnStyle = `
+          padding: 10px 18px;
+          background: #1a0900;
+          color: #d4af37;
+          border: 1px solid #5a4028;
+          border-radius: 4px;
+          font-size: 14px;
+          font-weight: 700;
+          cursor: pointer;
+          letter-spacing: .1em;
+        `;
+        // 返回成績鈕
+        const backBtn = document.createElement('button');
+        backBtn.textContent = '🔙 返回成績';
+        backBtn.style.cssText = baseBtnStyle;
+        backBtn.onclick = () => {
+          panel.classList.add('open');
+          bar.remove();
+        };
+        // 直接離開鈕（跳過成績卡、直接執行 onContinue）
+        const skipBtn = document.createElement('button');
+        skipBtn.textContent = '⏭ 直接離開';
+        skipBtn.style.cssText = baseBtnStyle + 'background:#0a1a09;color:#88dd66;border-color:#3a5a30;';
+        skipBtn.onclick = () => {
+          bar.remove();
+          panel.classList.remove('open');
+          if (typeof onContinue === 'function') onContinue();
+        };
+
+        bar.appendChild(backBtn);
+        bar.appendChild(skipBtn);
+        document.body.appendChild(bar);
       };
     }
 
@@ -3089,14 +3199,26 @@ const Battle = (() => {
     if (txt) txt.textContent = `${Math.round(value)} / 100`;
   }
 
+  // 🆕 2026-05-11 暫停 / 繼續 戰鬥（停 ATB tick、玩家可滾日誌）
+  function togglePause() {
+    if (!_active) return;
+    _paused = !_paused;
+    const btn = document.getElementById('bt-btn-pause');
+    if (btn) btn.textContent = _paused ? '▶ 繼續' : '⏸ 暫停';
+    _appendLog(_paused ? '— 戰鬥暫停 —' : '— 戰鬥繼續 —', 'log-turn');
+  }
+
   function _appendLog(text, cls) {
     const log = document.getElementById('bt-log');
     if (!log || (!text && cls !== 'log-turn')) return;
+    // 🐛 2026-05-11 修：智慧捲動 — 用戶自己滾上去看歷史時、不要把他拉回底
+    //   只有已經在底部（誤差 30px 內）才自動跟進、否則尊重用戶滾動
+    const isAtBottom = (log.scrollHeight - log.scrollTop - log.clientHeight) < 30;
     const div = document.createElement('div');
     div.className = 'bt-log-line ' + (cls || '');
     div.textContent = text;
     log.appendChild(div);
-    log.scrollTop = log.scrollHeight;
+    if (isAtBottom) log.scrollTop = log.scrollHeight;
   }
 
   // ══════════════════════════════════════════════════════
@@ -3228,6 +3350,8 @@ const Battle = (() => {
 
   function _atbTick() {
     if (!_active) { _stopAtbLoop(); return; }
+    // 🆕 2026-05-11 暫停：停 ATB tick、玩家可滾日誌、按繼續恢復
+    if (_paused) return;
 
     _battleTick++;
 
@@ -3384,6 +3508,7 @@ const Battle = (() => {
     _setEnemies(enemyCfgs.map(c => _buildEnemyFromCfg(c)));
     _setAllies(allyCfgs.map(c => _buildAllyFromCfg(c)));
     _active = true;
+    _paused = false;   // 🆕 2026-05-11 新戰鬥開始 reset 暫停旗標
 
     _showOverlay();
     _initUI();
@@ -3460,5 +3585,5 @@ const Battle = (() => {
     });
   }
 
-  return { start, startFromConfig, doAction, toggleAuto, getLastRating, finishChoice, isActive, returnToTraining, useActiveSkill, getEquippedWeaponClass, setAllyOrder };
+  return { start, startFromConfig, doAction, toggleAuto, togglePause, getLastRating, finishChoice, isActive, returnToTraining, useActiveSkill, getEquippedWeaponClass, setAllyOrder };
 })();
