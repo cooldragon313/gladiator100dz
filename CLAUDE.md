@@ -11,6 +11,104 @@
 > 這個區塊一直擺在最上面，每次 session 結束時更新。每次 session 開始時請先看這裡，
 > 知道**上次停在哪、明天可以從哪繼續**。
 
+### 2026-05-12 結束時狀態（Sol Arc Phase 1 實作完成、明天測試）
+
+**✅ 今天主要成果**
+- **Sol Arc Phase 1 全部落地**（救索爾分支實作完）
+  - 新建 [src/quests/sol_arc.js](src/quests/sol_arc.js)（~340 行）— Phase 1 完整邏輯
+  - 改 [src/main.js](src/main.js)：Day 5 戰勝後 hook `SolArc.offerSpareSol` + `_endOfSandWash` 通用塔倫對白（30 訓練門檻）
+  - 改 [src/core/stats.js](src/core/stats.js)：`modMoney` 攔截正向金額、call `SolArc.applyMoneySkim` 扣抵債務
+  - 改 [game.html](game.html)：加 sol_arc.js script 載入
+- **Phase 1 對白大改寫**（user 2026-05-12 一連串訂正）
+  - 主人對白：「哼~」+ 震動 → 三選一 → 100 買價 + 100 罰金 = **200 銅幣總債**
+  - 塔倫補刀加抽鞭：「別讓我看到你偷懶——」`effect: shake-and-flash`
+  - **取代結算 popup** → 主角 OS（「主人今天肯定是很不高興⋯⋯」）+ 扶索爾走醫療室
+  - **加老默 scene**（順便當老默 first meeting）：「你也挺有種的⋯⋯別死太快阿」
+  - 老默好感 +3（「有種」印象）
+- **赫克特插話 bug 修**：不是「第一次注意你」（Day 1 走廊已搭話過）、改成「又靠過來」
+- **顏色 audit**：
+  - 阿圖斯：誤用卡西烏斯色 `#5a7a9a` → 改 `#d4af37`（金色、主人/貴族招牌）
+  - 塔倫長官：`#883333` 暗紅難讀 → `#cc6666` 柔紅
+  - midgame_bosses.js + recruit_enemy.js 既有塔倫對白色一併更新
+  - 更改對話專用.md 色表 + 加 Aristus 條目
+
+**✅ 昨天（2026-05-11）完成**
+- Sol Arc 5 階段 spec 拍板（[docs/quests/sol-arc.md](docs/quests/sol-arc.md)）
+- Day 5 沙洗加 E 路徑（饒索爾）+ 通用塔倫對白（30 訓練門檻）
+- 買自由結局（500 銅幣 + Day 60+）
+
+**🔮 下次開工優先序**
+1. **🐛 測試 Phase 1 索爾分支**（user 2026-05-12 睡前指定）
+   - `Game.testJump('day5')` + `Game.godMode({attr:30})` 進沙洗
+   - 戰勝索爾（HP > 70%）→ 應該彈「了結 / 讓他活著」
+   - 選「讓他活著」→ 看完整 30+ 行對白 + 主角 OS + 老默 scene
+   - 確認：`Flags.get('debt_to_master')` = 200、`Flags.has('met_doctor')` = true
+   - 跑腿賺錢測扣抵：`Stats.modMoney(30)` 應該扣 30 進債務
+2. **🐛 系統 audit：day_story_claimed flag 機制**（user 2026-05-12 提議、未實作）
+   - 詳見上次對話「腳本宣告佔用」flag 機制
+   - 目標：任何腳本事件設旗、隨機事件查旗、不再用 SCRIPTED_DAYS 寫死清單
+   - 涉及檔案：DayCycle、cross_ludus、lord、kade、midgame_bosses、intra_events、doctor_events、npc_reactions/conflicts、recruit_enemy、background_gladiators、mela_rat、errand_outings
+   - 工程量約 30-50 行、跨 10 檔案
+3. **Phase 1 測試 OK 後** → 開 Phase 2（索爾養傷 10 天醒 + 偷懶遮掩 + 守夜情報 + CON 陪練）
+
+**⚠️ Phase 1 已知未完成**
+- Phase 1 數值靜默套用、不開 popup（已實作）
+- 老默對白 + `met_doctor` 設 true、跳過 doctor_events.js `_firstVisit`（已實作、需測試）
+- 還清演出（Stage.popupBig + 對白）保留（不在每次扣款時、只在還清那一刻）
+
+### 2026-05-11 結束時狀態（索爾存活線 5 階段 spec + Day 5 沙洗大改）
+
+**✅ 今天主要成果**
+- **「索爾存活線」5 階段 Arc spec 拍板** → 新建 [docs/quests/sol-arc.md](docs/quests/sol-arc.md)（10 段 / ~600 行）
+  - **Day 5 沙洗加 E 路徑**：A-S/A 級碾壓 → 戰後彈「饒他」選項 → 跪求主人
+  - 救索爾代價：主人 -15、長官 -10、**100 銅幣債**（任何 modMoney+ 都先扣抵）
+  - 競技場**通用門檻**：訓練累計 30 次才能上場（不分救不救、邏輯一致）
+  - 索爾養傷 10 天、Day 15 醒、感激誓言對白
+  - Phase 2 偷懶遮掩（取代擋鞭、邏輯通）+ 守夜情報 + CON 陪練
+  - Phase 3 帶索爾見黑鬍子 + 義肢（4 種規格、連動 [blackmarket.md](docs/systems/blackmarket.md)）
+  - 索爾全盤接受、玩家自主決定義肢材質 + 可選自發匯款 -50 銅幣（kindness）
+  - Phase 4 NvN 三賤客（玩家 + 奧蘭 + 索爾）+ 戰利品分享 + 防陰招升級
+  - Phase 5 結局 4 變體：B 反撲 Sol 死守 / A 加冕同行 / 買自由帶走 / 逃脫後盾
+- **新結局：買自由**（[ending-presentation.md](docs/systems/ending-presentation.md)）
+  - 條件：500 銅幣 + fame 50 + master aff 30 + Day 60+
+  - 結局名：「買來的命買回去」
+  - 跟其他結局共存（Day 60+ 累積條件即可）
+- **Day 5 沙洗通用塔倫對白改寫**：「競技場對外一直開、但你要練到我點頭」
+  - 訓練 30 次門檻、達標後塔倫主動通知
+  - 救不救索爾共用門檻（不分路線）
+
+**✅ 昨天（2026-05-10）完成**
+- NvN 2v2 玩家不攻擊 bug 修復（_allyTurn sync）
+- 戰鬥動畫定位修（_findSlotForUnit unit-based）
+- 腳本日擋掉隨機 intra 事件 + 老默
+- 戰鬥日誌智慧捲動 + 暫停 + 320px 加高
+- 勝利畫面浮動「看日誌 / 返回 / 直接離開」3 鈕
+- 5×1 按鈕單列 + 頭像格縮高
+
+**🔮 下次開工優先序**
+1. **驗收 sol-arc.md spec 內容**（你看完整個 spec、有沒有要改的）
+2. **Phase 1 實作起手**：救索爾分支對白 + 100 銅幣債扣抵 wrapper + 訓練 30 門檻
+3. **驗收前幾天的大量內容**（test.html 各 testJump 跑一輪）
+4. **fame 大重整 audit**（memory 標註、現在門檻太鬆）
+5. **黑市 + 仇恨度實作起手**（spec 已就位）
+
+**⚠️ 設計漂移待修（2026-05-11 user 發現）**
+- **採臉 vs 放過 對白不對齊**：當前切磋勝利 onWin 觸發招敵變友 seedLines（凱里烏斯 / 諾克斯）說「**我欠你一次**」、感覺像對方在謝謝你 → 跟 [grudge-and-schemes.md § 1](docs/systems/grudge-and-schemes.md) 新 spec「採臉 = 對手憤怒、累積仇恨」**不同步**。
+  - 根因：[recruit_enemy.js:37](src/npc/recruit_enemy.js) seedLines + [cross_ludus_events.js:154](src/quests/cross_ludus_events.js#L154) sparring onWin
+  - 不是方向走錯、是舊代碼還在跑、新 spec（四選一含斷手腳）未實作
+  - 等實作仇恨度四選一時、要把現有「採臉」相關對白 + 後果同步改成新 spec
+
+**⚠️ Sol Arc spec 待 user 拍板的議題** — 詳見 [sol-arc.md § 7](docs/quests/sol-arc.md)
+1. 救索爾要求 S/A 級碾壓 OK？還是 B 也行？
+2. ~~索爾抗拒~~ ✅ 已拍板：索爾不抗拒、玩家自主匯款
+3. 三賤客好感門檻 60 OK？
+4. 索爾贖金 200 OK？
+5. 給女兒匯款後加 Day +5 storyReveal「⋯⋯收到了」？
+6. Phase 4 戰利品分配跟既有邏輯衝突？
+7. 買自由結局是否加主人「⋯⋯你確定？」收尾？
+8. 殺索爾路線是否保留 / 加強？
+9. 索爾女兒 D 完整名揭露時機？
+
 ### 2026-05-10 結束時狀態（仇恨度系統 spec + godMode bug 修）
 
 **✅ 今天主要成果**
@@ -189,6 +287,7 @@
    - 🆕 **ending-presentation.md**（2026-04-19）：結局呈現系統 — 四幕結構（競技場/他們眼中/你成為了誰/多年後）+ 5 軸線組合 + 隱藏第五幕 + 文字風格規範。Disco Elysium 級敘事哲學。
    - 🆕 **blackmarket.md**（2026-05-09）：黑市總規格 — 赫克特生存之道（3 服務）+ 黑鬍子貨棧（傳奇武器 + 義肢）+ 詭異名聲社交代價。零實作、純 spec。
    - 🆕 **grudge-and-schemes.md**（2026-05-10）：仇恨度系統 — 戰後**四選一**（斬首/斷手腳/採臉/放過）+ 個人 / 訓練所 grudge + revenge_target 重逢戰 + 戰中陰招（撒沙/毒匕/暗器）+ 休息室埋伏 + **玩家被斷手腳→義肢線**（接 blackmarket）+ 塔倫長官 Day 5 教學擴展。零實作、純 spec。
+3b-sol. **`docs/quests/sol-arc.md`** 🆕（2026-05-11）：**索爾存活 5 階段** — Day 5 A-S/A 饒他 → 100 銅幣債 → 養傷 → 偷懶遮掩 → 義肢 → 派遣三賤客 → 結局忠誠 4 變體。買自由結局新增。零實作、純 spec。
 3d. **`docs/philosophy/*.md`** — 🆕 D.28：設計哲學（numbers-hiding）
 4. **`changelog.html`** — 版本記錄與歷次 commit 摘要
 5. **`NOTES.md`** — 🆕 手機草稿本。使用者會在手機上寫未整理的想法到底部「待整理」區。

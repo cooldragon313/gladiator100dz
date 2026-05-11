@@ -694,7 +694,16 @@ const Game = (() => {
       ], {
         onComplete: () => {
           Battle.start('trialSol',
-            () => _solDeathScene(),
+            () => {
+              // 🆕 2026-05-12 SolArc Phase 1：戰勝後若 HP > 70% 彈饒他選項
+              //   選了結 → 走原本 _solDeathScene 流程
+              //   選饒他 → SolArc 接手主人裁決 + 100 銅幣債務
+              if (typeof SolArc !== 'undefined' && SolArc.offerSpareSol) {
+                SolArc.offerSpareSol(_solDeathScene);
+              } else {
+                _solDeathScene();
+              }
+            },
             () => _trialPlayerLostToSol(),
             { sparring: true }   // 🆕 2026-04-20 劇情戰鬥 — 關閉斬首面板（結果由劇本決定）
           );
@@ -1062,21 +1071,28 @@ const Game = (() => {
       if (playerWon && typeof teammates !== 'undefined' && teammates.modAffection) {
         teammates.modAffection('masterArtus', 5);
       }
+      // 🆕 2026-05-12 通用塔倫對白：競技場一直開、但新人要訓練 30 次合格才能上
+      //   救索爾額外加 100 銅幣債、共用門檻不再走「救索爾關死」邏輯
       const lines = playerWon
         ? [
             { text: '（沙地上的痕跡還沒掃乾淨。）' },
             { text: '（塔倫長官走到你們面前。）' },
             { speaker: '塔倫長官', text: '聽好。' },
-            { speaker: '塔倫長官', text: '從今天開始——你們可以報名參加競技場了。' },
-            { speaker: '塔倫長官', text: '主人會看著你們。' },
-            { speaker: '塔倫長官', text: '⋯⋯誰能上、誰被淘汰，就看你們自己。' },
+            { speaker: '塔倫長官', text: '競技場——' },
+            { speaker: '塔倫長官', text: '對外是一直開的。' },
+            { speaker: '塔倫長官', text: '但主人不會把新人扔出去白送命。' },
+            { speaker: '塔倫長官', text: '你們先練。' },
+            { speaker: '塔倫長官', text: '練到我覺得不會丟主人臉——' },
+            { speaker: '塔倫長官', text: '我會點你的名。' },
+            { speaker: '塔倫長官', text: '在那之前——別問。' },
             { text: '（他轉身走了。）' },
             { text: '（你身上的沙還沒拍乾淨。但你知道——這是你還能再呼吸一次的理由。）' },
           ]
         : [
             { text: '（你躺在床上。能感覺到的只有疼。）' },
             { text: '（外面遠遠傳來塔倫長官對其他人講話的聲音。）' },
-            { speaker: '塔倫長官', text: '⋯⋯從今天開始，你們可以報名參加競技場了。' },
+            { speaker: '塔倫長官', text: '⋯⋯競技場對外一直開的。' },
+            { speaker: '塔倫長官', text: '但你們先練。練到我點頭。' },
             { speaker: '塔倫長官', text: '能上場的——機會自己抓。' },
             { text: '（你聽得清楚。但他沒提到你。）' },
             { text: '（你也不知道自己還算不算「能上場」的那群人。）' },
@@ -8099,6 +8115,9 @@ const Game = (() => {
       'mela_rat_done', 'recruit_invite_done',
       'lord_visit_d65_done', 'lord_banquet_d80_done',
       'sand_wash_done',
+      // 🐛 2026-05-11：Day 5 沙洗用的是 trial_completed + sand_wash_aftermath_done
+      //   之前沒清、testJump('day5') 進去只看到塔倫一句「競技場開放」、沙洗主流程被跳過
+      'trial_completed', 'sand_wash_aftermath_done',
       'spar_day12', 'last_friendly_spar_day',
       'vesnus_assn_food_poison_done', 'vesnus_assn_poison_investigation_done',
       'vesnus_assn_blackclaw_done',

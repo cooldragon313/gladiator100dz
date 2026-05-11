@@ -38,7 +38,7 @@ const MidgameBosses = (() => {
     const intro = [
       { text: '（中等場、第一次「有人聽過名字」的對手。）' },
       { text: '（侍從押你走通道、塔倫長官在門口。）' },
-      { speaker: '塔倫', text: '⋯⋯今天是「鐵骨」阿巴。撐住別倒。', color: '#883333' },
+      { speaker: '塔倫', text: '⋯⋯今天是「鐵骨」阿巴。撐住別倒。', color: '#cc6666' },
       { speaker: '塔倫', text: '⋯⋯他打人像石牆。但你也要學一件事——倒下去之前、咬牙站著。' },
       { text: '（你走出通道。）' },
       { text: '（場另一頭——一個矮壯的男人、四十出頭、滿臉舊疤、像花崗岩。）' },
@@ -70,7 +70,7 @@ const MidgameBosses = (() => {
       { speaker: '阿巴', text: '⋯⋯不錯。撐到最後。', color: '#776655' },
       { speaker: '阿巴', text: '⋯⋯記住這一場。下次別人打你像我這樣硬、你就知道怎麼撐。' },
       { text: '（他自己起身、走回對面通道。）' },
-      { speaker: '塔倫', text: '⋯⋯不錯。學會「不屈」這事、比贏這場還值錢。', color: '#883333' },
+      { speaker: '塔倫', text: '⋯⋯不錯。學會「不屈」這事、比贏這場還值錢。', color: '#cc6666' },
       { text: '（——你獲得永久特性「不屈」：致命一擊鎖死 1 HP + 5 回合 +30% ATK）', color: '#d4af37' },
     ]);
     if (typeof Stats !== 'undefined') {
@@ -91,7 +91,7 @@ const MidgameBosses = (() => {
     DialogueModal.play([
       { text: '（你倒在沙地。觀眾噓聲。）' },
       { speaker: '阿巴', text: '⋯⋯沒事、再練幾年。', color: '#776655' },
-      { speaker: '塔倫', text: '⋯⋯（他沒講話、只是嘆氣。）', color: '#883333' },
+      { speaker: '塔倫', text: '⋯⋯（他沒講話、只是嘆氣。）', color: '#cc6666' },
     ]);
     if (typeof Stats !== 'undefined') Stats.modFame(-5);
     _log('🛡 鐵骨阿巴勝。-5 名聲。', '#aa5050', true);

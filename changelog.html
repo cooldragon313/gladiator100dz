@@ -208,6 +208,136 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       2026-05-12 Sol Arc Phase 1 實作 + 顏色 audit
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag new">SYSTEM + NEW + FIX</span>
+      <span class="version-title">救索爾分支 Phase 1 落地 — 主人對白 / 塔倫抽鞭 / 主角 OS / 老默 scene + 顏色 audit</span>
+      <span class="version-date">2026-05-12</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text"><strong>Sol Arc Phase 1 完整實作</strong>
+          <span class="file-tag">src/quests/sol_arc.js (新、~340 行) / src/main.js / src/core/stats.js / game.html</span>
+          — Day 5 戰勝索爾後 HP &gt; 70% 彈「了結 / 讓他活著」ChoiceModal。
+          選「讓他活著」→ 跪求主人 → 主人裁決「200 銅幣債務」（100 買價 + 100 罰金）→ 私財凍結 → 訓練 30 次門檻才能上競技場。
+          stats.js `modMoney` 攔截正向金額、走 `SolArc.applyMoneySkim` 扣抵債務直到 0。
+          訓練第 30 次後晨起、塔倫主動通知玩家「⋯⋯練得可以了」。
+          還清債務時 `Stage.popupBig` ding 演出。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">CONTENT</span>
+        <span class="change-text"><strong>Phase 1 對白完整改寫（user 2026-05-12 反覆訂正）</strong>
+          — 主人對白「哼~」(震動) + 三選一玩家回答（推道德軸：loyalty / reliability / patience）+
+          「我也不養無用人——你想救他、就連他那份一起賺給我！在你賺滿 200 之前你都沒有得分」。
+          塔倫補刀加抽鞭：「別讓我看到你偷懶——」`effect: shake-and-flash`、鞭子在沙地劃過。
+          赫克特插話保留「⋯⋯你今天看起來、特別好欺負」、修正描述（Day 1 已搭話過、不是「首次」）。
+          **取代結算 popup** → 主角 OS（「主人今天肯定是很不高興⋯⋯」「總算是相識一場⋯⋯」）+
+          扶索爾走醫療室 + 老默 scene（順便當 first meeting、設 met_doctor flag）。
+          老默 +3 好感（「你也挺有種的」）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">CONTENT</span>
+        <span class="change-text"><strong>競技場開放邏輯改寫（通用塔倫對白）</strong>
+          <span class="file-tag">src/main.js _endOfSandWash</span>
+          — 之前「Day 5 沙洗完直接開」邏輯有漏洞、改成「競技場對外一直開、但新人要訓練累計 30 次合格才能上」。
+          塔倫對白：「競技場——對外是一直開的。但主人不會把新人扔出去白送命。⋯⋯練到我覺得不會丟主人臉——我會點你的名。」
+          救不救索爾共用門檻、不是路線鎖。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">UI</span>
+        <span class="change-text"><strong>對白顏色 audit（user 反饋深藍/暗紅讀不清）</strong>
+          <span class="file-tag">src/quests/sol_arc.js / midgame_bosses.js / recruit_enemy.js / 更改對話專用.md</span>
+          — 阿圖斯：誤用卡西烏斯色 #5a7a9a（深藍）→ 改 #d4af37（金色、主人/貴族招牌）。
+          塔倫長官：#883333（暗紅）讀不清楚 → 改 #cc6666（柔紅）。
+          既有對白色一併更新。色表加阿圖斯條目、塔倫色更新。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">PENDING</span>
+        <span class="change-text"><strong>系統 audit 待動工（user 2026-05-12 提議）</strong>
+          — 提案：加 `day_story_claimed` flag 機制、腳本事件 set 旗、隨機事件 check 旗。
+          替換現有 SCRIPTED_DAYS 寫死清單（intra_events / doctor_events）。
+          涉及 10 檔案、約 30-50 行。明天測試 Phase 1 OK 後再動。</span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       2026-05-11 索爾存活線 5 階段 spec + Day 5 沙洗大改
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag new">DOCS + SPEC</span>
+      <span class="version-title">索爾存活 5 階段 Arc 拍板 — A-S/A 饒他 → 100 銅幣債 → 義肢 → 三賤客 → 結局忠誠變體</span>
+      <span class="version-date">2026-05-11</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-data">SPEC</span>
+        <span class="change-text"><strong>Day 5 沙洗加 E 路徑：饒索爾（救他活下去）</strong>
+          <span class="file-tag">docs/quests/sol-arc.md (新) / day5-sand-wash.md (更新)</span>
+          — A-S/A 級碾壓後彈「了結 / 饒他」選項。選饒他 → 跪求主人「我花了 100 銅幣買他」→ 100 銅幣債務 + 私財凍結 +
+          主人 -15 / 長官 -10。中後期索爾從跛子 → 裝義肢 → 戰友 → 結局犧牲或同行。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">SPEC</span>
+        <span class="change-text"><strong>競技場開放邏輯改成訓練 30 次門檻（不分救不救）</strong>
+          — 之前設計「Day 5 沙洗完直接開競技場」邏輯有漏洞（主人不會把新人扔出去白送命）。
+          改成：競技場一直開、但新人要訓練累計 30 次才能上。塔倫主動通知。
+          救索爾路線額外加 100 銅幣債、所有 modMoney(+) 先扣抵到 0 為止。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">SPEC</span>
+        <span class="change-text"><strong>Phase 2 偷懶遮掩取代擋鞭（邏輯通了）</strong>
+          — 之前 Phase 2 設計「沒事 Sol 擋鞭」邏輯不通（沒鞭刑情境）。改成 user 提的「玩家偷懶 Sol 遮掩」：
+          玩家偷懶時、30% 機率 Sol 站旁邊揉腿擋監督官視線、玩家 mood -0 + stamina +5、Sol 自己 mood -5。
+          Sol 自己跛、揉腿是合理動作。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">SPEC</span>
+        <span class="change-text"><strong>Phase 3 帶索爾見黑鬍子裝義肢（接 blackmarket）</strong>
+          — 索爾全盤接受（不抗拒、信任玩家）、玩家自主決定義肢材質 + 可選自發匯款 -50 銅幣給女兒（kindness weight 2）。
+          義肢 4 種規格、依材質索爾屬性升級（從跛子 → 戰友）。連動 blackmarket.md 義肢系統。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">SPEC</span>
+        <span class="change-text"><strong>Phase 4 NvN 三賤客 + 戰利品分享 + 防陰招升級</strong>
+          — 玩家 + 奧蘭 + 索爾派遣 = 三賤客特殊對白 + fame +5。
+          索爾戰勝後主動把好裝備給玩家（致敬「你救過我」）。
+          防陰招機率 20% → 50%（義肢身體更耐操）。
+          aff ≥ 80 解鎖「索爾的庇護」被動：HP +30 + 25% 機率搶救（致敬奧蘭援手）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">SPEC</span>
+        <span class="change-text"><strong>Phase 5 結局忠誠期 4 變體</strong>
+          — B 路反撲：「⋯⋯該我了。你給我的、我來還。」Sol 死守、玩家滿狀態繼續。
+          A 加冕：玩家以勝利者身份回去看 Sol、選帶女兒木牌 / 領回家。
+          買自由：付 200 銅幣贖 Sol、兩個自由人一起走。
+          逃脫（暗線）：Sol 義肢踏穩、擋守衛、玩家逃成功。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">SPEC</span>
+        <span class="change-text"><strong>新結局：買自由（買來的命買回去）</strong>
+          <span class="file-tag">docs/systems/ending-presentation.md</span>
+          — 條件：500 銅幣 + fame 50 + master aff 30 + Day 60+。
+          歷史考據：羅馬奴隸角鬥士可以用 peculium 累積資金、買自由（manumissio）。
+          跟其他結局共存、Day 60+ 攢夠條件就觸發。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-fix">PENDING-DECISIONS</span>
+        <span class="change-text"><strong>9 個待 user 拍板議題（Sol Arc）</strong>
+          — S/A 碾壓門檻是否放寬 B / 三賤客好感 60 OK / 索爾贖金 200 OK /
+          給女兒匯款 storyReveal / Phase 4 戰利品衝突 / 買自由主人「你確定？」收尾 /
+          殺索爾路線是否加強 / 索爾女兒 D 完整名揭露。詳見 sol-arc.md § 7。</span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
        2026-05-10 仇恨度系統 spec + 裝備色階 bug 修
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">

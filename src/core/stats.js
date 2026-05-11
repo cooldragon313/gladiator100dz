@@ -518,6 +518,15 @@ const Stats = (() => {
    */
   function modMoney(delta) {
     if (delta < 0 && player.money + delta < 0) return false;  // 金錢不足
+    // 🆕 2026-05-12 SolArc Phase 1：救索爾後、所有正向金錢先扣抵主人債務
+    //   詳見 docs/quests/sol-arc.md § 1.5
+    if (delta > 0 && typeof SolArc !== 'undefined' && SolArc.applyMoneySkim) {
+      delta = SolArc.applyMoneySkim(delta);
+      if (delta <= 0) {
+        renderMoney();
+        return true;   // 全部被扣抵掉、玩家口袋沒增加
+      }
+    }
     player.money += delta;
     if (delta > 0) player.moneyEarned += delta;
     else           player.moneySpent  += -delta;

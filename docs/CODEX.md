@@ -2,7 +2,7 @@
 
 > 查找所有精緻做的東西 — 特性、書、origin、傷勢、見識、旗標、數字。
 > 來源：config.js / books.js / origins.js / wounds.js / stats.js 實際程式碼
-> 最後更新：2026-05-10（仇恨度系統 spec — 戰後四選一 + 重逢戰 + 戰中陰招 + 玩家被斷手腳 → 義肢線、待實作）
+> 最後更新：2026-05-11（索爾存活 5 階段 spec — 救索爾 → 100 銅幣債 → 義肢 → 三賤客 → 結局忠誠變體 + 買自由結局、待實作）
 
 ---
 
@@ -656,6 +656,32 @@ player.wounds.head = null | { severity:1-3, daysElapsed } | { special:'concussio
 | `player.blackmarket_use_count` | 累計使用「下毒 + 買通」次數 | 服務成功時 +1 |
 | `player.shady_reputation` | 詭異名聲等級（0=無 / 1=暗潮 / 2=風聲 / 3=臭了）| use_count 達 3/6/10 時升級 |
 
+### 🆕 索爾存活線 flag（2026-05-11，待實作 — spec 在 [docs/quests/sol-arc.md](quests/sol-arc.md)）
+
+| Flag / 欄位 | 意義 | 寫入時機 |
+|---|---|---|
+| `saved_sol` | 走 Sol arc 的總開關 | Day 5 A-S/A 碾壓饒他、跪求主人後 |
+| `sol_recovering` | 索爾養傷中（Day 5-15）| 救索爾時設、Day 15 unset |
+| `sol_recovery_start_day` | 養傷開始日（=5）| 用來算 +10 天醒來 |
+| `debt_to_master` | 對主人債務數字（初始 200 = 100 買價 + 100 罰金）| 任何 modMoney(+) 扣到 0 為止 |
+| `master_skim_active` | 私財扣抵中 | 與 debt_to_master 同步、債清歸 unset |
+| `master_debt_cleared` | 永久旗標、還清過 | 演出觸發後設 |
+| `sol_grateful_oath` | 索爾感激誓言（Day 15 醒）| Phase 2 啟動 |
+| `hector_hinted_prosthetic` | 赫克特暗示義肢 | Phase 3 起手 |
+| `sol_agrees_prosthetic` | 索爾同意換腳 | 玩家說服後 |
+| `player_paid_sol_daughter` | 玩家匯款給索爾女兒（Phase 3 主流程固定 -50 銅幣）| Phase 3 玩家宣示長期計畫時 |
+| `sol_long_term_pact` | 玩家承諾「一起戰、買自由、跟女兒重逢」的合約 | Phase 3 同上、解鎖買自由結局伏筆 |
+| `sol_prosthetic_done` | 索爾義肢完成 | Phase 4 啟動 |
+| `sol_prosthetic_material` | 'wood' / 'bronze' / 'iron' / 'iron_weaponized' | 同上 |
+| `sol_protection_passive` | 「索爾的庇護」被動 | aff ≥ 80 解鎖 |
+| `sol_died_for_player` | 索爾為玩家死（B 路反撲）| 結局變體 |
+| `escape_with_sol` | 帶索爾一起買自由 | 買自由結局 + 付 200 贖金 |
+
+| 訓練門檻 flag | 意義 | 寫入時機 |
+|---|---|---|
+| `arena_requires_training` | 訓練 30 次門檻數字 | Day 5 沙洗結束時設 |
+| `arena_training_qualified` | 玩家已達訓練門檻 | training_action_count ≥ 30 |
+
 ### 🆕 仇恨度系統 flag（2026-05-10，待實作 — spec 在 [grudge-and-schemes.md](systems/grudge-and-schemes.md)）
 
 | Flag / 欄位 | 意義 | 寫入時機 |
@@ -965,6 +991,7 @@ player.wounds.head = null | { severity:1-3, daysElapsed } | { special:'concussio
 | 🆕 `docs/quests/blacksmith-signature-weapon.md` | 葛拉個人任務「主武器之路」8 階段（待實作）|
 | 🆕 `docs/systems/blackmarket.md` | 黑市總規格：赫克特生存之道（3 服務）+ 黑鬍子貨棧（傳奇武器 + 義肢）+ 詭異名聲社交代價（2026-05-09，待實作）|
 | 🆕 `docs/systems/grudge-and-schemes.md` | 仇恨度與敵方陰招：戰後四選一（含斷手腳）+ 個人/訓練所 grudge + revenge_target 重逢戰 + 戰中陰招（撒沙/毒匕/暗器）+ 玩家被斷手腳 → 義肢線（2026-05-10，待實作）|
+| 🆕 `docs/quests/sol-arc.md` | 索爾存活 5 階段：Day 5 A-S/A 饒他 → 100 銅幣債 → 養傷 → 偷懶遮掩 → 義肢 → 派遣三賤客 → 結局忠誠 4 變體（2026-05-11，待實作）|
 | `docs/philosophy/numbers-hiding.md` | 零數字哲學 / 日誌獎勵分工 |
 | `docs/characters/*.md` | NPC 角色檔（13 個：orlan / melaKook / cassius / hector / doctorMo / officer / masterArtus / sol / livia / marcus / overseer / 🆕 blackbeard / 🆕 steelpalm）|
 | `docs/quests/mela-rat.md` | 抓老鼠任務 |

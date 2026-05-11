@@ -312,6 +312,25 @@ const NAMED_ENDINGS = {
     title: '血冠',
     condition: (axes) => axes.combat >= 1 && axes.moral <= -2,
   },
+  // 🆕 2026-05-11 新結局：買自由（slave 用 peculium 贖回自由身）
+  // 設計來源：[sol-arc.md § 5.3](../quests/sol-arc.md)
+  buyFreedomEnding: {
+    title: '買來的命買回去',
+    condition: (axes, ctx) =>
+      ctx.money >= 500 && ctx.fame >= 50 &&
+      ctx.affection.masterArtus >= 30 && ctx.day >= 60,
+    // 不限軸組合 — 玩家撐到 Day 60+ 攢夠錢、就有資格
+    // 跟其他結局共存（在 Day 60+ 觸發前都可以累積條件）
+    // 主人會主動詢問「⋯⋯500 銅幣。你買回你自己。」
+    // 🆕 2026-05-12：若 Flags.sol_long_term_pact = true、結局加一句索爾兌現承諾段：
+    //   「⋯⋯你那天說的話。」「⋯⋯我都記得。」
+    //   呼應 Phase 3 玩家對索爾的合約：「打到能買回你自由的那一天。」
+  },
+  // 🆕 2026-05-11 Sol 路線變體（觸發條件、不獨立成結局、注入既有結局第二幕）
+  // 詳見 sol-arc.md § 5
+  solDiedForPlayer:  { tag: 'sol_sacrifice_bonus' },   // 萬骸祭 B 路 Sol 死守 → 第二幕加女兒視角
+  escapeWithSol:     { tag: 'two_free_men' },           // 買自由 + 索爾贖金 200 → 第四幕同行片段
+  solStaysBehind:    { tag: 'lone_freedom' },           // 玩家自由、索爾留下 → 第三幕內心獨白
 };
 ```
 
