@@ -5209,6 +5209,26 @@ const Game = (() => {
     const moneyEl = document.getElementById('cs-money');
     if (moneyEl) moneyEl.textContent = p.money || 0;
     // 🆕 D.6 v2：SP 欄位已移除（改為 EXP 單一資源）
+
+    // 🆕 2026-05-13 債務名單（救索爾 / 赫克特高利貸時顯示）
+    const masterDebt = Flags.get('debt_to_master', 0);
+    const hectorDebt = Flags.get('hector_loan_debt', 0);
+    const debtBox    = document.getElementById('cs-debt-list');
+    const masterRow  = document.getElementById('cs-debt-master-row');
+    const hectorRow  = document.getElementById('cs-debt-hector-row');
+    const masterVal  = document.getElementById('cs-debt-master');
+    const hectorVal  = document.getElementById('cs-debt-hector');
+    if (debtBox) {
+      if (masterDebt > 0 || hectorDebt > 0) {
+        debtBox.style.display = '';
+        if (masterRow) masterRow.style.display = masterDebt > 0 ? '' : 'none';
+        if (hectorRow) hectorRow.style.display = hectorDebt > 0 ? '' : 'none';
+        if (masterVal) masterVal.textContent = masterDebt;
+        if (hectorVal) hectorVal.textContent = hectorDebt;
+      } else {
+        debtBox.style.display = 'none';
+      }
+    }
   }
 
   // ── R1: 六角形屬性圖 ─────────────────────────

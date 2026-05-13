@@ -138,19 +138,26 @@ const GamblingQuest = (() => {
       });
     });
 
-    // 赫克特高利貸（沒錢時、好感 ≥ 5 才出現）
+    // 🆕 2026-05-13：赫克特高利貸（**只在沒錢時出現**、user 確認）
+    //   借錢額度 = 玩家對赫克特好感（aff 30 → 最多借 30、即 max stake 10/場）
+    //   借的錢初始 ×2 變債務（借 30 → 欠 60）、每週 ×1.3 利滾利
+    //   赫克特債務獨立於主人債務、主人還清後才開始扣抵
     const hectorAff = (typeof teammates !== 'undefined' && teammates.getAffection)
       ? teammates.getAffection('hector') : 0;
     const hectorMaxLoan = Math.max(0, hectorAff);
-    const showHectorLoan = !hasMoney && hectorMaxLoan >= 5;
-    if (showHectorLoan) {
-      choices.push({
-        id: 'hector_loan',
-        label: `🐍 跟赫克特借（最多 ${hectorMaxLoan} 銅、利息 ×3）`,
-        hint: '賠了 debt += 賠額 × 3、贏了給赫克特一成',
-        effects: [],
-        resultLog: '赫克特嘿嘿一笑：「⋯⋯我借你。賠了算我帳上、利息三倍。」',
-        logColor: '#9a5a3a',
+    if (!hasMoney && hectorMaxLoan >= 15) {
+      [5, 10, 20, 30].forEach(stake => {
+        const needLoan = stake * 3;
+        if (needLoan > hectorMaxLoan) return;   // 超過好感不能借
+        const initialDebt = needLoan * 2;
+        choices.push({
+          id: 'hector_bet_' + stake,
+          label: `🐍 借 ${needLoan} 押 ${stake} / 場（債務 ${initialDebt}、每週 ×1.3）`,
+          hint: `初始債 ${initialDebt} 銅、不還每週利息 ×1.3 利滾利`,
+          effects: [],
+          resultLog: `赫克特嘿嘿一笑：「⋯⋯我借你 ${needLoan}。記著、欠 ${initialDebt}。」`,
+          logColor: '#9a5a3a',
+        });
       });
     }
 
@@ -172,14 +179,26 @@ const GamblingQuest = (() => {
       choices,
     }, {
       onChoose: (choiceId) => {
-        if (choiceId.startsWith('bet_')) {
+        if (choiceId.startsWith('hector_bet_')) {
+          const stake = parseInt(choiceId.replace('hector_bet_', ''), 10);
+          _setupHectorLoanDebt(stake * 3);
+          _startMinigame(inviterId, name, stake, true);
+        } else if (choiceId.startsWith('bet_')) {
           const stake = parseInt(choiceId.replace('bet_', ''), 10);
           _startMinigame(inviterId, name, stake, false);
-        } else if (choiceId === 'hector_loan') {
-          _startMinigame(inviterId, name, 5, true);   // 借錢時固定 5/場
         }
       }
     });
+  }
+
+  // 🆕 2026-05-13：赫克特借款時、立刻設債務（borrow × 2）
+  function _setupHectorLoanDebt(borrowAmount) {
+    if (typeof Flags === 'undefined') return;
+    const initialDebt = borrowAmount * 2;
+    const oldDebt = Flags.get('hector_loan_debt', 0);
+    Flags.set('hector_loan_debt', oldDebt + initialDebt);
+    Flags.set('hector_loan_last_compound_day', Stats.player.day);
+    _log(`✦ 跟赫克特借 ${borrowAmount} 銅、債務 +${initialDebt}（總欠 ${oldDebt + initialDebt}）`, '#9a5a3a', true);
   }
 
   function _startMinigame(inviterId, name, stake, isHectorLoan) {
@@ -205,23 +224,22 @@ const GamblingQuest = (() => {
     // 🆕 2026-05-13：variable stake + Hector loan 結算
     let moneyDelta;
     if (isHectorLoan) {
+      // 🆕 2026-05-13：借款本金已先設債（_setupHectorLoanDebt）
+      //   贏：玩家 +grossWin、給赫克特一成（分成）
+      //   輸：debt 已含初始 ×2、不再額外加（避免雙重懲罰）
+      //   設計：「借 30 賭、不管贏輸都欠 60、贏的錢可以拿來還」
       const grossWin  = wins * stake;
-      const grossLoss = losses * stake;
       const hectorCut = Math.round(grossWin * 0.10);
-      const debtAdd   = grossLoss * 3;
-      if (debtAdd > 0 && typeof Flags !== 'undefined') {
-        const oldDebt = Flags.get('debt_to_master', 0);
-        Flags.set('debt_to_master', oldDebt + debtAdd);
-        Flags.set('master_skim_active', true);
-        _log(`✦ 賭輸 ${grossLoss}、赫克特高利貸記主人帳：debt +${debtAdd}（剩 ${oldDebt + debtAdd} 還清）`, '#aa6666', true);
-        if (typeof SolArc !== 'undefined' && SolArc.refreshDebtTrait) SolArc.refreshDebtTrait();
-      }
       moneyDelta = grossWin - hectorCut;
-      Stats.modMoney(moneyDelta);
+      if (moneyDelta > 0) Stats.modMoney(moneyDelta);
       if (hectorCut > 0) {
         _log(`✦ 贏 ${grossWin}、分赫克特 ${hectorCut} 銅（你淨拿 ${moneyDelta}）`, '#9a5a3a', true);
         if (typeof teammates !== 'undefined') teammates.modAffection('hector', +1);
       }
+      if (losses > 0) {
+        _log(`✦ 輸了 ${losses} 場（${losses * stake} 銅）— 但債務固定不變、用贏的還吧。`, '#aa6666', false);
+      }
+      if (typeof SolArc !== 'undefined' && SolArc.refreshDebtTrait) SolArc.refreshDebtTrait();
     } else {
       moneyDelta = wins * stake - losses * stake;
       Stats.modMoney(moneyDelta);

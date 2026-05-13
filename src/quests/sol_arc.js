@@ -357,7 +357,10 @@ const SolArc = (() => {
     if (typeof Stats === 'undefined') return;
     const p = Stats.player;
     if (!Array.isArray(p.traits)) p.traits = [];
-    const debt = (typeof Flags !== 'undefined') ? Flags.get('debt_to_master', 0) : 0;
+    // 🆕 2026-05-13：合計主人 + 赫克特債務
+    const masterDebt = (typeof Flags !== 'undefined') ? Flags.get('debt_to_master', 0) : 0;
+    const hectorDebt = (typeof Flags !== 'undefined') ? Flags.get('hector_loan_debt', 0) : 0;
+    const debt = masterDebt + hectorDebt;
 
     const hasRidden  = p.traits.includes('debt_ridden');
     const hasCrushed = p.traits.includes('debt_crushed');
@@ -379,30 +382,44 @@ const SolArc = (() => {
   function applyMoneySkim(delta) {
     if (!delta || delta <= 0) return delta;
     if (typeof Flags === 'undefined') return delta;
-    if (!Flags.has('master_skim_active')) return delta;
 
-    const debt = Flags.get('debt_to_master', 0);
-    if (debt <= 0) {
-      Flags.unset('master_skim_active');
-      return delta;
+    // ─── 1. 先還主人 ───
+    if (Flags.has('master_skim_active')) {
+      const debt = Flags.get('debt_to_master', 0);
+      if (debt > 0) {
+        const taken = Math.min(delta, debt);
+        const newDebt = debt - taken;
+        Flags.set('debt_to_master', newDebt);
+        delta -= taken;
+        _log(`✦ 主人扣下 ${taken} 銅幣（剩 ${newDebt} 還清）`, '#aa6666', false);
+        if (newDebt <= 0) {
+          Flags.unset('master_skim_active');
+          Flags.set('master_debt_cleared', true);
+          setTimeout(_playDebtClearedCeremony, 600);
+        }
+      } else {
+        Flags.unset('master_skim_active');
+      }
     }
 
-    const taken = Math.min(delta, debt);
-    const newDebt = debt - taken;
-    Flags.set('debt_to_master', newDebt);
-
-    _log(`✦ 主人扣下 ${taken} 銅幣（剩 ${newDebt} 還清）`, '#aa6666', false);
-
-    if (newDebt <= 0) {
-      Flags.unset('master_skim_active');
-      Flags.set('master_debt_cleared', true);
-      // 延一 tick 觸發演出（避免跟當前事件搶 modal）
-      setTimeout(_playDebtClearedCeremony, 600);
+    // ─── 2. 主人還清才開始還赫克特（user 2026-05-13） ───
+    if (delta > 0 && !Flags.has('master_skim_active')) {
+      const hectorDebt = Flags.get('hector_loan_debt', 0);
+      if (hectorDebt > 0) {
+        const taken = Math.min(delta, hectorDebt);
+        const newDebt = hectorDebt - taken;
+        Flags.set('hector_loan_debt', newDebt);
+        delta -= taken;
+        _log(`✦ 赫克特扣下 ${taken} 銅幣（剩 ${newDebt} 還清）`, '#9a5a3a', false);
+        if (newDebt <= 0) {
+          _log('✦ 你還清了赫克特高利貸。「⋯⋯嘿。下次別來找我。」', '#9a5a3a', true);
+        }
+      }
     }
 
     _refreshDebtTrait();   // 🆕 套用 / 移除「債務纏身」特性
 
-    return delta - taken;   // 剩餘進玩家口袋（通常 = 0）
+    return delta;   // 剩餘進玩家口袋
   }
 
   // ══════════════════════════════════════════════════
@@ -499,6 +516,182 @@ const SolArc = (() => {
     if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
   }
 
+  // ══════════════════════════════════════════════════
+  // § 1.8 赫克特高利貸週收（每 7 天利滾利 ×1.3 + 來收錢事件）
+  //   user 2026-05-13：借的錢要還兩倍 + 每週利息 30%
+  //   赫克特債獨立 flag、主人債清完才能還
+  // ══════════════════════════════════════════════════
+  const HECTOR_COMPOUND_DAYS = 7;
+  const HECTOR_WEEKLY_MULT   = 1.3;
+
+  function tryHectorWeeklyCompound(newDay) {
+    if (typeof Flags === 'undefined') return;
+    const debt = Flags.get('hector_loan_debt', 0);
+    if (debt <= 0) return;
+    const lastDay = Flags.get('hector_loan_last_compound_day', 0);
+    if (newDay - lastDay < HECTOR_COMPOUND_DAYS) return;
+
+    // 利滾利
+    const newDebt = Math.round(debt * HECTOR_WEEKLY_MULT);
+    Flags.set('hector_loan_debt', newDebt);
+    Flags.set('hector_loan_last_compound_day', newDay);
+    _log(`✦ 一週過去、赫克特的利息利滾利：debt ${debt} → ${newDebt}`, '#9a5a3a', true);
+    _refreshDebtTrait();
+
+    // 接著觸發週收事件（不能還清的話、進挨打 / 反抗）
+    setTimeout(() => _playHectorCollection(newDebt), 900);
+  }
+
+  function _playHectorCollection(debt) {
+    if (typeof Flags === 'undefined') return;
+    // 腳本佔用標、避免被別的隨機蓋
+    Flags.set('day_story_claimed', 'hector_collection');
+
+    const playerMoney = Stats.player.money || 0;
+    // 玩家有夠錢 → 自動扣（但 master 債未清的話、走 skim 鏈、玩家錢可能沒到手）
+    if (playerMoney >= debt) {
+      Stats.modMoney(-debt);
+      Flags.set('hector_loan_debt', 0);
+      if (typeof DialogueModal !== 'undefined') {
+        DialogueModal.play([
+          { text: '（赫克特靠過來、伸手。）' },
+          { speaker: '赫克特', text: `⋯⋯欠的 ${debt} 銅、給。`, color: '#9a5a3a' },
+          { text: '（你把錢給他。）' },
+          { speaker: '赫克特', text: '⋯⋯下次別來找我。', color: '#9a5a3a' },
+        ]);
+      }
+      _log(`✦ 還清赫克特、付了 ${debt} 銅幣。`, '#9a5a3a', true);
+      _refreshDebtTrait();
+      return;
+    }
+
+    // 還不起 → 暴力選項
+    if (typeof DialogueModal === 'undefined' || typeof ChoiceModal === 'undefined') {
+      _playHectorBeating(debt);
+      return;
+    }
+    DialogueModal.play([
+      { text: '（夜了。赫克特靠過來、表情不太好看。）' },
+      { speaker: '赫克特', text: '⋯⋯欠的錢呢？', color: '#9a5a3a' },
+      { speaker: '赫克特', text: `欠我 ${debt} 銅。`, color: '#9a5a3a' },
+      { text: '（你掏了掏口袋。沒夠。）' },
+      { speaker: '赫克特', text: '⋯⋯哦？', color: '#9a5a3a' },
+      { speaker: '赫克特', text: '那我幫你記住怎麼還我。', color: '#9a5a3a' },
+    ], {
+      onComplete: () => {
+        ChoiceModal.show({
+          id: 'hector_collection',
+          icon: '👊',
+          title: `赫克特要錢、欠他 ${debt} 銅`,
+          body: '他手裡有東西。你身上沒錢。',
+          forced: true,
+          choices: [
+            {
+              id: 'take_beating',
+              label: '挨打（HP 砍半、mood -25）',
+              hint: '（吞下去）',
+              effects: [],
+              resultLog: '你硬挨他幾拳。',
+              logColor: '#cc3333',
+            },
+            {
+              id: 'fight',
+              label: '反抗（戰鬥）',
+              hint: '（贏 / 輸都欠錢、看你能不能搶回面子）',
+              effects: [],
+              resultLog: '你舉拳衝上去。',
+              logColor: '#aa7755',
+            },
+          ],
+        }, {
+          onChoose: id => {
+            if (id === 'take_beating') _playHectorBeating(debt);
+            else _startHectorBattle(debt);
+          },
+        });
+      },
+    });
+  }
+
+  function _playHectorBeating(debt) {
+    if (typeof DialogueModal === 'undefined') {
+      _applyHectorBeatingEffects();
+      return;
+    }
+    DialogueModal.play([
+      { speaker: '赫克特', text: '⋯⋯誒、把手放下。', color: '#9a5a3a', effect: 'shake-and-flash' },
+      { text: '（一拳打在臉上。）', effect: 'shake-and-flash' },
+      { text: '（再一拳。胃。）', effect: 'shake-and-flash' },
+      { text: '（你蜷在地上。）' },
+      { speaker: '赫克特', text: '⋯⋯下次別讓我再來。', color: '#9a5a3a' },
+      { text: '（他走了。）' },
+    ], {
+      onComplete: () => _applyHectorBeatingEffects(),
+    });
+  }
+
+  function _applyHectorBeatingEffects() {
+    const p = Stats.player;
+    Stats.modVital('hp', -Math.round((p.hp || 0) / 2));   // HP 砍半
+    Stats.modVital('mood', -25);
+    _log('✦ 挨了赫克特一頓。HP 砍半、mood -25。利息持續滾。', '#cc3333', true);
+    if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
+  }
+
+  function _startHectorBattle(debt) {
+    if (typeof Battle === 'undefined' || !Battle.startFromConfig) {
+      _playHectorBeating(debt);   // 沒戰鬥系統 fallback
+      return;
+    }
+    const hectorCfg = {
+      name: '赫克特', title: '老油條',
+      STR: 18, DEX: 25, CON: 18, AGI: 22, WIL: 18, LUK: 15,
+      hpBase: 110,
+      weaponId: 'shortSword', armorId: 'leatherArmor',
+      weaponQuality: 'common',
+      ai: 'normal',
+      fame: 10,
+    };
+    Battle.startFromConfig({
+      title: '跟赫克特單挑',
+      fameReward: 0,
+      enemies: [hectorCfg],
+      allies: [],
+    }, () => _onHectorBattleWin(debt), () => _onHectorBattleLose(debt));
+  }
+
+  function _onHectorBattleWin(debt) {
+    if (typeof DialogueModal !== 'undefined') {
+      DialogueModal.play([
+        { text: '（你打倒了他。喘著粗氣。）' },
+        { speaker: '赫克特', text: '⋯⋯不錯。', color: '#9a5a3a' },
+        { speaker: '赫克特', text: '有這身手、不怕你還不完了。', color: '#9a5a3a' },
+        { speaker: '赫克特', text: '⋯⋯不過利息還是照算的。', color: '#9a5a3a' },
+        { text: '（他撇撇嘴、轉身走了。）' },
+      ]);
+    }
+    _log('✦ 你打贏了赫克特。利息照算、但他刮目相看。', '#9a5a3a', true);
+  }
+
+  function _onHectorBattleLose(debt) {
+    if (typeof DialogueModal !== 'undefined') {
+      DialogueModal.play([
+        { speaker: '赫克特', text: '⋯⋯就這身手還反抗、欠扁！', color: '#9a5a3a', effect: 'shake-and-flash' },
+        { text: '（拳頭一個接一個。）', effect: 'shake-and-flash' },
+        { text: '（地上的血看起來不像你的。）' },
+        { speaker: '赫克特', text: '⋯⋯下次再拖、我再扁。', color: '#9a5a3a', effect: 'shake-and-flash' },
+        { text: '（他走了。你動不了。）' },
+      ], {
+        onComplete: () => {
+          Stats.player.hp = 5;
+          Stats.modVital('mood', -30);
+          _log('✦ 你打輸了赫克特。HP = 5、mood -30。利息持續滾。', '#cc3333', true);
+          if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
+        },
+      });
+    }
+  }
+
   function tryTarunQualifiedNotify() {
     if (typeof Flags === 'undefined') return;
     if (Flags.has('arena_training_qualified')) return;     // 已通知過
@@ -527,6 +720,7 @@ const SolArc = (() => {
     DayCycle.onDayStart('solArcMaintenance', (newDay) => {
       tryTarunQualifiedNotify();
       tryMasterForcedLabor(newDay);   // 🆕 強制勞務（凍結期 + debt 高時隨機）
+      tryHectorWeeklyCompound(newDay);   // 🆕 赫克特利滾利週收
       // Phase 2 wakeUpDay15 / coverSlacking / nightWatch 在這加（待實作）
     }, 30);
   }
