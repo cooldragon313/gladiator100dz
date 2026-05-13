@@ -635,20 +635,32 @@ const DoctorEvents = (() => {
 
     const { cost, free } = _calcWoundCost(w.severity);
     const playerMoney = p.money || 0;
-    if (playerMoney < cost) {
+
+    // 🆕 2026-05-13：私財凍結期賒帳機制（救索爾後玩家沒錢時）
+    //   主人加倍記帳（cold_investor 敲詐邏輯）
+    //   錢不夠 + master_skim_active → 老默賒帳、debt 增加 cost × 2
+    let onMasterTab = false;
+    let debtBilled  = 0;
+    if (playerMoney < cost && typeof Flags !== 'undefined' && Flags.has && Flags.has('master_skim_active')) {
+      onMasterTab = true;
+      debtBilled  = cost * 2;   // 加倍
+      const oldDebt = Flags.get('debt_to_master', 0);
+      Flags.set('debt_to_master', oldDebt + debtBilled);
+      _log(`✦ 主人替你付了 ${cost} 金、但要你還 ${debtBilled}（剩 ${oldDebt + debtBilled} 還清）`, '#aa6666', true);
+    } else if (playerMoney < cost) {
       _log(`——錢不夠（需 ${cost} 金）。老默把器械放回桌上，沒說話。`, '#cc3333', true);
       if (typeof SoundManager !== 'undefined') SoundManager.playSynth('debuff');
       return;
     }
 
-    console.log(`[DoctorEvents] treating ${part}, sev=${w.severity}, cost=${cost}, free=${free}`);
+    console.log(`[DoctorEvents] treating ${part}, sev=${w.severity}, cost=${cost}, free=${free}, onMasterTab=${onMasterTab}`);
 
     const partName = Wounds.PART_NAMES[part];
     const sevName  = Wounds.SEVERITY_NAMES[w.severity];
     const origSev  = w.severity;
 
     // 🆕 2026-04-23：治療數值立刻套用（對白純粹戲劇演出）
-    if (cost > 0) {
+    if (cost > 0 && !onMasterTab) {
       const ok = Stats.modMoney(-cost);
       console.log(`[DoctorEvents] modMoney(-${cost}) => ${ok}, money now = ${p.money}`);
     }
@@ -680,7 +692,13 @@ const DoctorEvents = (() => {
 
     // 對白（對白失敗也不影響治療已完成的事實）
     const lines = _getWoundDialogue(part, origSev).slice();
-    if (cost > 0 && !free) {
+    if (onMasterTab) {
+      // 🆕 2026-05-13：賒帳模式（私財凍結期、主人替付、加倍記帳）
+      lines.push({ speaker: '老默', text: '⋯⋯沒錢？沒關係。' });
+      lines.push({ speaker: '老默', text: '主人讓我看著你、不是讓你死。' });
+      lines.push({ speaker: '老默', text: '賬記他頭上。' });
+      lines.push({ speaker: '老默', text: `⋯⋯不過你欠的、又多了 ${debtBilled}。` });
+    } else if (cost > 0 && !free) {
       lines.push({ speaker: '老默', text: `${cost} 金。不用謝。` });
     } else if (free) {
       lines.push({ speaker: '老默', text: '這次不收你的。別養成習慣。' });
