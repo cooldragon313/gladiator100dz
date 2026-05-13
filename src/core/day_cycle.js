@@ -99,10 +99,23 @@ const DayCycle = (() => {
   /**
    * 觸發所有「新一天開始」鉤子。
    * @param {number} newDay 新的天數
+   *
+   * 🆕 2026-05-13：腳本宣告佔用機制（day_story_claimed）
+   *   - 每天開始 reset `day_story_claimed` flag
+   *   - 維護型 hook（priority < 30、清旗 / wounds tick / fervor 等）永遠跑
+   *   - 事件型 hook（priority >= 30）若 `day_story_claimed` 已設、跳過
+   *   - 腳本事件（cross_ludus / lord / kade / 沙洗 trial 等）在自己觸發時 set 旗
+   *   - 隨機事件（intra / doctor / npc_reactions / recruit_enemy 等）在自己 try 時 check 旗
+   *   → 主要解決：腳本進行中、隨機事件不要冒出來蓋掉故事
    */
   function fireDayStart(newDay) {
+    if (typeof Flags !== 'undefined' && Flags.unset) Flags.unset('day_story_claimed');
     for (const hook of _startHooks) {
       try {
+        // event hooks (priority >= 30) 若有腳本宣告佔用、就跳過
+        if (hook.priority >= 30 && typeof Flags !== 'undefined' && Flags.has && Flags.has('day_story_claimed')) {
+          continue;
+        }
         hook.callback(newDay);
       } catch (e) {
         console.warn(`[DayCycle] start hook "${hook.name}" threw:`, e);

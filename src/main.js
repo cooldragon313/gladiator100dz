@@ -536,6 +536,8 @@ const Game = (() => {
   // 選項 D：沉默 → 長官暴怒 → 你被罰上場 + debuff → 高死亡風險
   // ══════════════════════════════════════════════════
   function _triggerThreePersonTrial(ev) {
+    // 🆕 2026-05-13：宣告腳本佔用、避免奧蘭跌倒等隨機 reveal 蓋掉沙洗對白
+    if (typeof Flags !== 'undefined') Flags.set('day_story_claimed', 'day5_trial');
     _syncCurrentNPCs(ev.forcedNPCs);
     renderAll();
 
@@ -3934,6 +3936,8 @@ const Game = (() => {
 
   function _scanStoryEvents() {
     if (typeof teammates === 'undefined' || !teammates.getPendingStoryEvents) return;
+    // 🆕 2026-05-13：腳本進行中、暫不掃 storyReveal（避免奧蘭 200 跌倒蓋掉沙洗等）
+    if (typeof Flags !== 'undefined' && Flags.has && Flags.has('day_story_claimed')) return;
     const p = Stats.player;
     if (!Array.isArray(p.seenReveals)) p.seenReveals = [];
 

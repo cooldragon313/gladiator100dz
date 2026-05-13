@@ -301,24 +301,38 @@ const SolArc = (() => {
     if (typeof Flags === 'undefined' || typeof Stats === 'undefined') return;
     const p = Stats.player;
 
+    // 🆕 2026-05-13 bug 修：主人沒收身上現有錢、抵債務（user 反饋「錢包還有 24G 是 bug」）
+    //   邏輯：私財凍結 = 連現在身上的錢都先給主人
+    let initialDebt = DEBT_INITIAL;
+    const currentMoney = p.money || 0;
+    if (currentMoney > 0) {
+      const seized = Math.min(currentMoney, initialDebt);
+      p.money = Math.max(0, currentMoney - seized);
+      initialDebt -= seized;
+      _log(`✦ 主人沒收你身上的 ${seized} 銅幣抵債（剩 ${initialDebt} 還清）`, '#aa6666', true);
+    }
+
     // Flag
     Flags.set('saved_sol', true);
     Flags.set('sol_recovering', true);
     Flags.set('sol_recovery_start_day', p.day);
-    Flags.set('debt_to_master', DEBT_INITIAL);   // 200
-    Flags.set('master_skim_active', true);
-    Flags.set('trial_completed', true);     // 共用既有 flag、避免重觸發
-    Flags.set('met_doctor', true);           // 🆕 順便、玩家認識老默了
+    Flags.set('debt_to_master', initialDebt);    // 扣掉現有錢的剩餘債務
+    Flags.set('master_skim_active', initialDebt > 0);   // 還沒清才啟動 skim
+    Flags.set('trial_completed', true);
+    Flags.set('met_doctor', true);
 
-    // 索爾標記養傷中（NPC.alive 不動、但 sol_recovering 旗標讓場內不出現）
     // 好感
     _modAff('masterArtus', -15);
     _modAff('officer', -10);
-    _modAff('doctorMo', 3);    // 🆕 老默對你印象「有種」
+    _modAff('doctorMo', 3);
 
-    // 🆕 2026-05-12：不開 popup、改用 § 1.5 老默 scene 自然帶過（user 反饋）
-    //   數值靜默套用、玩家從 NPC 卡片 / 對白看到細節
-    _log('✦ 你救了索爾。欠主人 200 銅幣、訓練 30 次才能上競技場。', '#aa9966', true);
+    // 若初始就還清（玩家身上錢 ≥ 200）→ 直接放還清演出
+    if (initialDebt <= 0) {
+      Flags.set('master_debt_cleared', true);
+      setTimeout(_playDebtClearedCeremony, 800);
+    } else {
+      _log(`✦ 你救了索爾。欠主人 ${initialDebt} 銅幣、訓練 30 次才能上競技場。`, '#aa9966', true);
+    }
 
     if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
   }
