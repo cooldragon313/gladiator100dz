@@ -176,12 +176,13 @@ const ShellsGame = (() => {
 
     // 對手 DEX 依 round 微調（round 1 笨手 / round 3 飛快）
     // 🆕 2026-04-27 v3：每場再快 10%（×0.9）
+    // 🆕 2026-05-13 v4：難度再快一波（×0.85、user 反饋）
     const baseDEX = _config.oppDEX || 15;
     const playerDEX = _config.playerDEX || 10;
     let roundDEX = baseDEX;
-    let speedMult = 0.9;   // 全場基礎 -10%
-    if (_round === 1) { roundDEX = baseDEX - 10; speedMult = 1.35; }   // 簡單（原 1.5 × 0.9）
-    else if (_round === 3) { roundDEX = baseDEX + 5; speedMult = 0.72; }   // 困難（原 0.8 × 0.9）
+    let speedMult = 0.85;   // 全場基礎 -15%（之前 -10%）
+    if (_round === 1) { roundDEX = baseDEX - 10; speedMult = 1.15; }     // 簡單（之前 1.35）
+    else if (_round === 3) { roundDEX = baseDEX + 5; speedMult = 0.60; }  // 困難（之前 0.72）
 
     // 玩家 DEX 高 → 動畫變慢（玩家眼睛跟得上）
     if (playerDEX >= 35) speedMult *= 0.7;

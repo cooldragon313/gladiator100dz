@@ -334,6 +334,8 @@ const SolArc = (() => {
       _log(`✦ 你救了索爾。欠主人 ${initialDebt} 銅幣、訓練 30 次才能上競技場。`, '#aa9966', true);
     }
 
+    _refreshDebtTrait();   // 🆕 套用 / 移除「債務纏身」特性
+
     if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
   }
 
@@ -345,6 +347,35 @@ const SolArc = (() => {
    * @param {number} delta 增量（只攔截正值、負值直接放行）
    * @returns {number} 實際進玩家口袋的 delta（≥ 0）
    */
+  // ══════════════════════════════════════════════════
+  // § 債務纏身特性 tier 自動套用 / 移除（每次 debt 變動呼叫）
+  //   debt ≥ 500 → debt_ridden
+  //   debt ≥ 1000 → debt_crushed（升級版、取代 ridden）
+  //   debt === 0 → 兩個都移除
+  // ══════════════════════════════════════════════════
+  function _refreshDebtTrait() {
+    if (typeof Stats === 'undefined') return;
+    const p = Stats.player;
+    if (!Array.isArray(p.traits)) p.traits = [];
+    const debt = (typeof Flags !== 'undefined') ? Flags.get('debt_to_master', 0) : 0;
+
+    const hasRidden  = p.traits.includes('debt_ridden');
+    const hasCrushed = p.traits.includes('debt_crushed');
+
+    if (debt >= 1000 && !hasCrushed) {
+      if (hasRidden) p.traits.splice(p.traits.indexOf('debt_ridden'), 1);
+      p.traits.push('debt_crushed');
+      _log('✦ 你身上掛著太多債、像一條看不見的鎖鏈。獲得特性「債務纏身（絕望）」。', '#883333', true);
+    } else if (debt >= 500 && debt < 1000 && !hasRidden && !hasCrushed) {
+      p.traits.push('debt_ridden');
+      _log('✦ 你開始感覺到那 500 銅幣壓在背上。獲得特性「債務纏身」。', '#aa6666', true);
+    } else if (debt === 0 && (hasRidden || hasCrushed)) {
+      if (hasRidden)  p.traits.splice(p.traits.indexOf('debt_ridden'), 1);
+      if (hasCrushed) p.traits.splice(p.traits.indexOf('debt_crushed'), 1);
+      _log('✦ 你還清了。背上的重量散了。「債務纏身」消失。', '#88dd66', true);
+    }
+  }
+
   function applyMoneySkim(delta) {
     if (!delta || delta <= 0) return delta;
     if (typeof Flags === 'undefined') return delta;
@@ -368,6 +399,8 @@ const SolArc = (() => {
       // 延一 tick 觸發演出（避免跟當前事件搶 modal）
       setTimeout(_playDebtClearedCeremony, 600);
     }
+
+    _refreshDebtTrait();   // 🆕 套用 / 移除「債務纏身」特性
 
     return delta - taken;   // 剩餘進玩家口袋（通常 = 0）
   }
@@ -409,6 +442,63 @@ const SolArc = (() => {
   // ══════════════════════════════════════════════════
   // § 1.7 訓練 30 次門檻：達標後塔倫主動通知
   // ══════════════════════════════════════════════════
+  // ══════════════════════════════════════════════════
+  // § 1.7c 強制勞務 — 主人苦力（凍結期 + debt 高時隨機派遣）
+  //   8% 機率 / 天、debt ≥ 100 才會、每日上限 1 次
+  //   扣 stamina -40、debt -15、STR/CON EXP +6
+  // ══════════════════════════════════════════════════
+  function tryMasterForcedLabor(newDay) {
+    if (typeof Flags === 'undefined') return;
+    if (!Flags.has('master_skim_active')) return;
+    if (Flags.get('debt_to_master', 0) < 100) return;
+    if (Flags.has(`forced_labor_day_${newDay}`)) return;
+    if (Math.random() >= 0.08) return;
+    if (typeof Flags.has === 'function' && Flags.has('day_story_claimed')) return;   // 腳本日不要插
+
+    Flags.set(`forced_labor_day_${newDay}`, true);
+    Flags.set('day_story_claimed', 'master_forced_labor');
+
+    if (typeof DialogueModal === 'undefined') {
+      _applyForcedLaborEffects();
+      return;
+    }
+
+    DialogueModal.play([
+      { text: '（清晨。侍從走進來。）' },
+      { speaker: '侍從', text: '主人說你今天不練。' },
+      { speaker: '侍從', text: '跟我去搬貨。' },
+      { text: '（你跟著他到後院、看到一堆石頭等你搬。）' },
+      { text: '（一整天過去。腰快斷了。）' },
+      { speaker: '侍從', text: '⋯⋯主人說你今天的份扣 15 銅幣。' },
+      { speaker: '侍從', text: '⋯⋯下次別跟主人作對。' },
+      { text: '（他丟下一塊乾餅、走了。）' },
+    ], {
+      onComplete: () => _applyForcedLaborEffects(),
+    });
+  }
+
+  function _applyForcedLaborEffects() {
+    const p = Stats.player;
+    if (!p) return;
+    Stats.modVital('stamina', -40);
+    Stats.modExp('STR', 6);
+    Stats.modExp('CON', 6);
+
+    // 扣 debt（不透過 modMoney、直接扣 flag）
+    const oldDebt = Flags.get('debt_to_master', 0);
+    const repaid  = Math.min(15, oldDebt);
+    Flags.set('debt_to_master', oldDebt - repaid);
+    _log(`✦ 你被派去當苦力。stamina -40、STR/CON EXP +6、還主人 ${repaid} 銅幣（剩 ${oldDebt - repaid}）。`, '#aa6666', true);
+
+    if (oldDebt - repaid <= 0) {
+      Flags.unset('master_skim_active');
+      Flags.set('master_debt_cleared', true);
+      setTimeout(_playDebtClearedCeremony, 800);
+    }
+    _refreshDebtTrait();
+    if (typeof Game !== 'undefined' && Game.renderAll) Game.renderAll();
+  }
+
   function tryTarunQualifiedNotify() {
     if (typeof Flags === 'undefined') return;
     if (Flags.has('arena_training_qualified')) return;     // 已通知過
@@ -434,8 +524,9 @@ const SolArc = (() => {
   // ══════════════════════════════════════════════════
   function init() {
     if (typeof DayCycle === 'undefined' || typeof DayCycle.onDayStart !== 'function') return;
-    DayCycle.onDayStart('solArcMaintenance', () => {
+    DayCycle.onDayStart('solArcMaintenance', (newDay) => {
       tryTarunQualifiedNotify();
+      tryMasterForcedLabor(newDay);   // 🆕 強制勞務（凍結期 + debt 高時隨機）
       // Phase 2 wakeUpDay15 / coverSlacking / nightWatch 在這加（待實作）
     }, 30);
   }
@@ -454,6 +545,7 @@ const SolArc = (() => {
     init,
     offerSpareSol,          // Day 5 戰勝後 hook
     applyMoneySkim,         // Stats.modMoney 內部呼叫
+    refreshDebtTrait: _refreshDebtTrait,   // 🆕 doctor_events / gambling 加 debt 後呼叫
     tryTarunQualifiedNotify,
     // debug
     _testSaveSolBranch: _playSaveSolBranch,

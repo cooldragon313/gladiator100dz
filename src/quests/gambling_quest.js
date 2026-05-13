@@ -57,7 +57,10 @@ const GamblingQuest = (() => {
     const p = Stats.player;
     const npc = teammates.getNPC(inviterId);
     const name = npc?.name || inviterId;
-    const hasMoney = (p.money || 0) >= 15;
+    // 🆕 2026-05-13：variable bet（5-30 銅/場）+ Hector 借錢
+    //   最低押 5、所以至少要 15 銅幣（3 場）或 Hector 願借
+    const minStake = 15;   // 5 × 3 場
+    const hasMoney = (p.money || 0) >= minStake;
 
     // 個性化對白
     const lines = _getInviteLines(inviterId, name);
@@ -118,73 +121,111 @@ const GamblingQuest = (() => {
   function _showInviteChoice(inviterId, name, hasMoney) {
     if (typeof ChoiceModal === 'undefined') return;
     const p = Stats.player;
+
+    // 🆕 2026-05-13：variable bet（5/10/20/30）+ 赫克特高利貸選項
+    const choices = [];
+    [5, 10, 20, 30].forEach(stake => {
+      const needCash = stake * 3;
+      const canPay = (p.money || 0) >= needCash;
+      choices.push({
+        id: 'bet_' + stake,
+        label: `押 ${stake} 銅 / 場`,
+        hint: canPay ? `三場共 ${needCash} 銅` : `錢不夠（需 ${needCash}、有 ${p.money || 0}）`,
+        _disabled: !canPay,
+        effects: [],
+        resultLog: `${name}: 「⋯⋯來、看你眼力。」`,
+        logColor: '#c8a060',
+      });
+    });
+
+    // 赫克特高利貸（沒錢時、好感 ≥ 5 才出現）
+    const hectorAff = (typeof teammates !== 'undefined' && teammates.getAffection)
+      ? teammates.getAffection('hector') : 0;
+    const hectorMaxLoan = Math.max(0, hectorAff);
+    const showHectorLoan = !hasMoney && hectorMaxLoan >= 5;
+    if (showHectorLoan) {
+      choices.push({
+        id: 'hector_loan',
+        label: `🐍 跟赫克特借（最多 ${hectorMaxLoan} 銅、利息 ×3）`,
+        hint: '賠了 debt += 賠額 × 3、贏了給赫克特一成',
+        effects: [],
+        resultLog: '赫克特嘿嘿一笑：「⋯⋯我借你。賠了算我帳上、利息三倍。」',
+        logColor: '#9a5a3a',
+      });
+    }
+
+    choices.push({
+      id: 'decline',
+      label: '不了，累了，睡了。',
+      hint: '退出',
+      effects: [],
+      resultLog: `${name}: 「⋯⋯隨你。」`,
+      logColor: '#9a8866',
+    });
+
     ChoiceModal.show({
       id: 'gambling_invite_' + inviterId,
       icon: '🎲',
       title: `${name} 邀你賭一把`,
-      body: '三場、一場 5 銅。\n猜對你拿、猜錯他拿。\n全勝有額外好處。',
+      body: '三場、押多少自己挑。\n猜對你拿、猜錯他拿。\n全勝有額外好處。',
       forced: true,
-      choices: [
-        {
-          id: 'play',
-          label: '賭！',
-          hint: hasMoney ? '進入小遊戲' : `錢不夠（需 15、有 ${p.money || 0}）`,
-          _disabled: !hasMoney,
-          effects: [],
-          resultLog: `${name}: 「⋯⋯來、看你眼力。」`,
-          logColor: '#c8a060',
-        },
-        {
-          id: 'no_money',
-          label: '⋯⋯我沒錢。',
-          hint: '（被嫌棄）',
-          requireFlag: null,   // 任何人都能選（即使有錢也能說「沒錢」推託）
-          effects: [
-            { type: 'affection', key: inviterId, delta: -1 },
-          ],
-          resultLog: `${name}: 「⋯⋯廢物。連賭都沒本錢。」`,
-          logColor: '#cc6633',
-        },
-        {
-          id: 'decline',
-          label: '不了，累了，睡了。',
-          hint: '退出、不影響任何狀態',
-          effects: [],
-          resultLog: `${name}: 「⋯⋯隨你。」`,
-          logColor: '#9a8866',
-        },
-      ],
+      choices,
     }, {
       onChoose: (choiceId) => {
-        if (choiceId === 'play' && hasMoney) {
-          _startMinigame(inviterId, name);
+        if (choiceId.startsWith('bet_')) {
+          const stake = parseInt(choiceId.replace('bet_', ''), 10);
+          _startMinigame(inviterId, name, stake, false);
+        } else if (choiceId === 'hector_loan') {
+          _startMinigame(inviterId, name, 5, true);   // 借錢時固定 5/場
         }
       }
     });
   }
 
-  function _startMinigame(inviterId, name) {
+  function _startMinigame(inviterId, name, stake, isHectorLoan) {
     if (typeof ShellsGame === 'undefined') {
       _log('（小遊戲模組未載入。）', '#cc6633', true);
       return;
     }
     const npc = teammates.getNPC(inviterId);
-    const oppDEX = (npc && npc.favoredAttr === 'DEX') ? 25 : 15;
+    const oppDEX = (npc && npc.favoredAttr === 'DEX') ? 28 : 18;   // 🆕 +3 對手 DEX、難度提升
     const playerDEX = (typeof Stats.eff === 'function') ? Stats.eff('DEX') : 10;
 
     ShellsGame.play({
       oppDEX,
       playerDEX,
       rounds: 3,
-      onComplete: ({ wins, losses }) => _settle(inviterId, name, wins, losses),
+      onComplete: ({ wins, losses }) => _settle(inviterId, name, wins, losses, stake, isHectorLoan),
     });
   }
 
-  function _settle(inviterId, name, wins, losses) {
+  function _settle(inviterId, name, wins, losses, stake, isHectorLoan) {
     const p = Stats.player;
-    // 賭金結算（每場 5）
-    const moneyDelta = wins * 5 - losses * 5;
-    Stats.modMoney(moneyDelta);
+    stake = stake || 5;
+    // 🆕 2026-05-13：variable stake + Hector loan 結算
+    let moneyDelta;
+    if (isHectorLoan) {
+      const grossWin  = wins * stake;
+      const grossLoss = losses * stake;
+      const hectorCut = Math.round(grossWin * 0.10);
+      const debtAdd   = grossLoss * 3;
+      if (debtAdd > 0 && typeof Flags !== 'undefined') {
+        const oldDebt = Flags.get('debt_to_master', 0);
+        Flags.set('debt_to_master', oldDebt + debtAdd);
+        Flags.set('master_skim_active', true);
+        _log(`✦ 賭輸 ${grossLoss}、赫克特高利貸記主人帳：debt +${debtAdd}（剩 ${oldDebt + debtAdd} 還清）`, '#aa6666', true);
+        if (typeof SolArc !== 'undefined' && SolArc.refreshDebtTrait) SolArc.refreshDebtTrait();
+      }
+      moneyDelta = grossWin - hectorCut;
+      Stats.modMoney(moneyDelta);
+      if (hectorCut > 0) {
+        _log(`✦ 贏 ${grossWin}、分赫克特 ${hectorCut} 銅（你淨拿 ${moneyDelta}）`, '#9a5a3a', true);
+        if (typeof teammates !== 'undefined') teammates.modAffection('hector', +1);
+      }
+    } else {
+      moneyDelta = wins * stake - losses * stake;
+      Stats.modMoney(moneyDelta);
+    }
 
     if (wins === 3) {
       // 全勝

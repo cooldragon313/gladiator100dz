@@ -647,6 +647,8 @@ const DoctorEvents = (() => {
       const oldDebt = Flags.get('debt_to_master', 0);
       Flags.set('debt_to_master', oldDebt + debtBilled);
       _log(`✦ 主人替你付了 ${cost} 金、但要你還 ${debtBilled}（剩 ${oldDebt + debtBilled} 還清）`, '#aa6666', true);
+      // 🆕 2026-05-13 加 debt 後 refresh 債務纏身特性
+      if (typeof SolArc !== 'undefined' && SolArc.refreshDebtTrait) SolArc.refreshDebtTrait();
     } else if (playerMoney < cost) {
       _log(`——錢不夠（需 ${cost} 金）。老默把器械放回桌上，沒說話。`, '#cc3333', true);
       if (typeof SoundManager !== 'undefined') SoundManager.playSynth('debuff');
