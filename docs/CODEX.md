@@ -2,7 +2,7 @@
 
 > 查找所有精緻做的東西 — 特性、書、origin、傷勢、見識、旗標、數字。
 > 來源：config.js / books.js / origins.js / wounds.js / stats.js 實際程式碼
-> 最後更新：2026-05-11（索爾存活 5 階段 spec — 救索爾 → 100 銅幣債 → 義肢 → 三賤客 → 結局忠誠變體 + 買自由結局、待實作）
+> 最後更新：2026-05-13（Sol Arc Phase 1 落地 + 赫克特高利貸 + 債務纏身特性 + 強制勞務 + UI 債務名單）
 
 ---
 
@@ -58,6 +58,8 @@
 | `brave` | 勇敢 | 戰鬥首回合 ATK +10% / 抵抗絕望 | 戰鬥事件累積 |
 | `partial_literate` | 粗識文字 | 解鎖少數文字對話選項（傻福玩家專用中間態）| 傻福半醒期選擇停留 |
 | `streetwise` 🆕 | 會生存的（暫定）| **TBD**（候選：戰前可逃跑選項 / 黑市對話加成 / 詭異名聲累積 +20%）| 累積使用赫克特黑市破壞型服務 ≥ 5 次（spec 待實作）|
+| `debt_ridden` 🆕 | 債務纏身 | 訓練 +10% / 戰鬥首回 +10% / 跑腿 +20% / mood 下限 -10 / 心情恢復 -20% | 主人 + 赫克特債務合計 ≥ 500 自動掛、=0 自動移除（救索爾路線）|
+| `debt_crushed` 🆕 | 債務纏身（絕望）| 上述效果加倍（+20/+20/+30/-20/-40%）| 合計 ≥ 1000 自動升級、取代 `debt_ridden` |
 
 #### 負面（Negative）
 
@@ -664,6 +666,9 @@ player.wounds.head = null | { severity:1-3, daysElapsed } | { special:'concussio
 | `sol_recovering` | 索爾養傷中（Day 5-15）| 救索爾時設、Day 15 unset |
 | `sol_recovery_start_day` | 養傷開始日（=5）| 用來算 +10 天醒來 |
 | `debt_to_master` | 對主人債務數字（初始 200 = 100 買價 + 100 罰金）| 任何 modMoney(+) 扣到 0 為止 |
+| 🆕 `hector_loan_debt` | 赫克特高利貸債務（獨立於主人債、主人清完才開始扣）| 賭場借款時設、每 7 天 ×1.3 |
+| 🆕 `hector_loan_last_compound_day` | 上次利滾利的天數 | 用來算下一次 ×1.3 時機 |
+| 🆕 `forced_labor_day_{N}` | 第 N 天已派強制勞務（一日一次）| 主人苦力觸發後 |
 | `master_skim_active` | 私財扣抵中 | 與 debt_to_master 同步、債清歸 unset |
 | `master_debt_cleared` | 永久旗標、還清過 | 演出觸發後設 |
 | `sol_grateful_oath` | 索爾感激誓言（Day 15 醒）| Phase 2 啟動 |

@@ -208,6 +208,87 @@ html, body {
 <div id="wrapper">
 
   <!-- ══════════════════════════════════════════════════════
+       2026-05-13 Sol Arc Phase 1 擴展 — 賒帳 / 高利貸 / 強制勞務 / 債務纏身
+  ═══════════════════════════════════════════════════════ -->
+  <div class="version-block">
+    <div class="version-header">
+      <span class="version-tag new">SYSTEM + NEW + FIX</span>
+      <span class="version-title">Sol Arc Phase 1 擴展：老默賒帳 + 赫克特高利貸（借 ×2、週 ×1.3） + 反抗戰鬥 + 強制勞務 + 債務纏身特性</span>
+      <span class="version-date">2026-05-13</span>
+    </div>
+    <div class="version-line"></div>
+    <ul class="change-list">
+      <li class="change-item">
+        <span class="change-badge badge-fix">FIX</span>
+        <span class="change-text"><strong>救索爾兩個關鍵 bug 修</strong>
+          <span class="file-tag">src/quests/sol_arc.js / src/core/day_cycle.js / src/main.js</span>
+          — bug 1：救索爾後錢包還有 24G、不合邏輯。修：主人沒收身上現有錢抵債（min(wallet, 200)）、若 ≥ 200 直接還清。
+          bug 2：選完「了結 / 讓他活著」後跳出奧蘭跌倒 200 下蓋掉沙洗。修：加 day_story_claimed flag 機制、
+          DayCycle.fireDayStart 檢查、_scanStoryEvents check 旗、腳本進行中所有隨機 reveal 都不再冒出。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text"><strong>老默賒帳機制（私財凍結期）</strong>
+          <span class="file-tag">src/npc/doctor_events.js</span>
+          — 玩家沒錢 + master_skim_active 時、老默賒帳治療、主人加倍敲詐（cost × 2 進 debt）。
+          對白：「⋯⋯沒錢？沒關係。主人讓我看著你、不是讓你死。賬記他頭上。」
+          解決私財凍結期受傷不能治療的 bug（user 反饋）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text"><strong>「債務纏身」特性兩段升級（A 型壓力激發潛能）</strong>
+          <span class="file-tag">src/core/config.js / src/quests/sol_arc.js</span>
+          — debt_ridden（合計 ≥ 500）：訓練 +10% / 戰鬥首回合 +10% / 跑腿 +20% / mood 下限 -10 / 心情恢復 -20%。
+          debt_crushed（合計 ≥ 1000、絕望版）：上述加倍。
+          主人 + 赫克特債務合計算 tier、自動套用 / 移除、清零自動解除。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text"><strong>賭博變動押注 5/10/20/30 + 速度提升</strong>
+          <span class="file-tag">src/quests/gambling_quest.js / src/minigames/shells_game.js</span>
+          — 之前固定 5 銅 / 場、改為可選押注 5/10/20/30 銅 / 場。
+          shells_game speedMult 0.9 → 0.85（每場再快 5%）、最快場 0.72 → 0.60（再快 17%）。
+          對手 oppDEX +3（難度提升）。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text"><strong>赫克特高利貸系統（沒錢才出現、借 ×2、週 ×1.3）</strong>
+          <span class="file-tag">src/quests/gambling_quest.js / sol_arc.js</span>
+          — 賭場沒錢時才出現「跟赫克特借」選項（user 反饋）。借錢額度 = 玩家對赫克特好感（aff 30 → max 借 30）。
+          借款 ×2 立刻變債務（借 30 → 欠 60）。寫入獨立 flag `hector_loan_debt`、跟主人債分開。
+          每 7 天利息 ×1.3（60 → 78 → 101 → 132...）。
+          modMoney skim chain：主人債清完才開始扣赫克特債。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-data">CONTENT</span>
+        <span class="change-text"><strong>赫克特週收事件：挨打 / 反抗 ChoiceModal</strong>
+          <span class="file-tag">src/quests/sol_arc.js _playHectorCollection / _playHectorBeating / _startHectorBattle</span>
+          — 每 7 天觸發、還不起 → 兩選一：
+          ⚔️ 挨打：HP 砍半 + mood -25 + shake-and-flash。對白「下次別讓我再來」。
+          🥊 反抗：Battle.startFromConfig vs 赫克特（STR18/DEX25/CON18/HP110）。
+          贏「不錯、有這身手不怕你還不完了」+ 利息照算。
+          輸「就這身手還反抗、欠扁！」+ HP=5 + mood -30 + shake-and-flash。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-system">SYSTEM</span>
+        <span class="change-text"><strong>強制勞務（主人苦力）</strong>
+          <span class="file-tag">src/quests/sol_arc.js tryMasterForcedLabor</span>
+          — 凍結期 + debt ≥ 100 + 每天 8% 機率隨機派遣。
+          對白：侍從來、搬石頭一天。
+          效果：stamina -40 / debt -15 / STR+CON EXP +6。
+          設 day_story_claimed 不被其他事件搶。</span>
+      </li>
+      <li class="change-item">
+        <span class="change-badge badge-ui">UI</span>
+        <span class="change-text"><strong>角色頁債務名單</strong>
+          <span class="file-tag">game.html cs-debt-list / src/main.js _renderResources</span>
+          — 右欄金錢下加 cs-debt-list section、主人 / 赫克特債務分行顯示、合計為 0 時隱藏。
+          顏色：主人 #aa6666、赫克特 #9a5a3a。</span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
        2026-05-12 Sol Arc Phase 1 實作 + 顏色 audit
   ═══════════════════════════════════════════════════════ -->
   <div class="version-block">
